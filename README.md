@@ -205,13 +205,12 @@ The project will use the following DevOps tools and processes (aligned with the 
 ---
 
 ## 👥 Team
-**Sub-Team Leader:** [TODO: Name]  
+**Sub-Team Leader:** Eyad Adel Mohamed 
 **Members:**  
-- [TODO: Name]  
-- [TODO: Name]  
-- [TODO: Name]  
-- [TODO: Name]  
-- [TODO: Name]  
+- Abdallah ibrahim 
+- Ali Mahmoud Ali  
+- Ali Mahmoud Ahmed 
+- Ahmed Reda
 
 **Weekly progress report day:** [TODO: Day]
 
