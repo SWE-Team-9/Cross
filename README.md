@@ -138,69 +138,12 @@ Streaming is a core experience; we implement a persistent player that survives n
 
 ---
 
-## ✅ Course / Implementation Constraints
-* **Messaging:** No group chats; only 1-to-1 direct messaging
-* **Comment replies:** Restricted to one level deep
-* **Message reactions:** Not implemented
-* **Testing:** Unit tests target >95% coverage
-* **Push policy:** avoid huge commits; push frequently; integration is graded
-
----
-
-## 🧪 Testing & Coverage (Target: >95% Unit Testing)
-* **Unit Tests:** `flutter_test`
-* **Mocking:** `mocktail` / `mockito`
-* **BLoC Tests:** `bloc_test`
-* **Coverage:** `flutter test --coverage`
-* **Integration Tests (optional but recommended):** `integration_test`
-* **Golden Tests (optional):** UI regression snapshots where helpful
-
----
-
-## 📝 Software Process & Quality Assurance Tools
-* **Version Control:** GitHub
-* **Task Management:** ----------------[TODO: Jira/Trello/GitHub Projects]-------------------------------
-* **Code Quality:** `flutter_lints`, `dart format`, `dart analyze`
-* **Documentation:** inline dartdoc for public APIs + clear module READMEs when needed
-
----
-
-## DevOps / Infrastructure
-
-The project will use the following DevOps tools and processes (aligned with the global workflow):
-
-- **Continuous Integration / Deployment:** GitHub Actions workflows for:
-  - Flutter: format + analyze + test + coverage
-  - Android: build APK/AAB (dev/staging/prod)
-  - iOS: build (IPA/archive) on macOS runners
-- **Branch protection rules:**
-  - `main` branch protected
-  - Pull requests required before merging
-  - 1–2 approvals required per PR
-  - CI checks must pass before merging
-  - Direct pushes restricted to maintainers/devops-team only (if necessary)
-- **Environment management:**
-  - `.env` files (local) + GitHub Secrets (CI)
-  - `--dart-define` / `flutter_dotenv` for base URLs and feature flags
-- **Testing / QA team:** reviews PRs and executes E2E coverage for cross-platform flows
-
----
-
 ## 🤝 Team Connections (Integration Owners)
 
 - **Backend Team:** API contract (Swagger/Postman), auth strategy, streaming endpoints, websocket events, notifications triggers
 - **Frontend Team:** UX parity, naming consistency, shared business rules (limits, permissions)
 - **Testing Team:** stable widget keys/selectors, deterministic test accounts/seeds, reproducible flows
 - **DevOps Team:** CI/CD setup, secrets/env handling, release artifacts, FCM setup for push
-
----
-
-## 📄 Attribution & Licensing
-- Any external code/resources must be explicitly acknowledged:
-  - inside source code comments
-  - in this README
-  - and in final project documentation
-- All third-party dependencies must be license-checked (commercial restrictions must be stated).
 
 ---
 
@@ -211,8 +154,6 @@ The project will use the following DevOps tools and processes (aligned with the 
 - Ali Mahmoud Ali  
 - Ali Mahmoud Ahmed 
 - Ahmed Reda
-
-**Weekly progress report day:** [TODO: Day]
 
 ---
 
