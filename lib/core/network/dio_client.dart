@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 
 class DioClient {
   late final Dio dio;
-  
+
   DioClient({required String baseUrl}) {
     dio = Dio(BaseOptions(
       baseUrl: baseUrl,
@@ -10,7 +10,7 @@ class DioClient {
       receiveTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
     ));
-    
+
     dio.interceptors.add(LogInterceptor(
       request: true,
       requestHeader: true,
