@@ -11,6 +11,9 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+*.bak
+*.orig
+*~
 
 # IntelliJ related
 *.iml
@@ -18,20 +21,68 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
 
 # Flutter/Dart/Pub related
 **/doc/api/
-**/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
 /build/
 /coverage/
+
+# Android
+android/.gradle/
+android/local.properties
+android/*.iml
+android/app/debug
+android/app/profile
+android/app/release
+android/app/.cxx/
+android/captures/
+
+# iOS
+ios/Pods/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/Flutter.podspec
+ios/Flutter/Flutter.framework
+ios/Podfile.lock
+ios/Runner.xcworkspace/xcuserdata/
+ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner/GeneratedPluginRegistrant.*
+ios/ServiceDefinitions.json
+
+# macOS
+macos/Pods/
+macos/Flutter/Generated.xcconfig
+macos/Flutter/flutter_export_environment.sh
+macos/Podfile.lock
+macos/Runner.xcworkspace/xcuserdata/
+macos/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+macos/Runner.xcodeproj/xcuserdata/
+macos/Runner/GeneratedPluginRegistrant.*
+
+# Linux
+linux/flutter/ephemeral/
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugin_registrant.h
+linux/flutter/generated_plugins.cmake
+
+# Windows
+windows/flutter/ephemeral/
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake
 
 # Symbolication related
 app.*.symbols
@@ -39,7 +90,54 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Environment files
+.env
+.env.local
+.env.dev
+.env.staging
+.env.prod
+*.env
+
+# Secrets
+*.key
+*.pem
+*.crt
+secrets.json
+credentials.json
+service-account.json
+
+# Test outputs
+/test-reports/
+/test-results/
+/scratch/
+/test/
+/coverage/
+
+# Web
+/web/firebase-messaging-sw.js
+/web/workbox-*.js
+/web/workbox-*.js.map
+
+# Firebase
+.firebase/
+.firebaserc
+firebase.json
+google-services.json
+GoogleService-Info.plist
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/README.md
+
+# Generated code
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+*.config.dart
+*.gr.dart
+
+# Dependency directories
+node_modules/
