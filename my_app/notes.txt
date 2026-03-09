@@ -1,0 +1,3 @@
+added 2 lines in the gradle.properties the build was having some crashes:
+    kotlin.incremental=false
+    kotlin.daemon.jvmargs=-Xmx2048m
