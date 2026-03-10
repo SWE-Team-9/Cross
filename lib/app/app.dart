@@ -8,7 +8,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     setupDependencies();
-    
+
     return MaterialApp.router(
       title: 'SoundCloud Clone',
       theme: ThemeData(
