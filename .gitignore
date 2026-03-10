@@ -110,7 +110,7 @@ service-account.json
 /test-reports/
 /test-results/
 /scratch/
-/test/
+#/test/
 /coverage/
 
 # Web
