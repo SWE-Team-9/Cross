@@ -65,11 +65,14 @@ class JustAudioPlayerService implements AudioPlayerService {
   @override
   Future<void> play(String url) async {
     try {
-      _updateState(
-        _currentState.copyWith(status: PlayerStatus.loading),
-      );
+      if (_currentState.status == PlayerStatus.idle) {
+        _updateState(
+          _currentState.copyWith(status: PlayerStatus.loading),
+        );
 
-      await _player.setUrl(url);
+        await _player.setUrl(url);
+      }
+
       await _player.play();
     } catch (e) {
       _updateState(
