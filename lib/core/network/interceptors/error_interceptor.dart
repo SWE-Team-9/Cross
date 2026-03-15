@@ -7,7 +7,7 @@ class ErrorInterceptor extends Interceptor {
     print('Dio Error: ${err.message}');
     print('Status Code: ${err.response?.statusCode}');
     print('Response: ${err.response?.data}');
-    
+
     handler.next(err);
   }
 }

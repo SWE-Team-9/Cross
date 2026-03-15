@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
-class LoggingInterceptor extends Interceptor {  // ← Changed from ErrorInterceptor to LoggingInterceptor
+class LoggingInterceptor extends Interceptor {
+  // ← Changed from ErrorInterceptor to LoggingInterceptor
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     print('Request: ${options.method} ${options.path}');
