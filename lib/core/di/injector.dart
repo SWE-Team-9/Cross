@@ -7,14 +7,18 @@ final getIt = GetIt.instance;
 
 void setupDependencies() {
   // Register core services
-  getIt.registerSingleton<DioClient>(
-    DioClient(baseUrl: const String.fromEnvironment('API_URL')),
-  );
+  if (!getIt.isRegistered<DioClient>()) {
+    getIt.registerSingleton<DioClient>(
+      DioClient(baseUrl: const String.fromEnvironment('API_URL')),
+    );
+  }
 
   // Register audio player service
-  getIt.registerLazySingleton<AudioPlayerService>(
-    () => JustAudioPlayerService(),
-  );
+  if (!getIt.isRegistered<AudioPlayerService>()) {
+    getIt.registerLazySingleton<AudioPlayerService>(
+      () => JustAudioPlayerService(),
+    );
+  }
 
   // Feature dependencies will be added here as we build them
 }
