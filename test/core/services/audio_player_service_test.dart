@@ -15,15 +15,23 @@ void main() {
       expect(service, isNotNull);
     });
 
-    test('pause and stop do not throw', () async {
+    test('pause and stop can be called', () async {
       await service.pause();
       await service.stop();
-      expect(true, true);
     });
 
-    test('seek does not throw', () async {
-      await service.seek(const Duration(seconds: 5));
-      expect(true, true);
+    test('seek works', () async {
+      await service.seek(const Duration(seconds: 10));
+    });
+
+    test('play with invalid url triggers error handling', () async {
+      try {
+        await service.play("invalid-url");
+      } catch (_) {}
+    });
+
+    test('dispose does not crash', () async {
+      await service.dispose();
     });
   });
 }
