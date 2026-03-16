@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../core/di/injector.dart';
+import '../features/upload/presentation/bloc/uploadPickerCubit.dart';
+import '../features/upload/presentation/pages/UploadPickerPage.dart';
 
 // Temporary placeholder widgets until real pages are created
 class LoginPage extends StatelessWidget {
@@ -40,6 +45,14 @@ final router = GoRouter(
       path: '/home',
       name: 'home',
       builder: (context, state) => const HomePage(),
+    ),
+    GoRoute(
+      path: '/upload-picker',
+      name: 'upload-picker',
+      builder: (context, state) => BlocProvider<UploadPickerCubit>(
+        create: (_) => getIt<UploadPickerCubit>(),
+        child: const UploadPickerPage(),
+      ),
     ),
   ],
 );
