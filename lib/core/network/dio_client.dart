@@ -55,5 +55,46 @@ class DioClient {
     }
   }
 
-  // Add put, delete, etc.
+  // put
+  Future<Response> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await dio.put(path, data: data, queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ErrorMapper.mapDioErrorToFailure(e);
+    }
+  }
+
+  //delete
+  Future<Response> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await dio.delete(path, data: data, queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ErrorMapper.mapDioErrorToFailure(e);
+    }
+  }
+
+  //patch
+    Future<Response> patch(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await dio.patch(path, data: data, queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ErrorMapper.mapDioErrorToFailure(e);
+    }
+  }
+  
 }
