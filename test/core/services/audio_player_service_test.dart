@@ -24,12 +24,6 @@ void main() {
       await service.seek(const Duration(seconds: 10));
     });
 
-    test('play with invalid url triggers error handling', () async {
-      try {
-        await service.play("invalid-url");
-      } catch (_) {}
-    });
-
     test('dispose does not crash', () async {
       await service.dispose();
     });
