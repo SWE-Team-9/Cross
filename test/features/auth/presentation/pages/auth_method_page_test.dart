@@ -234,7 +234,8 @@ void main() {
       await tester.pumpWidget(buildTestableWidget(router: router));
       await tester.pumpAndSettle();
 
-      expect(find.text('Create Password Page test@example.com'), findsOneWidget);
+      expect(
+          find.text('Create Password Page test@example.com'), findsOneWidget);
     });
 
     testWidgets('navigates to home when state is AuthAuthenticated',

@@ -86,8 +86,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                                     if (_formKey.currentState!.validate()) {
                                       context.read<AuthCubit>().verifyEmail(
                                             email: widget.email,
-                                            code:
-                                                _codeController.text.trim(),
+                                            code: _codeController.text.trim(),
                                           );
                                     }
                                   },

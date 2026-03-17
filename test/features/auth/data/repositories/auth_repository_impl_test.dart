@@ -72,8 +72,7 @@ void main() {
       when(() => mockAuthResponseDto.token).thenReturn(token);
       when(() => mockAuthResponseDto.user).thenReturn(mockUserDto);
       when(() => mockUserDto.toEntity()).thenReturn(testUser);
-      when(() => mockLocalDataSource.saveToken(token))
-          .thenAnswer((_) async {});
+      when(() => mockLocalDataSource.saveToken(token)).thenAnswer((_) async {});
 
       final result = await repository.login(
         email: email,
@@ -122,8 +121,7 @@ void main() {
       when(() => mockAuthResponseDto.token).thenReturn(token);
       when(() => mockAuthResponseDto.user).thenReturn(mockUserDto);
       when(() => mockUserDto.toEntity()).thenReturn(testUser);
-      when(() => mockLocalDataSource.saveToken(token))
-          .thenAnswer((_) async {});
+      when(() => mockLocalDataSource.saveToken(token)).thenAnswer((_) async {});
 
       final result = await repository.register(
         email: email,
@@ -167,8 +165,7 @@ void main() {
 
       await repository.forgotPassword(email: email);
 
-      verify(() => mockRemoteDataSource.forgotPassword(email: email))
-          .called(1);
+      verify(() => mockRemoteDataSource.forgotPassword(email: email)).called(1);
     });
   });
 
@@ -294,8 +291,7 @@ void main() {
     });
 
     test('returns mapped user when token exists', () async {
-      when(() => mockLocalDataSource.getToken())
-          .thenAnswer((_) async => token);
+      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => token);
       when(() => mockRemoteDataSource.completeProfile(
             token: token,
             displayName: displayName,
@@ -356,8 +352,7 @@ void main() {
     });
 
     test('returns mapped user when token exists', () async {
-      when(() => mockLocalDataSource.getToken())
-          .thenAnswer((_) async => token);
+      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => token);
       when(() => mockRemoteDataSource.getCurrentUser(token: token))
           .thenAnswer((_) async => mockUserDto);
       when(() => mockUserDto.toEntity()).thenReturn(testUser);

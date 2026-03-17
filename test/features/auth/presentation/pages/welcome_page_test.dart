@@ -64,8 +64,7 @@ void main() {
       expect(find.text('Auth Method Page'), findsOneWidget);
     });
 
-    testWidgets('navigates to auth method when tapping Log in',
-        (tester) async {
+    testWidgets('navigates to auth method when tapping Log in', (tester) async {
       final router = GoRouter(
         initialLocation: '/welcome',
         routes: [

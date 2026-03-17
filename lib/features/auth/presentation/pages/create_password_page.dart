@@ -257,7 +257,8 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
                             return 'Please confirm your password';
                           }
 
-                          if (confirmPassword != passwordController.text.trim()) {
+                          if (confirmPassword !=
+                              passwordController.text.trim()) {
                             return 'Passwords do not match';
                           }
 

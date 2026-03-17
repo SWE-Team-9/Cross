@@ -73,9 +73,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     //final dto = CheckEmailResponseDto.fromJson(response.data);
     //return dto.exists;
 
-    final responseData = response.data is String 
-        ? jsonDecode(response.data) 
-        : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
 
     final dto = CheckEmailResponseDto.fromJson(responseData);
     return dto.exists;
@@ -93,12 +92,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'password': password,
       },
     );
-     final responseData = response.data is String 
-        ? jsonDecode(response.data) 
-        : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
 
     return AuthResponseDto.fromJson(responseData);
-   
   }
 
   @override
@@ -114,9 +111,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       },
     );
 
-    final responseData = response.data is String 
-        ? jsonDecode(response.data) 
-        : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
 
     return AuthResponseDto.fromJson(responseData);
   }
@@ -199,11 +195,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       ),
     );
-final responseData = response.data is String 
-        ? jsonDecode(response.data) 
-        : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
 
- 
     return UserDto.fromJson(responseData);
   }
 
