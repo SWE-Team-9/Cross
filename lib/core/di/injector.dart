@@ -6,15 +6,26 @@ import '../../features/upload/domain/repositories/uploadRepository.dart';
 import '../../features/upload/domain/usecases/pickAudioFileUseCase.dart';
 import '../../features/upload/presentation/bloc/uploadPickerCubit.dart';
 import '../network/dio_client.dart';
+import '../services/audio_player_service.dart';
+import '../services/implementations/just_audio_player_service.dart';
 
 final getIt = GetIt.instance;
 
 void setupDependencies() {
   // Register core services
   if (!getIt.isRegistered<DioClient>()) {
+    if (!getIt.isRegistered<DioClient>()) {
     getIt.registerSingleton<DioClient>(
-      DioClient(baseUrl: const String.fromEnvironment('API_URL')),
+        DioClient(baseUrl: const String.fromEnvironment('API_URL')),
+      );
+  }
+
+  // Register audio player service
+  if (!getIt.isRegistered<AudioPlayerService>()) {
+    getIt.registerLazySingleton<AudioPlayerService>(
+      () => JustAudioPlayerService(),
     );
+  }
   }
 
   // Upload feature - T1.11 File Picker
