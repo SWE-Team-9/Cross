@@ -13,7 +13,8 @@ class FakeDioException extends Fake implements DioException {
 }
 
 // Mock ErrorInterceptorHandler
-class MockErrorInterceptorHandler extends Mock implements ErrorInterceptorHandler {}
+class MockErrorInterceptorHandler extends Mock
+    implements ErrorInterceptorHandler {}
 
 void main() {
   late AuthInterceptor authInterceptor;
@@ -27,7 +28,7 @@ void main() {
   setUp(() {
     mockSecureStorage = MockSecureStorage();
     authInterceptor = AuthInterceptor(secureStorage: mockSecureStorage);
-    
+
     // Default mock behavior
     when(() => mockSecureStorage.read(any())).thenAnswer((_) async => null);
   });

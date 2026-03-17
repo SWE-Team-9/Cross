@@ -19,16 +19,16 @@ void main() {
 
   setUp(() {
     mockSecureStorage = MockSecureStorage();
-    
+
     //  Setup default mock behavior
     when(() => mockSecureStorage.read(any())).thenAnswer((_) async => null);
-    
+
     // Create DioClient with test URL
     dioClient = DioClient(
       baseUrl: testBaseUrl,
       secureStorage: mockSecureStorage,
     );
-    
+
     // Create DioAdapter for mocking responses
     dioAdapter = DioAdapter(dio: dioClient.dio);
   });
@@ -55,7 +55,7 @@ void main() {
     test('should perform GET request successfully', () async {
       const path = '/test';
       const responseData = {'message': 'success'};
-      
+
       dioAdapter.onGet(
         path,
         (server) => server.reply(200, responseData),
@@ -69,7 +69,7 @@ void main() {
 
     test('should throw mapped error on GET failure', () async {
       const path = '/test';
-      
+
       dioAdapter.onGet(
         path,
         (server) => server.reply(404, {'message': 'Not found'}),
@@ -87,7 +87,7 @@ void main() {
       const path = '/test';
       const requestData = {'name': 'test'};
       const responseData = {'id': 1, 'name': 'test'};
-      
+
       dioAdapter.onPost(
         path,
         (server) => server.reply(201, responseData),
@@ -106,7 +106,7 @@ void main() {
       const path = '/test/1';
       const requestData = {'name': 'updated'};
       const responseData = {'id': 1, 'name': 'updated'};
-      
+
       dioAdapter.onPut(
         path,
         (server) => server.reply(200, responseData),
@@ -123,7 +123,7 @@ void main() {
   group('DELETE requests', () {
     test('should perform DELETE request successfully', () async {
       const path = '/test/1';
-      
+
       dioAdapter.onDelete(
         path,
         (server) => server.reply(204, null),
@@ -140,7 +140,7 @@ void main() {
       const path = '/test/1';
       const requestData = {'name': 'patched'};
       const responseData = {'id': 1, 'name': 'patched'};
-      
+
       dioAdapter.onPatch(
         path,
         (server) => server.reply(200, responseData),
