@@ -61,7 +61,8 @@ void main() {
         final failure = ErrorMapper.mapDioErrorToFailure(error);
 
         expect(failure, isA<AuthFailure>());
-        expect(failure.message, 'Unauthorized. Please login again.'); // Match exact message
+        expect(failure.message,
+            'Unauthorized. Please login again.'); // Match exact message
       });
 
       test('should map 404 error to NotFoundFailure', () {
@@ -77,7 +78,8 @@ void main() {
         final failure = ErrorMapper.mapDioErrorToFailure(error);
 
         expect(failure, isA<NotFoundFailure>());
-        expect(failure.message, 'Resource not found'); // Remove the period to match
+        expect(failure.message,
+            'Resource not found'); // Remove the period to match
       });
 
       test('should map 422 error to ValidationFailure', () {

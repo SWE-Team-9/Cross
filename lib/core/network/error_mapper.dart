@@ -30,7 +30,8 @@ class ErrorMapper {
       case 401:
         return AuthFailure('Unauthorized. Please login again.');
       case 403:
-        return AuthFailure('You don\'t have permission to perform this action.');
+        return AuthFailure(
+            'You don\'t have permission to perform this action.');
       case 404:
         return NotFoundFailure('Resource not found');
       case 422:
@@ -41,7 +42,6 @@ class ErrorMapper {
         return ServerFailure('Server error. Please try again later.');
       default:
         return ServerFailure(_getErrorMessage(data) ?? 'Something went wrong');
-
     }
   }
 
@@ -50,7 +50,8 @@ class ErrorMapper {
       if (data.containsKey('message')) {
         return data['message'] as String;
       }
-      if (data.containsKey('error')) {    // ← Add this
+      if (data.containsKey('error')) {
+        // ← Add this
         return data['error'] as String;
       }
     }
