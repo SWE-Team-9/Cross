@@ -1,25 +1,23 @@
 import 'package:dio/dio.dart';
+
+import '../storage/secure_storage.dart';
+import 'error_mapper.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/error_interceptor.dart';
 import 'interceptors/logging_interceptor.dart';
-import 'error_mapper.dart';
-import '../storage/secure_storage.dart';
 
 class DioClient {
-  late final Dio dio;
-
   DioClient({
     required String baseUrl,
     required SecureStorage secureStorage,
-  }) {
-    dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {'Content-Type': 'application/json'},
-    ));
-
-    // Add interceptors in order
+  }) : dio = Dio(
+          BaseOptions(
+            baseUrl: baseUrl,
+            connectTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 30),
+            headers: const {'Content-Type': 'application/json'},
+          ),
+        ) {
     dio.interceptors.addAll([
       AuthInterceptor(secureStorage: secureStorage),
       ErrorInterceptor(),
@@ -27,74 +25,91 @@ class DioClient {
     ]);
   }
 
-  // Helper methods for common requests
-  Future<Response> get(
+  final Dio dio;
+
+  Future<Response<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
     try {
-      return await dio.get(path,
-          queryParameters: queryParameters, options: options);
+      return await dio.get<T>(
+        path,
+        queryParameters: queryParameters,
+        options: options,
+      );
     } on DioException catch (e) {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
   }
 
-  Future<Response> post(
+  Future<Response<T>> post<T>(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
     try {
-      return await dio.post(path,
-          data: data, queryParameters: queryParameters, options: options);
+      return await dio.post<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
     } on DioException catch (e) {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
   }
 
-  // put
-  Future<Response> put(
+  Future<Response<T>> put<T>(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
     try {
-      return await dio.put(path,
-          data: data, queryParameters: queryParameters, options: options);
+      return await dio.put<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
     } on DioException catch (e) {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
   }
 
-  //delete
-  Future<Response> delete(
+  Future<Response<T>> delete<T>(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
     try {
-      return await dio.delete(path,
-          data: data, queryParameters: queryParameters, options: options);
+      return await dio.delete<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
     } on DioException catch (e) {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
   }
 
-  //patch
-  Future<Response> patch(
+  Future<Response<T>> patch<T>(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
     try {
-      return await dio.patch(path,
-          data: data, queryParameters: queryParameters, options: options);
+      return await dio.patch<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
     } on DioException catch (e) {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
