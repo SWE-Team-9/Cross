@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/forgot_password_page.dart';
-import 'package:soundcloud_clone/features/auth/presentation/routes/auth_routes.dart';
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
@@ -53,10 +52,11 @@ void main() {
         ),
       );
 
-      expect(find.text('Forgot Password'), findsOneWidget);
-      expect(find.text('Email'), findsOneWidget);
-      expect(find.text('Send Reset Code'), findsOneWidget);
-      expect(find.byType(TextFormField), findsOneWidget);
+      // تم التحديث لتطابق الـ UI الجديد
+      expect(find.text('Reset password'), findsOneWidget);
+      expect(find.text('Your email address'), findsOneWidget);
+      expect(find.text('Send reset link'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
       expect(find.byType(ElevatedButton), findsOneWidget);
     });
 
@@ -68,10 +68,11 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Send Reset Code'));
+      await tester.tap(find.text('Send reset link'));
       await tester.pump();
 
-      expect(find.text('Please enter your email'), findsOneWidget);
+      // تم تحديث رسالة الخطأ لتطابق الـ UI
+      expect(find.text('Please enter your email address'), findsOneWidget);
       verifyNever(() => authCubit.forgotPassword(email: any(named: 'email')));
     });
 
@@ -83,8 +84,8 @@ void main() {
         ),
       );
 
-      await tester.enterText(find.byType(TextFormField), 'test@example.com');
-      await tester.tap(find.text('Send Reset Code'));
+      await tester.enterText(find.byType(TextField), 'test@example.com');
+      await tester.tap(find.text('Send reset link'));
       await tester.pump();
 
       verify(() => authCubit.forgotPassword(email: 'test@example.com'))
@@ -111,28 +112,7 @@ void main() {
       expect(find.text('Something went wrong'), findsOneWidget);
     });
 
-    testWidgets(
-        'shows success snackbar and navigates to reset password page on success',
-        (tester) async {
-      final router = GoRouter(
-        initialLocation: '/forgot-password',
-        routes: [
-          GoRoute(
-            path: '/forgot-password',
-            builder: (context, state) => const ForgotPasswordPage(),
-          ),
-          GoRoute(
-            path: AuthRoutes.resetPassword,
-            builder: (context, state) {
-              final email = state.extra as String?;
-              return Scaffold(
-                body: Text('Reset Password Page ${email ?? ''}'),
-              );
-            },
-          ),
-        ],
-      );
-
+    testWidgets('shows success snackbar on success', (tester) async {
       when(() => authCubit.state).thenReturn(AuthInitial());
       when(() => authCubit.stream).thenAnswer(
         (_) => Stream<AuthState>.fromIterable([
@@ -143,15 +123,14 @@ void main() {
       await tester.pumpWidget(
         buildTestableWidget(
           cubit: authCubit,
-          router: router,
+          child: const ForgotPasswordPage(),
         ),
       );
 
       await tester.pump();
-      expect(find.text('Reset code sent successfully'), findsOneWidget);
 
-      await tester.pumpAndSettle();
-      expect(find.text('Reset Password Page test@example.com'), findsOneWidget);
+      // تم تحديث رسالة النجاح لتطابق المكتوب في الـ UI
+      expect(find.text('Reset link sent to test@example.com!'), findsOneWidget);
     });
 
     testWidgets('shows loading indicator and disables button when loading',
