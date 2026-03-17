@@ -61,12 +61,11 @@ void main() {
         ),
       );
 
-      expect(find.text('Log in'), findsOneWidget);
-      expect(find.text('Your email address'), findsOneWidget);
+      expect(find.text('Welcome back!'), findsOneWidget);
+      expect(find.text('Your email address or profile URL'), findsOneWidget);
       expect(find.text('test@example.com'), findsOneWidget);
       expect(find.text('Continue'), findsOneWidget);
-      expect(find.text('Need help?'), findsOneWidget);
-      expect(find.text('Enter your password'), findsOneWidget);
+      expect(find.text('Forgot your password?'), findsOneWidget);
     });
 
     testWidgets('shows snackbar when password is empty', (tester) async {
@@ -199,6 +198,42 @@ void main() {
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets(
+        'navigates to forgot password page when "Forgot your password?" is tapped',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: '/login-password',
+        routes: [
+          GoRoute(
+            path: '/login-password',
+            builder: (context, state) =>
+                const LoginPasswordPage(email: 'test@example.com'),
+          ),
+          GoRoute(
+            path: '/forgot-password',
+            builder: (context, state) => const Scaffold(
+              body: Text('Forgot Password Page'),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        buildTestableWidget(
+          cubit: authCubit,
+          child: const SizedBox(),
+          router: router,
+        ),
+      );
+
+      expect(find.text('Forgot your password?'), findsOneWidget);
+      await tester.tap(find.text('Forgot your password?'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Forgot Password Page'), findsOneWidget);
     });
   });
 }
