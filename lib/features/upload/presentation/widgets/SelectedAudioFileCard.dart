@@ -12,10 +12,10 @@ class SelectedAudioFileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String pathText = pickedAudioFile.path == null ||
-            pickedAudioFile.path!.trim().isEmpty
-        ? 'Unavailable on this platform'
-        : pickedAudioFile.path!;
+    final String pathText =
+        pickedAudioFile.path == null || pickedAudioFile.path!.trim().isEmpty
+            ? 'Unavailable on this platform'
+            : pickedAudioFile.path!;
 
     return Card(
       child: Padding(
