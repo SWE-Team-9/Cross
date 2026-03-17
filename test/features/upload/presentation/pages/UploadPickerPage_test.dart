@@ -36,11 +36,9 @@ void main() {
     when(() => mockUploadPickerCubit.state)
         .thenReturn(const UploadPickerState());
 
-    when(() => mockUploadPickerCubit.pickAudioFile())
-        .thenAnswer((_) async {});
+    when(() => mockUploadPickerCubit.pickAudioFile()).thenAnswer((_) async {});
 
-    when(() => mockUploadPickerCubit.clearSelection())
-        .thenAnswer((_) {});
+    when(() => mockUploadPickerCubit.clearSelection()).thenAnswer((_) {});
   });
 
   testWidgets('renders initial state and triggers pickAudioFile on tap',
