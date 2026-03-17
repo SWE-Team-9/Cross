@@ -1,6 +1,12 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
+import '../../features/upload/data/repositories/uploadRepositoryImpl.dart';
+import '../../features/upload/domain/repositories/uploadRepository.dart';
+import '../../features/upload/domain/usecases/pickAudioFileUseCase.dart';
+import '../../features/upload/presentation/bloc/uploadPickerCubit.dart';
+
 // import '../../features/auth/data/datasources/auth_local_data_source.dart';
 // import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 // import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -18,68 +24,53 @@ import 'package:get_it/get_it.dart';
 // import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 // import '../../features/auth/presentation/bloc/auth_cubit.dart';
 import '../network/dio_client.dart';
+import '../services/audio_player_service.dart';
+import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
 
 final getIt = GetIt.instance;
 
 void setupDependencies() {
-  getIt.registerLazySingleton<FlutterSecureStorage>(
-    () => const FlutterSecureStorage(),
-  );
+  // Register core services
+  if (!getIt.isRegistered<DioClient>()) {
+    if (!getIt.isRegistered<DioClient>()) {
+      getIt.registerSingleton<DioClient>(
+        DioClient(baseUrl: const String.fromEnvironment('API_URL')),
+      );
+    }
 
-  getIt.registerLazySingleton<SecureStorage>(
-    () => SecureStorage(getIt<FlutterSecureStorage>()),
-  );
+    // Register audio player service
+    if (!getIt.isRegistered<AudioPlayerService>()) {
+      getIt.registerLazySingleton<AudioPlayerService>(
+        () => JustAudioPlayerService(),
+      );
+    }
+  }
 
-  getIt.registerLazySingleton<DioClient>(
-    () => DioClient(
-      baseUrl: 'https://ae735f51-ad9b-4187-bd88-52986fa6b324.mock.pstmn.io',
-      secureStorage: getIt<SecureStorage>(),
-    ),
-  );
+  // Upload feature - T1.11 File Picker
+  if (!getIt.isRegistered<AudioFilePickerDataSource>()) {
+    getIt.registerLazySingleton<AudioFilePickerDataSource>(
+      () => const AudioFilePickerDataSourceImpl(),
+    );
+  }
 
-  // getIt.registerLazySingleton<AuthRemoteDataSource>(
-  //   () => AuthRemoteDataSourceImpl(getIt<DioClient>()),
-  // );
+  if (!getIt.isRegistered<UploadRepository>()) {
+    getIt.registerLazySingleton<UploadRepository>(
+      () => UploadRepositoryImpl(getIt<AudioFilePickerDataSource>()),
+    );
+  }
 
-  // getIt.registerLazySingleton<AuthLocalDataSource>(
-  //   () => AuthLocalDataSourceImpl(getIt<SecureStorage>()),
-  // );
+  if (!getIt.isRegistered<PickAudioFileUseCase>()) {
+    getIt.registerLazySingleton<PickAudioFileUseCase>(
+      () => PickAudioFileUseCase(getIt<UploadRepository>()),
+    );
+  }
 
-  // getIt.registerLazySingleton<AuthRepository>(
-  //   () => AuthRepositoryImpl(
-  //     remoteDataSource: getIt<AuthRemoteDataSource>(),
-  //     localDataSource: getIt<AuthLocalDataSource>(),
-  //   ),
-  // );
-
-  // getIt.registerLazySingleton<CheckEmailExistsUseCase>(
-  //   () => CheckEmailExistsUseCase(getIt<AuthRepository>()),
-  // );
-
-  // getIt.registerLazySingleton<LoginUseCase>(
-  //   () => LoginUseCase(getIt<AuthRepository>()),
-  // );
-
-  // getIt.registerLazySingleton<RegisterUseCase>(
-  //   () => RegisterUseCase(getIt<AuthRepository>()),
-  // );
-
-  // getIt.registerLazySingleton<CompleteProfileUseCase>(
-  //   () => CompleteProfileUseCase(getIt<AuthRepository>()),
-  // );
-
-  // getIt.registerLazySingleton<LogoutUseCase>(
-  //   () => LogoutUseCase(getIt<AuthRepository>()),
-  // );
-
-  // getIt.registerLazySingleton<IsLoggedInUseCase>(
-  //   () => IsLoggedInUseCase(getIt<AuthRepository>()),
-  // );
-
-  // getIt.registerLazySingleton<GetCurrentUserUseCase>(
-  //   () => GetCurrentUserUseCase(getIt<AuthRepository>()),
-  // );
+  if (!getIt.isRegistered<UploadPickerCubit>()) {
+    getIt.registerFactory<UploadPickerCubit>(
+      () => UploadPickerCubit(getIt<PickAudioFileUseCase>()),
+    );
+  }
 
   // getIt.registerLazySingleton<ForgotPasswordUseCase>(
   //   () => ForgotPasswordUseCase(getIt<AuthRepository>()),
