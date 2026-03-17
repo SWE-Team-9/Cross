@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-// Temporary placeholder widgets until real pages are created
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+import '../features/auth/presentation/routes/auth_routes.dart';
 
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text('Login Page - Placeholder'),
-      ),
-    );
-  }
+class AppRoutes {
+  static const String home = '/home';
 }
 
 class HomePage extends StatelessWidget {
@@ -21,23 +13,26 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
+      backgroundColor: Colors.black,
       body: Center(
-        child: Text('Home Page - Placeholder'),
+        child: Text(
+          'Home Page',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+          ),
+        ),
       ),
     );
   }
 }
 
-final router = GoRouter(
-  initialLocation: '/login',
+final GoRouter router = GoRouter(
+  initialLocation: AuthRoutes.welcome,
   routes: [
+    ...AuthRoutes.routes,
     GoRoute(
-      path: '/login',
-      name: 'login',
-      builder: (context, state) => const LoginPage(),
-    ),
-    GoRoute(
-      path: '/home',
+      path: AppRoutes.home,
       name: 'home',
       builder: (context, state) => const HomePage(),
     ),
