@@ -23,7 +23,8 @@ void main() {
   });
 
   group('PickAudioFileUseCase', () {
-    test('should return PickedAudioFile when repository returns a file', () async {
+    test('should return PickedAudioFile when repository returns a file',
+        () async {
       when(() => mockUploadRepository.pickAudioFile())
           .thenAnswer((_) async => tPickedAudioFile);
 

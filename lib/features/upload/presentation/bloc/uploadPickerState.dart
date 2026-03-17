@@ -33,9 +33,8 @@ class UploadPickerState extends Equatable {
       pickedAudioFile: clearPickedAudioFile
           ? null
           : (pickedAudioFile ?? this.pickedAudioFile),
-      errorMessage: clearErrorMessage
-          ? null
-          : (errorMessage ?? this.errorMessage),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
     );
   }
 
