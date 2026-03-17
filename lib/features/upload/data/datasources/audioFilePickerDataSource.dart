@@ -13,10 +13,10 @@ class AudioFilePickerDataSourceImpl implements AudioFilePickerDataSource {
   @override
   Future<PickedAudioFileDto?> pickAudioFile() async {
     try {
-          final FilePickerResult? result = await FilePicker.platform.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
-            allowMultiple: false,
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['mp3', 'wav'],
+        allowMultiple: false,
       );
 
       if (result == null || result.files.isEmpty) {
