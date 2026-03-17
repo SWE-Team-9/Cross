@@ -32,7 +32,8 @@ void main() {
       );
     });
 
-    testWidgets('renders unavailable path when file path is null', (tester) async {
+    testWidgets('renders unavailable path when file path is null',
+        (tester) async {
       const pickedAudioFile = PickedAudioFile(
         name: 'song.wav',
         extension: 'wav',

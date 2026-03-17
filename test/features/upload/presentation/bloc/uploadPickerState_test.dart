@@ -30,7 +30,8 @@ void main() {
       );
     });
 
-    test('copyWith clears pickedAudioFile when clearPickedAudioFile is true', () {
+    test('copyWith clears pickedAudioFile when clearPickedAudioFile is true',
+        () {
       const state = UploadPickerState(
         status: UploadPickerStatus.success,
         pickedAudioFile: pickedAudioFile,
