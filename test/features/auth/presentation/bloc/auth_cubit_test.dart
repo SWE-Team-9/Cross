@@ -15,6 +15,7 @@ import 'package:soundcloud_clone/features/auth/domain/usecases/reset_password_us
 import 'package:soundcloud_clone/features/auth/domain/usecases/send_email_verification_usecase.dart';
 import 'package:soundcloud_clone/features/auth/domain/usecases/verify_email_usecase.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+
 class MockCheckEmailExistsUseCase extends Mock
     implements CheckEmailExistsUseCase {}
 
@@ -29,14 +30,11 @@ class MockLogoutUseCase extends Mock implements LogoutUseCase {}
 
 class MockIsLoggedInUseCase extends Mock implements IsLoggedInUseCase {}
 
-class MockGetCurrentUserUseCase extends Mock
-    implements GetCurrentUserUseCase {}
+class MockGetCurrentUserUseCase extends Mock implements GetCurrentUserUseCase {}
 
-class MockForgotPasswordUseCase extends Mock
-    implements ForgotPasswordUseCase {}
+class MockForgotPasswordUseCase extends Mock implements ForgotPasswordUseCase {}
 
-class MockResetPasswordUseCase extends Mock
-    implements ResetPasswordUseCase {}
+class MockResetPasswordUseCase extends Mock implements ResetPasswordUseCase {}
 
 class MockSendEmailVerificationUseCase extends Mock
     implements SendEmailVerificationUseCase {}
@@ -143,7 +141,8 @@ void main() {
       'emits [AuthLoading, AuthAuthenticated] when user is logged in and current user exists',
       build: () {
         when(() => mockIsLoggedInUseCase()).thenAnswer((_) async => true);
-        when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => testUser);
+        when(() => mockGetCurrentUserUseCase())
+            .thenAnswer((_) async => testUser);
         return authCubit;
       },
       act: (cubit) => cubit.checkAuthStatus(),
@@ -204,8 +203,8 @@ void main() {
       act: (cubit) => cubit.checkEmail(email: email),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: email check failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: email check failed')),
       ],
     );
   });
@@ -228,7 +227,8 @@ void main() {
             .having((state) => state.user, 'user', same(testUser)),
       ],
       verify: (_) {
-        verify(() => mockLoginUseCase(email: email, password: password)).called(1);
+        verify(() => mockLoginUseCase(email: email, password: password))
+            .called(1);
       },
     );
 
@@ -242,8 +242,8 @@ void main() {
       act: (cubit) => cubit.login(email: email, password: password),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: login failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: login failed')),
       ],
     );
   });
@@ -266,7 +266,8 @@ void main() {
             .having((state) => state.user, 'user', same(testUser)),
       ],
       verify: (_) {
-        verify(() => mockRegisterUseCase(email: email, password: password)).called(1);
+        verify(() => mockRegisterUseCase(email: email, password: password))
+            .called(1);
       },
     );
 
@@ -280,8 +281,8 @@ void main() {
       act: (cubit) => cubit.register(email: email, password: password),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: register failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: register failed')),
       ],
     );
   });
@@ -317,8 +318,8 @@ void main() {
       act: (cubit) => cubit.sendEmailVerification(email: email),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: send verification failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: send verification failed')),
       ],
     );
   });
@@ -340,7 +341,8 @@ void main() {
         isA<AuthEmailVerified>(),
       ],
       verify: (_) {
-        verify(() => mockVerifyEmailUseCase(email: email, code: code)).called(1);
+        verify(() => mockVerifyEmailUseCase(email: email, code: code))
+            .called(1);
       },
     );
 
@@ -354,8 +356,8 @@ void main() {
       act: (cubit) => cubit.verifyEmail(email: email, code: code),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: verify email failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: verify email failed')),
       ],
     );
   });
@@ -391,8 +393,8 @@ void main() {
       act: (cubit) => cubit.forgotPassword(email: email),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: forgot password failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: forgot password failed')),
       ],
     );
   });
@@ -447,8 +449,8 @@ void main() {
       ),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: reset password failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: reset password failed')),
       ],
     );
   });
@@ -518,8 +520,8 @@ void main() {
       ),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: complete profile failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: complete profile failed')),
       ],
     );
   });
@@ -550,8 +552,8 @@ void main() {
       act: (cubit) => cubit.logout(),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>()
-            .having((state) => state.message, 'message', contains('Exception: logout failed')),
+        isA<AuthError>().having((state) => state.message, 'message',
+            contains('Exception: logout failed')),
       ],
     );
   });

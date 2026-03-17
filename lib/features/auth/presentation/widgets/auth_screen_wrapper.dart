@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AuthScreenWrapper extends StatelessWidget
- {
+class AuthScreenWrapper extends StatelessWidget {
   final Widget child;
 
   const AuthScreenWrapper({

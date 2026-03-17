@@ -68,7 +68,8 @@ void main() {
       expect(find.byType(ElevatedButton), findsOneWidget);
     });
 
-    testWidgets('shows validation errors when fields are empty', (tester) async {
+    testWidgets('shows validation errors when fields are empty',
+        (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
           cubit: authCubit,
@@ -107,7 +108,8 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'Reset Password'));
       await tester.pump();
 
-      expect(find.text('Password must be at least 6 characters'), findsOneWidget);
+      expect(
+          find.text('Password must be at least 6 characters'), findsOneWidget);
 
       verifyNever(
         () => authCubit.resetPassword(
@@ -189,7 +191,8 @@ void main() {
       expect(find.text('Reset failed'), findsOneWidget);
     });
 
-    testWidgets('shows success snackbar and navigates to auth method on success',
+    testWidgets(
+        'shows success snackbar and navigates to auth method on success',
         (tester) async {
       final router = GoRouter(
         initialLocation: '/reset-password',

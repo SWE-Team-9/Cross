@@ -23,9 +23,11 @@ void main() {
   setUp(() {
     authCubit = MockAuthCubit();
     when(() => authCubit.state).thenReturn(AuthInitial());
-    when(() => authCubit.stream).thenAnswer((_) => const Stream<AuthState>.empty());
-    when(() => authCubit.login(email: any(named: 'email'), password: any(named: 'password')))
-        .thenAnswer((_) async {});
+    when(() => authCubit.stream)
+        .thenAnswer((_) => const Stream<AuthState>.empty());
+    when(() => authCubit.login(
+        email: any(named: 'email'),
+        password: any(named: 'password'))).thenAnswer((_) async {});
   });
 
   Widget buildTestableWidget({
@@ -103,7 +105,8 @@ void main() {
           )).called(1);
     });
 
-    testWidgets('toggles password visibility when suffix icon is tapped', (tester) async {
+    testWidgets('toggles password visibility when suffix icon is tapped',
+        (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
           cubit: authCubit,
@@ -141,7 +144,8 @@ void main() {
       expect(find.text('Invalid credentials'), findsOneWidget);
     });
 
-    testWidgets('navigates to home when state is AuthAuthenticated', (tester) async {
+    testWidgets('navigates to home when state is AuthAuthenticated',
+        (tester) async {
       final user = FakeUser();
 
       final router = GoRouter(
@@ -181,9 +185,11 @@ void main() {
       expect(find.text('Home Page'), findsOneWidget);
     });
 
-    testWidgets('shows loading indicator when state is AuthLoading', (tester) async {
+    testWidgets('shows loading indicator when state is AuthLoading',
+        (tester) async {
       when(() => authCubit.state).thenReturn(AuthLoading());
-      when(() => authCubit.stream).thenAnswer((_) => const Stream<AuthState>.empty());
+      when(() => authCubit.stream)
+          .thenAnswer((_) => const Stream<AuthState>.empty());
 
       await tester.pumpWidget(
         buildTestableWidget(

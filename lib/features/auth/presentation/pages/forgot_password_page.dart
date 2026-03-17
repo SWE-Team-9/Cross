@@ -31,9 +31,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           );
 
           context.push(
-  AuthRoutes.resetPassword,
-  extra: state.email,
-);
+            AuthRoutes.resetPassword,
+            extra: state.email,
+          );
         }
 
         if (state is AuthError) {

@@ -76,7 +76,8 @@ void main() {
       expect(find.text('Need help?'), findsOneWidget);
     });
 
-    testWidgets('shows validation errors when fields are empty', (tester) async {
+    testWidgets('shows validation errors when fields are empty',
+        (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
           cubit: authCubit,
@@ -98,7 +99,8 @@ void main() {
       );
     });
 
-    testWidgets('shows validation error when password is less than 8 characters',
+    testWidgets(
+        'shows validation error when password is less than 8 characters',
         (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
@@ -113,7 +115,8 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pump();
 
-      expect(find.text('Password must be at least 8 characters'), findsOneWidget);
+      expect(
+          find.text('Password must be at least 8 characters'), findsOneWidget);
 
       verifyNever(
         () => authCubit.register(
@@ -221,7 +224,8 @@ void main() {
       expect(find.text('Registration failed'), findsOneWidget);
     });
 
-    testWidgets('navigates to complete profile when state is AuthRegisterSuccess',
+    testWidgets(
+        'navigates to complete profile when state is AuthRegisterSuccess',
         (tester) async {
       final user = FakeUser();
 
