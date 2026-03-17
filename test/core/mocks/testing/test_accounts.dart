@@ -1,11 +1,10 @@
-
-
 class TestAccount {
   final String username;
   final String password;
   final String role; // artist, listener, premium
 
-  TestAccount({required this.username, required this.password, required this.role});
+  TestAccount(
+      {required this.username, required this.password, required this.role});
 }
 
 class TestAccounts {
