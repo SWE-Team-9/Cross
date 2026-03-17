@@ -15,17 +15,17 @@ void setupDependencies() {
   // Register core services
   if (!getIt.isRegistered<DioClient>()) {
     if (!getIt.isRegistered<DioClient>()) {
-    getIt.registerSingleton<DioClient>(
+      getIt.registerSingleton<DioClient>(
         DioClient(baseUrl: const String.fromEnvironment('API_URL')),
       );
-  }
+    }
 
-  // Register audio player service
-  if (!getIt.isRegistered<AudioPlayerService>()) {
-    getIt.registerLazySingleton<AudioPlayerService>(
-      () => JustAudioPlayerService(),
-    );
-  }
+    // Register audio player service
+    if (!getIt.isRegistered<AudioPlayerService>()) {
+      getIt.registerLazySingleton<AudioPlayerService>(
+        () => JustAudioPlayerService(),
+      );
+    }
   }
 
   // Upload feature - T1.11 File Picker
