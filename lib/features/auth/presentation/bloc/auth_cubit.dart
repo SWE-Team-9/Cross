@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:dio/dio.dart';
 
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/check_email_exists_usecase.dart';
@@ -12,6 +13,7 @@ import '../../domain/usecases/register_usecase.dart';
 import '../../domain/usecases/reset_password_usecase.dart';
 import '../../domain/usecases/send_email_verification_usecase.dart';
 import '../../domain/usecases/verify_email_usecase.dart';
+import '../../../../core/network/error_mapper.dart';
 
 part 'auth_state.dart';
 
@@ -44,118 +46,101 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> checkAuthStatus() async {
     emit(AuthLoading());
-
     try {
       final loggedIn = await isLoggedInUseCase();
-
       if (!loggedIn) {
         emit(AuthUnauthenticated());
         return;
       }
-
       final user = await getCurrentUserUseCase();
-
       if (user == null) {
         emit(AuthUnauthenticated());
         return;
       }
-
       emit(AuthAuthenticated(user));
     } catch (e) {
       emit(AuthUnauthenticated());
     }
   }
 
-  Future<void> checkEmail({
-    required String email,
-  }) async {
+  Future<void> checkEmail({required String email}) async {
     emit(AuthLoading());
-
     try {
       final exists = await checkEmailExistsUseCase(email: email);
-      emit(AuthEmailCheckSuccess(
-        exists: exists,
-        email: email,
-      ));
+      emit(AuthEmailCheckSuccess(exists: exists, email: email));
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> login({required String email, required String password}) async {
     emit(AuthLoading());
-
     try {
-      final user = await loginUseCase(
-        email: email,
-        password: password,
-      );
+      final user = await loginUseCase(email: email, password: password);
       emit(AuthAuthenticated(user));
+    } on DioException catch (e) {
+      // السحر هنا: لو الباسوورد غلط، الـ Mapper هيجيب الرسالة الصح
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 
-  Future<void> register({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> register(
+      {required String email, required String password}) async {
     emit(AuthLoading());
-
     try {
-      final user = await registerUseCase(
-        email: email,
-        password: password,
-      );
+      final user = await registerUseCase(email: email, password: password);
       emit(AuthRegisterSuccess(user));
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 
-  Future<void> sendEmailVerification({
-    required String email,
-  }) async {
+  Future<void> sendEmailVerification({required String email}) async {
     emit(AuthLoading());
-
     try {
       await sendEmailVerificationUseCase(email: email);
       emit(AuthVerificationEmailSent(email));
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 
-  Future<void> verifyEmail({
-    required String email,
-    required String code,
-  }) async {
+  Future<void> verifyEmail(
+      {required String email, required String code}) async {
     emit(AuthLoading());
-
     try {
-      await verifyEmailUseCase(
-        email: email,
-        code: code,
-      );
+      await verifyEmailUseCase(email: email, code: code);
       emit(AuthEmailVerified());
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 
-  Future<void> forgotPassword({
-    required String email,
-  }) async {
+  Future<void> forgotPassword({required String email}) async {
     emit(AuthLoading());
-
     try {
       await forgotPasswordUseCase(email: email);
       emit(AuthForgotPasswordSuccess(email));
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 
@@ -165,7 +150,6 @@ class AuthCubit extends Cubit<AuthState> {
     required String newPassword,
   }) async {
     emit(AuthLoading());
-
     try {
       await resetPasswordUseCase(
         email: email,
@@ -173,8 +157,11 @@ class AuthCubit extends Cubit<AuthState> {
         newPassword: newPassword,
       );
       emit(AuthResetPasswordSuccess());
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 
@@ -186,7 +173,6 @@ class AuthCubit extends Cubit<AuthState> {
     required String gender,
   }) async {
     emit(AuthLoading());
-
     try {
       final user = await completeProfileUseCase(
         displayName: displayName,
@@ -197,19 +183,21 @@ class AuthCubit extends Cubit<AuthState> {
       );
       emit(AuthProfileCompleted(user));
       emit(AuthAuthenticated(user));
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 
   Future<void> logout() async {
     emit(AuthLoading());
-
     try {
       await logoutUseCase();
       emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('An unexpected error occurred.'));
     }
   }
 }

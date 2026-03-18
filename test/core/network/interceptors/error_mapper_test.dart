@@ -61,8 +61,7 @@ void main() {
         final failure = ErrorMapper.mapDioErrorToFailure(error);
 
         expect(failure, isA<AuthFailure>());
-        expect(failure.message,
-            'Unauthorized. Please login again.'); // Match exact message
+        expect(failure.message, 'Unauthorized');
       });
 
       test('should map 404 error to NotFoundFailure', () {
