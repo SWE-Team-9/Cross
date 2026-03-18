@@ -94,7 +94,7 @@ void setupDependencies() {
   );
 
   getIt.registerLazySingleton<AuthLocalDataSource>(
-   () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+    () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
   );
 
   getIt.registerLazySingleton<AuthRepository>(

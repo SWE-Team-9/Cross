@@ -28,12 +28,12 @@ class ErrorMapper {
       case 400:
         return ValidationFailure(_getErrorMessage(data) ?? 'Bad request');
       case 401:
-        return AuthFailure('Unauthorized. Please login again.');
+        return AuthFailure(_getErrorMessage(data) ?? 'Wrong Email or Password');
       case 403:
-        return AuthFailure(
+        return AuthFailure(_getErrorMessage(data) ??
             'You don\'t have permission to perform this action.');
       case 404:
-        return NotFoundFailure('Resource not found');
+        return NotFoundFailure(_getErrorMessage(data) ?? 'Resource not found');
       case 422:
         return ValidationFailure(_getErrorMessage(data) ?? 'Validation failed');
       case 500:
@@ -51,7 +51,6 @@ class ErrorMapper {
         return data['message'] as String;
       }
       if (data.containsKey('error')) {
-        // ← Add this
         return data['error'] as String;
       }
     }

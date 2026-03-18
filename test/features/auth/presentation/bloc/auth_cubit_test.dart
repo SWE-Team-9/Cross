@@ -204,7 +204,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: email check failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
@@ -243,7 +243,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: login failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
@@ -282,7 +282,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: register failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
@@ -319,7 +319,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: send verification failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
@@ -357,7 +357,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: verify email failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
@@ -394,7 +394,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: forgot password failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
@@ -450,7 +450,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: reset password failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
@@ -521,7 +521,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: complete profile failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
@@ -553,7 +553,7 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((state) => state.message, 'message',
-            contains('Exception: logout failed')),
+            'An unexpected error occurred.'),
       ],
     );
   });
