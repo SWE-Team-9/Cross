@@ -1,22 +1,22 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
-// import '../../features/auth/data/datasources/auth_local_data_source.dart';
-// import '../../features/auth/data/datasources/auth_remote_data_source.dart';
-// import '../../features/auth/data/repositories/auth_repository_impl.dart';
-// import '../../features/auth/domain/repositories/auth_repository.dart';
-// import '../../features/auth/domain/usecases/check_email_exists_usecase.dart';
-// import '../../features/auth/domain/usecases/complete_profile_usecase.dart';
-// import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
-// import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
-// import '../../features/auth/domain/usecases/is_logged_in_usecase.dart';
-// import '../../features/auth/domain/usecases/login_usecase.dart';
-// import '../../features/auth/domain/usecases/logout_usecase.dart';
-// import '../../features/auth/domain/usecases/register_usecase.dart';
-// import '../../features/auth/domain/usecases/reset_password_usecase.dart';
-// import '../../features/auth/domain/usecases/send_email_verification_usecase.dart';
-// import '../../features/auth/domain/usecases/verify_email_usecase.dart';
-// import '../../features/auth/presentation/bloc/auth_cubit.dart';
+import '../../features/auth/data/datasources/auth_local_data_source.dart';
+import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/check_email_exists_usecase.dart';
+import '../../features/auth/domain/usecases/complete_profile_usecase.dart';
+import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
+import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
+import '../../features/auth/domain/usecases/is_logged_in_usecase.dart';
+import '../../features/auth/domain/usecases/login_usecase.dart';
+import '../../features/auth/domain/usecases/logout_usecase.dart';
+import '../../features/auth/domain/usecases/register_usecase.dart';
+import '../../features/auth/domain/usecases/reset_password_usecase.dart';
+import '../../features/auth/domain/usecases/send_email_verification_usecase.dart';
+import '../../features/auth/domain/usecases/verify_email_usecase.dart';
+import '../../features/auth/presentation/bloc/auth_cubit.dart';
 import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
 import '../../features/upload/data/repositories/uploadRepositoryImpl.dart';
 import '../../features/upload/domain/repositories/uploadRepository.dart';
@@ -89,78 +89,78 @@ void setupDependencies() {
     );
   }
 
-  // getIt.registerLazySingleton<AuthRemoteDataSource>(
-  //   () => AuthRemoteDataSourceImpl(getIt<DioClient>()),
-  // );
+  getIt.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(getIt<DioClient>()),
+  );
 
-  // getIt.registerLazySingleton<AuthLocalDataSource>(
-  //   () => AuthLocalDataSourceImpl(getIt<SecureStorage>()),
-  // );
+  getIt.registerLazySingleton<AuthLocalDataSource>(
+    () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+  );
 
-  // getIt.registerLazySingleton<AuthRepository>(
-  //   () => AuthRepositoryImpl(
-  //     remoteDataSource: getIt<AuthRemoteDataSource>(),
-  //     localDataSource: getIt<AuthLocalDataSource>(),
-  //   ),
-  // );
+  getIt.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(
+      remoteDataSource: getIt<AuthRemoteDataSource>(),
+      localDataSource: getIt<AuthLocalDataSource>(),
+    ),
+  );
 
-  // getIt.registerLazySingleton<CheckEmailExistsUseCase>(
-  //   () => CheckEmailExistsUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<CheckEmailExistsUseCase>(
+    () => CheckEmailExistsUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<LoginUseCase>(
-  //   () => LoginUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<LoginUseCase>(
+    () => LoginUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<RegisterUseCase>(
-  //   () => RegisterUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<RegisterUseCase>(
+    () => RegisterUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<CompleteProfileUseCase>(
-  //   () => CompleteProfileUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<CompleteProfileUseCase>(
+    () => CompleteProfileUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<LogoutUseCase>(
-  //   () => LogoutUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<LogoutUseCase>(
+    () => LogoutUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<IsLoggedInUseCase>(
-  //   () => IsLoggedInUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<IsLoggedInUseCase>(
+    () => IsLoggedInUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<GetCurrentUserUseCase>(
-  //   () => GetCurrentUserUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<GetCurrentUserUseCase>(
+    () => GetCurrentUserUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<ForgotPasswordUseCase>(
-  //   () => ForgotPasswordUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<ForgotPasswordUseCase>(
+    () => ForgotPasswordUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<ResetPasswordUseCase>(
-  //   () => ResetPasswordUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<ResetPasswordUseCase>(
+    () => ResetPasswordUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<SendEmailVerificationUseCase>(
-  //   () => SendEmailVerificationUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<SendEmailVerificationUseCase>(
+    () => SendEmailVerificationUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerLazySingleton<VerifyEmailUseCase>(
-  //   () => VerifyEmailUseCase(getIt<AuthRepository>()),
-  // );
+  getIt.registerLazySingleton<VerifyEmailUseCase>(
+    () => VerifyEmailUseCase(getIt<AuthRepository>()),
+  );
 
-  // getIt.registerFactory<AuthCubit>(
-  //   () => AuthCubit(
-  //     checkEmailExistsUseCase: getIt<CheckEmailExistsUseCase>(),
-  //     loginUseCase: getIt<LoginUseCase>(),
-  //     registerUseCase: getIt<RegisterUseCase>(),
-  //     completeProfileUseCase: getIt<CompleteProfileUseCase>(),
-  //     logoutUseCase: getIt<LogoutUseCase>(),
-  //     isLoggedInUseCase: getIt<IsLoggedInUseCase>(),
-  //     getCurrentUserUseCase: getIt<GetCurrentUserUseCase>(),
-  //     forgotPasswordUseCase: getIt<ForgotPasswordUseCase>(),
-  //     resetPasswordUseCase: getIt<ResetPasswordUseCase>(),
-  //     sendEmailVerificationUseCase: getIt<SendEmailVerificationUseCase>(),
-  //     verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
-  //   ),
-  // );
+  getIt.registerFactory<AuthCubit>(
+    () => AuthCubit(
+      checkEmailExistsUseCase: getIt<CheckEmailExistsUseCase>(),
+      loginUseCase: getIt<LoginUseCase>(),
+      registerUseCase: getIt<RegisterUseCase>(),
+      completeProfileUseCase: getIt<CompleteProfileUseCase>(),
+      logoutUseCase: getIt<LogoutUseCase>(),
+      isLoggedInUseCase: getIt<IsLoggedInUseCase>(),
+      getCurrentUserUseCase: getIt<GetCurrentUserUseCase>(),
+      forgotPasswordUseCase: getIt<ForgotPasswordUseCase>(),
+      resetPasswordUseCase: getIt<ResetPasswordUseCase>(),
+      sendEmailVerificationUseCase: getIt<SendEmailVerificationUseCase>(),
+      verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
+    ),
+  );
 }

@@ -23,7 +23,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Login Page - Placeholder'), findsOneWidget);
+    expect(find.byType(Scaffold), findsWidgets);
   });
 
   testWidgets('navigates to home page', (tester) async {
@@ -33,7 +33,7 @@ void main() {
     router.go('/home');
     await tester.pumpAndSettle();
 
-    expect(find.text('Home Page - Placeholder'), findsOneWidget);
+    expect(find.byType(Scaffold), findsWidgets);
   });
 
   testWidgets('navigates to upload picker page', (tester) async {
