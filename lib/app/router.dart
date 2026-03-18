@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../core/di/injector.dart';
+import '../features/upload/presentation/bloc/uploadPickerCubit.dart';
+import '../features/upload/presentation/pages/UploadPickerPage.dart';
 
 import '../features/auth/presentation/routes/auth_routes.dart';
 
@@ -35,6 +40,14 @@ final GoRouter router = GoRouter(
       path: AppRoutes.home,
       name: 'home',
       builder: (context, state) => const HomePage(),
+    ),
+    GoRoute(
+      path: '/upload-picker',
+      name: 'upload-picker',
+      builder: (context, state) => BlocProvider<UploadPickerCubit>(
+        create: (_) => getIt<UploadPickerCubit>(),
+        child: const UploadPickerPage(),
+      ),
     ),
   ],
 );
