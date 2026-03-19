@@ -14,7 +14,8 @@ class EditProfilePage extends StatelessWidget {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Edit Profile', style: TextStyle(color: Colors.white)),
+        title:
+            const Text('Edit Profile', style: TextStyle(color: Colors.white)),
       ),
       // TODO: Abdallah — replace with edit form (T2.4)
       body: const Center(

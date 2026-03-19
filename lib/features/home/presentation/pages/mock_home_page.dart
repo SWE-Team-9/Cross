@@ -20,7 +20,12 @@ class _MockHomePageState extends State<MockHomePage> {
   String _selectedGenre = 'ELECTRONIC';
 
   final _genres = const [
-    'ELECTRONIC', 'FOLK', 'HOUSE', 'TECHNO', 'POP', 'HIP-HOP',
+    'ELECTRONIC',
+    'FOLK',
+    'HOUSE',
+    'TECHNO',
+    'POP',
+    'HIP-HOP',
   ];
 
   @override
@@ -98,7 +103,7 @@ class _TopBar extends StatelessWidget {
                 color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
           ),
           const SizedBox(width: 12),
-          
+
           const Text(
             'GET PRO',
             style: TextStyle(
@@ -108,8 +113,8 @@ class _TopBar extends StatelessWidget {
                 letterSpacing: .5),
           ),
           const Spacer(),
-          
-          //  Profile Avatar 
+
+          //  Profile Avatar
           GestureDetector(
             onTap: () => ProfileRoutes.goToProfile(context, currentUserId),
             child: CircleAvatar(
@@ -117,13 +122,13 @@ class _TopBar extends StatelessWidget {
               backgroundColor: const Color(0xFFFF5500),
               child: const Text('EY',
                   style: TextStyle(
-                      color: Colors.white, 
+                      color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w600)),
             ),
           ),
           const SizedBox(width: 8), // Add spacing after avatar
-          
+
           _IconBtn(icon: Icons.cast, onTap: () {}),
           _IconBtn(
             icon: Icons.upload_outlined,
@@ -563,18 +568,12 @@ class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.selected, required this.onTap});
 
   static const _items = [
-    _NavItem(
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home,
-        label: 'Home'),
+    _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
     _NavItem(
         icon: Icons.grid_view_outlined,
         activeIcon: Icons.grid_view,
         label: 'Feed'),
-    _NavItem(
-        icon: Icons.search,
-        activeIcon: Icons.search,
-        label: 'Search'),
+    _NavItem(icon: Icons.search, activeIcon: Icons.search, label: 'Search'),
     _NavItem(
         icon: Icons.library_music_outlined,
         activeIcon: Icons.library_music,
@@ -613,8 +612,7 @@ class _BottomNav extends StatelessWidget {
                     Text(
                       item.label,
                       style: TextStyle(
-                        color:
-                            active ? Colors.white : const Color(0xFF555555),
+                        color: active ? Colors.white : const Color(0xFF555555),
                         fontSize: 10,
                       ),
                     ),

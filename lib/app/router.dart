@@ -37,7 +37,7 @@ class AppRoutes {
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: AuthRoutes.welcome,
-  
+
   routes: [
     // ── Auth (Sprint 1) ───────────────────────────────────────────
     ...AuthRoutes.routes,
