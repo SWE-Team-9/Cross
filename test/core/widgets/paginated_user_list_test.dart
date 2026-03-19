@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
 
 void main() {
-  Widget wrap(Widget child) =>
-      MaterialApp(home: Scaffold(body: child));
+  Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
   group('PaginatedUserList', () {
     testWidgets('shows spinner on first load', (tester) async {
@@ -18,16 +17,16 @@ void main() {
       );
 
       await tester.pumpWidget(wrap(widget));
-      
+
       // Verify spinner is shown immediately
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      
+
       // Wait for the Future to complete
       await tester.pump(const Duration(milliseconds: 100));
-      
+
       // Allow the widget to rebuild after Future completes
       await tester.pump();
-      
+
       // No more spinner
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
@@ -56,7 +55,7 @@ void main() {
       );
 
       await tester.pumpWidget(wrap(widget));
-      
+
       // Wait for the initial load to complete
       await tester.pumpAndSettle();
 
@@ -71,7 +70,7 @@ void main() {
       );
 
       await tester.pumpWidget(wrap(widget));
-      
+
       // Wait for the error to be processed
       await tester.pumpAndSettle();
 

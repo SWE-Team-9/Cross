@@ -11,10 +11,10 @@ import 'package:go_router/go_router.dart';
 /// ```
 abstract class ProfileRoutes {
   // ── Route path constants ──────────────────────────────────────────────────
-  static const String profile     = '/profile/:userId';
+  static const String profile = '/profile/:userId';
   static const String editProfile = '/profile/edit';
-  static const String followers   = '/followers/:userId';
-  static const String following   = '/following/:userId';
+  static const String followers = '/followers/:userId';
+  static const String following = '/following/:userId';
 
   // ── Navigation helpers ────────────────────────────────────────────────────
   // Use these instead of hardcoding path strings across the app.
