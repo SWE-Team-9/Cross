@@ -57,7 +57,8 @@ class WelcomePage extends StatelessWidget {
                   AuthButton(
                     text: 'Create an account',
                     onPressed: () {
-                      context.push(AuthRoutes.authMethod);
+                      // التوجيه لصفحة التسجيل الجديدة
+                      context.push(AuthRoutes.register);
                     },
                   ),
                   const SizedBox(height: 16),
@@ -66,7 +67,8 @@ class WelcomePage extends StatelessWidget {
                     backgroundColor: const Color(0xFFDCE4F7),
                     textColor: Colors.black,
                     onPressed: () {
-                      context.push(AuthRoutes.authMethod);
+                      // التوجيه لصفحة تسجيل الدخول الجديدة
+                      context.push(AuthRoutes.login);
                     },
                   ),
                 ],

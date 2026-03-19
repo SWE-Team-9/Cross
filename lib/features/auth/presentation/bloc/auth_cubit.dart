@@ -82,7 +82,6 @@ class AuthCubit extends Cubit<AuthState> {
       final user = await loginUseCase(email: email, password: password);
       emit(AuthAuthenticated(user));
     } on DioException catch (e) {
-      // السحر هنا: لو الباسوورد غلط، الـ Mapper هيجيب الرسالة الصح
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       emit(AuthError(failure.message));
     } catch (e) {
@@ -90,11 +89,23 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> register(
-      {required String email, required String password}) async {
+  // تم تحديث دالة التسجيل لتشمل الحقول التي يطلبها الـ API
+  Future<void> register({
+    required String email,
+    required String password,
+    required String passwordConfirm,
+    required String displayName,
+    // يمكنك إضافة gender و date_of_birth هنا أيضاً لتمريرهم للـ UseCase
+  }) async {
     emit(AuthLoading());
     try {
-      final user = await registerUseCase(email: email, password: password);
+      // تنبيه: ستحتاج لتحديث RegisterUseCase ليقبل هذه المتغيرات
+      final user = await registerUseCase(
+        email: email, 
+        password: password,
+        // passwordConfirm: passwordConfirm,
+        // displayName: displayName,
+      );
       emit(AuthRegisterSuccess(user));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);

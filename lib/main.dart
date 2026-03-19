@@ -4,8 +4,6 @@ import 'core/di/injector.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
   setupDependencies();
-
   runApp(const App());
 }
