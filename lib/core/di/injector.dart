@@ -24,9 +24,17 @@ import '../../features/profile/domain/repositories/profileRepository.dart';
 import '../../features/profile/domain/usecases/uploadProfileImageUseCase.dart';
 import '../../features/profile/presentation/bloc/profileImageUploadCubit.dart';
 import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
+import '../../features/upload/data/datasources/trackManagementRemoteDataSource.dart';
+import '../../features/upload/data/repositories/trackManagementRepositoryFake.dart';
+import '../../features/upload/data/repositories/trackManagementRepositoryImpl.dart';
 import '../../features/upload/data/repositories/uploadRepositoryImpl.dart';
+import '../../features/upload/domain/repositories/trackManagementRepository.dart';
 import '../../features/upload/domain/repositories/uploadRepository.dart';
+import '../../features/upload/domain/usecases/deleteTrackUseCase.dart';
 import '../../features/upload/domain/usecases/pickAudioFileUseCase.dart';
+import '../../features/upload/domain/usecases/updateTrackMetadataUseCase.dart';
+import '../../features/upload/domain/usecases/updateTrackVisibilityUseCase.dart';
+import '../../features/upload/presentation/bloc/trackManagementCubit.dart';
 import '../../features/upload/presentation/bloc/uploadPickerCubit.dart';
 import '../network/dio_client.dart';
 import '../services/audio_player_service.dart';
@@ -95,10 +103,71 @@ void setupDependencies() {
     );
   }
 
+  // Upload feature - T2.8 Track Management Basics
+  const bool useMockTrackManagement = bool.fromEnvironment(
+    'USE_MOCK_TRACK_MANAGEMENT',
+    defaultValue: false,
+  );
+
+  const String mockTrackManagementModeValue = String.fromEnvironment(
+    'MOCK_TRACK_MANAGEMENT_MODE',
+    defaultValue: 'success',
+  );
+
+  final MockTrackManagementMode mockTrackManagementMode =
+      _parseMockTrackManagementMode(mockTrackManagementModeValue);
+
+  if (!getIt.isRegistered<TrackManagementRemoteDataSource>()) {
+    getIt.registerLazySingleton<TrackManagementRemoteDataSource>(
+      () => TrackManagementRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackManagementRepository>()) {
+    getIt.registerLazySingleton<TrackManagementRepository>(
+      () => useMockTrackManagement
+          ? TrackManagementRepositoryFake(
+              mode: mockTrackManagementMode,
+            )
+          : TrackManagementRepositoryImpl(
+              getIt<TrackManagementRemoteDataSource>(),
+            ),
+    );
+  }
+
+  if (!getIt.isRegistered<UpdateTrackMetadataUseCase>()) {
+    getIt.registerLazySingleton<UpdateTrackMetadataUseCase>(
+      () => UpdateTrackMetadataUseCase(getIt<TrackManagementRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UpdateTrackVisibilityUseCase>()) {
+    getIt.registerLazySingleton<UpdateTrackVisibilityUseCase>(
+      () => UpdateTrackVisibilityUseCase(getIt<TrackManagementRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DeleteTrackUseCase>()) {
+    getIt.registerLazySingleton<DeleteTrackUseCase>(
+      () => DeleteTrackUseCase(getIt<TrackManagementRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackManagementCubit>()) {
+    getIt.registerFactory<TrackManagementCubit>(
+      () => TrackManagementCubit(
+        getIt<UpdateTrackMetadataUseCase>(),
+        getIt<UpdateTrackVisibilityUseCase>(),
+        getIt<DeleteTrackUseCase>(),
+      ),
+    );
+  }
+
   // Profile feature - T2.7 Profile Image Upload Flow
   const bool useMockProfileImageUpload = bool.fromEnvironment(
-      'USE_MOCK_PROFILE_IMAGE_UPLOAD',
-      defaultValue: false);
+    'USE_MOCK_PROFILE_IMAGE_UPLOAD',
+    defaultValue: false,
+  );
 
   const String mockProfileImageUploadModeValue = String.fromEnvironment(
     'MOCK_PROFILE_IMAGE_UPLOAD_MODE',
@@ -252,5 +321,17 @@ MockProfileImageUploadMode _parseMockProfileImageUploadMode(String value) {
     case 'success':
     default:
       return MockProfileImageUploadMode.success;
+  }
+}
+
+MockTrackManagementMode _parseMockTrackManagementMode(String value) {
+  switch (value.toLowerCase()) {
+    case 'alwaysfail':
+      return MockTrackManagementMode.alwaysFail;
+    case 'failonce':
+      return MockTrackManagementMode.failOnce;
+    case 'success':
+    default:
+      return MockTrackManagementMode.success;
   }
 }

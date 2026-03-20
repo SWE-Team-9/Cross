@@ -1,0 +1,76 @@
+import 'package:equatable/equatable.dart';
+
+import 'TrackManagementVisibility.dart';
+
+class ManagedTrack extends Equatable {
+  const ManagedTrack({
+    required this.id,
+    required this.title,
+    required this.visibility,
+    this.description,
+    this.genreId,
+    this.genreName,
+    this.tags = const <String>[],
+    this.artworkUrl,
+    this.durationInSeconds,
+    this.isDeleted = false,
+  });
+
+  final String id;
+  final String title;
+  final String? description;
+  final int? genreId;
+  final String? genreName;
+  final List<String> tags;
+  final TrackManagementVisibility visibility;
+  final String? artworkUrl;
+  final int? durationInSeconds;
+  final bool isDeleted;
+
+  ManagedTrack copyWith({
+    String? id,
+    String? title,
+    String? description,
+    bool clearDescription = false,
+    int? genreId,
+    bool clearGenreId = false,
+    String? genreName,
+    bool clearGenreName = false,
+    List<String>? tags,
+    TrackManagementVisibility? visibility,
+    String? artworkUrl,
+    bool clearArtworkUrl = false,
+    int? durationInSeconds,
+    bool clearDurationInSeconds = false,
+    bool? isDeleted,
+  }) {
+    return ManagedTrack(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: clearDescription ? null : (description ?? this.description),
+      genreId: clearGenreId ? null : (genreId ?? this.genreId),
+      genreName: clearGenreName ? null : (genreName ?? this.genreName),
+      tags: tags ?? this.tags,
+      visibility: visibility ?? this.visibility,
+      artworkUrl: clearArtworkUrl ? null : (artworkUrl ?? this.artworkUrl),
+      durationInSeconds: clearDurationInSeconds
+          ? null
+          : (durationInSeconds ?? this.durationInSeconds),
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        id,
+        title,
+        description,
+        genreId,
+        genreName,
+        tags,
+        visibility,
+        artworkUrl,
+        durationInSeconds,
+        isDeleted,
+      ];
+}

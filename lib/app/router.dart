@@ -22,6 +22,8 @@ import '../features/social/presentation/pages/following_page.dart';
 
 // Mock home page (temporary — replace with real home page in Sprint 4)
 import '../features/home/presentation/pages/mock_home_page.dart';
+import '../features/upload/presentation/bloc/trackManagementCubit.dart';
+import '../features/upload/presentation/pages/TrackManagementDemoPage.dart';
 
 // ── Navigator Keys ───────────────────────────────────────────────────────────
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -35,12 +37,13 @@ class AppRoutes {
   static const String editProfile = '/profile/edit';
   static const String followers = '/followers/:userId';
   static const String following = '/following/:userId';
+  static const String trackManagementDemo = '/track-management-demo';
 }
 
 // ── Router ───────────────────────────────────────────────────────────────────
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: AuthRoutes.welcome,
+  initialLocation: '/track-management-demo',
   routes: [
     // ── Auth (Sprint 1) ───────────────────────────────────────────
     ...AuthRoutes.routes,
@@ -120,6 +123,18 @@ final GoRouter router = GoRouter(
           child: FollowingPage(userId: userId),
         );
       },
+    ),
+
+    // ── Track management demo (Sprint 2) ─────────────────────────
+    GoRoute(
+      path: AppRoutes.trackManagementDemo,
+      name: 'track-management-demo',
+      pageBuilder: (context, state) => MaterialPage(
+        child: BlocProvider<TrackManagementCubit>(
+          create: (_) => getIt<TrackManagementCubit>(),
+          child: const TrackManagementDemoPage(),
+        ),
+      ),
     ),
   ],
 
