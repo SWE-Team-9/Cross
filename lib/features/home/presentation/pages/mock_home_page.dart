@@ -596,18 +596,6 @@ class _MixData {
   });
 }
 
-class _TrackData {
-  final String title, artist, userId;
-  final Color color1, color2;
-  const _TrackData({
-    required this.title,
-    required this.artist,
-    required this.userId,
-    required this.color1,
-    required this.color2,
-  });
-}
-
 class _NavItem {
   final IconData icon, activeIcon;
   final String label;
