@@ -7,6 +7,7 @@ import '../features/upload/presentation/bloc/uploadPickerCubit.dart';
 import '../features/upload/presentation/pages/UploadPickerPage.dart';
 
 import '../features/auth/presentation/routes/auth_routes.dart';
+import '../features/profile/presentation/pages/ProfileImageUploadDemoPage.dart';
 
 class AppRoutes {
   static const String home = '/home';
@@ -48,6 +49,11 @@ final GoRouter router = GoRouter(
         create: (_) => getIt<UploadPickerCubit>(),
         child: const UploadPickerPage(),
       ),
+    ),
+    GoRoute(
+      path: '/profile-image-upload-demo',
+      name: 'profile-image-upload-demo',
+      builder: (context, state) => const ProfileImageUploadDemoPage(),
     ),
   ],
 );
