@@ -17,6 +17,9 @@ import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/social/presentation/pages/followers_page.dart';
 import '../features/social/presentation/pages/following_page.dart';
 
+// Library
+import '../features/library/presentation/pages/library_page.dart';
+
 // Mock home page (temporary — replace with real home page in Sprint 4)
 import '../features/home/presentation/pages/mock_home_page.dart';
 
@@ -26,6 +29,7 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 // ── Route name constants ──────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
+  static const String library = '/library';
   static const String uploadPicker = '/upload-picker';
   static const String profile = '/profile/:userId';
   static const String editProfile = '/profile/edit';
@@ -48,6 +52,14 @@ final GoRouter router = GoRouter(
       name: 'home',
       pageBuilder: (context, state) => const NoTransitionPage(
         child: MockHomePage(),
+      ),
+    ),
+
+    GoRoute(
+      path: AppRoutes.library,
+      name: 'library',
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: LibraryPage(),
       ),
     ),
 
