@@ -17,6 +17,12 @@ import '../../features/auth/domain/usecases/reset_password_usecase.dart';
 import '../../features/auth/domain/usecases/send_email_verification_usecase.dart';
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_cubit.dart';
+import '../../features/profile/data/datasources/profileRemoteDataSource.dart';
+import '../../features/profile/data/repositories/profileRepositoryFake.dart';
+import '../../features/profile/data/repositories/profileRepositoryImpl.dart';
+import '../../features/profile/domain/repositories/profileRepository.dart';
+import '../../features/profile/domain/usecases/uploadProfileImageUseCase.dart';
+import '../../features/profile/presentation/bloc/profileImageUploadCubit.dart';
 import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
 import '../../features/upload/data/repositories/uploadRepositoryImpl.dart';
 import '../../features/upload/domain/repositories/uploadRepository.dart';
@@ -89,78 +95,162 @@ void setupDependencies() {
     );
   }
 
-  getIt.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(getIt<DioClient>()),
+  // Profile feature - T2.7 Profile Image Upload Flow
+  const bool useMockProfileImageUpload = bool.fromEnvironment(
+      'USE_MOCK_PROFILE_IMAGE_UPLOAD',
+      defaultValue: false);
+
+  const String mockProfileImageUploadModeValue = String.fromEnvironment(
+    'MOCK_PROFILE_IMAGE_UPLOAD_MODE',
+    defaultValue: 'success',
   );
 
-  getIt.registerLazySingleton<AuthLocalDataSource>(
-    () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
-  );
+  final MockProfileImageUploadMode mockProfileImageUploadMode =
+      _parseMockProfileImageUploadMode(mockProfileImageUploadModeValue);
 
-  getIt.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
-      remoteDataSource: getIt<AuthRemoteDataSource>(),
-      localDataSource: getIt<AuthLocalDataSource>(),
-    ),
-  );
+  if (!getIt.isRegistered<ProfileRemoteDataSource>()) {
+    getIt.registerLazySingleton<ProfileRemoteDataSource>(
+      () => ProfileRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
 
-  getIt.registerLazySingleton<CheckEmailExistsUseCase>(
-    () => CheckEmailExistsUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<ProfileRepository>()) {
+    getIt.registerLazySingleton<ProfileRepository>(
+      () => useMockProfileImageUpload
+          ? ProfileRepositoryFake(
+              mode: mockProfileImageUploadMode,
+            )
+          : ProfileRepositoryImpl(getIt<ProfileRemoteDataSource>()),
+    );
+  }
 
-  getIt.registerLazySingleton<LoginUseCase>(
-    () => LoginUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<UploadProfileImageUseCase>()) {
+    getIt.registerLazySingleton<UploadProfileImageUseCase>(
+      () => UploadProfileImageUseCase(getIt<ProfileRepository>()),
+    );
+  }
 
-  getIt.registerLazySingleton<RegisterUseCase>(
-    () => RegisterUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<ProfileImageUploadCubit>()) {
+    getIt.registerFactory<ProfileImageUploadCubit>(
+      () => ProfileImageUploadCubit(getIt<UploadProfileImageUseCase>()),
+    );
+  }
 
-  getIt.registerLazySingleton<CompleteProfileUseCase>(
-    () => CompleteProfileUseCase(getIt<AuthRepository>()),
-  );
+  // Auth feature
+  if (!getIt.isRegistered<AuthRemoteDataSource>()) {
+    getIt.registerLazySingleton<AuthRemoteDataSource>(
+      () => AuthRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
 
-  getIt.registerLazySingleton<LogoutUseCase>(
-    () => LogoutUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<AuthLocalDataSource>()) {
+    getIt.registerLazySingleton<AuthLocalDataSource>(
+      () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+    );
+  }
 
-  getIt.registerLazySingleton<IsLoggedInUseCase>(
-    () => IsLoggedInUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<AuthRepository>()) {
+    getIt.registerLazySingleton<AuthRepository>(
+      () => AuthRepositoryImpl(
+        remoteDataSource: getIt<AuthRemoteDataSource>(),
+        localDataSource: getIt<AuthLocalDataSource>(),
+      ),
+    );
+  }
 
-  getIt.registerLazySingleton<GetCurrentUserUseCase>(
-    () => GetCurrentUserUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<CheckEmailExistsUseCase>()) {
+    getIt.registerLazySingleton<CheckEmailExistsUseCase>(
+      () => CheckEmailExistsUseCase(getIt<AuthRepository>()),
+    );
+  }
 
-  getIt.registerLazySingleton<ForgotPasswordUseCase>(
-    () => ForgotPasswordUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<LoginUseCase>()) {
+    getIt.registerLazySingleton<LoginUseCase>(
+      () => LoginUseCase(getIt<AuthRepository>()),
+    );
+  }
 
-  getIt.registerLazySingleton<ResetPasswordUseCase>(
-    () => ResetPasswordUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<RegisterUseCase>()) {
+    getIt.registerLazySingleton<RegisterUseCase>(
+      () => RegisterUseCase(getIt<AuthRepository>()),
+    );
+  }
 
-  getIt.registerLazySingleton<SendEmailVerificationUseCase>(
-    () => SendEmailVerificationUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<CompleteProfileUseCase>()) {
+    getIt.registerLazySingleton<CompleteProfileUseCase>(
+      () => CompleteProfileUseCase(getIt<AuthRepository>()),
+    );
+  }
 
-  getIt.registerLazySingleton<VerifyEmailUseCase>(
-    () => VerifyEmailUseCase(getIt<AuthRepository>()),
-  );
+  if (!getIt.isRegistered<LogoutUseCase>()) {
+    getIt.registerLazySingleton<LogoutUseCase>(
+      () => LogoutUseCase(getIt<AuthRepository>()),
+    );
+  }
 
-  getIt.registerFactory<AuthCubit>(
-    () => AuthCubit(
-      checkEmailExistsUseCase: getIt<CheckEmailExistsUseCase>(),
-      loginUseCase: getIt<LoginUseCase>(),
-      registerUseCase: getIt<RegisterUseCase>(),
-      completeProfileUseCase: getIt<CompleteProfileUseCase>(),
-      logoutUseCase: getIt<LogoutUseCase>(),
-      isLoggedInUseCase: getIt<IsLoggedInUseCase>(),
-      getCurrentUserUseCase: getIt<GetCurrentUserUseCase>(),
-      forgotPasswordUseCase: getIt<ForgotPasswordUseCase>(),
-      resetPasswordUseCase: getIt<ResetPasswordUseCase>(),
-      sendEmailVerificationUseCase: getIt<SendEmailVerificationUseCase>(),
-      verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
-    ),
-  );
+  if (!getIt.isRegistered<IsLoggedInUseCase>()) {
+    getIt.registerLazySingleton<IsLoggedInUseCase>(
+      () => IsLoggedInUseCase(getIt<AuthRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetCurrentUserUseCase>()) {
+    getIt.registerLazySingleton<GetCurrentUserUseCase>(
+      () => GetCurrentUserUseCase(getIt<AuthRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ForgotPasswordUseCase>()) {
+    getIt.registerLazySingleton<ForgotPasswordUseCase>(
+      () => ForgotPasswordUseCase(getIt<AuthRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ResetPasswordUseCase>()) {
+    getIt.registerLazySingleton<ResetPasswordUseCase>(
+      () => ResetPasswordUseCase(getIt<AuthRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SendEmailVerificationUseCase>()) {
+    getIt.registerLazySingleton<SendEmailVerificationUseCase>(
+      () => SendEmailVerificationUseCase(getIt<AuthRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<VerifyEmailUseCase>()) {
+    getIt.registerLazySingleton<VerifyEmailUseCase>(
+      () => VerifyEmailUseCase(getIt<AuthRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<AuthCubit>()) {
+    getIt.registerFactory<AuthCubit>(
+      () => AuthCubit(
+        checkEmailExistsUseCase: getIt<CheckEmailExistsUseCase>(),
+        loginUseCase: getIt<LoginUseCase>(),
+        registerUseCase: getIt<RegisterUseCase>(),
+        completeProfileUseCase: getIt<CompleteProfileUseCase>(),
+        logoutUseCase: getIt<LogoutUseCase>(),
+        isLoggedInUseCase: getIt<IsLoggedInUseCase>(),
+        getCurrentUserUseCase: getIt<GetCurrentUserUseCase>(),
+        forgotPasswordUseCase: getIt<ForgotPasswordUseCase>(),
+        resetPasswordUseCase: getIt<ResetPasswordUseCase>(),
+        sendEmailVerificationUseCase: getIt<SendEmailVerificationUseCase>(),
+        verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
+      ),
+    );
+  }
+}
+
+MockProfileImageUploadMode _parseMockProfileImageUploadMode(String value) {
+  switch (value.toLowerCase()) {
+    case 'alwaysfail':
+      return MockProfileImageUploadMode.alwaysFail;
+    case 'failonce':
+      return MockProfileImageUploadMode.failOnce;
+    case 'success':
+    default:
+      return MockProfileImageUploadMode.success;
+  }
 }
