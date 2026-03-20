@@ -5,7 +5,7 @@ abstract class AudioPlayerService {
   Stream<PlayerState> get playerStateStream;
 
   /// Play audio from a URL
-  Future<void> play(String url);
+  Future<void> play(String url, String trackId);
 
   /// Pause playback
   Future<void> pause();
