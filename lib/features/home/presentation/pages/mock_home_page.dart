@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/core/widgets/track_row.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 
 /// Mock Home page — matches the real SoundCloud home layout.
 /// Used in Sprint 2 to test all navigation entry points.
@@ -452,107 +454,47 @@ class _GenreChips extends StatelessWidget {
 class _TrendingTracks extends StatelessWidget {
   const _TrendingTracks();
 
-  static const _tracks = [
-    _TrackData(
-      title: 'Bunker- Balthazar',
-      artist: 'Balthazar',
-      userId: 'balthazar_music',
-      color1: Color(0xFFB5451B),
-      color2: Color(0xFFFFD200),
-    ),
-    _TrackData(
-      title: 'Take It or Leave It - Cage the elephant',
-      artist: 'Cage the elephant',
-      userId: 'cage_the_elephant',
-      color1: Color(0xFF0d0d0d),
-      color2: Color(0xFF1a1a3a),
-    ),
-    _TrackData(
-      title: 'Take me out - Franz Ferdinand',
-      artist: 'Franz Ferdinand',
-      userId: 'franz_ferdinand',
-      color1: Color(0xFF6C63FF),
-      color2: Color(0xFF48CAE4),
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final tracks = [
+      Track(
+        id: '1',
+        title: 'Bunker - Balthazar',
+        artist: 'Balthazar',
+        audioUrl:
+            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        artworkUrl: 'https://picsum.photos/200?1',
+      ),
+      Track(
+        id: '2',
+        title: 'Take It or Leave It',
+        artist: 'Cage the Elephant',
+        audioUrl:
+            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+        artworkUrl: 'https://picsum.photos/200?2',
+      ),
+      Track(
+        id: '3',
+        title: 'Take Me Out',
+        artist: 'Franz Ferdinand',
+        audioUrl:
+            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+        artworkUrl: 'https://picsum.photos/200?3',
+      ),
+    ];
+
     return Column(
-      children: List.generate(_tracks.length, (i) {
-        final t = _tracks[i];
+      children: List.generate(tracks.length, (i) {
         return Column(
           children: [
-            InkWell(
-              onTap: () => ProfileRoutes.goToProfile(context, t.userId),
-              splashColor: Colors.white10,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [t.color1, t.color2],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(t.title,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 3),
-                          Text(t.artist,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Color(0xFF999999), fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.more_vert,
-                          color: Color(0xFF666666), size: 18),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 8),
-                    // Related thumbnail on the right (matches screenshot)
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        gradient: LinearGradient(
-                          begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
-                          colors: [t.color2, t.color1],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (i < _tracks.length - 1)
+            TrackRow(track: tracks[i]),
+            if (i < tracks.length - 1)
               const Divider(
-                  color: Color(0xFF1A1A1A),
-                  height: 1,
-                  indent: 14,
-                  endIndent: 14),
+                color: Color(0xFF1A1A1A),
+                height: 1,
+                indent: 14,
+                endIndent: 14,
+              ),
           ],
         );
       }),
