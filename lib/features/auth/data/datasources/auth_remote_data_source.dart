@@ -1,24 +1,22 @@
 import 'package:dio/dio.dart';
-
-import '../../../../core/network/dio_client.dart';
-import '../dto/auth_response_dto.dart';
-import '../dto/check_email_response_dto.dart';
-import '../dto/user_dto.dart';
 import 'dart:convert';
 
+import '../../../../core/network/dio_client.dart';
+import '../dto/user_dto.dart';
+
 abstract class AuthRemoteDataSource {
-  Future<bool> checkEmailExists({
-    required String email,
-  });
-
-  Future<AuthResponseDto> login({
+  Future<UserDto> login({
     required String email,
     required String password,
   });
 
-  Future<AuthResponseDto> register({
+  Future<UserDto> register({
     required String email,
     required String password,
+    required String passwordConfirm,
+    required String displayName,
+    required String dateOfBirth,
+    required String gender,
   });
 
   Future<void> forgotPassword({
@@ -26,9 +24,9 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<void> resetPassword({
-    required String email,
     required String code,
     required String newPassword,
+    required String newPasswordConfirm,
   });
 
   Future<void> sendEmailVerification({
@@ -36,22 +34,12 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<void> verifyEmail({
-    required String email,
     required String code,
   });
 
-  Future<UserDto> completeProfile({
-    required String token,
-    required String displayName,
-    required int birthMonth,
-    required int birthDay,
-    required int birthYear,
-    required String gender,
-  });
+  Future<UserDto> getCurrentUser();
 
-  Future<UserDto> getCurrentUser({
-    required String token,
-  });
+  Future<void> logout();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -60,61 +48,51 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl(this.dioClient);
 
   @override
-  Future<bool> checkEmailExists({
-    required String email,
-  }) async {
-    final response = await dioClient.dio.post(
-      '/auth/check-email',
-      data: {
-        'email': email,
-      },
-    );
-
-    //final dto = CheckEmailResponseDto.fromJson(response.data);
-    //return dto.exists;
-
-    final responseData =
-        response.data is String ? jsonDecode(response.data) : response.data;
-
-    final dto = CheckEmailResponseDto.fromJson(responseData);
-    return dto.exists;
-  }
-
-  @override
-  Future<AuthResponseDto> login({
+  Future<UserDto> login({
     required String email,
     required String password,
   }) async {
     final response = await dioClient.dio.post(
-      '/auth/login',
+      '/api/v1/auth/login',
       data: {
         'email': email,
         'password': password,
       },
     );
-    final responseData =
-        response.data is String ? jsonDecode(response.data) : response.data;
+    
+    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
 
-    return AuthResponseDto.fromJson(responseData);
+    return UserDto.fromJson(responseData['user']);
   }
 
   @override
-  Future<AuthResponseDto> register({
+  Future<UserDto> register({
     required String email,
     required String password,
+    required String passwordConfirm,
+    required String displayName,
+    required String dateOfBirth,
+    required String gender,
   }) async {
     final response = await dioClient.dio.post(
-      '/auth/register',
+      '/api/v1/auth/register',
       data: {
         'email': email,
         'password': password,
+        'password_confirm': passwordConfirm,
+        'display_name': displayName,
+        'date_of_birth': dateOfBirth,
+        'gender': gender,
       },
+      options: Options(
+        headers: {
+          'X-Recaptcha-Token': 'dummy_token_for_now', 
+        }
+      )
     );
 
-    final responseData =
-        response.data is String ? jsonDecode(response.data) : response.data;
-
-    return AuthResponseDto.fromJson(responseData);
+    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+    return UserDto.fromJson(responseData['user']);
   }
 
   @override
@@ -122,7 +100,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
   }) async {
     await dioClient.dio.post(
-      '/auth/forgot-password',
+      '/api/v1/auth/forgot-password',
       data: {
         'email': email,
       },
@@ -131,16 +109,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> resetPassword({
-    required String email,
     required String code,
     required String newPassword,
+    required String newPasswordConfirm,
   }) async {
     await dioClient.dio.post(
-      '/auth/reset-password',
+      '/api/v1/auth/reset-password',
       data: {
-        'email': email,
-        'code': code,
+        'token': code,
         'new_password': newPassword,
+        'new_password_confirm': newPasswordConfirm,
       },
     );
   }
@@ -150,7 +128,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
   }) async {
     await dioClient.dio.post(
-      '/auth/send-verification-email',
+      '/api/v1/auth/resend-verification',
       data: {
         'email': email,
       },
@@ -159,61 +137,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> verifyEmail({
-    required String email,
     required String code,
   }) async {
-    await dioClient.dio.post(
-      '/auth/verify-email',
-      data: {
-        'email': email,
-        'code': code,
+    await dioClient.dio.get(
+      '/api/v1/auth/verify-email',
+      queryParameters: {
+        'token': code,
       },
     );
   }
 
   @override
-  Future<UserDto> completeProfile({
-    required String token,
-    required String displayName,
-    required int birthMonth,
-    required int birthDay,
-    required int birthYear,
-    required String gender,
-  }) async {
-    final response = await dioClient.dio.post(
-      '/auth/complete-profile',
-      data: {
-        'display_name': displayName,
-        'birth_month': birthMonth,
-        'birth_day': birthDay,
-        'birth_year': birthYear,
-        'gender': gender,
-      },
-      options: Options(
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      ),
-    );
-    final responseData =
-        response.data is String ? jsonDecode(response.data) : response.data;
-
+  Future<UserDto> getCurrentUser() async {
+    final response = await dioClient.dio.get('/api/v1/auth/me');
+    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
     return UserDto.fromJson(responseData);
   }
 
   @override
-  Future<UserDto> getCurrentUser({
-    required String token,
-  }) async {
-    final response = await dioClient.dio.get(
-      '/auth/me',
-      options: Options(
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      ),
-    );
-
-    return UserDto.fromJson(response.data);
+  Future<void> logout() async {
+    await dioClient.dio.post('/api/v1/auth/logout');
   }
 }

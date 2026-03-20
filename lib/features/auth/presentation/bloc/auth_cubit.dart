@@ -1,9 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
-
 import '../../domain/entities/user.dart';
-import '../../domain/usecases/check_email_exists_usecase.dart';
-import '../../domain/usecases/complete_profile_usecase.dart';
 import '../../domain/usecases/forgot_password_usecase.dart';
 import '../../domain/usecases/get_current_user_usecase.dart';
 import '../../domain/usecases/is_logged_in_usecase.dart';
@@ -18,10 +15,8 @@ import '../../../../core/network/error_mapper.dart';
 part 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-  final CheckEmailExistsUseCase checkEmailExistsUseCase;
   final LoginUseCase loginUseCase;
   final RegisterUseCase registerUseCase;
-  final CompleteProfileUseCase completeProfileUseCase;
   final LogoutUseCase logoutUseCase;
   final IsLoggedInUseCase isLoggedInUseCase;
   final GetCurrentUserUseCase getCurrentUserUseCase;
@@ -31,10 +26,8 @@ class AuthCubit extends Cubit<AuthState> {
   final VerifyEmailUseCase verifyEmailUseCase;
 
   AuthCubit({
-    required this.checkEmailExistsUseCase,
     required this.loginUseCase,
     required this.registerUseCase,
-    required this.completeProfileUseCase,
     required this.logoutUseCase,
     required this.isLoggedInUseCase,
     required this.getCurrentUserUseCase,
@@ -63,19 +56,6 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> checkEmail({required String email}) async {
-    emit(AuthLoading());
-    try {
-      final exists = await checkEmailExistsUseCase(email: email);
-      emit(AuthEmailCheckSuccess(exists: exists, email: email));
-    } on DioException catch (e) {
-      final failure = ErrorMapper.mapDioErrorToFailure(e);
-      emit(AuthError(failure.message));
-    } catch (e) {
-      emit(AuthError('An unexpected error occurred.'));
-    }
-  }
-
   Future<void> login({required String email, required String password}) async {
     emit(AuthLoading());
     try {
@@ -89,22 +69,23 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  // تم تحديث دالة التسجيل لتشمل الحقول التي يطلبها الـ API
   Future<void> register({
     required String email,
     required String password,
     required String passwordConfirm,
     required String displayName,
-    // يمكنك إضافة gender و date_of_birth هنا أيضاً لتمريرهم للـ UseCase
+    required String dateOfBirth,
+    required String gender,
   }) async {
     emit(AuthLoading());
     try {
-      // تنبيه: ستحتاج لتحديث RegisterUseCase ليقبل هذه المتغيرات
       final user = await registerUseCase(
-        email: email, 
+        email: email,
         password: password,
-        // passwordConfirm: passwordConfirm,
-        // displayName: displayName,
+        passwordConfirm: passwordConfirm,
+        displayName: displayName,
+        dateOfBirth: dateOfBirth,
+        gender: gender,
       );
       emit(AuthRegisterSuccess(user));
     } on DioException catch (e) {
@@ -128,11 +109,10 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> verifyEmail(
-      {required String email, required String code}) async {
+  Future<void> verifyEmail({required String code}) async {
     emit(AuthLoading());
     try {
-      await verifyEmailUseCase(email: email, code: code);
+      await verifyEmailUseCase(code: code);
       emit(AuthEmailVerified());
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
@@ -142,6 +122,7 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+ 
   Future<void> forgotPassword({required String email}) async {
     emit(AuthLoading());
     try {
@@ -156,44 +137,18 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> resetPassword({
-    required String email,
     required String code,
     required String newPassword,
+    required String newPasswordConfirm,
   }) async {
     emit(AuthLoading());
     try {
       await resetPasswordUseCase(
-        email: email,
         code: code,
         newPassword: newPassword,
+        newPasswordConfirm: newPasswordConfirm,
       );
       emit(AuthResetPasswordSuccess());
-    } on DioException catch (e) {
-      final failure = ErrorMapper.mapDioErrorToFailure(e);
-      emit(AuthError(failure.message));
-    } catch (e) {
-      emit(AuthError('An unexpected error occurred.'));
-    }
-  }
-
-  Future<void> completeProfile({
-    required String displayName,
-    required int birthMonth,
-    required int birthDay,
-    required int birthYear,
-    required String gender,
-  }) async {
-    emit(AuthLoading());
-    try {
-      final user = await completeProfileUseCase(
-        displayName: displayName,
-        birthMonth: birthMonth,
-        birthDay: birthDay,
-        birthYear: birthYear,
-        gender: gender,
-      );
-      emit(AuthProfileCompleted(user));
-      emit(AuthAuthenticated(user));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       emit(AuthError(failure.message));
@@ -208,7 +163,8 @@ class AuthCubit extends Cubit<AuthState> {
       await logoutUseCase();
       emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError('An unexpected error occurred.'));
+      final failure = ErrorMapper.mapDioErrorToFailure(e as DioException);
+      emit(AuthError(failure.message));
     }
   }
 }

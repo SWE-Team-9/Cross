@@ -13,38 +13,40 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
-  Future<bool> checkEmailExists({
-    required String email,
-  }) {
-    return remoteDataSource.checkEmailExists(email: email);
-  }
-
-  @override
   Future<User> login({
     required String email,
     required String password,
   }) async {
-    final response = await remoteDataSource.login(
+    final userDto = await remoteDataSource.login(
       email: email,
       password: password,
     );
-
-    await localDataSource.saveToken(response.token);
-    return response.user.toEntity();
+    
+ 
+    await localDataSource.saveToken("is_logged_in"); 
+    return userDto.toEntity();
   }
 
   @override
   Future<User> register({
     required String email,
     required String password,
+    required String passwordConfirm,
+    required String displayName,
+    required String dateOfBirth,
+    required String gender,
   }) async {
-    final response = await remoteDataSource.register(
+    final userDto = await remoteDataSource.register(
       email: email,
       password: password,
+      passwordConfirm: passwordConfirm,
+      displayName: displayName,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
     );
-
-    await localDataSource.saveToken(response.token);
-    return response.user.toEntity();
+    
+    await localDataSource.saveToken("is_logged_in");
+    return userDto.toEntity();
   }
 
   @override
@@ -56,14 +58,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> resetPassword({
-    required String email,
     required String code,
     required String newPassword,
+    required String newPasswordConfirm,
   }) {
     return remoteDataSource.resetPassword(
-      email: email,
       code: code,
       newPassword: newPassword,
+      newPasswordConfirm: newPasswordConfirm,
     );
   }
 
@@ -76,56 +78,29 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> verifyEmail({
-    required String email,
+    required String email, 
     required String code,
   }) {
-    return remoteDataSource.verifyEmail(
-      email: email,
-      code: code,
-    );
-  }
-
-  @override
-  Future<User> completeProfile({
-    required String displayName,
-    required int birthMonth,
-    required int birthDay,
-    required int birthYear,
-    required String gender,
-  }) async {
-    final token = await localDataSource.getToken();
-
-    if (token == null || token.isEmpty) {
-      throw Exception('No auth token found');
-    }
-
-    final userDto = await remoteDataSource.completeProfile(
-      token: token,
-      displayName: displayName,
-      birthMonth: birthMonth,
-      birthDay: birthDay,
-      birthYear: birthYear,
-      gender: gender,
-    );
-
-    return userDto.toEntity();
+    return remoteDataSource.verifyEmail(code: code);
   }
 
   @override
   Future<User?> getCurrentUser() async {
-    final token = await localDataSource.getToken();
-
-    if (token == null || token.isEmpty) {
+    try {
+      final userDto = await remoteDataSource.getCurrentUser();
+      return userDto.toEntity();
+    } catch (e) {
       return null;
     }
-
-    final userDto = await remoteDataSource.getCurrentUser(token: token);
-    return userDto.toEntity();
   }
 
   @override
   Future<void> logout() async {
-    await localDataSource.clearToken();
+    try {
+      await remoteDataSource.logout();
+    } finally {
+      await localDataSource.clearToken();
+    }
   }
 
   @override
