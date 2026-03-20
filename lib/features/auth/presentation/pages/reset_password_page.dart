@@ -41,9 +41,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     if (!_formKey.currentState!.validate()) return;
 
     context.read<AuthCubit>().resetPassword(
-          email: widget.email,
-          code: _codeController.text.trim(),
+          code: _codeController.text.trim(), 
           newPassword: _passwordController.text.trim(),
+          newPasswordConfirm: _confirmPasswordController.text.trim(),
         );
   }
 
@@ -62,7 +62,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     backgroundColor: Colors.green,
                   ),
                 );
-                // التوجيه لصفحة تسجيل الدخول الجديدة بعد نجاح العملية
                 context.go(AuthRoutes.login);
               }
 
@@ -108,7 +107,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     ),
                     const SizedBox(height: 40),
 
-                    // حقل الكود
                     const Text('Verification Code', style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -133,7 +131,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     ),
                     const SizedBox(height: 20),
 
-                    // حقل كلمة المرور الجديدة
                     const Text('New Password', style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -169,7 +166,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     ),
                     const SizedBox(height: 20),
 
-                    // حقل تأكيد كلمة المرور الجديدة
                     const Text('Confirm Password', style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
                     const SizedBox(height: 8),
                     TextFormField(

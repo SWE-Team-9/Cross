@@ -5,8 +5,7 @@ import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
-import '../../features/auth/domain/usecases/check_email_exists_usecase.dart';
-import '../../features/auth/domain/usecases/complete_profile_usecase.dart';
+// تم حذف UseCases الغير موجودة (CheckEmail, CompleteProfile)
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
 import '../../features/auth/domain/usecases/is_logged_in_usecase.dart';
@@ -30,7 +29,6 @@ import '../storage/secure_storage.dart';
 final getIt = GetIt.instance;
 
 void setupDependencies() {
-  // Core storage
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
     getIt.registerLazySingleton<FlutterSecureStorage>(
       () => const FlutterSecureStorage(),
@@ -43,28 +41,23 @@ void setupDependencies() {
     );
   }
 
-  // Core networking
   if (!getIt.isRegistered<DioClient>()) {
     getIt.registerLazySingleton<DioClient>(
       () => DioClient(
-        baseUrl: const String.fromEnvironment(
-          'API_URL',
-          defaultValue:
-              'https://ae735f51-ad9b-4187-bd88-52986fa6b324.mock.pstmn.io',
-        ),
+        baseUrl: 'http://10.0.2.2:3001', 
         secureStorage: getIt<SecureStorage>(),
       ),
     );
   }
 
-  // Core services
+  // --- Core Services ---
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
       () => JustAudioPlayerService(),
     );
   }
 
-  // Upload feature - T1.11 File Picker
+  // --- Upload Feature ---
   if (!getIt.isRegistered<AudioFilePickerDataSource>()) {
     getIt.registerLazySingleton<AudioFilePickerDataSource>(
       () => const AudioFilePickerDataSourceImpl(),
@@ -89,6 +82,7 @@ void setupDependencies() {
     );
   }
 
+  // --- Auth Feature (Data Layer) ---
   getIt.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(getIt<DioClient>()),
   );
@@ -104,20 +98,13 @@ void setupDependencies() {
     ),
   );
 
-  getIt.registerLazySingleton<CheckEmailExistsUseCase>(
-    () => CheckEmailExistsUseCase(getIt<AuthRepository>()),
-  );
-
+  // --- Auth Feature (Domain Layer / UseCases) ---
   getIt.registerLazySingleton<LoginUseCase>(
     () => LoginUseCase(getIt<AuthRepository>()),
   );
 
   getIt.registerLazySingleton<RegisterUseCase>(
     () => RegisterUseCase(getIt<AuthRepository>()),
-  );
-
-  getIt.registerLazySingleton<CompleteProfileUseCase>(
-    () => CompleteProfileUseCase(getIt<AuthRepository>()),
   );
 
   getIt.registerLazySingleton<LogoutUseCase>(
@@ -148,12 +135,11 @@ void setupDependencies() {
     () => VerifyEmailUseCase(getIt<AuthRepository>()),
   );
 
+  // --- Auth Presentation (Bloc) ---
   getIt.registerFactory<AuthCubit>(
     () => AuthCubit(
-      checkEmailExistsUseCase: getIt<CheckEmailExistsUseCase>(),
       loginUseCase: getIt<LoginUseCase>(),
       registerUseCase: getIt<RegisterUseCase>(),
-      completeProfileUseCase: getIt<CompleteProfileUseCase>(),
       logoutUseCase: getIt<LogoutUseCase>(),
       isLoggedInUseCase: getIt<IsLoggedInUseCase>(),
       getCurrentUserUseCase: getIt<GetCurrentUserUseCase>(),

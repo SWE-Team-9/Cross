@@ -33,11 +33,15 @@ class AuthRoutes {
       name: 'register',
       builder: (context, state) => const RegisterPage(),
     ),
-    GoRoute(
-      path: completeProfile,
-      name: 'complete-profile',
-      builder: (context, state) => const CompleteProfilePage(),
-    ),
+GoRoute(
+  path: completeProfile,
+  name: 'complete-profile',
+  builder: (context, state) {
+    // استقبال البيانات (Email, Password) كخريطة (Map)
+    final data = state.extra as Map<String, String>;
+    return CompleteProfilePage(registrationData: data);
+  },
+),
     GoRoute(
       path: forgotPassword,
       name: 'forgot-password',

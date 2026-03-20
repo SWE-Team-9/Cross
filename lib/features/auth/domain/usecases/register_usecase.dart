@@ -9,10 +9,18 @@ class RegisterUseCase {
   Future<User> call({
     required String email,
     required String password,
+    required String passwordConfirm,
+    required String displayName,
+    required String dateOfBirth,
+    required String gender,    
   }) {
     return repository.register(
       email: email,
       password: password,
+      passwordConfirm: passwordConfirm,
+      displayName: displayName,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
     );
   }
 }

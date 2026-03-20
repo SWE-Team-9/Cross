@@ -3,42 +3,40 @@ import '../../domain/entities/user.dart';
 class UserDto {
   final String id;
   final String email;
-  final String? username;
   final String? displayName;
+  final String? username;
+  final String? dateOfBirth; 
+  final String? gender;
+  final bool isVerified;
   final String? avatarUrl;
   final String? bio;
-  final String? gender;
-  final DateTime? dateOfBirth;
   final bool isPro;
-  final bool isProfileCompleted;
 
   const UserDto({
     required this.id,
     required this.email,
-    this.username,
     this.displayName,
+    this.username,
+    this.dateOfBirth,
+    this.gender,
+    required this.isVerified,
     this.avatarUrl,
     this.bio,
-    this.gender,
-    this.dateOfBirth,
-    required this.isPro,
-    required this.isProfileCompleted,
+    this.isPro = false,
   });
 
   factory UserDto.fromJson(Map<String, dynamic> json) {
     return UserDto(
-      id: json['id'].toString(),
+      id: json['id']?.toString() ?? '',
       email: json['email'] ?? '',
-      username: json['username'],
       displayName: json['display_name'],
+      username: json['username'],
+      dateOfBirth: json['date_of_birth'],
+      gender: json['gender'],
+      isVerified: json['is_verified'] ?? false,
       avatarUrl: json['avatar_url'],
       bio: json['bio'],
-      gender: json['gender'],
-      dateOfBirth: json['date_of_birth'] != null
-          ? DateTime.tryParse(json['date_of_birth'])
-          : null,
       isPro: json['is_pro'] ?? false,
-      isProfileCompleted: json['is_profile_completed'] ?? false,
     );
   }
 
@@ -46,14 +44,14 @@ class UserDto {
     return User(
       id: id,
       email: email,
-      username: username,
       displayName: displayName,
+      username: username,
       avatarUrl: avatarUrl,
       bio: bio,
       gender: gender,
-      dateOfBirth: dateOfBirth,
+      dateOfBirth: dateOfBirth != null ? DateTime.tryParse(dateOfBirth!) : null,
+      isVerified: isVerified, 
       isPro: isPro,
-      isProfileCompleted: isProfileCompleted,
     );
   }
 }

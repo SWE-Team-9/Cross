@@ -1,46 +1,43 @@
 import '../entities/user.dart';
 
 abstract class AuthRepository {
-  Future<bool> checkEmailExists({
-    required String email,
-  });
+  // قمنا بحذف checkEmailExists لأنها لم تعد موجودة في الـ API
 
   Future<User> login({
     required String email,
     required String password,
   });
 
-  Future<User> register({
+  // تحديث دالة التسجيل لتشمل كل البيانات المطلوبة
+Future<User> register({
     required String email,
     required String password,
+    required String passwordConfirm,
+    required String displayName,
+    required String dateOfBirth,
+    required String gender,
   });
 
   Future<void> forgotPassword({
     required String email,
   });
 
+ 
   Future<void> resetPassword({
-    required String email,
     required String code,
     required String newPassword,
+    required String newPasswordConfirm,
   });
-
+  
   Future<void> sendEmailVerification({
     required String email,
   });
 
   Future<void> verifyEmail({
-    required String email,
+    required String email, 
     required String code,
   });
 
-  Future<User> completeProfile({
-    required String displayName,
-    required int birthMonth,
-    required int birthDay,
-    required int birthYear,
-    required String gender,
-  });
 
   Future<User?> getCurrentUser();
 

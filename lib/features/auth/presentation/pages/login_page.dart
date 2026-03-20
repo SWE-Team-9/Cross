@@ -8,8 +8,6 @@ import '../widgets/auth_back_button.dart';
 import '../widgets/auth_button.dart';
 import '../widgets/auth_screen_wrapper.dart';
 
-// قم بتعديل هذا المسار بناءً على مكان ملف الـ AppRoutes لديك
-// import '../../app/router.dart'; 
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,7 +32,6 @@ class _LoginPageState extends State<LoginPage> {
   void _onLoginPressed() {
     if (!_formKey.currentState!.validate()) return;
 
-    // استدعاء دالة تسجيل الدخول من الـ Cubit
     context.read<AuthCubit>().login(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
@@ -44,14 +41,12 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF111111), // الخلفية الداكنة
+      backgroundColor: const Color(0xFF111111),
       body: SafeArea(
         child: AuthScreenWrapper(
           child: BlocConsumer<AuthCubit, AuthState>(
             listener: (context, state) {
               if (state is AuthAuthenticated) {
-                // التوجيه للصفحة الرئيسية بعد نجاح تسجيل الدخول
-                // يمكنك استخدام AppRoutes.home إذا قمت بعمل import لها
                 context.go('/home'); 
               }
 
