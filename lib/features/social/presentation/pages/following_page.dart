@@ -27,12 +27,13 @@ class FollowingPage extends StatelessWidget {
         // TODO: Ahmed Reda — replace with real repository call
         //////wait for real repo
         fetcher: (page) async {
-          final repo = SocialRepo();          
+          final repo = SocialRepo();
           return await repo.getFollowers(userId, page);
         },
         itemBuilder: (context, user) {
           return ListTile(
-            title: Text(user.username, style: const TextStyle(color: Colors.white)),
+            title: Text(user.username,
+                style: const TextStyle(color: Colors.white)),
           );
         },
         emptyMessage: 'Not following anyone yet',

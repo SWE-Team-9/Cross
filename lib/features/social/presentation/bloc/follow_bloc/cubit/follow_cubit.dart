@@ -5,8 +5,6 @@ import 'package:soundcloud_clone/features/social/data/repositories/social_repo.d
 
 part 'follow_state.dart';
 
-
-
 class FollowCubit extends Cubit<FollowState> {
   final SocialRepo repo;
 
@@ -26,9 +24,8 @@ class FollowCubit extends Cubit<FollowState> {
 
         return u.copyWith(
           isFollowing: newFollow,
-          followersCount: newFollow
-              ? u.followersCount + 1
-              : u.followersCount - 1,
+          followersCount:
+              newFollow ? u.followersCount + 1 : u.followersCount - 1,
         );
       }
       return u;
