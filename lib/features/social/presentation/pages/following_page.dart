@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
+import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
+import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 
 /// Following list page stub.
 /// Route: /following/:userId
@@ -21,12 +23,18 @@ class FollowingPage extends StatelessWidget {
         backgroundColor: Colors.black,
         title: const Text('Following', style: TextStyle(color: Colors.white)),
       ),
-      body: PaginatedUserList<String>(
+      body: PaginatedUserList<User>(
         // TODO: Ahmed Reda — replace with real repository call
-        fetcher: (_) async => [],
-        itemBuilder: (context, user) => ListTile(
-          title: Text(user, style: const TextStyle(color: Colors.white)),
-        ),
+        //////wait for real repo
+        fetcher: (page) async {
+          final repo = SocialRepo();          
+          return await repo.getFollowers(userId, page);
+        },
+        itemBuilder: (context, user) {
+          return ListTile(
+            title: Text(user.username, style: const TextStyle(color: Colors.white)),
+          );
+        },
         emptyMessage: 'Not following anyone yet',
         emptyIcon: Icons.person_add_outlined,
       ),
