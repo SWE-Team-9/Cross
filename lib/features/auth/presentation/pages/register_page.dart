@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:recaptcha_enterprise_flutter/recaptcha.dart';
+import 'package:recaptcha_enterprise_flutter/recaptcha_action.dart';
+import 'package:recaptcha_enterprise_flutter/recaptcha_client.dart';
+
 import '../routes/auth_routes.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_button.dart';
@@ -19,6 +23,23 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  bool _isFetchingCaptcha = false;
+  RecaptchaClient? _recaptchaClient;
+
+  @override
+  void initState() {
+    super.initState();
+    _initRecaptcha();
+  }
+
+  void _initRecaptcha() async {
+    try {
+      _recaptchaClient = await Recaptcha.fetchClient("6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7"); 
+    } catch (e) {
+      print("Failed to initialize Recaptcha: $e");
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -27,16 +48,48 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _onNextPressed() {
-    if (_formKey.currentState!.validate()) {
-      context.push(
-        AuthRoutes.completeProfile,
-        extra: {
-          'email': _emailController.text.trim(),
-          'password': _passwordController.text.trim(),
-          'passwordConfirm': _confirmPasswordController.text.trim(),
-        },
-      );
+  void _onNextPressed() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isFetchingCaptcha = true;
+    });
+
+    try {
+      if (_recaptchaClient == null) {
+        // 🔴 حط الـ Site Key بتاعك هنا برضه
+        _recaptchaClient = await Recaptcha.fetchClient("6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7"); 
+      }
+
+      // 🟢 جلب التوكن في صمت (Invisible) 🟢
+      String token = await _recaptchaClient!.execute(RecaptchaAction.custom('signup'));
+
+      if (mounted) {
+        context.push(
+          AuthRoutes.completeProfile,
+          extra: {
+            'email': _emailController.text.trim(),
+            'password': _passwordController.text.trim(),
+            'passwordConfirm': _confirmPasswordController.text.trim(),
+            'captchaToken': token, // 👈 هنبعت التوكن لصفحة تكملة البيانات
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Security verification failed. Please try again.', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingCaptcha = false;
+        });
+      }
     }
   }
 
@@ -47,6 +100,7 @@ class _RegisterPageState extends State<RegisterPage> {
       body: SafeArea(
         child: AuthScreenWrapper(
           child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -138,7 +192,15 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 32),
                   AuthButton(
                     text: 'Next',
+                    isLoading: _isFetchingCaptcha, // 👈 الزرار بيلف وهو بيجيب التوكن
                     onPressed: _onNextPressed,
+                  ),
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: Text(
+                      "Protected by reCAPTCHA Enterprise",
+                      style: TextStyle(color: Color(0xFF555555), fontSize: 12),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(

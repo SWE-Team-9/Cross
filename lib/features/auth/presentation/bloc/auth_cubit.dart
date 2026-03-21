@@ -56,10 +56,18 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> login({required String email, required String password}) async {
+  Future<void> login({
+    required String email, 
+    required String password,
+    required String captchaToken,
+  }) async {
     emit(AuthLoading());
     try {
-      final user = await loginUseCase(email: email, password: password);
+      final user = await loginUseCase(
+        email: email, 
+        password: password,
+        captchaToken: captchaToken,
+      );
       emit(AuthAuthenticated(user));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
@@ -76,6 +84,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String displayName,
     required String dateOfBirth,
     required String gender,
+    required String captchaToken,
   }) async {
     emit(AuthLoading());
     try {
@@ -86,6 +95,7 @@ class AuthCubit extends Cubit<AuthState> {
         displayName: displayName,
         dateOfBirth: dateOfBirth,
         gender: gender,
+        captchaToken: captchaToken, 
       );
       emit(AuthRegisterSuccess(user));
     } on DioException catch (e) {
@@ -122,7 +132,6 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
- 
   Future<void> forgotPassword({required String email}) async {
     emit(AuthLoading());
     try {

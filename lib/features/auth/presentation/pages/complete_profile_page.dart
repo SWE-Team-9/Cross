@@ -81,6 +81,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       displayName: displayName,
       dateOfBirth: birthDate,
       gender: _getGenderEnumValue(selectedGender!),
+      captchaToken: widget.registrationData['captchaToken']!,
     );
   }
 
@@ -205,7 +206,7 @@ class _AuthDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       dropdownColor: const Color(0xFF2C2C2E),
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
