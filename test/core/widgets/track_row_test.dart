@@ -6,6 +6,7 @@ import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 /// Fake player
 class FakeAudioPlayerService implements AudioPlayerService {
@@ -21,9 +22,9 @@ class FakeAudioPlayerService implements AudioPlayerService {
       );
 
   @override
-  Future<void> play(String url, String trackId) async {
+  Future<void> play(track) async {
     playCalled = true;
-    lastTrackId = trackId;
+    lastTrackId = track.id;
   }
 
   @override
@@ -48,6 +49,10 @@ void main() {
     fakePlayer = FakeAudioPlayerService();
 
     GetIt.I.registerSingleton<AudioPlayerService>(fakePlayer);
+
+    GetIt.I.registerSingleton<RecentlyPlayedCubit>(
+      RecentlyPlayedCubit(),
+    );
   });
 
   Widget buildTestWidget(Widget child) {
@@ -66,7 +71,7 @@ void main() {
 
     await tester.pumpWidget(buildTestWidget(TrackRow(track: track)));
 
-    await tester.pump(); // ensure build completes
+    await tester.pump();
 
     expect(find.text('Test Song'), findsOneWidget);
     expect(find.text('Test Artist'), findsOneWidget);
@@ -84,10 +89,7 @@ void main() {
 
     await tester.pump();
 
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.byType(TrackRow)),
-    );
-    await gesture.up();
+    await tester.tap(find.byType(TrackRow));
 
     await tester.pumpAndSettle();
 
