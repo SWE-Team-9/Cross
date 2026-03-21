@@ -8,7 +8,6 @@ import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 
-/// ✅ Fake Audio Player Service
 class FakeAudioPlayerService implements AudioPlayerService {
   @override
   Stream<PlayerState> get playerStateStream => const Stream.empty();
@@ -33,7 +32,6 @@ void main() {
   setUp(() async {
     await GetIt.I.reset();
 
-    // ✅ Register fake AudioPlayerService (FIXES YOUR ERROR)
     GetIt.I.registerSingleton<AudioPlayerService>(
       FakeAudioPlayerService(),
     );

@@ -13,10 +13,9 @@ class LibraryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: GetIt.I<RecentlyPlayedCubit>(), // ✅ SAME INSTANCE
+      value: GetIt.I<RecentlyPlayedCubit>(),
       child: Scaffold(
         backgroundColor: Colors.black,
-
         appBar: AppBar(
           backgroundColor: Colors.black,
           elevation: 0,
@@ -50,7 +49,6 @@ class LibraryPage extends StatelessWidget {
             SizedBox(width: 8),
           ],
         ),
-
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,8 +114,6 @@ class LibraryPage extends StatelessWidget {
             ],
           ),
         ),
-
-        // ✅ BOTTOM NAV ADDED
         bottomNavigationBar: _BottomNav(selected: 3),
       ),
     );
