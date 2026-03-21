@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
+import 'package:soundcloud_clone/features/social/presentation/bloc/user_action_bloc/user_action_cubit.dart';
+import 'package:soundcloud_clone/features/social/domain/enums/user_action_type.dart';
 
 /// Followers list page stub.
 /// Route: /followers/:userId
@@ -26,6 +29,15 @@ class FollowersPage extends StatelessWidget {
         fetcher: (_) async => [],
         itemBuilder: (context, user) => ListTile(
           title: Text(user, style: const TextStyle(color: Colors.white)),
+          trailing: ElevatedButton(
+            onPressed: () {
+              context.read<UserActionCubit>().performAction(
+                    userId: user,
+                    action: UserActionType.block,
+                  );
+            },
+            child: const Text("Block"),
+          ),
         ),
         emptyMessage: 'No followers yet',
         emptyIcon: Icons.people_outline,

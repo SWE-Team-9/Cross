@@ -19,26 +19,29 @@ class SocialRepo {
     return _users;
   }
 
-  // 👤 FOLLOW
+  //  Follow/unFollow
   Future<bool> followUser(String userId) async {
     // TODO: backend later
     await Future.delayed(const Duration(milliseconds: 300));
     return true;
   }
 
-  // 👤 UNFOLLOW
   Future<bool> unfollowUser(String userId) async {
     // TODO: backend later
     await Future.delayed(const Duration(milliseconds: 300));
     return true;
   }
 
-  // 🚫 BLOCK
-  Future<void> blockUser(String userId) async {
+  //Block/unBlock
+  Future<bool> blockUser(String userId) async {
     // TODO: backend later
+    await Future.delayed(const Duration(milliseconds: 300));
+    return true;
   }
 
-  Future<void> unblockUser(String userId) async {
+  Future<bool> unblockUser(String userId) async {
     // TODO: backend later
+    await Future.delayed(const Duration(milliseconds: 300));
+    return true;
   }
 }
