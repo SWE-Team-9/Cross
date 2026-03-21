@@ -26,6 +26,7 @@ import '../network/dio_client.dart';
 import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -162,5 +163,9 @@ void setupDependencies() {
       sendEmailVerificationUseCase: getIt<SendEmailVerificationUseCase>(),
       verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
     ),
+  );
+
+  getIt.registerLazySingleton<RecentlyPlayedCubit>(
+    () => RecentlyPlayedCubit(),
   );
 }
