@@ -59,7 +59,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: {
           'email': email,
           'password': password,
-          'captcha_token': captchaToken,
+          //'captcha_token': captchaToken,
+          "remember_me": true,
         },
         options: Options(headers: {
          
