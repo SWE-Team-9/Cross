@@ -40,7 +40,8 @@ void main() {
       verifyNoMoreInteractions(mockRepository);
     });
 
-    test('throws NotFoundFailure when repository throws NotFoundFailure', () async {
+    test('throws NotFoundFailure when repository throws NotFoundFailure',
+        () async {
       when(() => mockRepository.getProfile(tHandle))
           .thenThrow(const NotFoundFailure('This profile does not exist.'));
 

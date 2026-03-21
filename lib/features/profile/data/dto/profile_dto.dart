@@ -86,9 +86,8 @@ class ProfileDto {
       location: location,
       avatarUrl: avatarUrl,
       coverPhotoUrl: coverPhotoUrl,
-      accountTier: accountTier == 'ARTIST'
-          ? AccountTier.ARTIST
-          : AccountTier.LISTENER,
+      accountTier:
+          accountTier == 'ARTIST' ? AccountTier.ARTIST : AccountTier.LISTENER,
       favoriteGenres: favoriteGenres,
       externalLinks: externalLinks,
       visibility: visibility == 'PRIVATE'

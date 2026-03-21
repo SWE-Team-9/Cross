@@ -25,7 +25,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
-
   // TODO(backend): Replace with real auth service check
   // e.g. final isOwnProfile = getIt<AuthCubit>().state.user?.id == widget.userId;
   bool get isOwnProfile => widget.userId == 'user_eyad';
@@ -253,7 +252,8 @@ class _UserInfo extends StatelessWidget {
                 onTap: () {},
                 child: Text(
                   '${_formatCount(followersCount)} Followers',
-                  style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
+                  style:
+                      const TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
                 ),
               ),
               const Text(' · ',
@@ -263,7 +263,8 @@ class _UserInfo extends StatelessWidget {
                 onTap: () {},
                 child: Text(
                   '${_formatCount(followingCount)} Following',
-                  style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
+                  style:
+                      const TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
                 ),
               ),
               if (!isOwnProfile && tracksCount > 0) ...[
@@ -271,7 +272,8 @@ class _UserInfo extends StatelessWidget {
                     style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 13)),
                 Text(
                   '$tracksCount Tracks',
-                  style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
+                  style:
+                      const TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
                 ),
               ],
             ],
@@ -405,7 +407,8 @@ class _ActionRow extends StatelessWidget {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.play_arrow, color: Colors.black, size: 24),
+              child:
+                  const Icon(Icons.play_arrow, color: Colors.black, size: 24),
             ),
           ),
         ],
@@ -615,8 +618,7 @@ class _TrackRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 color: track.artColor,
               ),
-              child: const Icon(Icons.person,
-                  color: Colors.white54, size: 28),
+              child: const Icon(Icons.person, color: Colors.white54, size: 28),
               // TODO(backend): Replace with CachedNetworkImage(url: track.artworkUrl)
             ),
             const SizedBox(width: 10),
@@ -638,8 +640,8 @@ class _TrackRow extends StatelessWidget {
                   Text(
                     track.artist,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Color(0xFF888888), fontSize: 12),
+                    style:
+                        const TextStyle(color: Color(0xFF888888), fontSize: 12),
                   ),
                   const SizedBox(height: 3),
                   Row(
@@ -729,8 +731,7 @@ class _PlaylistRow extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.more_vert,
-                color: Color(0xFF555555), size: 18),
+            const Icon(Icons.more_vert, color: Color(0xFF555555), size: 18),
           ],
         ),
       ),
@@ -754,8 +755,7 @@ class _EmptyTab extends StatelessWidget {
           Icon(icon, size: 48, color: const Color(0xFF444444)),
           const SizedBox(height: 12),
           Text(message,
-              style: const TextStyle(
-                  color: Color(0xFF666666), fontSize: 14)),
+              style: const TextStyle(color: Color(0xFF666666), fontSize: 14)),
         ],
       ),
     );
@@ -839,20 +839,27 @@ class _MockProfileData {
         tracksCount: 0,
         likedTracks: const [
           _MockTrack(
-            id: 't1', title: 'Titanium Alone', artist: 'anh an',
-            plays: '2.8K', duration: '2:53',
+            id: 't1',
+            title: 'Titanium Alone',
+            artist: 'anh an',
+            plays: '2.8K',
+            duration: '2:53',
             artColor: Color(0xFF5B7BBB),
           ),
           _MockTrack(
             id: 't2',
             title: 'Marshmello & Anne Marie - FRIEN...',
             artist: 'Sikdope, Marshmello, Anne Marie',
-            plays: '847K', duration: '2:43',
+            plays: '847K',
+            duration: '2:43',
             artColor: Color(0xFF2a1a2e),
           ),
           _MockTrack(
-            id: 't3', title: 'Blinding Lights (Remix)',
-            artist: 'The Weeknd', plays: '1.2M', duration: '3:20',
+            id: 't3',
+            title: 'Blinding Lights (Remix)',
+            artist: 'The Weeknd',
+            plays: '1.2M',
+            duration: '3:20',
             artColor: Color(0xFF1a2a1a),
           ),
         ],
@@ -874,24 +881,34 @@ class _MockProfileData {
       likedTracks: const [],
       ownedTracks: const [
         _MockTrack(
-          id: 'o1', title: 'Midnight Drive', artist: 'Ali Mahmoud',
-          plays: '12.4K', duration: '3:42',
+          id: 'o1',
+          title: 'Midnight Drive',
+          artist: 'Ali Mahmoud',
+          plays: '12.4K',
+          duration: '3:42',
           artColor: Color(0xFFE85D04),
         ),
         _MockTrack(
-          id: 'o2', title: 'Neon Waves', artist: 'Ali Mahmoud',
-          plays: '8.9K', duration: '4:17',
+          id: 'o2',
+          title: 'Neon Waves',
+          artist: 'Ali Mahmoud',
+          plays: '8.9K',
+          duration: '4:17',
           artColor: Color(0xFF6C63FF),
         ),
       ],
       playlists: const [
         _MockPlaylist(
-          id: 'p1', title: 'My Late Night Mix',
-          trackCount: 18, artColor: Color(0xFF1a1a2e),
+          id: 'p1',
+          title: 'My Late Night Mix',
+          trackCount: 18,
+          artColor: Color(0xFF1a1a2e),
         ),
         _MockPlaylist(
-          id: 'p2', title: 'Cairo Vibes',
-          trackCount: 9, artColor: Color(0xFF1a2a1a),
+          id: 'p2',
+          title: 'Cairo Vibes',
+          trackCount: 9,
+          artColor: Color(0xFF1a2a1a),
         ),
       ],
       repostedTracks: const [],

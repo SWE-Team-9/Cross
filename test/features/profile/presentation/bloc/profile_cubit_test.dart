@@ -11,7 +11,9 @@ import '../../helpers/profile_test_fixtures.dart';
 
 // Mock classes (no code generation!)
 class MockGetProfileUseCase extends Mock implements GetProfileUseCase {}
+
 class MockUpdateProfileUseCase extends Mock implements UpdateProfileUseCase {}
+
 class MockProfileRepository extends Mock implements ProfileRepository {}
 
 void main() {
@@ -122,9 +124,9 @@ void main() {
       'emits [ProfileImageUploading, ProfileLoaded] on avatar upload success',
       build: () {
         when(() => mockProfileRepository.uploadProfileImage(
-          imageType: ProfileImageType.AVATAR,
-          filePath: tFilePath,
-        )).thenAnswer((_) async => tAvatarUrl);
+              imageType: ProfileImageType.AVATAR,
+              filePath: tFilePath,
+            )).thenAnswer((_) async => tAvatarUrl);
         return cubit;
       },
       seed: () => ProfileLoaded(tProfileEntity),

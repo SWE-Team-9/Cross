@@ -1,5 +1,3 @@
-
-
 /// Visibility options that match the API values PUBLIC / PRIVATE.
 enum ProfileVisibility {
   PUBLIC,
