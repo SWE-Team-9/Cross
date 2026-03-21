@@ -8,6 +8,7 @@ abstract class AuthRemoteDataSource {
   Future<UserDto> login({
     required String email,
     required String password,
+    required String captchaToken, 
   });
 
   Future<UserDto> register({
@@ -17,6 +18,7 @@ abstract class AuthRemoteDataSource {
     required String displayName,
     required String dateOfBirth,
     required String gender,
+    required String captchaToken, 
   });
 
   Future<void> forgotPassword({
@@ -51,6 +53,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserDto> login({
     required String email,
     required String password,
+    required String captchaToken,
   }) async {
     final response = await dioClient.dio.post(
       '/api/v1/auth/login',
@@ -58,6 +61,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'email': email,
         'password': password,
       },
+      options: Options(
+        headers: {
+          'X-Recaptcha-Token': captchaToken,
+        }
+      )
     );
     
     final responseData = response.data is String ? jsonDecode(response.data) : response.data;
@@ -73,6 +81,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String displayName,
     required String dateOfBirth,
     required String gender,
+    required String captchaToken,
   }) async {
     final response = await dioClient.dio.post(
       '/api/v1/auth/register',
@@ -86,7 +95,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       },
       options: Options(
         headers: {
-          'X-Recaptcha-Token': 'dummy_token_for_now', 
+          'X-Recaptcha-Token': captchaToken, 
         }
       )
     );

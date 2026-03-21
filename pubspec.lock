@@ -903,6 +903,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  recaptcha_enterprise_flutter:
+    dependency: "direct main"
+    description:
+      name: recaptcha_enterprise_flutter
+      sha256: "0b72f1f2284a61345b28a2b663b1d7a140d324f65cbbd4f6ca2764ee4e743196"
+      url: "https://pub.dev"
+    source: hosted
+    version: "18.8.2"
   recase:
     dependency: transitive
     description:

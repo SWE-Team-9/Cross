@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:recaptcha_enterprise_flutter/recaptcha.dart';
+import 'package:recaptcha_enterprise_flutter/recaptcha_action.dart';
+import 'package:recaptcha_enterprise_flutter/recaptcha_client.dart';
 import '../bloc/auth_cubit.dart';
 import '../routes/auth_routes.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_button.dart';
 import '../widgets/auth_screen_wrapper.dart';
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,6 +22,23 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordHidden = true;
+  bool _isFetchingCaptcha = false; 
+  RecaptchaClient? _recaptchaClient;
+
+  @override
+  void initState() {
+    super.initState();
+    _initRecaptcha();
+  }
+
+  void _initRecaptcha() async {
+    try {
+     
+      _recaptchaClient = await Recaptcha.fetchClient("6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7"); 
+    } catch (e) {
+      print("Failed to initialize Recaptcha: $e");
+    }
+  }
 
   @override
   void dispose() {
@@ -29,13 +47,44 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _onLoginPressed() {
+  void _onLoginPressed() async {
     if (!_formKey.currentState!.validate()) return;
 
-    context.read<AuthCubit>().login(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+    setState(() {
+      _isFetchingCaptcha = true;
+    });
+
+    try {
+     
+      if (_recaptchaClient == null) {
+        _recaptchaClient = await Recaptcha.fetchClient("6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7"); 
+      }
+
+      String token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
+
+      if (mounted) {
+        context.read<AuthCubit>().login(
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim(),
+              captchaToken: token, 
+            );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Security verification failed. Please try again.', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.redAccent,
+          ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingCaptcha = false;
+        });
+      }
+    }
   }
 
   @override
@@ -60,7 +109,7 @@ class _LoginPageState extends State<LoginPage> {
               }
             },
             builder: (context, state) {
-              final isLoading = state is AuthLoading;
+              final isLoading = (state is AuthLoading) || _isFetchingCaptcha;
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -108,7 +157,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 24),
                       
-                     
                       const Text(
                         'Password',
                         style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
@@ -146,7 +194,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 16),
                       
-                     
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
@@ -161,13 +208,19 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 32),
                       
-                      
                       AuthButton(
                         text: 'Log in',
                         isLoading: isLoading,
                         onPressed: _onLoginPressed,
                       ),
                       const SizedBox(height: 24),
+                      
+                      const Center(
+                        child: Text(
+                          "Protected by reCAPTCHA Enterprise",
+                          style: TextStyle(color: Color(0xFF555555), fontSize: 12),
+                        ),
+                      )
                     ],
                   ),
                 ),

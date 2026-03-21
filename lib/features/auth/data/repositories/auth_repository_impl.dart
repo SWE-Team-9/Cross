@@ -16,13 +16,14 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<User> login({
     required String email,
     required String password,
+    required String captchaToken,
   }) async {
     final userDto = await remoteDataSource.login(
       email: email,
       password: password,
+      captchaToken: captchaToken,
     );
     
- 
     await localDataSource.saveToken("is_logged_in"); 
     return userDto.toEntity();
   }
@@ -35,6 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String displayName,
     required String dateOfBirth,
     required String gender,
+    required String captchaToken, 
   }) async {
     final userDto = await remoteDataSource.register(
       email: email,
@@ -43,6 +45,7 @@ class AuthRepositoryImpl implements AuthRepository {
       displayName: displayName,
       dateOfBirth: dateOfBirth,
       gender: gender,
+      captchaToken: captchaToken,
     );
     
     await localDataSource.saveToken("is_logged_in");
