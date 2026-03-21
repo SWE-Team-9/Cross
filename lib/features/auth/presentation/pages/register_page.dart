@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha_action.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha_client.dart';
-
 import '../routes/auth_routes.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_button.dart';
@@ -35,7 +34,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void _initRecaptcha() async {
     try {
       _recaptchaClient = await Recaptcha.fetchClient(
-          "6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7");
+          "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
     } catch (e) {
       print("Failed to initialize Recaptcha: $e");
     }
@@ -58,12 +57,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
     try {
       if (_recaptchaClient == null) {
-        // 🔴 حط الـ Site Key بتاعك هنا برضه
         _recaptchaClient = await Recaptcha.fetchClient(
-            "6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7");
+            "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
       }
 
-      // 🟢 جلب التوكن في صمت (Invisible) 🟢
       String token =
           await _recaptchaClient!.execute(RecaptchaAction.custom('signup'));
 
@@ -74,7 +71,7 @@ class _RegisterPageState extends State<RegisterPage> {
             'email': _emailController.text.trim(),
             'password': _passwordController.text.trim(),
             'passwordConfirm': _confirmPasswordController.text.trim(),
-            'captchaToken': token, // 👈 هنبعت التوكن لصفحة تكملة البيانات
+            'captchaToken': token, 
           },
         );
       }
@@ -197,7 +194,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   AuthButton(
                     text: 'Next',
                     isLoading:
-                        _isFetchingCaptcha, // 👈 الزرار بيلف وهو بيجيب التوكن
+                        _isFetchingCaptcha, 
                     onPressed: _onNextPressed,
                   ),
                   const SizedBox(height: 16),

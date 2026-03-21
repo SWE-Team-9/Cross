@@ -34,7 +34,7 @@ class _LoginPageState extends State<LoginPage> {
   void _initRecaptcha() async {
     try {
       _recaptchaClient = await Recaptcha.fetchClient(
-          "6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7");
+          "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
     } catch (e) {
       print("Failed to initialize Recaptcha: $e");
     }
@@ -57,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       if (_recaptchaClient == null) {
         _recaptchaClient = await Recaptcha.fetchClient(
-            "6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7");
+            "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
       }
 
       String token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());

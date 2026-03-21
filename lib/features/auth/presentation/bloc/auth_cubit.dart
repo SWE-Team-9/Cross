@@ -37,6 +37,8 @@ class AuthCubit extends Cubit<AuthState> {
     required this.verifyEmailUseCase,
   }) : super(AuthInitial());
 
+  /// [Auto Login Logic]
+  /// تُستخدم في صفحة الـ Splash لتحديد وجهة المستخدم
   Future<void> checkAuthStatus() async {
     emit(AuthLoading());
     try {
@@ -45,13 +47,18 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthUnauthenticated());
         return;
       }
+
+      // محاولة جلب بيانات المستخدم للتأكد من أن التوكن سليم
       final user = await getCurrentUserUseCase();
       if (user == null) {
         emit(AuthUnauthenticated());
         return;
       }
+      
+      // لو كل شيء تمام، ننتقل للهوم
       emit(AuthAuthenticated(user));
     } catch (e) {
+      // في حالة وجود خطأ (مثل 401 وفشل التجديد)، نطلب تسجيل دخول جديد
       emit(AuthUnauthenticated());
     }
   }
@@ -68,6 +75,7 @@ class AuthCubit extends Cubit<AuthState> {
         password: password,
         captchaToken: captchaToken,
       );
+      // الـ Repository قام بالفعل بحفظ التوكنز في الـ Secure Storage
       emit(AuthAuthenticated(user));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
@@ -106,6 +114,22 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> logout() async {
+    emit(AuthLoading());
+    try {
+      await logoutUseCase();
+      // الـ Repository قام بمسح التوكنز من الـ Secure Storage
+      emit(AuthUnauthenticated());
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
+    } catch (e) {
+      emit(AuthUnauthenticated()); // حتى لو فشل طلب السيرفر، نسجل خروج محلياً
+    }
+  }
+
+  // --- بقية الدوال (Forgot Password, Verify Email, الخ) تبقى كما هي ---
+  
   Future<void> sendEmailVerification({required String email}) async {
     emit(AuthLoading());
     try {
@@ -163,17 +187,6 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthError(failure.message));
     } catch (e) {
       emit(AuthError('An unexpected error occurred.'));
-    }
-  }
-
-  Future<void> logout() async {
-    emit(AuthLoading());
-    try {
-      await logoutUseCase();
-      emit(AuthUnauthenticated());
-    } catch (e) {
-      final failure = ErrorMapper.mapDioErrorToFailure(e as DioException);
-      emit(AuthError(failure.message));
     }
   }
 }
