@@ -11,7 +11,6 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      
       create: (_) => getIt<AuthCubit>(),
       child: MaterialApp.router(
         title: 'SoundCloud Clone',
