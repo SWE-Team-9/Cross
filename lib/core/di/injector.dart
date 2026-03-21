@@ -5,7 +5,6 @@ import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
-// تم حذف UseCases الغير موجودة (CheckEmail, CompleteProfile)
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
 import '../../features/auth/domain/usecases/is_logged_in_usecase.dart';
@@ -44,7 +43,7 @@ void setupDependencies() {
   if (!getIt.isRegistered<DioClient>()) {
     getIt.registerLazySingleton<DioClient>(
       () => DioClient(
-        baseUrl: 'http://10.0.2.2:3001', 
+        baseUrl: 'http://13.53.103.19:3001',
         secureStorage: getIt<SecureStorage>(),
       ),
     );

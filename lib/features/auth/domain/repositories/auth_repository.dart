@@ -1,7 +1,6 @@
 import '../entities/user.dart';
 
 abstract class AuthRepository {
-
   Future<User> login({
     required String email,
     required String password,
@@ -27,13 +26,13 @@ abstract class AuthRepository {
     required String newPassword,
     required String newPasswordConfirm,
   });
-  
+
   Future<void> sendEmailVerification({
     required String email,
   });
 
   Future<void> verifyEmail({
-    required String email, 
+    required String email,
     required String code,
   });
 

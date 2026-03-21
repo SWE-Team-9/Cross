@@ -7,7 +7,7 @@ class User {
   final String? bio;
   final String? gender;
   final DateTime? dateOfBirth;
-  final bool isVerified; 
+  final bool isVerified;
   final bool isPro;
 
   const User({

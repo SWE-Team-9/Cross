@@ -8,7 +8,7 @@ abstract class AuthRemoteDataSource {
   Future<UserDto> login({
     required String email,
     required String password,
-    required String captchaToken, 
+    required String captchaToken,
   });
 
   Future<UserDto> register({
@@ -18,7 +18,7 @@ abstract class AuthRemoteDataSource {
     required String displayName,
     required String dateOfBirth,
     required String gender,
-    required String captchaToken, 
+    required String captchaToken,
   });
 
   Future<void> forgotPassword({
@@ -55,20 +55,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
     required String captchaToken,
   }) async {
-    final response = await dioClient.dio.post(
-      '/api/v1/auth/login',
-      data: {
-        'email': email,
-        'password': password,
-      },
-      options: Options(
-        headers: {
-          'X-Recaptcha-Token': captchaToken,
-        }
-      )
-    );
-    
-    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+    final response = await dioClient.dio.post('/api/v1/auth/login',
+        data: {
+          'email': email,
+          'password': password,
+          'captcha_token': captchaToken,
+        },
+        options: Options(headers: {
+         
+        }));
+
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
 
     return UserDto.fromJson(responseData['user']);
   }
@@ -83,24 +81,22 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String gender,
     required String captchaToken,
   }) async {
-    final response = await dioClient.dio.post(
-      '/api/v1/auth/register',
-      data: {
-        'email': email,
-        'password': password,
-        'password_confirm': passwordConfirm,
-        'display_name': displayName,
-        'date_of_birth': dateOfBirth,
-        'gender': gender,
-      },
-      options: Options(
-        headers: {
-          'X-Recaptcha-Token': captchaToken, 
-        }
-      )
-    );
+    final response = await dioClient.dio.post('http://13.53.103.19:3001/api/v1/auth/register',
+        data: {
+          'email': email,
+          'password': password,
+          'password_confirm': passwordConfirm,
+          'display_name': displayName,
+          'date_of_birth': dateOfBirth,
+          'gender': gender,
+          'captcha_token': captchaToken,
+        },
+        options: Options(headers: {
+          
+        }));
 
-    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
     return UserDto.fromJson(responseData['user']);
   }
 
@@ -159,7 +155,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserDto> getCurrentUser() async {
     final response = await dioClient.dio.get('/api/v1/auth/me');
-    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
     return UserDto.fromJson(responseData);
   }
 

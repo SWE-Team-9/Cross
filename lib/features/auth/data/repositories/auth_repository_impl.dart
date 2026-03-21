@@ -23,8 +23,8 @@ class AuthRepositoryImpl implements AuthRepository {
       password: password,
       captchaToken: captchaToken,
     );
-    
-    await localDataSource.saveToken("is_logged_in"); 
+
+    await localDataSource.saveToken("is_logged_in");
     return userDto.toEntity();
   }
 
@@ -36,7 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String displayName,
     required String dateOfBirth,
     required String gender,
-    required String captchaToken, 
+    required String captchaToken,
   }) async {
     final userDto = await remoteDataSource.register(
       email: email,
@@ -47,7 +47,7 @@ class AuthRepositoryImpl implements AuthRepository {
       gender: gender,
       captchaToken: captchaToken,
     );
-    
+
     await localDataSource.saveToken("is_logged_in");
     return userDto.toEntity();
   }
@@ -81,7 +81,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> verifyEmail({
-    required String email, 
+    required String email,
     required String code,
   }) {
     return remoteDataSource.verifyEmail(code: code);

@@ -22,7 +22,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordHidden = true;
-  bool _isFetchingCaptcha = false; 
+  bool _isFetchingCaptcha = false;
   RecaptchaClient? _recaptchaClient;
 
   @override
@@ -33,8 +33,8 @@ class _LoginPageState extends State<LoginPage> {
 
   void _initRecaptcha() async {
     try {
-     
-      _recaptchaClient = await Recaptcha.fetchClient("6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7"); 
+      _recaptchaClient = await Recaptcha.fetchClient(
+          "6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7");
     } catch (e) {
       print("Failed to initialize Recaptcha: $e");
     }
@@ -55,9 +55,9 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-     
       if (_recaptchaClient == null) {
-        _recaptchaClient = await Recaptcha.fetchClient("6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7"); 
+        _recaptchaClient = await Recaptcha.fetchClient(
+            "6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7");
       }
 
       String token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
@@ -66,14 +66,15 @@ class _LoginPageState extends State<LoginPage> {
         context.read<AuthCubit>().login(
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
-              captchaToken: token, 
+              captchaToken: token,
             );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Security verification failed. Please try again.', style: TextStyle(color: Colors.white)),
+            content: Text('Security verification failed. Please try again.',
+                style: TextStyle(color: Colors.white)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -96,13 +97,14 @@ class _LoginPageState extends State<LoginPage> {
           child: BlocConsumer<AuthCubit, AuthState>(
             listener: (context, state) {
               if (state is AuthAuthenticated) {
-                context.go('/home'); 
+                context.go('/home');
               }
 
               if (state is AuthError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(state.message, style: const TextStyle(color: Colors.white)),
+                    content: Text(state.message,
+                        style: const TextStyle(color: Colors.white)),
                     backgroundColor: Colors.redAccent,
                   ),
                 );
@@ -132,10 +134,10 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 40),
-                    
                       const Text(
                         'Email address',
-                        style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
+                        style:
+                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -152,14 +154,15 @@ class _LoginPageState extends State<LoginPage> {
                             borderSide: BorderSide.none,
                           ),
                         ),
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Please enter your email' : null,
+                        validator: (value) => value == null || value.isEmpty
+                            ? 'Please enter your email'
+                            : null,
                       ),
                       const SizedBox(height: 24),
-                      
                       const Text(
                         'Password',
-                        style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
+                        style:
+                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -189,11 +192,11 @@ class _LoginPageState extends State<LoginPage> {
                             },
                           ),
                         ),
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Please enter your password' : null,
+                        validator: (value) => value == null || value.isEmpty
+                            ? 'Please enter your password'
+                            : null,
                       ),
                       const SizedBox(height: 16),
-                      
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
@@ -203,22 +206,22 @@ class _LoginPageState extends State<LoginPage> {
                           style: TextButton.styleFrom(
                             foregroundColor: const Color(0xFF6D8FFF),
                           ),
-                          child: const Text('Forgot password?', style: TextStyle(fontSize: 16)),
+                          child: const Text('Forgot password?',
+                              style: TextStyle(fontSize: 16)),
                         ),
                       ),
                       const SizedBox(height: 32),
-                      
                       AuthButton(
                         text: 'Log in',
                         isLoading: isLoading,
                         onPressed: _onLoginPressed,
                       ),
                       const SizedBox(height: 24),
-                      
                       const Center(
                         child: Text(
                           "Protected by reCAPTCHA Enterprise",
-                          style: TextStyle(color: Color(0xFF555555), fontSize: 12),
+                          style:
+                              TextStyle(color: Color(0xFF555555), fontSize: 12),
                         ),
                       )
                     ],

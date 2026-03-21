@@ -34,7 +34,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _initRecaptcha() async {
     try {
-      _recaptchaClient = await Recaptcha.fetchClient("6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7"); 
+      _recaptchaClient = await Recaptcha.fetchClient(
+          "6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7");
     } catch (e) {
       print("Failed to initialize Recaptcha: $e");
     }
@@ -58,11 +59,13 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       if (_recaptchaClient == null) {
         // 🔴 حط الـ Site Key بتاعك هنا برضه
-        _recaptchaClient = await Recaptcha.fetchClient("6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7"); 
+        _recaptchaClient = await Recaptcha.fetchClient(
+            "6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7");
       }
 
       // 🟢 جلب التوكن في صمت (Invisible) 🟢
-      String token = await _recaptchaClient!.execute(RecaptchaAction.custom('signup'));
+      String token =
+          await _recaptchaClient!.execute(RecaptchaAction.custom('signup'));
 
       if (mounted) {
         context.push(
@@ -79,7 +82,8 @@ class _RegisterPageState extends State<RegisterPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Security verification failed. Please try again.', style: TextStyle(color: Colors.white)),
+            content: Text('Security verification failed. Please try again.',
+                style: TextStyle(color: Colors.white)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -192,7 +196,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 32),
                   AuthButton(
                     text: 'Next',
-                    isLoading: _isFetchingCaptcha, // 👈 الزرار بيلف وهو بيجيب التوكن
+                    isLoading:
+                        _isFetchingCaptcha, // 👈 الزرار بيلف وهو بيجيب التوكن
                     onPressed: _onNextPressed,
                   ),
                   const SizedBox(height: 16),

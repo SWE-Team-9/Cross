@@ -41,7 +41,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     if (!_formKey.currentState!.validate()) return;
 
     context.read<AuthCubit>().resetPassword(
-          code: _codeController.text.trim(), 
+          code: _codeController.text.trim(),
           newPassword: _passwordController.text.trim(),
           newPasswordConfirm: _confirmPasswordController.text.trim(),
         );
@@ -68,7 +68,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               if (state is AuthError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(state.message, style: const TextStyle(color: Colors.white)),
+                    content: Text(state.message,
+                        style: const TextStyle(color: Colors.white)),
                     backgroundColor: Colors.redAccent,
                   ),
                 );
@@ -106,8 +107,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       ),
                     ),
                     const SizedBox(height: 40),
-
-                    const Text('Verification Code', style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
+                    const Text('Verification Code',
+                        style:
+                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _codeController,
@@ -130,8 +132,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       },
                     ),
                     const SizedBox(height: 20),
-
-                    const Text('New Password', style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
+                    const Text('New Password',
+                        style:
+                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _passwordController,
@@ -148,10 +151,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _isPasswordHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _isPasswordHidden
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                             color: const Color(0xFF9B9B9B),
                           ),
-                          onPressed: () => setState(() => _isPasswordHidden = !_isPasswordHidden),
+                          onPressed: () => setState(
+                              () => _isPasswordHidden = !_isPasswordHidden),
                         ),
                       ),
                       validator: (value) {
@@ -165,8 +171,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       },
                     ),
                     const SizedBox(height: 20),
-
-                    const Text('Confirm Password', style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
+                    const Text('Confirm Password',
+                        style:
+                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16)),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _confirmPasswordController,
@@ -183,10 +190,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _isConfirmPasswordHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _isConfirmPasswordHidden
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                             color: const Color(0xFF9B9B9B),
                           ),
-                          onPressed: () => setState(() => _isConfirmPasswordHidden = !_isConfirmPasswordHidden),
+                          onPressed: () => setState(() =>
+                              _isConfirmPasswordHidden =
+                                  !_isConfirmPasswordHidden),
                         ),
                       ),
                       validator: (value) {
@@ -197,7 +208,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       },
                     ),
                     const SizedBox(height: 40),
-
                     BlocBuilder<AuthCubit, AuthState>(
                       builder: (context, state) {
                         final isLoading = state is AuthLoading;
