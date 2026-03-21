@@ -390,7 +390,7 @@ class _ActionRow extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(6),
               child: Icon(Icons.shuffle,
-                  color: Colors.white.withOpacity(0.8), size: 22),
+                  color: Colors.white.withValues(alpha: 0.8), size: 22),
             ),
           ),
           const SizedBox(width: 8),
