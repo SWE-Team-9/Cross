@@ -29,47 +29,49 @@ void main() {
         );
 
         when(() => mockRepository.updateProfile(
-          displayName: 'Ahmed Official',
-          bio: 'New EP dropping soon',
-          location: 'Alexandria, Egypt',
-          favoriteGenres: ['Lo-Fi', 'Oriental'],
-          visibility: ProfileVisibility.PRIVATE,
-        )).thenAnswer((_) async => tProfileEntity);
+              displayName: 'Ahmed Official',
+              bio: 'New EP dropping soon',
+              location: 'Alexandria, Egypt',
+              favoriteGenres: ['Lo-Fi', 'Oriental'],
+              visibility: ProfileVisibility.PRIVATE,
+            )).thenAnswer((_) async => tProfileEntity);
 
         final result = await useCase(params);
 
         expect(result, tProfileEntity);
         verify(() => mockRepository.updateProfile(
-          displayName: 'Ahmed Official',
-          bio: 'New EP dropping soon',
-          location: 'Alexandria, Egypt',
-          favoriteGenres: ['Lo-Fi', 'Oriental'],
-          visibility: ProfileVisibility.PRIVATE,
-        )).called(1);
+              displayName: 'Ahmed Official',
+              bio: 'New EP dropping soon',
+              location: 'Alexandria, Egypt',
+              favoriteGenres: ['Lo-Fi', 'Oriental'],
+              visibility: ProfileVisibility.PRIVATE,
+            )).called(1);
       });
 
-      test('passes only displayName when only displayName is in params', () async {
+      test('passes only displayName when only displayName is in params',
+          () async {
         const params = UpdateProfileParams(displayName: 'Ahmed Official');
         when(() => mockRepository.updateProfile(
-          displayName: 'Ahmed Official',
-          bio: null,
-          location: null,
-          favoriteGenres: null,
-          visibility: null,
-        )).thenAnswer((_) async => tProfileEntity);
+              displayName: 'Ahmed Official',
+              bio: null,
+              location: null,
+              favoriteGenres: null,
+              visibility: null,
+            )).thenAnswer((_) async => tProfileEntity);
 
         await useCase(params);
 
         verify(() => mockRepository.updateProfile(
-          displayName: 'Ahmed Official',
-          bio: null,
-          location: null,
-          favoriteGenres: null,
-          visibility: null,
-        )).called(1);
+              displayName: 'Ahmed Official',
+              bio: null,
+              location: null,
+              favoriteGenres: null,
+              visibility: null,
+            )).called(1);
       });
 
-      test('throws ValidationFailure when repository throws ValidationFailure', () async {
+      test('throws ValidationFailure when repository throws ValidationFailure',
+          () async {
         const params = UpdateProfileParams(displayName: 'x');
         when(() => mockRepository.updateProfile(displayName: 'x')).thenThrow(
           const ValidationFailure('Name must be at least 2 characters.'),
