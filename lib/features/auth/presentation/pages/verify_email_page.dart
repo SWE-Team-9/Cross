@@ -32,7 +32,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   void _onVerifyPressed() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthCubit>().verifyEmail(
-            code: _codeController.text.trim(), 
+            code: _codeController.text.trim(),
           );
     }
   }
@@ -46,7 +46,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF111111), 
+      backgroundColor: const Color(0xFF111111),
       body: SafeArea(
         child: AuthScreenWrapper(
           child: BlocConsumer<AuthCubit, AuthState>(
@@ -58,8 +58,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                     backgroundColor: Colors.green,
                   ),
                 );
-                
-                context.go(AuthRoutes.completeProfile); 
+
+                context.go(AuthRoutes.completeProfile);
               }
 
               if (state is AuthVerificationEmailSent) {
@@ -74,7 +74,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               if (state is AuthError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(state.message, style: const TextStyle(color: Colors.white)),
+                    content: Text(state.message,
+                        style: const TextStyle(color: Colors.white)),
                     backgroundColor: Colors.redAccent,
                   ),
                 );
@@ -91,11 +92,11 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-                      
                       Align(
                         alignment: Alignment.centerLeft,
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                              color: Colors.white),
                           onPressed: () {
                             context.go(AuthRoutes.register);
                           },
@@ -125,19 +126,21 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                         ),
                       ),
                       const SizedBox(height: 40),
-                      
                       const Text(
                         'Verification Code',
-                        style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
+                        style:
+                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _codeController,
-                        style: const TextStyle(color: Colors.white, letterSpacing: 2.0),
+                        style: const TextStyle(
+                            color: Colors.white, letterSpacing: 2.0),
                         textAlign: TextAlign.center,
                         decoration: InputDecoration(
                           hintText: 'Enter code',
-                          hintStyle: const TextStyle(color: Color(0xFF8B8B8B), letterSpacing: 0),
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF8B8B8B), letterSpacing: 0),
                           filled: true,
                           fillColor: const Color(0xFF2C2C2E),
                           border: OutlineInputBorder(
@@ -153,14 +156,12 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                         },
                       ),
                       const SizedBox(height: 32),
-
                       AuthButton(
                         text: 'Verify Email',
                         isLoading: isLoading,
                         onPressed: isLoading ? null : _onVerifyPressed,
                       ),
                       const SizedBox(height: 16),
-
                       Center(
                         child: TextButton(
                           onPressed: isLoading ? null : _onResendPressed,

@@ -20,7 +20,7 @@ class DioClient {
             connectTimeout: const Duration(seconds: 30),
             receiveTimeout: const Duration(seconds: 30),
             headers: const {'Content-Type': 'application/json'},
-            extra: {'withCredentials': true}, 
+            extra: {'withCredentials': true},
           ),
         ) {
     _init();
@@ -32,17 +32,12 @@ class DioClient {
       storage: FileStorage("${appDocDir.path}/.cookies/"),
     );
 
-    
     dio.interceptors.addAll([
-     
-      CookieManager(cookieJar), 
+      CookieManager(cookieJar),
       ErrorInterceptor(),
       LoggingInterceptor(),
-    
     ]);
   }
-
-  
 
   Future<Response<T>> get<T>(
     String path, {

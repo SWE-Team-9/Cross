@@ -11,7 +11,7 @@ class LoggingInterceptor extends Interceptor {
     }
     handler.next(options);
   }
-
+  
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     print('Response: ${response.statusCode} ${response.requestOptions.path}');

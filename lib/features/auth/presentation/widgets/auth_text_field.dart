@@ -7,13 +7,13 @@ class AuthTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final TextInputType keyboardType;
   final bool enabled;
-  final String? Function(String?)? validator; 
+  final String? Function(String?)? validator;
 
   const AuthTextField({
     super.key,
     required this.controller,
     required this.hintText,
-    this.isPassword = false, 
+    this.isPassword = false,
     this.suffixIcon,
     this.keyboardType = TextInputType.text,
     this.enabled = true,
@@ -64,7 +64,6 @@ class AuthTextField extends StatelessWidget {
             width: 1.5,
           ),
         ),
-       
         errorStyle: const TextStyle(color: Colors.redAccent),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

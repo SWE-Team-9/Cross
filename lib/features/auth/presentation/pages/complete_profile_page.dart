@@ -22,19 +22,33 @@ class CompleteProfilePage extends StatefulWidget {
 
 class _CompleteProfilePageState extends State<CompleteProfilePage> {
   final TextEditingController _displayNameController = TextEditingController();
-  
+
   String? selectedMonth;
   String? selectedDay;
   String? selectedYear;
   String? selectedGender;
 
   final List<String> months = const [
-    'Month', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'Month',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
   ];
 
   final List<String> genders = const [
-    'Male', 'Female', 'Non-binary', 'Prefer not to say'
+    'Male',
+    'Female',
+    'Non-binary',
+    'Prefer not to say'
   ];
 
   @override
@@ -52,37 +66,45 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
   String _getGenderEnumValue(String genderUiString) {
     switch (genderUiString) {
-      case 'Male': return 'MALE';
-      case 'Female': return 'FEMALE';
-      case 'Non-binary': return 'NON_BINARY';
-      default: return 'PREFER_NOT_TO_SAY';
+      case 'Male':
+        return 'MALE';
+      case 'Female':
+        return 'FEMALE';
+      case 'Non-binary':
+        return 'NON_BINARY';
+      default:
+        return 'PREFER_NOT_TO_SAY';
     }
   }
 
   void _onContinuePressed() {
     final displayName = _displayNameController.text.trim();
 
-    if (displayName.isEmpty || selectedMonth == null || 
-        selectedDay == null || selectedYear == null || selectedGender == null) {
+    if (displayName.isEmpty ||
+        selectedMonth == null ||
+        selectedDay == null ||
+        selectedYear == null ||
+        selectedGender == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please complete all fields')),
       );
       return;
     }
 
-    final monthIndex = months.indexOf(selectedMonth!).toString().padLeft(2, '0');
+    final monthIndex =
+        months.indexOf(selectedMonth!).toString().padLeft(2, '0');
     final dayStr = selectedDay!.padLeft(2, '0');
     final birthDate = "$selectedYear-$monthIndex-$dayStr";
 
     context.read<AuthCubit>().register(
-      email: widget.registrationData['email']!,
-      password: widget.registrationData['password']!,
-      passwordConfirm: widget.registrationData['passwordConfirm']!,
-      displayName: displayName,
-      dateOfBirth: birthDate,
-      gender: _getGenderEnumValue(selectedGender!),
-      captchaToken: widget.registrationData['captchaToken']!,
-    );
+          email: widget.registrationData['email']!,
+          password: widget.registrationData['password']!,
+          passwordConfirm: widget.registrationData['passwordConfirm']!,
+          displayName: displayName,
+          dateOfBirth: birthDate,
+          gender: _getGenderEnumValue(selectedGender!),
+          captchaToken: widget.registrationData['captchaToken']!,
+        );
   }
 
   @override
@@ -94,11 +116,14 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           child: BlocConsumer<AuthCubit, AuthState>(
             listener: (context, state) {
               if (state is AuthRegisterSuccess) {
-                context.go(AuthRoutes.verifyEmail, extra: widget.registrationData['email']);
+                context.go(AuthRoutes.verifyEmail,
+                    extra: widget.registrationData['email']);
               }
               if (state is AuthError) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.message), backgroundColor: Colors.redAccent),
+                  SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.redAccent),
                 );
               }
             },
@@ -115,7 +140,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                     const Center(
                       child: Text(
                         'Tell us more about you',
-                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -131,7 +159,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                     const SizedBox(height: 26),
                     const Text(
                       'Date of birth (required)',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -142,7 +173,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             value: selectedMonth,
                             hint: 'Month',
                             items: months.skip(1).toList(),
-                            onChanged: (val) => setState(() => selectedMonth = val),
+                            onChanged: (val) =>
+                                setState(() => selectedMonth = val),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -151,7 +183,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             value: selectedDay,
                             hint: 'Day',
                             items: days,
-                            onChanged: (val) => setState(() => selectedDay = val),
+                            onChanged: (val) =>
+                                setState(() => selectedDay = val),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -160,7 +193,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             value: selectedYear,
                             hint: 'Year',
                             items: years,
-                            onChanged: (val) => setState(() => selectedYear = val),
+                            onChanged: (val) =>
+                                setState(() => selectedYear = val),
                           ),
                         ),
                       ],
@@ -214,9 +248,12 @@ class _AuthDropdown extends StatelessWidget {
         hintStyle: const TextStyle(color: Color(0xFF8B8B8B)),
         filled: true,
         fillColor: const Color(0xFF2C2C2E),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none),
       ),
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+      items:
+          items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
       onChanged: onChanged,
     );
   }

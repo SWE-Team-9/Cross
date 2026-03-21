@@ -57,14 +57,14 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> login({
-    required String email, 
+    required String email,
     required String password,
     required String captchaToken,
   }) async {
     emit(AuthLoading());
     try {
       final user = await loginUseCase(
-        email: email, 
+        email: email,
         password: password,
         captchaToken: captchaToken,
       );
@@ -95,7 +95,7 @@ class AuthCubit extends Cubit<AuthState> {
         displayName: displayName,
         dateOfBirth: dateOfBirth,
         gender: gender,
-        captchaToken: captchaToken, 
+        captchaToken: captchaToken,
       );
       emit(AuthRegisterSuccess(user));
     } on DioException catch (e) {

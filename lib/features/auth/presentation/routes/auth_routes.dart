@@ -2,8 +2,8 @@ import 'package:go_router/go_router.dart';
 
 import '../pages/complete_profile_page.dart';
 import '../pages/forgot_password_page.dart';
-import '../pages/login_page.dart'; 
-import '../pages/register_page.dart'; 
+import '../pages/login_page.dart';
+import '../pages/register_page.dart';
 import '../pages/reset_password_page.dart';
 import '../pages/verify_email_page.dart';
 import '../pages/welcome_page.dart';
@@ -33,15 +33,15 @@ class AuthRoutes {
       name: 'register',
       builder: (context, state) => const RegisterPage(),
     ),
-GoRoute(
-  path: completeProfile,
-  name: 'complete-profile',
-  builder: (context, state) {
-    // استقبال البيانات (Email, Password) كخريطة (Map)
-    final data = state.extra as Map<String, String>;
-    return CompleteProfilePage(registrationData: data);
-  },
-),
+    GoRoute(
+      path: completeProfile,
+      name: 'complete-profile',
+      builder: (context, state) {
+        // استقبال البيانات (Email, Password) كخريطة (Map)
+        final data = state.extra as Map<String, String>;
+        return CompleteProfilePage(registrationData: data);
+      },
+    ),
     GoRoute(
       path: forgotPassword,
       name: 'forgot-password',

@@ -5,7 +5,7 @@ class UserDto {
   final String email;
   final String? displayName;
   final String? username;
-  final String? dateOfBirth; 
+  final String? dateOfBirth;
   final String? gender;
   final bool isVerified;
   final String? avatarUrl;
@@ -50,7 +50,7 @@ class UserDto {
       bio: bio,
       gender: gender,
       dateOfBirth: dateOfBirth != null ? DateTime.tryParse(dateOfBirth!) : null,
-      isVerified: isVerified, 
+      isVerified: isVerified,
       isPro: isPro,
     );
   }

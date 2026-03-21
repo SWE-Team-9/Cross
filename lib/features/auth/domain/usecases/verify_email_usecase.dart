@@ -6,7 +6,7 @@ class VerifyEmailUseCase {
   VerifyEmailUseCase(this.repository);
 
   Future<void> call({
-    required String code, 
+    required String code,
   }) {
     return repository.verifyEmail(
       email: '',

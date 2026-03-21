@@ -12,7 +12,7 @@ class RegisterUseCase {
     required String passwordConfirm,
     required String displayName,
     required String dateOfBirth,
-    required String gender,    
+    required String gender,
     required String captchaToken,
   }) {
     return repository.register(
@@ -22,7 +22,7 @@ class RegisterUseCase {
       displayName: displayName,
       dateOfBirth: dateOfBirth,
       gender: gender,
-      captchaToken: captchaToken, 
+      captchaToken: captchaToken,
     );
   }
 }
