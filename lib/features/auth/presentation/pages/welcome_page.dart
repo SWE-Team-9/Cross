@@ -80,29 +80,29 @@ class WelcomePage extends StatelessWidget {
 }
 
 class _WelcomeBackgroundPainter extends CustomPainter {
+  final _cyan = Paint()
+    ..color = const Color(0xFF25D0E3)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3;
+
+  final _purple = Paint()
+    ..color = const Color(0xFFA868F7)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3;
+
+  final _orange = Paint()
+    ..color = const Color(0xFFFF8459)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final cyan = Paint()
-      ..color = const Color(0xFF25D0E3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-
-    final purple = Paint()
-      ..color = const Color(0xFFA868F7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-
-    final orange = Paint()
-      ..color = const Color(0xFFFF8459)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-
     for (int i = 0; i < 6; i++) {
       final rect = Rect.fromCircle(
         center: Offset(size.width * 0.85, -80),
         radius: 120 + (i * 42),
       );
-      canvas.drawArc(rect, 0.9, 2.2, false, cyan);
+      canvas.drawArc(rect, 0.9, 2.2, false, _cyan);
     }
 
     for (int i = 0; i < 4; i++) {
@@ -114,7 +114,7 @@ class _WelcomeBackgroundPainter extends CustomPainter {
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(60)),
-        purple,
+        _purple,
       );
     }
 
@@ -124,7 +124,7 @@ class _WelcomeBackgroundPainter extends CustomPainter {
         ..lineTo(size.width * 0.46 + (i * 24), size.height * 0.74 - (i * 38))
         ..lineTo(size.width * 0.88 + (i * 24), size.height * 0.60 - (i * 38))
         ..lineTo(size.width * 1.02 + (i * 24), size.height * 0.72 - (i * 38));
-      canvas.drawPath(path, orange);
+      canvas.drawPath(path, _orange);
     }
   }
 

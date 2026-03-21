@@ -91,11 +91,13 @@ class TrackManagementForm extends Equatable {
   }
 
   String? get tagsValidationError {
-    if (sanitizedTags.length > 10) {
+    final tags = sanitizedTags;
+
+    if (tags.length > 10) {
       return 'You can add up to 10 tags only.';
     }
 
-    for (final tag in sanitizedTags) {
+    for (final tag in tags) {
       if (tag.length > 50) {
         return 'Each tag must be 50 characters or fewer.';
       }
@@ -174,19 +176,22 @@ String? _normalizeNullable(String? value) {
 }
 
 bool _sameTags(List<String> first, List<String> second) {
-  final List<String> normalizedFirst =
-      first.map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+  final List<String> normalizedFirst = first
+      .map((tag) => tag.trim().toLowerCase())
+      .where((tag) => tag.isNotEmpty)
+      .toList();
 
-  final List<String> normalizedSecond =
-      second.map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+  final List<String> normalizedSecond = second
+      .map((tag) => tag.trim().toLowerCase())
+      .where((tag) => tag.isNotEmpty)
+      .toList();
 
   if (normalizedFirst.length != normalizedSecond.length) {
     return false;
   }
 
   for (int index = 0; index < normalizedFirst.length; index++) {
-    if (normalizedFirst[index].toLowerCase() !=
-        normalizedSecond[index].toLowerCase()) {
+    if (normalizedFirst[index] != normalizedSecond[index]) {
       return false;
     }
   }
