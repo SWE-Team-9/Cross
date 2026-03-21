@@ -17,6 +17,9 @@ import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/social/presentation/pages/followers_page.dart';
 import '../features/social/presentation/pages/following_page.dart';
 
+// Recently Played
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+
 // Library
 import '../features/library/presentation/pages/library_page.dart';
 
@@ -55,11 +58,15 @@ final GoRouter router = GoRouter(
       ),
     ),
 
+    // ── Library ───────────────────────────────────────────────────────
     GoRoute(
       path: AppRoutes.library,
       name: 'library',
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: LibraryPage(),
+      pageBuilder: (context, state) => NoTransitionPage(
+        child: BlocProvider(
+          create: (_) => RecentlyPlayedCubit(),
+          child: const LibraryPage(),
+        ),
       ),
     ),
 
