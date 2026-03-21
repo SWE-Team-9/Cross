@@ -43,10 +43,14 @@ class AppRoutes {
 // ── Router ────────────────────────────────────────────────────────────────────
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: AppRoutes.home,
+  
+  // 1. التعديل هنا: نخلي البداية من الـ Splash
+  // بما إننا عدلنا AuthRoutes.splash لتكون '/'، هنستخدمها هنا
+  initialLocation: AuthRoutes.splash, 
 
   routes: [
     // ── Auth (Sprint 1) ───────────────────────────────────────────
+    // دي دلوقتي جواها الـ Splash مسارها '/' والـ Welcome مسارها '/welcome'
     ...AuthRoutes.routes,
 
     // ── Home ───────────────────────────────────────────────────────
@@ -143,6 +147,7 @@ final GoRouter router = GoRouter(
             style: TextStyle(color: Colors.white, fontSize: 20),
           ),
           const SizedBox(height: 8),
+          // 2. تعديل هنا: خليه يرجع للهوم لو تاه
           TextButton(
             onPressed: () => context.go(AppRoutes.home),
             child: const Text(

@@ -5,12 +5,16 @@ class SecureStorage {
 
   final FlutterSecureStorage _storage;
 
+  // الثوابت الثابتة للمفاتيح لضمان عدم الخطأ في التسمية
+  static const String accessTokenKey = 'access_token';
+  static const String refreshTokenKey = 'refresh_token';
+
   Future<void> write(String key, String value) async {
     await _storage.write(key: key, value: value);
   }
 
   Future<String?> read(String key) async {
-    return _storage.read(key: key);
+    return await _storage.read(key: key);
   }
 
   Future<void> delete(String key) async {
@@ -23,10 +27,16 @@ class SecureStorage {
   }
 
   Future<Map<String, String>> readAll() async {
-    return _storage.readAll();
+    return await _storage.readAll();
   }
 
   Future<void> clear() async {
     await _storage.deleteAll();
+  }
+
+  // دالة مريحة لمسح بيانات الدخول فقط عند تسجيل الخروج أو انتهاء الجلسة
+  Future<void> clearAuthData() async {
+    await _storage.delete(key: accessTokenKey);
+    await _storage.delete(key: refreshTokenKey);
   }
 }

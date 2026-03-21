@@ -1,30 +1,35 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../../core/storage/secure_storage.dart';
 
 abstract class AuthLocalDataSource {
-  Future<void> saveToken(String token);
-  Future<String?> getToken();
-  Future<void> clearToken();
+  Future<void> saveTokens({required String access, required String refresh});
+  Future<String?> getAccessToken();
+  Future<String?> getRefreshToken();
+  Future<void> clearAll();
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
-  final FlutterSecureStorage secureStorage;
-
-  static const String _tokenKey = 'auth_token';
+  final SecureStorage secureStorage;
 
   AuthLocalDataSourceImpl(this.secureStorage);
 
   @override
-  Future<void> saveToken(String token) async {
-    await secureStorage.write(key: _tokenKey, value: token);
+  Future<void> saveTokens({required String access, required String refresh}) async {
+    await secureStorage.write(SecureStorage.accessTokenKey, access);
+    await secureStorage.write(SecureStorage.refreshTokenKey, refresh);
   }
 
   @override
-  Future<String?> getToken() async {
-    return await secureStorage.read(key: _tokenKey);
+  Future<String?> getAccessToken() async {
+    return await secureStorage.read(SecureStorage.accessTokenKey);
   }
 
   @override
-  Future<void> clearToken() async {
-    await secureStorage.delete(key: _tokenKey);
+  Future<String?> getRefreshToken() async {
+    return await secureStorage.read(SecureStorage.refreshTokenKey);
+  }
+
+  @override
+  Future<void> clearAll() async {
+    await secureStorage.clearAuthData();
   }
 }

@@ -31,7 +31,11 @@ final getIt = GetIt.instance;
 void setupDependencies() {
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
     getIt.registerLazySingleton<FlutterSecureStorage>(
-      () => const FlutterSecureStorage(),
+      () => const FlutterSecureStorage(
+        aOptions: AndroidOptions(
+        encryptedSharedPreferences: true,
+        )
+      ),
     );
   }
 
@@ -44,7 +48,7 @@ void setupDependencies() {
   if (!getIt.isRegistered<DioClient>()) {
     getIt.registerLazySingleton<DioClient>(
       () => DioClient(
-        baseUrl: 'http://13.53.103.19:3001',
+        baseUrl: 'http://10.0.2.2:3006',
         secureStorage: getIt<SecureStorage>(),
       ),
     );
@@ -88,7 +92,7 @@ void setupDependencies() {
   );
 
   getIt.registerLazySingleton<AuthLocalDataSource>(
-    () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+    () => AuthLocalDataSourceImpl(getIt<SecureStorage>()),
   );
 
   getIt.registerLazySingleton<AuthRepository>(

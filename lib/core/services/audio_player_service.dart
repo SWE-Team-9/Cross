@@ -13,7 +13,7 @@ abstract class AudioPlayerService {
 
   /// Stop playback
   Future<void> stop();
-
+  
   /// Seek to a position in the track
   Future<void> seek(Duration position);
 

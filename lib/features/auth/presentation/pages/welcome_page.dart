@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import '../routes/auth_routes.dart';
 import '../widgets/auth_button.dart';
 
@@ -57,7 +56,6 @@ class WelcomePage extends StatelessWidget {
                   AuthButton(
                     text: 'Create an account',
                     onPressed: () {
-                      // التوجيه لصفحة التسجيل الجديدة
                       context.push(AuthRoutes.register);
                     },
                   ),
@@ -67,7 +65,6 @@ class WelcomePage extends StatelessWidget {
                     backgroundColor: const Color(0xFFDCE4F7),
                     textColor: Colors.black,
                     onPressed: () {
-                      // التوجيه لصفحة تسجيل الدخول الجديدة
                       context.push(AuthRoutes.login);
                     },
                   ),

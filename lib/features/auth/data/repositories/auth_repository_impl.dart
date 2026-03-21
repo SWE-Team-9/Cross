@@ -18,14 +18,19 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String captchaToken,
   }) async {
-    final userDto = await remoteDataSource.login(
+    final authResponse = await remoteDataSource.login(
       email: email,
       password: password,
       captchaToken: captchaToken,
     );
 
-    await localDataSource.saveToken("is_logged_in");
-    return userDto.toEntity();
+    // حفظ التوكنز التي سحبناها من الـ Cookies
+    await localDataSource.saveTokens(
+      access: authResponse.accessToken,
+      refresh: authResponse.refreshToken,
+    );
+
+    return authResponse.user.toEntity();
   }
 
   @override
@@ -38,7 +43,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String gender,
     required String captchaToken,
   }) async {
-    final userDto = await remoteDataSource.register(
+    final authResponse = await remoteDataSource.register(
       email: email,
       password: password,
       passwordConfirm: passwordConfirm,
@@ -48,14 +53,16 @@ class AuthRepositoryImpl implements AuthRepository {
       captchaToken: captchaToken,
     );
 
-    await localDataSource.saveToken("is_logged_in");
-    return userDto.toEntity();
+    await localDataSource.saveTokens(
+      access: authResponse.accessToken,
+      refresh: authResponse.refreshToken,
+    );
+
+    return authResponse.user.toEntity();
   }
 
   @override
-  Future<void> forgotPassword({
-    required String email,
-  }) {
+  Future<void> forgotPassword({required String email}) {
     return remoteDataSource.forgotPassword(email: email);
   }
 
@@ -73,17 +80,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> sendEmailVerification({
-    required String email,
-  }) {
+  Future<void> sendEmailVerification({required String email}) {
     return remoteDataSource.sendEmailVerification(email: email);
   }
 
   @override
-  Future<void> verifyEmail({
-    required String email,
-    required String code,
-  }) {
+  Future<void> verifyEmail({required String email, required String code}) {
     return remoteDataSource.verifyEmail(code: code);
   }
 
@@ -102,13 +104,13 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await remoteDataSource.logout();
     } finally {
-      await localDataSource.clearToken();
+      await localDataSource.clearAll();
     }
   }
 
   @override
   Future<bool> isLoggedIn() async {
-    final token = await localDataSource.getToken();
+    final token = await localDataSource.getAccessToken();
     return token != null && token.isNotEmpty;
   }
 }
