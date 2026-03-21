@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart'; // ✅ ADD THIS
 import '../models/track.dart';
 import '../services/audio_player_service.dart';
 
@@ -27,7 +28,10 @@ class _TrackRowState extends State<TrackRow> {
 
         return InkWell(
           onTap: () async {
-            await player.play(widget.track.audioUrl, widget.track.id);
+            await player.play(widget.track);
+
+            final recentlyPlayedCubit = GetIt.I<RecentlyPlayedCubit>();
+            recentlyPlayedCubit.addTrack(widget.track);
           },
           splashColor: Colors.white10,
           child: Padding(

@@ -17,7 +17,7 @@ class RecentlyPlayedCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () async {
-        await player.play(track.audioUrl, track.id);
+        await player.play(track);
       },
       child: SizedBox(
         width: 140,
