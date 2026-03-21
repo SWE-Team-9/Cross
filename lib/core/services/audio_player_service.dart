@@ -1,11 +1,12 @@
 import '../models/player_state.dart';
+import '../models/track.dart';
 
 abstract class AudioPlayerService {
   /// Stream of the current player state
   Stream<PlayerState> get playerStateStream;
 
   /// Play audio from a URL
-  Future<void> play(String url);
+  Future<void> play(Track track);
 
   /// Pause playback
   Future<void> pause();

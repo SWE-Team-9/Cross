@@ -44,6 +44,7 @@ dependencies:
   # Media (will add more in later sprints)
   just_audio: ^0.10.5
   recaptcha_enterprise_flutter: ^18.8.2
+  just_audio_windows: ^0.2.0
 
 dev_dependencies:
   flutter_test:

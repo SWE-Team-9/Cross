@@ -4,6 +4,9 @@ import 'package:just_audio/just_audio.dart' as ja;
 
 import '../../models/player_state.dart';
 import '../audio_player_service.dart';
+import 'package:get_it/get_it.dart';
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 
 class JustAudioPlayerService implements AudioPlayerService {
   final ja.AudioPlayer _player = ja.AudioPlayer();
@@ -63,15 +66,21 @@ class JustAudioPlayerService implements AudioPlayerService {
   }
 
   @override
-  Future<void> play(String url) async {
+  Future<void> play(Track track) async {
     try {
-      if (_currentState.status == PlayerStatus.idle) {
-        _updateState(
-          _currentState.copyWith(status: PlayerStatus.loading),
-        );
+      _updateState(
+        _currentState.copyWith(
+          status: PlayerStatus.loading,
+          currentTrackId: track.id,
+        ),
+      );
 
-        await _player.setUrl(url);
-      }
+      await _player.setUrl(track.audioUrl);
+
+      // 🔥 Recently Played integration
+      GetIt.I<RecentlyPlayedCubit>().addTrack(track);
+
+      await _player.seek(Duration.zero);
 
       await _player.play();
     } catch (e) {
