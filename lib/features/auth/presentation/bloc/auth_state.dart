@@ -11,6 +11,7 @@ class AuthUnauthenticated extends AuthState {}
 class AuthAuthenticated extends AuthState {
   final User user;
   AuthAuthenticated(this.user);
+  List<Object?> get props => [user];
 }
 
 class AuthRegisterSuccess extends AuthState {

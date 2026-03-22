@@ -4,13 +4,7 @@
 // Project
 import '../../domain/entities/profile_entity.dart';
 
-/// Maps the raw JSON from GET /api/v1/profiles/:handle
-/// to a ProfileEntity.
-///
-/// WHY A DTO EXISTS:
-/// The server uses snake_case (display_name, avatar_url).
-/// The entity uses camelCase (displayName, avatarUrl).
-/// The DTO handles the translation so the entity stays clean.
+/// Maps raw JSON from GET /api/v1/profiles/:handle to ProfileEntity.
 ///
 /// API response shape:
 /// {
@@ -75,8 +69,6 @@ class ProfileDto {
     );
   }
 
-  /// Converts this DTO into a domain ProfileEntity.
-  /// Maps server string values to our type-safe enums.
   ProfileEntity toEntity() {
     return ProfileEntity(
       id: id,

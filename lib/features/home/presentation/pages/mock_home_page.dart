@@ -16,7 +16,7 @@ class MockHomePage extends StatefulWidget {
 }
 
 class _MockHomePageState extends State<MockHomePage> {
-  static const _currentUserId = 'user_eyad';
+  static const _currentUserHandle = 'eyad-adel'; // ← Only handle
 
   int _selectedTab = 0;
   String _selectedGenre = 'ELECTRONIC';
@@ -37,7 +37,7 @@ class _MockHomePageState extends State<MockHomePage> {
       body: SafeArea(
         child: Column(
           children: [
-            _TopBar(currentUserId: _currentUserId),
+            _TopBar(currentUserHandle: _currentUserHandle),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -46,7 +46,7 @@ class _MockHomePageState extends State<MockHomePage> {
                     const _SectionHeader(title: 'More of what you like'),
                     const _RelatedTracksRow(),
                     const _SectionHeader(title: 'Mixed for Eyad Adel'),
-                    _MixesRow(userId: _currentUserId),
+                    _MixesRow(userHandle: _currentUserHandle),
                     const _SectionHeader(title: 'Trending by genre'),
                     _GenreChips(
                       genres: _genres,
@@ -90,8 +90,9 @@ class _MockHomePageState extends State<MockHomePage> {
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
-  final String currentUserId;
-  const _TopBar({required this.currentUserId});
+  final String currentUserHandle; // ← Only handle
+
+  const _TopBar({required this.currentUserHandle});
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +119,10 @@ class _TopBar extends StatelessWidget {
 
           //  Profile Avatar
           GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(context, currentUserId),
+            onTap: () => ProfileRoutes.goToProfile(
+              context,
+              currentUserHandle,
+            ),
             child: CircleAvatar(
               radius: 14,
               backgroundColor: const Color(0xFFFF5500),
@@ -129,7 +133,7 @@ class _TopBar extends StatelessWidget {
                       fontWeight: FontWeight.w600)),
             ),
           ),
-          const SizedBox(width: 8), // Add spacing after avatar
+          const SizedBox(width: 8),
 
           _IconBtn(icon: Icons.cast, onTap: () {}),
           _IconBtn(
@@ -210,7 +214,7 @@ class _RelatedTracksRow extends StatelessWidget {
     _AlbumData(
       label: 'Related tracks: L...',
       sub: 'SoundCloud',
-      userId: 'soundcloud_official',
+      handle: 'soundcloud',
       topText: 'Cage\nThe\nElephant',
       color1: Color(0xFF1a1a2e),
       color2: Color(0xFF16213e),
@@ -218,7 +222,7 @@ class _RelatedTracksRow extends StatelessWidget {
     _AlbumData(
       label: 'Related tracks: E...',
       sub: 'SoundCloud',
-      userId: 'the_strokes',
+      handle: 'the-strokes',
       topText: 'THE\nStrokes',
       color1: Color(0xFF2d1b2e),
       color2: Color(0xFF8b1a1a),
@@ -226,7 +230,7 @@ class _RelatedTracksRow extends StatelessWidget {
     _AlbumData(
       label: 'Related tracks: A...',
       sub: 'SoundCloud',
-      userId: 'arabic_artist',
+      handle: 'arabic-artist',
       topText: 'ARABIC\nARTISTS',
       color1: Color(0xFF2a2a1a),
       color2: Color(0xFF1a2a1a),
@@ -245,7 +249,10 @@ class _RelatedTracksRow extends StatelessWidget {
         itemBuilder: (context, i) {
           final c = _cards[i];
           return GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(context, c.userId),
+            onTap: () => ProfileRoutes.goToProfile(
+              context,
+              c.handle,
+            ),
             child: SizedBox(
               width: 148,
               child: Column(
@@ -295,8 +302,9 @@ class _RelatedTracksRow extends StatelessWidget {
 // ── Mixes row ─────────────────────────────────────────────────────────────────
 
 class _MixesRow extends StatelessWidget {
-  final String userId;
-  const _MixesRow({required this.userId});
+  final String userHandle; // ← Only handle
+
+  const _MixesRow({required this.userHandle});
 
   static const _mixes = [
     _MixData(
@@ -334,7 +342,10 @@ class _MixesRow extends StatelessWidget {
         itemBuilder: (context, i) {
           final m = _mixes[i];
           return GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(context, userId),
+            onTap: () => ProfileRoutes.goToProfile(
+              context,
+              userHandle,
+            ),
             child: SizedBox(
               width: 148,
               child: Column(
@@ -464,6 +475,7 @@ class _TrendingTracks extends StatelessWidget {
         audioUrl:
             'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
         artworkUrl: 'https://picsum.photos/200?1',
+        handle: 'balthazar',
       ),
       Track(
         id: '2',
@@ -472,6 +484,7 @@ class _TrendingTracks extends StatelessWidget {
         audioUrl:
             'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
         artworkUrl: 'https://picsum.photos/200?2',
+        handle: 'cage-the-elephant',
       ),
       Track(
         id: '3',
@@ -480,6 +493,7 @@ class _TrendingTracks extends StatelessWidget {
         audioUrl:
             'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
         artworkUrl: 'https://picsum.photos/200?3',
+        handle: 'franz-ferdinand',
       ),
     ];
 
@@ -572,12 +586,13 @@ class _BottomNav extends StatelessWidget {
 // ── Data models ───────────────────────────────────────────────────────────────
 
 class _AlbumData {
-  final String label, sub, userId, topText;
+  final String label, sub, handle, topText; // ← Only handle
   final Color color1, color2;
+
   const _AlbumData({
     required this.label,
     required this.sub,
-    required this.userId,
+    required this.handle,
     required this.topText,
     required this.color1,
     required this.color2,

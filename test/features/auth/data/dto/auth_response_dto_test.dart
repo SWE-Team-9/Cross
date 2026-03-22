@@ -10,6 +10,7 @@ void main() {
         'user': {
           'id': '1',
           'email': 'test@example.com',
+          'handle': 'muslim',
           'display_name': 'Muslim',
           'birth_month': 5,
           'birth_day': 15,
@@ -25,6 +26,7 @@ void main() {
       expect(result.user, isA<UserDto>());
       expect(result.user.id, '1');
       expect(result.user.email, 'test@example.com');
+      expect(result.user.handle, 'muslim');
       expect(result.user.displayName, 'Muslim');
       expect(result.user.gender, 'Male');
     });
@@ -34,6 +36,7 @@ void main() {
         'user': {
           'id': '1',
           'email': 'test@example.com',
+          'handle': 'muslim',
           'display_name': 'Muslim',
           'gender': 'Male',
         },
@@ -44,6 +47,22 @@ void main() {
       expect(result.token, '');
       expect(result.user.id, '1');
       expect(result.user.email, 'test@example.com');
+      expect(result.user.handle, 'muslim');
+    });
+
+    test('fromJson falls back to username when handle is missing', () {
+      final json = {
+        'token': 'token_123',
+        'user': {
+          'id': '1',
+          'email': 'test@example.com',
+          'username': 'muslim',
+        },
+      };
+
+      final result = AuthResponseDto.fromJson(json);
+
+      expect(result.user.handle, 'muslim');
     });
 
     test('fromJson returns default user values when user is missing', () {
