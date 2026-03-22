@@ -104,15 +104,16 @@ class _LoginPageState extends State<LoginPage> {
                         style: const TextStyle(color: Colors.white)),
                     backgroundColor: Colors.redAccent,
                     duration: const Duration(seconds: 5),
-                    action: state.isNotVerified 
-                      ? SnackBarAction(
-                          label: 'Verify Now',
-                          textColor: Colors.white,
-                          onPressed: () {
-                            context.push(AuthRoutes.verifyEmail, extra: _emailController.text.trim());
-                          },
-                        )
-                      : null,
+                    action: state.isNotVerified
+                        ? SnackBarAction(
+                            label: 'Verify Now',
+                            textColor: Colors.white,
+                            onPressed: () {
+                              context.push(AuthRoutes.verifyEmail,
+                                  extra: _emailController.text.trim());
+                            },
+                          )
+                        : null,
                   ),
                 );
               }
@@ -142,7 +143,8 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 40),
                       const Text(
                         'Email address',
-                        style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
+                        style:
+                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -166,7 +168,8 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 24),
                       const Text(
                         'Password',
-                        style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
+                        style:
+                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -224,7 +227,8 @@ class _LoginPageState extends State<LoginPage> {
                       const Center(
                         child: Text(
                           "Protected by reCAPTCHA Enterprise",
-                          style: TextStyle(color: Color(0xFF555555), fontSize: 12),
+                          style:
+                              TextStyle(color: Color(0xFF555555), fontSize: 12),
                         ),
                       )
                     ],

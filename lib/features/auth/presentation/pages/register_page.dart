@@ -71,7 +71,7 @@ class _RegisterPageState extends State<RegisterPage> {
             'email': _emailController.text.trim(),
             'password': _passwordController.text.trim(),
             'passwordConfirm': _confirmPasswordController.text.trim(),
-            'captchaToken': token, 
+            'captchaToken': token,
           },
         );
       }
@@ -193,8 +193,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 32),
                   AuthButton(
                     text: 'Next',
-                    isLoading:
-                        _isFetchingCaptcha, 
+                    isLoading: _isFetchingCaptcha,
                     onPressed: _onNextPressed,
                   ),
                   const SizedBox(height: 16),

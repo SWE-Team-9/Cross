@@ -19,18 +19,50 @@ void main() {
     user = FakeUser();
   });
 
-  test('should call repository.register and return user', () async {
+  test(
+      'should call repository.register with all required parameters and return user',
+      () async {
+    // Arrange
     const email = 'new@example.com';
-    const password = '123456';
+    const password = 'password123';
+    const passwordConfirm = 'password123';
+    const displayName = 'New User';
+    const dateOfBirth = '2000-01-01';
+    const gender = 'MALE';
+    const captchaToken = 'mock_captcha_token';
 
-    when(() => repository.register(email: email, password: password))
-        .thenAnswer((_) async => user);
+    when(() => repository.register(
+          email: email,
+          password: password,
+          passwordConfirm: passwordConfirm,
+          displayName: displayName,
+          dateOfBirth: dateOfBirth,
+          gender: gender,
+          captchaToken: captchaToken,
+        )).thenAnswer((_) async => user);
 
-    final result = await useCase(email: email, password: password);
+    // Act
+    final result = await useCase(
+      email: email,
+      password: password,
+      passwordConfirm: passwordConfirm,
+      displayName: displayName,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      captchaToken: captchaToken,
+    );
 
+    // Assert
     expect(result, same(user));
-    verify(() => repository.register(email: email, password: password))
-        .called(1);
+    verify(() => repository.register(
+          email: email,
+          password: password,
+          passwordConfirm: passwordConfirm,
+          displayName: displayName,
+          dateOfBirth: dateOfBirth,
+          gender: gender,
+          captchaToken: captchaToken,
+        )).called(1);
     verifyNoMoreInteractions(repository);
   });
 }

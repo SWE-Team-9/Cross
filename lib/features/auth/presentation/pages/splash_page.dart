@@ -25,7 +25,7 @@ class _SplashPageState extends State<SplashPage> {
         print("Current Auth State: $state");
         if (state is AuthAuthenticated) {
           // إذا كان مسجل دخول، اذهب للهوم
-          context.go('/home'); 
+          context.go('/home');
         } else if (state is AuthUnauthenticated) {
           // إذا لم يكن مسجل، اذهب لصفحة الـ Welcome
           context.go('/welcome');

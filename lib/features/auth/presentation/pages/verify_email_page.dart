@@ -90,14 +90,17 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               if (state is AuthVerificationEmailSent) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('A verification link has been sent to your email.'),
+                    content: Text(
+                        'A verification link has been sent to your email.'),
                     backgroundColor: Colors.blueAccent,
                   ),
                 );
               }
               if (state is AuthError) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.message), backgroundColor: Colors.redAccent),
+                  SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.redAccent),
                 );
               }
               if (state is AuthUnauthenticated) {
@@ -112,15 +115,35 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.mark_email_unread_rounded, size: 100, color: Color(0xFF6D8FFF)),
+                    const Icon(Icons.mark_email_unread_rounded,
+                        size: 100, color: Color(0xFF6D8FFF)),
                     const SizedBox(height: 32),
-                    const Text('Check Your Email', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700)),
+                    const Text('Check Your Email',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700)),
                     const SizedBox(height: 16),
-                    Text('We have sent a verification link to:', textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16)),
+                    Text('We have sent a verification link to:',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 16)),
                     const SizedBox(height: 8),
-                    Text(widget.email, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    Text(widget.email,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600)),
                     const SizedBox(height: 24),
-                    const Text('Please click on the link in the email to verify your account. Once verified, return here to log in.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 14, height: 1.5)),
+                    const Text(
+                        'Please click on the link in the email to verify your account. Once verified, return here to log in.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Color(0xFF9B9B9B),
+                            fontSize: 14,
+                            height: 1.5)),
                     const SizedBox(height: 48),
                     AuthButton(
                       text: 'Go to Login',
@@ -128,11 +151,14 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                     ),
                     const SizedBox(height: 24),
                     TextButton(
-                      onPressed: _canResend && !isLoading ? _onResendPressed : null,
+                      onPressed:
+                          _canResend && !isLoading ? _onResendPressed : null,
                       child: Text(
                         _canResend ? 'Resend Link' : 'Resend link in $_start s',
                         style: TextStyle(
-                          color: _canResend ? const Color(0xFF6D8FFF) : Colors.grey,
+                          color: _canResend
+                              ? const Color(0xFF6D8FFF)
+                              : Colors.grey,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),

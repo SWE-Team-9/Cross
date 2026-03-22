@@ -19,17 +19,33 @@ void main() {
     user = FakeUser();
   });
 
-  test('should call repository.login and return user', () async {
+  test('should call repository.login with correct params and return user',
+      () async {
+    // Arrange
     const email = 'test@example.com';
     const password = '123456';
+    const captchaToken = 'mock_captcha_token';
 
-    when(() => repository.login(email: email, password: password))
-        .thenAnswer((_) async => user);
+    when(() => repository.login(
+          email: email,
+          password: password,
+          captchaToken: captchaToken,
+        )).thenAnswer((_) async => user);
 
-    final result = await useCase(email: email, password: password);
+    // Act
+    final result = await useCase(
+      email: email,
+      password: password,
+      captchaToken: captchaToken,
+    );
 
+    // Assert
     expect(result, same(user));
-    verify(() => repository.login(email: email, password: password)).called(1);
+    verify(() => repository.login(
+          email: email,
+          password: password,
+          captchaToken: captchaToken,
+        )).called(1);
     verifyNoMoreInteractions(repository);
   });
 }

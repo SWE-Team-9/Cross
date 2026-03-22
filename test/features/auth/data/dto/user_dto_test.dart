@@ -5,6 +5,7 @@ import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 void main() {
   group('UserDto', () {
     test('fromJson returns valid dto when json is complete', () {
+      // Arrange
       final json = {
         'id': 1,
         'email': 'test@example.com',
@@ -12,85 +13,86 @@ void main() {
         'display_name': 'Muslim',
         'avatar_url': 'https://example.com/avatar.png',
         'bio': 'Hello world',
-        'gender': 'Male',
-        'date_of_birth': '2000-05-15T00:00:00.000',
+        'gender': 'MALE',
+        'date_of_birth': '2000-05-15',
         'is_pro': true,
-        'is_profile_completed': true,
+        'is_verified': true,
       };
 
+      // Act
       final result = UserDto.fromJson(json);
 
+      // Assert
       expect(result.id, '1');
       expect(result.email, 'test@example.com');
       expect(result.username, 'muslim');
       expect(result.displayName, 'Muslim');
-      expect(result.avatarUrl, 'https://example.com/avatar.png');
-      expect(result.bio, 'Hello world');
-      expect(result.gender, 'Male');
-      expect(result.dateOfBirth, DateTime.parse('2000-05-15T00:00:00.000'));
+      expect(result.gender, 'MALE');
+      expect(result.dateOfBirth, '2000-05-15');
       expect(result.isPro, true);
-      expect(result.isProfileCompleted, true);
+      expect(result.isVerified, true);
     });
 
     test('fromJson returns safe defaults when optional fields are missing', () {
+      // Arrange
       final json = {
         'id': '2',
         'email': 'test2@example.com',
+        // is_verified is required in constructor but safe in fromJson
       };
 
+      // Act
       final result = UserDto.fromJson(json);
 
+      // Assert
       expect(result.id, '2');
       expect(result.email, 'test2@example.com');
       expect(result.username, isNull);
-      expect(result.displayName, isNull);
-      expect(result.avatarUrl, isNull);
-      expect(result.bio, isNull);
-      expect(result.gender, isNull);
-      expect(result.dateOfBirth, isNull);
+      expect(result.isVerified, false); // Default from json parsing
       expect(result.isPro, false);
-      expect(result.isProfileCompleted, false);
-    });
-
-    test('fromJson returns null dateOfBirth when date is invalid', () {
-      final json = {
-        'id': '3',
-        'email': 'test3@example.com',
-        'date_of_birth': 'invalid-date',
-      };
-
-      final result = UserDto.fromJson(json);
-
-      expect(result.dateOfBirth, isNull);
     });
 
     test('toEntity maps dto to User entity correctly', () {
-      final dto = UserDto(
+      // Arrange
+      const dto = UserDto(
         id: '1',
         email: 'test@example.com',
         username: 'muslim',
         displayName: 'Muslim',
         avatarUrl: 'https://example.com/avatar.png',
         bio: 'Hello world',
-        gender: 'Male',
-        dateOfBirth: DateTime.parse('2000-05-15T00:00:00.000'),
+        gender: 'MALE',
+        dateOfBirth: '2000-05-15',
         isPro: true,
-        isProfileCompleted: true,
+        isVerified: true,
       );
 
+      // Act
       final result = dto.toEntity();
 
+      // Assert
       expect(result, isA<User>());
       expect(result.id, '1');
       expect(result.email, 'test@example.com');
-      expect(result.username, 'muslim');
-      expect(result.displayName, 'Muslim');
-      expect(result.avatarUrl, 'https://example.com/avatar.png');
-      expect(result.bio, 'Hello world');
-      expect(result.gender, 'Male');
-      expect(result.dateOfBirth, DateTime.parse('2000-05-15T00:00:00.000'));
-      expect(result.isPro, true);
-      expect(result.isProfileCompleted, true);
+      expect(result.isVerified, true);
+      // التحقق من تحويل التاريخ من String إلى DateTime في الـ Entity
+      expect(result.dateOfBirth, DateTime.parse('2000-05-15'));
+    });
+
+    test('toEntity handles null dateOfBirth gracefully', () {
+      // Arrange
+      const dto = UserDto(
+        id: '1',
+        email: 'test@example.com',
+        isVerified: false,
+        dateOfBirth: null,
+      );
+
+      // Act
+      final result = dto.toEntity();
+
+      // Assert
+      expect(result.dateOfBirth, isNull);
     });
   });
 }

@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import '../../../../core/network/dio_client.dart';
 import '../dto/auth_response_dto.dart';
@@ -53,7 +52,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       },
     );
 
-    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
 
     // استخراج التوكنز من الـ Cookies الموجودة في الـ Headers
     String accessToken = '';
@@ -101,7 +101,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       },
     );
 
-    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
 
     String accessToken = '';
     String refreshToken = '';
@@ -127,7 +128,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> forgotPassword({required String email}) async {
-    await dioClient.dio.post('/api/v1/auth/forgot-password', data: {'email': email});
+    await dioClient.dio
+        .post('/api/v1/auth/forgot-password', data: {'email': email});
   }
 
   @override
@@ -145,18 +147,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> sendEmailVerification({required String email}) async {
-    await dioClient.dio.post('/api/v1/auth/resend-verification', data: {'email': email});
+    await dioClient.dio
+        .post('/api/v1/auth/resend-verification', data: {'email': email});
   }
 
   @override
   Future<void> verifyEmail({required String code}) async {
-    await dioClient.dio.get('/api/v1/auth/verify-email', queryParameters: {'token': code});
+    await dioClient.dio
+        .get('/api/v1/auth/verify-email', queryParameters: {'token': code});
   }
 
   @override
   Future<UserDto> getCurrentUser() async {
     final response = await dioClient.dio.get('/api/v1/auth/me');
-    final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
     return UserDto.fromJson(responseData['user'] ?? responseData);
   }
 

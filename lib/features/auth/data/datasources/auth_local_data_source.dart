@@ -13,7 +13,8 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   AuthLocalDataSourceImpl(this.secureStorage);
 
   @override
-  Future<void> saveTokens({required String access, required String refresh}) async {
+  Future<void> saveTokens(
+      {required String access, required String refresh}) async {
     await secureStorage.write(SecureStorage.accessTokenKey, access);
     await secureStorage.write(SecureStorage.refreshTokenKey, refresh);
   }

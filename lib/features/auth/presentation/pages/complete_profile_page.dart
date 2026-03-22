@@ -44,11 +44,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'December'
   ];
 
+  // تم تعديل القائمة لتشمل Male و Female فقط
   final List<String> genders = const [
     'Male',
     'Female',
-    'Non-binary',
-    'Prefer not to say'
   ];
 
   @override
@@ -70,10 +69,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         return 'MALE';
       case 'Female':
         return 'FEMALE';
-      case 'Non-binary':
-        return 'NON_BINARY';
       default:
-        return 'PREFER_NOT_TO_SAY';
+        return 'MALE'; // Default value as a fallback
     }
   }
 

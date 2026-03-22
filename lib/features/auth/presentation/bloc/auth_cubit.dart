@@ -45,7 +45,8 @@ class AuthCubit extends Cubit<AuthState> {
   // Function to calculate remaining seconds for UI
   int get remainingResendSeconds {
     if (_lastResendDateTime == null) return 0;
-    final difference = DateTime.now().difference(_lastResendDateTime!).inSeconds;
+    final difference =
+        DateTime.now().difference(_lastResendDateTime!).inSeconds;
     final remaining = 60 - difference;
     return remaining > 0 ? remaining : 0;
   }
@@ -85,7 +86,8 @@ class AuthCubit extends Cubit<AuthState> {
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       if (failure.message.toLowerCase().contains("verify your email")) {
-        emit(AuthError("Please verify your email before logging in.", isNotVerified: true));
+        emit(AuthError("Please verify your email before logging in.",
+            isNotVerified: true));
       } else {
         emit(AuthError(failure.message));
       }
@@ -147,7 +149,8 @@ class AuthCubit extends Cubit<AuthState> {
       final difference = now.difference(_firstResendAttempt!);
       if (difference.inMinutes < 1) {
         if (_resendCount >= 3) {
-          emit(AuthError("Too many requests. Please wait a minute before trying again."));
+          emit(AuthError(
+              "Too many requests. Please wait a minute before trying again."));
           return;
         }
       } else {

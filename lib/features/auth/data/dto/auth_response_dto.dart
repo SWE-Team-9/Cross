@@ -12,7 +12,7 @@ class AuthResponseDto {
   });
 
   factory AuthResponseDto.fromJson(Map<String, dynamic> json) {
-    // ملاحظة: بناءً على صورتك، التوكنز موجودة في الـ Cookie 
+    // ملاحظة: بناءً على صورتك، التوكنز موجودة في الـ Cookie
     // إذا كان الـ API يرجعها أيضاً في الـ Body (الـ JSON)، فسيتم قراءتها من هنا.
     // إذا كانت في الكوكيز فقط، الـ DioClient سيتولى أمرها تلقائياً.
     return AuthResponseDto(

@@ -31,11 +31,7 @@ final getIt = GetIt.instance;
 void setupDependencies() {
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
     getIt.registerLazySingleton<FlutterSecureStorage>(
-      () => const FlutterSecureStorage(
-        aOptions: AndroidOptions(
-        encryptedSharedPreferences: true,
-        )
-      ),
+      () => const FlutterSecureStorage(aOptions: AndroidOptions()),
     );
   }
 
