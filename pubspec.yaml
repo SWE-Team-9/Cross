@@ -43,6 +43,7 @@ dependencies:
   
   # Media (will add more in later sprints)
   just_audio: ^0.10.5
+  just_audio_windows: ^0.2.0
   image_picker: ^1.2.1
   image_cropper: ^11.0.0
   flutter_image_compress: ^2.4.0
