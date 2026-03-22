@@ -25,6 +25,11 @@ class AuthCubit extends Cubit<AuthState> {
   final SendEmailVerificationUseCase sendEmailVerificationUseCase;
   final VerifyEmailUseCase verifyEmailUseCase;
 
+  // Variables to track resend logic and persistence
+  int _resendCount = 0;
+  DateTime? _firstResendAttempt;
+  DateTime? _lastResendDateTime;
+
   AuthCubit({
     required this.loginUseCase,
     required this.registerUseCase,
@@ -37,8 +42,14 @@ class AuthCubit extends Cubit<AuthState> {
     required this.verifyEmailUseCase,
   }) : super(AuthInitial());
 
-  /// [Auto Login Logic]
-  /// تُستخدم في صفحة الـ Splash لتحديد وجهة المستخدم
+  // Function to calculate remaining seconds for UI
+  int get remainingResendSeconds {
+    if (_lastResendDateTime == null) return 0;
+    final difference = DateTime.now().difference(_lastResendDateTime!).inSeconds;
+    final remaining = 60 - difference;
+    return remaining > 0 ? remaining : 0;
+  }
+
   Future<void> checkAuthStatus() async {
     emit(AuthLoading());
     try {
@@ -47,18 +58,13 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthUnauthenticated());
         return;
       }
-
-      // محاولة جلب بيانات المستخدم للتأكد من أن التوكن سليم
       final user = await getCurrentUserUseCase();
       if (user == null) {
         emit(AuthUnauthenticated());
         return;
       }
-      
-      // لو كل شيء تمام، ننتقل للهوم
       emit(AuthAuthenticated(user));
     } catch (e) {
-      // في حالة وجود خطأ (مثل 401 وفشل التجديد)، نطلب تسجيل دخول جديد
       emit(AuthUnauthenticated());
     }
   }
@@ -75,11 +81,14 @@ class AuthCubit extends Cubit<AuthState> {
         password: password,
         captchaToken: captchaToken,
       );
-      // الـ Repository قام بالفعل بحفظ التوكنز في الـ Secure Storage
       emit(AuthAuthenticated(user));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
-      emit(AuthError(failure.message));
+      if (failure.message.toLowerCase().contains("verify your email")) {
+        emit(AuthError("Please verify your email before logging in.", isNotVerified: true));
+      } else {
+        emit(AuthError(failure.message));
+      }
     } catch (e) {
       emit(AuthError('An unexpected error occurred.'));
     }
@@ -118,22 +127,42 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     try {
       await logoutUseCase();
-      // الـ Repository قام بمسح التوكنز من الـ Secure Storage
       emit(AuthUnauthenticated());
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       emit(AuthError(failure.message));
     } catch (e) {
-      emit(AuthUnauthenticated()); // حتى لو فشل طلب السيرفر، نسجل خروج محلياً
+      emit(AuthUnauthenticated());
     }
   }
 
-  // --- بقية الدوال (Forgot Password, Verify Email, الخ) تبقى كما هي ---
-  
   Future<void> sendEmailVerification({required String email}) async {
+    final now = DateTime.now();
+
+    // Prevent call if cooldown is still active (Security check)
+    if (remainingResendSeconds > 0) return;
+
+    // Constraints: Max 3 times per minute
+    if (_firstResendAttempt != null) {
+      final difference = now.difference(_firstResendAttempt!);
+      if (difference.inMinutes < 1) {
+        if (_resendCount >= 3) {
+          emit(AuthError("Too many requests. Please wait a minute before trying again."));
+          return;
+        }
+      } else {
+        _resendCount = 0;
+        _firstResendAttempt = now;
+      }
+    } else {
+      _firstResendAttempt = now;
+    }
+
     emit(AuthLoading());
     try {
       await sendEmailVerificationUseCase(email: email);
+      _resendCount++;
+      _lastResendDateTime = DateTime.now(); // Record successful attempt time
       emit(AuthVerificationEmailSent(email));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);

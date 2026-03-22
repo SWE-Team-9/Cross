@@ -59,9 +59,7 @@ class _LoginPageState extends State<LoginPage> {
         _recaptchaClient = await Recaptcha.fetchClient(
             "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
       }
-
       String token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
-
       if (mounted) {
         context.read<AuthCubit>().login(
               email: _emailController.text.trim(),
@@ -99,20 +97,28 @@ class _LoginPageState extends State<LoginPage> {
               if (state is AuthAuthenticated) {
                 context.go('/home');
               }
-
               if (state is AuthError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.message,
                         style: const TextStyle(color: Colors.white)),
                     backgroundColor: Colors.redAccent,
+                    duration: const Duration(seconds: 5),
+                    action: state.isNotVerified 
+                      ? SnackBarAction(
+                          label: 'Verify Now',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            context.push(AuthRoutes.verifyEmail, extra: _emailController.text.trim());
+                          },
+                        )
+                      : null,
                   ),
                 );
               }
             },
             builder: (context, state) {
               final isLoading = (state is AuthLoading) || _isFetchingCaptcha;
-
               return SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Form(
@@ -136,8 +142,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 40),
                       const Text(
                         'Email address',
-                        style:
-                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
+                        style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -161,8 +166,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 24),
                       const Text(
                         'Password',
-                        style:
-                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
+                        style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -220,8 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                       const Center(
                         child: Text(
                           "Protected by reCAPTCHA Enterprise",
-                          style:
-                              TextStyle(color: Color(0xFF555555), fontSize: 12),
+                          style: TextStyle(color: Color(0xFF555555), fontSize: 12),
                         ),
                       )
                     ],
