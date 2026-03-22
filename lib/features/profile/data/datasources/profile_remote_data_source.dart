@@ -1,10 +1,6 @@
-// Dart SDK
-// Flutter
-// Third-party
+import 'dart:convert';
 import 'package:dio/dio.dart';
 
-// Project
-import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../dto/profile_dto.dart';
@@ -24,70 +20,87 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   const ProfileRemoteDataSourceImpl(this._dioClient);
 
-  /// GET /api/v1/profiles/:handle
-  /// No auth required — public endpoint.
-  /// Returns full profile JSON including bio, location, genres, etc.
   @override
   Future<ProfileDto> getProfile(String handle) async {
-    final response = await _dioClient.get<Map<String, dynamic>>(
-      '${ApiConstants.profileByHandle}/$handle',
-    );
-    return ProfileDto.fromJson(response.data!);
+    try {
+      // استخدمنا .dio.get لضمان عمل الدالة
+      final response = await _dioClient.dio.get(
+        '/api/v1/profiles/$handle',
+      );
+
+      // تأمين تحويل البيانات لو السيرفر رجعها كـ String
+      final responseData = response.data is String 
+          ? jsonDecode(response.data) 
+          : response.data;
+
+      // أحياناً السيرفر بيرجع البيانات جوه مفتاح 'profile' أو 'data'
+      final Map<String, dynamic> profileMap = responseData['profile'] ?? responseData['data'] ?? responseData;
+
+      return ProfileDto.fromJson(profileMap);
+    } catch (e) {
+      // السطر ده هيطبع الإيرور الحقيقي في الـ Debug Console عشان لو حصل مشكلة تاني نعرفها فوراً
+      print('🔥 Error in getProfile: $e');
+      rethrow;
+    }
   }
 
-  /// PATCH /api/v1/profiles/me
-  /// Auth required — JWT cookie sent automatically by CookieManager.
-  /// Only sends fields that are non-null (partial update).
-  /// Returns the full updated profile object.
   @override
   Future<ProfileDto> updateProfile(Map<String, dynamic> body) async {
-    final response = await _dioClient.patch<Map<String, dynamic>>(
-      ApiConstants.myProfile,
-      data: body,
-    );
-    return ProfileDto.fromJson(response.data!);
+    try {
+      final response = await _dioClient.dio.patch(
+        '/api/v1/profiles/me',
+        data: body,
+      );
+      
+      final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+      final Map<String, dynamic> profileMap = responseData['profile'] ?? responseData['data'] ?? responseData;
+      
+      return ProfileDto.fromJson(profileMap);
+    } catch (e) {
+      print('🔥 Error in updateProfile: $e');
+      rethrow;
+    }
   }
 
-  /// POST /api/v1/profiles/me/images/avatar
-  /// POST /api/v1/profiles/me/images/cover
-  /// Auth required.
-  /// Sends the image file as multipart/form-data.
-  /// Field name must be exactly 'file' — as required by the API doc.
-  /// Returns: { "message": "...", "url": "https://s3.aws.com/..." }
   @override
   Future<String> uploadProfileImage({
     required ProfileImageType imageType,
     required String filePath,
   }) async {
-    // Convert enum to the exact string the API path expects
-    final typeString =
-        imageType == ProfileImageType.AVATAR ? 'avatar' : 'cover';
+    try {
+      final typeString = imageType == ProfileImageType.AVATAR ? 'avatar' : 'cover';
 
-    final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath),
-    });
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath),
+      });
 
-    final response = await _dioClient.post<Map<String, dynamic>>(
-      '${ApiConstants.profileImages}/$typeString',
-      data: formData,
-      // Override Content-Type for this specific request only —
-      // multipart/form-data replaces the default application/json
-      options: Options(contentType: 'multipart/form-data'),
-    );
+      final response = await _dioClient.dio.post(
+        '/api/v1/profiles/me/images/$typeString',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
 
-    // API returns { "message": "Image uploaded successfully", "url": "https://..." }
-    return response.data!['url'] as String;
+      final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+      return responseData['url'] as String;
+    } catch (e) {
+      print('🔥 Error in uploadProfileImage: $e');
+      rethrow;
+    }
   }
 
-  /// GET /api/v1/profiles/check-handle?handle=xxx
-  /// Auth required.
-  /// Returns: { "handle": "...", "available": true/false, "message": "..." }
   @override
   Future<bool> checkHandleAvailable(String handle) async {
-    final response = await _dioClient.get<Map<String, dynamic>>(
-      ApiConstants.checkHandle,
-      queryParameters: {'handle': handle},
-    );
-    return response.data!['available'] as bool;
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/v1/profiles/check-handle',
+        queryParameters: {'handle': handle},
+      );
+      
+      final responseData = response.data is String ? jsonDecode(response.data) : response.data;
+      return responseData['available'] as bool;
+    } catch (e) {
+      print('🔥 Error in checkHandleAvailable: $e');
+      rethrow;
+    }
   }
 }
