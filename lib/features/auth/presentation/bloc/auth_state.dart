@@ -11,6 +11,7 @@ class AuthUnauthenticated extends AuthState {}
 class AuthAuthenticated extends AuthState {
   final User user;
   AuthAuthenticated(this.user);
+  List<Object?> get props => [user];
 }
 
 class AuthRegisterSuccess extends AuthState {
@@ -49,5 +50,6 @@ class AuthResetPasswordSuccess extends AuthState {}
 
 class AuthError extends AuthState {
   final String message;
-  AuthError(this.message);
+  final bool isNotVerified; // Flag for unverified email cases
+  AuthError(this.message, {this.isNotVerified = false});
 }

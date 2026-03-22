@@ -34,19 +34,23 @@ class AppRoutes {
   static const String home = '/home';
   static const String library = '/library';
   static const String uploadPicker = '/upload-picker';
-  static const String profile = '/profile/:userId';
+  static const String profile = '/profile/:handle';
   static const String editProfile = '/profile/edit';
-  static const String followers = '/followers/:userId';
-  static const String following = '/following/:userId';
+  static const String followers = '/followers/:handle';
+  static const String following = '/following/:handle';
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: AppRoutes.home,
+
+  // 1. التعديل هنا: نخلي البداية من الـ Splash
+  // بما إننا عدلنا AuthRoutes.splash لتكون '/'، هنستخدمها هنا
+  initialLocation: AuthRoutes.splash,
 
   routes: [
     // ── Auth (Sprint 1) ───────────────────────────────────────────
+    // دي دلوقتي جواها الـ Splash مسارها '/' والـ Welcome مسارها '/welcome'
     ...AuthRoutes.routes,
 
     // ── Home ───────────────────────────────────────────────────────
@@ -88,13 +92,15 @@ final GoRouter router = GoRouter(
       name: 'profile',
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) {
-        final userId = state.pathParameters['userId']!;
+        final handle = state.pathParameters['handle'] ?? '';
         return MaterialPage(
-          child: ProfilePage(userId: userId),
+          child: ProfilePage(handle: handle),
         );
       },
     ),
 
+    // Note: This must come BEFORE or be distinct from /profile/:handle
+    // to avoid being captured by the dynamic parameter if paths overlap.
     GoRoute(
       path: AppRoutes.editProfile,
       name: 'edit-profile',
@@ -104,14 +110,15 @@ final GoRouter router = GoRouter(
       ),
     ),
 
+    // ── Social (Followers/Following) ──────────────────────────────
     GoRoute(
       path: AppRoutes.followers,
       name: 'followers',
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) {
-        final userId = state.pathParameters['userId']!;
+        final handle = state.pathParameters['handle'] ?? '';
         return MaterialPage(
-          child: FollowersPage(userId: userId),
+          child: FollowersPage(handle: handle),
         );
       },
     ),
@@ -121,9 +128,9 @@ final GoRouter router = GoRouter(
       name: 'following',
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) {
-        final userId = state.pathParameters['userId']!;
+        final handle = state.pathParameters['handle'] ?? '';
         return MaterialPage(
-          child: FollowingPage(userId: userId),
+          child: FollowingPage(handle: handle), // Updated from userId to handle
         );
       },
     ),
@@ -143,6 +150,7 @@ final GoRouter router = GoRouter(
             style: TextStyle(color: Colors.white, fontSize: 20),
           ),
           const SizedBox(height: 8),
+          // 2. تعديل هنا: خليه يرجع للهوم لو تاه
           TextButton(
             onPressed: () => context.go(AppRoutes.home),
             child: const Text(

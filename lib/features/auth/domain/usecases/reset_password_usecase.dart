@@ -6,14 +6,14 @@ class ResetPasswordUseCase {
   ResetPasswordUseCase(this.repository);
 
   Future<void> call({
-    required String email,
     required String code,
     required String newPassword,
+    required String newPasswordConfirm,
   }) {
     return repository.resetPassword(
-      email: email,
       code: code,
       newPassword: newPassword,
+      newPasswordConfirm: newPasswordConfirm,
     );
   }
 }

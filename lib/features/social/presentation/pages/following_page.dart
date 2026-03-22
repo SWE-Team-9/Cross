@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
 
 /// Following list page stub.
-/// Route: /following/:userId
+/// Route: /following/:handle
 ///
 /// TODO (Ahmed Reda — T2.10):
 ///   1. Replace `String` with your real UserEntity type.
-///   2. Inject the social repository and call getFollowing(userId, page: page).
+///   2. Inject the social repository and call getFollowing(handle, page: page).
 ///   3. Replace ListTile with your UserListTile widget from social/widgets/.
 class FollowingPage extends StatelessWidget {
-  final String userId;
+  final String handle;
 
-  const FollowingPage({super.key, required this.userId});
+  const FollowingPage({super.key, required this.handle});
 
   @override
   Widget build(BuildContext context) {
