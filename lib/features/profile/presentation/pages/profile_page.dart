@@ -8,6 +8,10 @@ import 'package:go_router/go_router.dart';
 // Project
 import '../../../../core/di/injector.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
+import '../../../upload/domain/entities/ManagedTrack.dart';
+import '../../../upload/domain/entities/TrackManagementVisibility.dart';
+import '../../../upload/presentation/models/applyTrackManagementResult.dart';
+import '../../../upload/presentation/models/trackManagementResult.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../bloc/profile_cubit.dart';
 import '../bloc/profile_state.dart';
@@ -49,6 +53,29 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   late final TabController _tabController;
   bool _isFollowing = false;
 
+  List<ManagedTrack> _managedTracks = const [
+    ManagedTrack(
+      id: 'profile-track-1',
+      title: 'Midnight Echoes',
+      description: 'Owner profile track for Sprint 2 management testing.',
+      genreId: 1,
+      genreName: 'Ambient',
+      tags: <String>['owner', 'ambient'],
+      visibility: TrackManagementVisibility.publicTrack,
+      durationInSeconds: 212,
+    ),
+    ManagedTrack(
+      id: 'profile-track-2',
+      title: 'City Lights',
+      description: 'Second owner track for edit/delete testing.',
+      genreId: 2,
+      genreName: 'Electronic',
+      tags: <String>['night', 'synth'],
+      visibility: TrackManagementVisibility.privateTrack,
+      durationInSeconds: 184,
+    ),
+  ];
+
   bool get _isOwnProfile {
     final authState = context.read<AuthCubit>().state;
     if (authState is AuthAuthenticated) {
@@ -69,6 +96,22 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     super.dispose();
   }
 
+  Future<void> _openTrackManagement(ManagedTrack track) async {
+    final result = await context.pushNamed(
+      'track-management',
+      extra: track,
+    );
+
+    if (result is TrackManagementResult && mounted) {
+      setState(() {
+        _managedTracks = applyTrackManagementResult(
+          tracks: _managedTracks,
+          result: result,
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ProfileCubit, ProfileState>(
@@ -87,8 +130,11 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline,
-                      color: Colors.white54, size: 48),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white54,
+                    size: 48,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     state.message,
@@ -147,13 +193,24 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             controller: _tabController,
             children: [
               _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet'),
-              _buildEmptyTab(Icons.music_note_outlined, 'No tracks yet'),
+              _buildTracksTab(),
               _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet'),
               _buildEmptyTab(Icons.repeat, 'No reposts yet'),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTracksTab() {
+    if (!_isOwnProfile) {
+      return _buildEmptyTab(Icons.music_note_outlined, 'No tracks yet');
+    }
+
+    return _ManagedProfileTracksTab(
+      tracks: _managedTracks,
+      onManageTap: _openTrackManagement,
     );
   }
 
@@ -164,11 +221,13 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _circleIconBtn(Icons.arrow_back, () => context.pop()),
-          Row(children: [
-            _circleIconBtn(Icons.cast, () {}),
-            const SizedBox(width: 8),
-            _circleIconBtn(Icons.more_vert, () {}),
-          ]),
+          Row(
+            children: [
+              _circleIconBtn(Icons.cast, () {}),
+              const SizedBox(width: 8),
+              _circleIconBtn(Icons.more_vert, () {}),
+            ],
+          ),
         ],
       ),
     );
@@ -214,7 +273,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           Text(
             profile.displayName,
             style: const TextStyle(
-                color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 4),
           Row(
@@ -227,8 +289,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                   style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
                 ),
               ),
-              const Text(' · ',
-                  style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 13)),
+              const Text(
+                ' · ',
+                style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
+              ),
               GestureDetector(
                 onTap: () =>
                     ProfileRoutes.goToFollowing(context, profile.handle),
@@ -244,19 +308,31 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             Text(
               profile.bio!,
               style: const TextStyle(
-                  color: Color(0xFF999999), fontSize: 13, height: 1.5),
+                color: Color(0xFF999999),
+                fontSize: 13,
+                height: 1.5,
+              ),
             ),
           ],
           if (profile.location != null && profile.location!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Row(children: [
-              const Icon(Icons.location_on_outlined,
-                  color: Color(0xFF888888), size: 14),
-              const SizedBox(width: 3),
-              Text(profile.location!,
-                  style:
-                      const TextStyle(color: Color(0xFF888888), fontSize: 12)),
-            ]),
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: Color(0xFF888888),
+                  size: 14,
+                ),
+                const SizedBox(width: 3),
+                Text(
+                  profile.location!,
+                  style: const TextStyle(
+                    color: Color(0xFF888888),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ],
           if (profile.favoriteGenres.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -271,9 +347,13 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFF444444)),
                   ),
-                  child: Text(genre,
-                      style: const TextStyle(
-                          color: Color(0xFFCCCCCC), fontSize: 11)),
+                  child: Text(
+                    genre,
+                    style: const TextStyle(
+                      color: Color(0xFFCCCCCC),
+                      fontSize: 11,
+                    ),
+                  ),
                 );
               }).toList(),
             ),
@@ -291,12 +371,16 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           if (_isOwnProfile)
             GestureDetector(
               onTap: () => ProfileRoutes.goToEditProfile(context),
-              child: const Row(children: [
-                Icon(Icons.edit_outlined, color: Colors.white, size: 18),
-                SizedBox(width: 6),
-                Text('Edit',
-                    style: TextStyle(color: Colors.white, fontSize: 14)),
-              ]),
+              child: const Row(
+                children: [
+                  Icon(Icons.edit_outlined, color: Colors.white, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Edit',
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ],
+              ),
             )
           else
             Expanded(
@@ -320,9 +404,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                   child: Text(
                     _isFollowing ? 'Following' : 'Follow',
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -332,8 +417,11 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             onTap: () {},
             child: Padding(
               padding: const EdgeInsets.all(6),
-              child: Icon(Icons.shuffle,
-                  color: Colors.white.withValues(alpha: 0.8), size: 22),
+              child: Icon(
+                Icons.shuffle,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -346,8 +434,11 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child:
-                  const Icon(Icons.play_arrow, color: Colors.black, size: 24),
+              child: const Icon(
+                Icons.play_arrow,
+                color: Colors.black,
+                size: 24,
+              ),
             ),
           ),
         ],
@@ -385,10 +476,86 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         children: [
           Icon(icon, size: 48, color: const Color(0xFF444444)),
           const SizedBox(height: 12),
-          Text(message,
-              style: const TextStyle(color: Color(0xFF666666), fontSize: 14)),
+          Text(
+            message,
+            style: const TextStyle(color: Color(0xFF666666), fontSize: 14),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _ManagedProfileTracksTab extends StatelessWidget {
+  const _ManagedProfileTracksTab({
+    required this.tracks,
+    required this.onManageTap,
+  });
+
+  final List<ManagedTrack> tracks;
+  final ValueChanged<ManagedTrack> onManageTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tracks.isEmpty) {
+      return const Center(
+        child: Text(
+          'No managed tracks remaining.',
+          style: TextStyle(color: Color(0xFF666666), fontSize: 14),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: tracks.length,
+      separatorBuilder: (_, __) => const Divider(
+        color: Color(0xFF1A1A1A),
+        height: 1,
+        indent: 14,
+        endIndent: 14,
+      ),
+      itemBuilder: (context, index) {
+        final track = tracks[index];
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      track.title,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${track.genreName ?? 'Unknown genre'} • ${track.visibility.displayLabel}',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF999999),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: () => onManageTap(track),
+                child: const Text('Manage'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
