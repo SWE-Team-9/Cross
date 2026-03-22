@@ -6,8 +6,6 @@ import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
-import '../../features/auth/domain/usecases/check_email_exists_usecase.dart';
-import '../../features/auth/domain/usecases/complete_profile_usecase.dart';
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
 import '../../features/auth/domain/usecases/is_logged_in_usecase.dart';
@@ -18,12 +16,19 @@ import '../../features/auth/domain/usecases/reset_password_usecase.dart';
 import '../../features/auth/domain/usecases/send_email_verification_usecase.dart';
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_cubit.dart';
-import '../../features/profile/data/datasources/profileRemoteDataSource.dart';
+
+// Sprint 2 — Profile image upload flow
+import '../../features/profile/data/datasources/profileRemoteDataSource.dart'
+    as profile_image_data;
 import '../../features/profile/data/repositories/profileRepositoryFake.dart';
-import '../../features/profile/data/repositories/profileRepositoryImpl.dart';
-import '../../features/profile/domain/repositories/profileRepository.dart';
+import '../../features/profile/data/repositories/profileRepositoryImpl.dart'
+    as profile_image_repo;
+import '../../features/profile/domain/repositories/profileRepository.dart'
+    as profile_image_domain;
 import '../../features/profile/domain/usecases/uploadProfileImageUseCase.dart';
 import '../../features/profile/presentation/bloc/profileImageUploadCubit.dart';
+
+// Upload
 import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
 import '../../features/upload/data/datasources/trackManagementRemoteDataSource.dart';
 import '../../features/upload/data/repositories/trackManagementRepositoryFake.dart';
@@ -37,6 +42,19 @@ import '../../features/upload/domain/usecases/updateTrackMetadataUseCase.dart';
 import '../../features/upload/domain/usecases/updateTrackVisibilityUseCase.dart';
 import '../../features/upload/presentation/bloc/trackManagementCubit.dart';
 import '../../features/upload/presentation/bloc/uploadPickerCubit.dart';
+
+// Profile feature from dev
+import '../../features/profile/data/datasources/profile_remote_data_source.dart'
+    as profile_data;
+import '../../features/profile/data/repositories/profile_repository_impl.dart'
+    as profile_repo;
+import '../../features/profile/domain/repositories/profile_repository.dart'
+    as profile_domain;
+import '../../features/profile/domain/usecases/get_profile_usecase.dart';
+import '../../features/profile/domain/usecases/update_profile_usecase.dart';
+import '../../features/profile/presentation/bloc/profile_cubit.dart';
+
+import '../network/api_constants.dart';
 import '../network/dio_client.dart';
 import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
@@ -45,10 +63,9 @@ import '../storage/secure_storage.dart';
 final getIt = GetIt.instance;
 
 void setupDependencies() {
-  // Core storage
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
     getIt.registerLazySingleton<FlutterSecureStorage>(
-      () => const FlutterSecureStorage(),
+      () => const FlutterSecureStorage(aOptions: AndroidOptions()),
     );
   }
 
@@ -58,28 +75,26 @@ void setupDependencies() {
     );
   }
 
-  // Core networking
   if (!getIt.isRegistered<DioClient>()) {
     getIt.registerLazySingleton<DioClient>(
       () => DioClient(
         baseUrl: const String.fromEnvironment(
           'API_URL',
-          defaultValue:
-              'https://ae735f51-ad9b-4187-bd88-52986fa6b324.mock.pstmn.io',
+          defaultValue: ApiConstants.baseUrl,
         ),
         secureStorage: getIt<SecureStorage>(),
       ),
     );
   }
 
-  // Core services
+  // --- Core Services ---
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
       () => JustAudioPlayerService(),
     );
   }
 
-  // Upload feature - T1.11 File Picker
+  // --- Upload Feature: File Picker ---
   if (!getIt.isRegistered<AudioFilePickerDataSource>()) {
     getIt.registerLazySingleton<AudioFilePickerDataSource>(
       () => const AudioFilePickerDataSourceImpl(),
@@ -104,7 +119,7 @@ void setupDependencies() {
     );
   }
 
-  // Upload feature - T2.8 Track Management Basics
+  // --- Upload Feature: Track Management Basics ---
   const bool useMockTrackManagement = bool.fromEnvironment(
     'USE_MOCK_TRACK_MANAGEMENT',
     defaultValue: false,
@@ -164,7 +179,7 @@ void setupDependencies() {
     );
   }
 
-  // Profile feature - T2.7 Profile Image Upload Flow
+  // --- Profile Feature: Sprint 2 Profile Image Upload Flow ---
   const bool useMockProfileImageUpload = bool.fromEnvironment(
     'USE_MOCK_PROFILE_IMAGE_UPLOAD',
     defaultValue: false,
@@ -178,25 +193,29 @@ void setupDependencies() {
   final MockProfileImageUploadMode mockProfileImageUploadMode =
       _parseMockProfileImageUploadMode(mockProfileImageUploadModeValue);
 
-  if (!getIt.isRegistered<ProfileRemoteDataSource>()) {
-    getIt.registerLazySingleton<ProfileRemoteDataSource>(
-      () => ProfileRemoteDataSourceImpl(getIt<DioClient>()),
+  if (!getIt.isRegistered<profile_image_data.ProfileRemoteDataSource>()) {
+    getIt.registerLazySingleton<profile_image_data.ProfileRemoteDataSource>(
+      () => profile_image_data.ProfileRemoteDataSourceImpl(getIt<DioClient>()),
     );
   }
 
-  if (!getIt.isRegistered<ProfileRepository>()) {
-    getIt.registerLazySingleton<ProfileRepository>(
+  if (!getIt.isRegistered<profile_image_domain.ProfileRepository>()) {
+    getIt.registerLazySingleton<profile_image_domain.ProfileRepository>(
       () => useMockProfileImageUpload
           ? ProfileRepositoryFake(
               mode: mockProfileImageUploadMode,
             )
-          : ProfileRepositoryImpl(getIt<ProfileRemoteDataSource>()),
+          : profile_image_repo.ProfileRepositoryImpl(
+              getIt<profile_image_data.ProfileRemoteDataSource>(),
+            ),
     );
   }
 
   if (!getIt.isRegistered<UploadProfileImageUseCase>()) {
     getIt.registerLazySingleton<UploadProfileImageUseCase>(
-      () => UploadProfileImageUseCase(getIt<ProfileRepository>()),
+      () => UploadProfileImageUseCase(
+        getIt<profile_image_domain.ProfileRepository>(),
+      ),
     );
   }
 
@@ -206,7 +225,7 @@ void setupDependencies() {
     );
   }
 
-  // Auth feature
+  // --- Auth Feature ---
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
     getIt.registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(getIt<DioClient>()),
@@ -228,12 +247,6 @@ void setupDependencies() {
     );
   }
 
-  if (!getIt.isRegistered<CheckEmailExistsUseCase>()) {
-    getIt.registerLazySingleton<CheckEmailExistsUseCase>(
-      () => CheckEmailExistsUseCase(getIt<AuthRepository>()),
-    );
-  }
-
   if (!getIt.isRegistered<LoginUseCase>()) {
     getIt.registerLazySingleton<LoginUseCase>(
       () => LoginUseCase(getIt<AuthRepository>()),
@@ -243,12 +256,6 @@ void setupDependencies() {
   if (!getIt.isRegistered<RegisterUseCase>()) {
     getIt.registerLazySingleton<RegisterUseCase>(
       () => RegisterUseCase(getIt<AuthRepository>()),
-    );
-  }
-
-  if (!getIt.isRegistered<CompleteProfileUseCase>()) {
-    getIt.registerLazySingleton<CompleteProfileUseCase>(
-      () => CompleteProfileUseCase(getIt<AuthRepository>()),
     );
   }
 
@@ -297,10 +304,8 @@ void setupDependencies() {
   if (!getIt.isRegistered<AuthCubit>()) {
     getIt.registerFactory<AuthCubit>(
       () => AuthCubit(
-        checkEmailExistsUseCase: getIt<CheckEmailExistsUseCase>(),
         loginUseCase: getIt<LoginUseCase>(),
         registerUseCase: getIt<RegisterUseCase>(),
-        completeProfileUseCase: getIt<CompleteProfileUseCase>(),
         logoutUseCase: getIt<LogoutUseCase>(),
         isLoggedInUseCase: getIt<IsLoggedInUseCase>(),
         getCurrentUserUseCase: getIt<GetCurrentUserUseCase>(),
@@ -315,6 +320,43 @@ void setupDependencies() {
   if (!getIt.isRegistered<RecentlyPlayedCubit>()) {
     getIt.registerLazySingleton<RecentlyPlayedCubit>(
       () => RecentlyPlayedCubit(),
+    );
+  }
+
+  // --- Profile Feature from dev ---
+  if (!getIt.isRegistered<profile_data.ProfileRemoteDataSource>()) {
+    getIt.registerLazySingleton<profile_data.ProfileRemoteDataSource>(
+      () => profile_data.ProfileRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<profile_domain.ProfileRepository>()) {
+    getIt.registerLazySingleton<profile_domain.ProfileRepository>(
+      () => profile_repo.ProfileRepositoryImpl(
+        getIt<profile_data.ProfileRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetProfileUseCase>()) {
+    getIt.registerLazySingleton<GetProfileUseCase>(
+      () => GetProfileUseCase(getIt<profile_domain.ProfileRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UpdateProfileUseCase>()) {
+    getIt.registerLazySingleton<UpdateProfileUseCase>(
+      () => UpdateProfileUseCase(getIt<profile_domain.ProfileRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ProfileCubit>()) {
+    getIt.registerFactory<ProfileCubit>(
+      () => ProfileCubit(
+        getProfileUseCase: getIt<GetProfileUseCase>(),
+        updateProfileUseCase: getIt<UpdateProfileUseCase>(),
+        profileRepository: getIt<profile_domain.ProfileRepository>(),
+      ),
     );
   }
 }

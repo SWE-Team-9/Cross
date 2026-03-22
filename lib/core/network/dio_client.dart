@@ -1,6 +1,7 @@
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../storage/secure_storage.dart';
 import 'error_mapper.dart';
@@ -11,25 +12,36 @@ import 'interceptors/logging_interceptor.dart';
 class DioClient {
   DioClient({
     required String baseUrl,
-    required SecureStorage secureStorage,
-  })  : _cookieJar = CookieJar(),
-        dio = Dio(
+    required this.secureStorage,
+  }) : dio = Dio(
           BaseOptions(
             baseUrl: baseUrl,
             connectTimeout: const Duration(seconds: 30),
             receiveTimeout: const Duration(seconds: 30),
           ),
         ) {
+    _init();
+  }
+
+  final Dio dio;
+  final SecureStorage secureStorage;
+
+  Future<void> _init() async {
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final cookieJar = PersistCookieJar(
+      storage: FileStorage('${appDocDir.path}/.cookies/'),
+    );
+
+    final authInterceptor = AuthInterceptor(secureStorage: secureStorage);
+    authInterceptor.setDio(dio);
+
     dio.interceptors.addAll([
-      CookieManager(_cookieJar),
-      AuthInterceptor(secureStorage: secureStorage),
+      CookieManager(cookieJar),
+      authInterceptor,
       ErrorInterceptor(),
       LoggingInterceptor(),
     ]);
   }
-
-  final Dio dio;
-  final CookieJar _cookieJar;
 
   Future<Response<T>> get<T>(
     String path, {

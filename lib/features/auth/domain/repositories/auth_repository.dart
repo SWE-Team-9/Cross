@@ -1,18 +1,20 @@
 import '../entities/user.dart';
 
 abstract class AuthRepository {
-  Future<bool> checkEmailExists({
-    required String email,
-  });
-
   Future<User> login({
     required String email,
     required String password,
+    required String captchaToken,
   });
 
   Future<User> register({
     required String email,
     required String password,
+    required String passwordConfirm,
+    required String displayName,
+    required String dateOfBirth,
+    required String gender,
+    required String captchaToken,
   });
 
   Future<void> forgotPassword({
@@ -20,9 +22,9 @@ abstract class AuthRepository {
   });
 
   Future<void> resetPassword({
-    required String email,
     required String code,
     required String newPassword,
+    required String newPasswordConfirm,
   });
 
   Future<void> sendEmailVerification({
@@ -32,14 +34,6 @@ abstract class AuthRepository {
   Future<void> verifyEmail({
     required String email,
     required String code,
-  });
-
-  Future<User> completeProfile({
-    required String displayName,
-    required int birthMonth,
-    required int birthDay,
-    required int birthYear,
-    required String gender,
   });
 
   Future<User?> getCurrentUser();

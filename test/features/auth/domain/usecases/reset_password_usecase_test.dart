@@ -13,27 +13,31 @@ void main() {
     useCase = ResetPasswordUseCase(repository);
   });
 
-  test('should call repository.resetPassword', () async {
-    const email = 'test@example.com';
-    const code = '123456';
-    const newPassword = 'newPass123';
+  test('should call repository.resetPassword with correct parameters',
+      () async {
+    // Arrange
+    const tCode = '123456';
+    const tNewPassword = 'newPass123';
+    const tNewPasswordConfirm = 'newPass123';
 
     when(() => repository.resetPassword(
-          email: email,
-          code: code,
-          newPassword: newPassword,
-        )).thenAnswer((_) async {});
+          code: tCode,
+          newPassword: tNewPassword,
+          newPasswordConfirm: tNewPasswordConfirm,
+        )).thenAnswer((_) async => {});
 
+    // Act
     await useCase(
-      email: email,
-      code: code,
-      newPassword: newPassword,
+      code: tCode,
+      newPassword: tNewPassword,
+      newPasswordConfirm: tNewPasswordConfirm,
     );
 
+    // Assert
     verify(() => repository.resetPassword(
-          email: email,
-          code: code,
-          newPassword: newPassword,
+          code: tCode,
+          newPassword: tNewPassword,
+          newPasswordConfirm: tNewPasswordConfirm,
         )).called(1);
     verifyNoMoreInteractions(repository);
   });

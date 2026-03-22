@@ -5,14 +5,23 @@ class RegisterUseCase {
   final AuthRepository repository;
 
   RegisterUseCase(this.repository);
-
   Future<User> call({
     required String email,
     required String password,
+    required String passwordConfirm,
+    required String displayName,
+    required String dateOfBirth,
+    required String gender,
+    required String captchaToken,
   }) {
     return repository.register(
       email: email,
       password: password,
+      passwordConfirm: passwordConfirm,
+      displayName: displayName,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      captchaToken: captchaToken,
     );
   }
 }
