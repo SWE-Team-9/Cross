@@ -146,7 +146,7 @@ void main() {
             'user': {
               'id': '1',
               'email': 'me@example.com',
-            'handle': 'muslim',
+              'handle': 'muslim',
               'display_name': 'Me',
               'gender': 'MALE',
               'date_of_birth': '1990-01-01',
