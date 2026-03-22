@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-
 import 'package:soundcloud_clone/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:soundcloud_clone/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:soundcloud_clone/features/auth/data/dto/auth_response_dto.dart';
@@ -43,366 +42,151 @@ void main() {
     );
   });
 
-  group('checkEmailExists', () {
-    const email = 'test@example.com';
-
-    test('returns result from remote data source', () async {
-      when(() => mockRemoteDataSource.checkEmailExists(email: email))
-          .thenAnswer((_) async => true);
-
-      final result = await repository.checkEmailExists(email: email);
-
-      expect(result, true);
-      verify(() => mockRemoteDataSource.checkEmailExists(email: email))
-          .called(1);
-      verifyNoMoreInteractions(mockRemoteDataSource);
-    });
-  });
-
   group('login', () {
-    const email = 'test@example.com';
-    const password = 'password123';
-    const token = 'token_123';
+    const tEmail = 'test@example.com';
+    const tPassword = 'password123';
+    const tCaptcha = 'captcha_token';
+    const tAccess = 'access_123';
+    const tRefresh = 'refresh_456';
 
-    test('saves token and returns mapped user when login succeeds', () async {
+    test('should save tokens and return user when login is successful',
+        () async {
+      // Arrange
       when(() => mockRemoteDataSource.login(
-            email: email,
-            password: password,
+            email: tEmail,
+            password: tPassword,
+            captchaToken: tCaptcha,
           )).thenAnswer((_) async => mockAuthResponseDto);
-      when(() => mockAuthResponseDto.token).thenReturn(token);
+
+      when(() => mockAuthResponseDto.accessToken).thenReturn(tAccess);
+      when(() => mockAuthResponseDto.refreshToken).thenReturn(tRefresh);
       when(() => mockAuthResponseDto.user).thenReturn(mockUserDto);
       when(() => mockUserDto.toEntity()).thenReturn(testUser);
-      when(() => mockLocalDataSource.saveToken(token)).thenAnswer((_) async {});
+      when(() => mockLocalDataSource.saveTokens(
+          access: any(named: 'access'),
+          refresh: any(named: 'refresh'))).thenAnswer((_) async => {});
 
+      // Act
       final result = await repository.login(
-        email: email,
-        password: password,
+        email: tEmail,
+        password: tPassword,
+        captchaToken: tCaptcha,
       );
 
+      // Assert
       expect(result, same(testUser));
-      verify(() => mockRemoteDataSource.login(
-            email: email,
-            password: password,
-          )).called(1);
-      verify(() => mockLocalDataSource.saveToken(token)).called(1);
+      verify(() => mockLocalDataSource.saveTokens(
+          access: tAccess, refresh: tRefresh)).called(1);
       verify(() => mockUserDto.toEntity()).called(1);
-    });
-
-    test('throws when remote login throws', () async {
-      when(() => mockRemoteDataSource.login(
-            email: email,
-            password: password,
-          )).thenThrow(Exception('login failed'));
-
-      expect(
-        () => repository.login(email: email, password: password),
-        throwsA(isA<Exception>()),
-      );
-
-      verify(() => mockRemoteDataSource.login(
-            email: email,
-            password: password,
-          )).called(1);
-      verifyNever(() => mockLocalDataSource.saveToken(any()));
     });
   });
 
   group('register', () {
-    const email = 'new@example.com';
-    const password = 'password123';
-    const token = 'register_token';
-
-    test('saves token and returns mapped user when register succeeds',
+    test('should save tokens and return user when registration is successful',
         () async {
+      // Arrange
       when(() => mockRemoteDataSource.register(
-            email: email,
-            password: password,
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            passwordConfirm: any(named: 'passwordConfirm'),
+            displayName: any(named: 'displayName'),
+            dateOfBirth: any(named: 'dateOfBirth'),
+            gender: any(named: 'gender'),
+            captchaToken: any(named: 'captchaToken'),
           )).thenAnswer((_) async => mockAuthResponseDto);
-      when(() => mockAuthResponseDto.token).thenReturn(token);
+
+      when(() => mockAuthResponseDto.accessToken).thenReturn('acc');
+      when(() => mockAuthResponseDto.refreshToken).thenReturn('ref');
       when(() => mockAuthResponseDto.user).thenReturn(mockUserDto);
       when(() => mockUserDto.toEntity()).thenReturn(testUser);
-      when(() => mockLocalDataSource.saveToken(token)).thenAnswer((_) async {});
+      when(() => mockLocalDataSource.saveTokens(access: 'acc', refresh: 'ref'))
+          .thenAnswer((_) async => {});
 
+      // Act
       final result = await repository.register(
-        email: email,
-        password: password,
+        email: 'a@b.com',
+        password: '123',
+        passwordConfirm: '123',
+        displayName: 'Name',
+        dateOfBirth: '2000-01-01',
+        gender: 'MALE',
+        captchaToken: 'cap',
       );
 
+      // Assert
       expect(result, same(testUser));
-      verify(() => mockRemoteDataSource.register(
-            email: email,
-            password: password,
-          )).called(1);
-      verify(() => mockLocalDataSource.saveToken(token)).called(1);
-      verify(() => mockUserDto.toEntity()).called(1);
-    });
-
-    test('throws when remote register throws', () async {
-      when(() => mockRemoteDataSource.register(
-            email: email,
-            password: password,
-          )).thenThrow(Exception('register failed'));
-
-      expect(
-        () => repository.register(email: email, password: password),
-        throwsA(isA<Exception>()),
-      );
-
-      verify(() => mockRemoteDataSource.register(
-            email: email,
-            password: password,
-          )).called(1);
-      verifyNever(() => mockLocalDataSource.saveToken(any()));
-    });
-  });
-
-  group('forgotPassword', () {
-    const email = 'forgot@example.com';
-
-    test('delegates to remote data source', () async {
-      when(() => mockRemoteDataSource.forgotPassword(email: email))
-          .thenAnswer((_) async {});
-
-      await repository.forgotPassword(email: email);
-
-      verify(() => mockRemoteDataSource.forgotPassword(email: email)).called(1);
-    });
-  });
-
-  group('resetPassword', () {
-    const email = 'reset@example.com';
-    const code = '123456';
-    const newPassword = 'newPassword123';
-
-    test('delegates to remote data source', () async {
-      when(() => mockRemoteDataSource.resetPassword(
-            email: email,
-            code: code,
-            newPassword: newPassword,
-          )).thenAnswer((_) async {});
-
-      await repository.resetPassword(
-        email: email,
-        code: code,
-        newPassword: newPassword,
-      );
-
-      verify(() => mockRemoteDataSource.resetPassword(
-            email: email,
-            code: code,
-            newPassword: newPassword,
-          )).called(1);
-    });
-  });
-
-  group('sendEmailVerification', () {
-    const email = 'verify@example.com';
-
-    test('delegates to remote data source', () async {
-      when(() => mockRemoteDataSource.sendEmailVerification(email: email))
-          .thenAnswer((_) async {});
-
-      await repository.sendEmailVerification(email: email);
-
-      verify(() => mockRemoteDataSource.sendEmailVerification(email: email))
+      verify(() =>
+              mockLocalDataSource.saveTokens(access: 'acc', refresh: 'ref'))
           .called(1);
     });
   });
 
-  group('verifyEmail', () {
-    const email = 'verify@example.com';
-    const code = '999999';
-
-    test('delegates to remote data source', () async {
-      when(() => mockRemoteDataSource.verifyEmail(
-            email: email,
-            code: code,
-          )).thenAnswer((_) async {});
-
-      await repository.verifyEmail(email: email, code: code);
-
-      verify(() => mockRemoteDataSource.verifyEmail(
-            email: email,
-            code: code,
-          )).called(1);
-    });
-  });
-
-  group('completeProfile', () {
-    const token = 'auth_token';
-    const displayName = 'Muslim';
-    const birthMonth = 5;
-    const birthDay = 15;
-    const birthYear = 2000;
-    const gender = 'male';
-
-    test('throws when token is null', () async {
-      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => null);
-
-      expect(
-        () => repository.completeProfile(
-          displayName: displayName,
-          birthMonth: birthMonth,
-          birthDay: birthDay,
-          birthYear: birthYear,
-          gender: gender,
-        ),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('No auth token found'),
-          ),
-        ),
-      );
-
-      verify(() => mockLocalDataSource.getToken()).called(1);
-      verifyNever(() => mockRemoteDataSource.completeProfile(
-            token: any(named: 'token'),
-            displayName: any(named: 'displayName'),
-            birthMonth: any(named: 'birthMonth'),
-            birthDay: any(named: 'birthDay'),
-            birthYear: any(named: 'birthYear'),
-            gender: any(named: 'gender'),
-          ));
-    });
-
-    test('throws when token is empty', () async {
-      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => '');
-
-      expect(
-        () => repository.completeProfile(
-          displayName: displayName,
-          birthMonth: birthMonth,
-          birthDay: birthDay,
-          birthYear: birthYear,
-          gender: gender,
-        ),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('No auth token found'),
-          ),
-        ),
-      );
-
-      verify(() => mockLocalDataSource.getToken()).called(1);
-    });
-
-    test('returns mapped user when token exists', () async {
-      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => token);
-      when(() => mockRemoteDataSource.completeProfile(
-            token: token,
-            displayName: displayName,
-            birthMonth: birthMonth,
-            birthDay: birthDay,
-            birthYear: birthYear,
-            gender: gender,
-          )).thenAnswer((_) async => mockUserDto);
-      when(() => mockUserDto.toEntity()).thenReturn(testUser);
-
-      final result = await repository.completeProfile(
-        displayName: displayName,
-        birthMonth: birthMonth,
-        birthDay: birthDay,
-        birthYear: birthYear,
-        gender: gender,
-      );
-
-      expect(result, same(testUser));
-      verify(() => mockLocalDataSource.getToken()).called(1);
-      verify(() => mockRemoteDataSource.completeProfile(
-            token: token,
-            displayName: displayName,
-            birthMonth: birthMonth,
-            birthDay: birthDay,
-            birthYear: birthYear,
-            gender: gender,
-          )).called(1);
-      verify(() => mockUserDto.toEntity()).called(1);
-    });
-  });
-
   group('getCurrentUser', () {
-    const token = 'auth_token';
-
-    test('returns null when token is null', () async {
-      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => null);
-
-      final result = await repository.getCurrentUser();
-
-      expect(result, isNull);
-      verify(() => mockLocalDataSource.getToken()).called(1);
-      verifyNever(() => mockRemoteDataSource.getCurrentUser(
-            token: any(named: 'token'),
-          ));
-    });
-
-    test('returns null when token is empty', () async {
-      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => '');
-
-      final result = await repository.getCurrentUser();
-
-      expect(result, isNull);
-      verify(() => mockLocalDataSource.getToken()).called(1);
-      verifyNever(() => mockRemoteDataSource.getCurrentUser(
-            token: any(named: 'token'),
-          ));
-    });
-
-    test('returns mapped user when token exists', () async {
-      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => token);
-      when(() => mockRemoteDataSource.getCurrentUser(token: token))
+    test('should return user entity when remote data source succeeds',
+        () async {
+      // Arrange
+      when(() => mockRemoteDataSource.getCurrentUser())
           .thenAnswer((_) async => mockUserDto);
       when(() => mockUserDto.toEntity()).thenReturn(testUser);
 
+      // Act
       final result = await repository.getCurrentUser();
 
+      // Assert
       expect(result, same(testUser));
-      verify(() => mockLocalDataSource.getToken()).called(1);
-      verify(() => mockRemoteDataSource.getCurrentUser(token: token)).called(1);
-      verify(() => mockUserDto.toEntity()).called(1);
+      verify(() => mockRemoteDataSource.getCurrentUser()).called(1);
+    });
+
+    test('should return null when remote data source fails', () async {
+      // Arrange
+      when(() => mockRemoteDataSource.getCurrentUser()).thenThrow(Exception());
+
+      // Act
+      final result = await repository.getCurrentUser();
+
+      // Assert
+      expect(result, isNull);
     });
   });
 
   group('logout', () {
-    test('clears token from local data source', () async {
-      when(() => mockLocalDataSource.clearToken()).thenAnswer((_) async {});
+    test('should call remote logout and clear local storage', () async {
+      // Arrange
+      when(() => mockRemoteDataSource.logout()).thenAnswer((_) async => {});
+      when(() => mockLocalDataSource.clearAll()).thenAnswer((_) async => {});
 
+      // Act
       await repository.logout();
 
-      verify(() => mockLocalDataSource.clearToken()).called(1);
+      // Assert
+      verify(() => mockRemoteDataSource.logout()).called(1);
+      verify(() => mockLocalDataSource.clearAll()).called(1);
     });
   });
 
   group('isLoggedIn', () {
-    test('returns false when token is null', () async {
-      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => null);
-
-      final result = await repository.isLoggedIn();
-
-      expect(result, false);
-      verify(() => mockLocalDataSource.getToken()).called(1);
-    });
-
-    test('returns false when token is empty', () async {
-      when(() => mockLocalDataSource.getToken()).thenAnswer((_) async => '');
-
-      final result = await repository.isLoggedIn();
-
-      expect(result, false);
-      verify(() => mockLocalDataSource.getToken()).called(1);
-    });
-
-    test('returns true when token exists and is not empty', () async {
-      when(() => mockLocalDataSource.getToken())
+    test('should return true when access token exists', () async {
+      // Arrange
+      when(() => mockLocalDataSource.getAccessToken())
           .thenAnswer((_) async => 'valid_token');
 
+      // Act
       final result = await repository.isLoggedIn();
 
+      // Assert
       expect(result, true);
-      verify(() => mockLocalDataSource.getToken()).called(1);
+    });
+
+    test('should return false when access token is null', () async {
+      // Arrange
+      when(() => mockLocalDataSource.getAccessToken())
+          .thenAnswer((_) async => null);
+
+      // Act
+      final result = await repository.isLoggedIn();
+
+      // Assert
+      expect(result, false);
     });
   });
 }

@@ -1,9 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
-
 import '../../domain/entities/user.dart';
-import '../../domain/usecases/check_email_exists_usecase.dart';
-import '../../domain/usecases/complete_profile_usecase.dart';
 import '../../domain/usecases/forgot_password_usecase.dart';
 import '../../domain/usecases/get_current_user_usecase.dart';
 import '../../domain/usecases/is_logged_in_usecase.dart';
@@ -18,10 +15,8 @@ import '../../../../core/network/error_mapper.dart';
 part 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-  final CheckEmailExistsUseCase checkEmailExistsUseCase;
   final LoginUseCase loginUseCase;
   final RegisterUseCase registerUseCase;
-  final CompleteProfileUseCase completeProfileUseCase;
   final LogoutUseCase logoutUseCase;
   final IsLoggedInUseCase isLoggedInUseCase;
   final GetCurrentUserUseCase getCurrentUserUseCase;
@@ -30,11 +25,14 @@ class AuthCubit extends Cubit<AuthState> {
   final SendEmailVerificationUseCase sendEmailVerificationUseCase;
   final VerifyEmailUseCase verifyEmailUseCase;
 
+  // Variables to track resend logic and persistence
+  int _resendCount = 0;
+  DateTime? _firstResendAttempt;
+  DateTime? _lastResendDateTime;
+
   AuthCubit({
-    required this.checkEmailExistsUseCase,
     required this.loginUseCase,
     required this.registerUseCase,
-    required this.completeProfileUseCase,
     required this.logoutUseCase,
     required this.isLoggedInUseCase,
     required this.getCurrentUserUseCase,
@@ -43,6 +41,15 @@ class AuthCubit extends Cubit<AuthState> {
     required this.sendEmailVerificationUseCase,
     required this.verifyEmailUseCase,
   }) : super(AuthInitial());
+
+  // Function to calculate remaining seconds for UI
+  int get remainingResendSeconds {
+    if (_lastResendDateTime == null) return 0;
+    final difference =
+        DateTime.now().difference(_lastResendDateTime!).inSeconds;
+    final remaining = 60 - difference;
+    return remaining > 0 ? remaining : 0;
+  }
 
   Future<void> checkAuthStatus() async {
     emit(AuthLoading());
@@ -63,38 +70,52 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> checkEmail({required String email}) async {
+  Future<void> login({
+    required String email,
+    required String password,
+    required String captchaToken,
+  }) async {
     emit(AuthLoading());
     try {
-      final exists = await checkEmailExistsUseCase(email: email);
-      emit(AuthEmailCheckSuccess(exists: exists, email: email));
-    } on DioException catch (e) {
-      final failure = ErrorMapper.mapDioErrorToFailure(e);
-      emit(AuthError(failure.message));
-    } catch (e) {
-      emit(AuthError('An unexpected error occurred.'));
-    }
-  }
-
-  Future<void> login({required String email, required String password}) async {
-    emit(AuthLoading());
-    try {
-      final user = await loginUseCase(email: email, password: password);
+      final user = await loginUseCase(
+        email: email,
+        password: password,
+        captchaToken: captchaToken,
+      );
       emit(AuthAuthenticated(user));
     } on DioException catch (e) {
-      // السحر هنا: لو الباسوورد غلط، الـ Mapper هيجيب الرسالة الصح
       final failure = ErrorMapper.mapDioErrorToFailure(e);
-      emit(AuthError(failure.message));
+      if (failure.message.toLowerCase().contains("verify your email")) {
+        emit(AuthError("Please verify your email before logging in.",
+            isNotVerified: true));
+      } else {
+        emit(AuthError(failure.message));
+      }
     } catch (e) {
       emit(AuthError('An unexpected error occurred.'));
     }
   }
 
-  Future<void> register(
-      {required String email, required String password}) async {
+  Future<void> register({
+    required String email,
+    required String password,
+    required String passwordConfirm,
+    required String displayName,
+    required String dateOfBirth,
+    required String gender,
+    required String captchaToken,
+  }) async {
     emit(AuthLoading());
     try {
-      final user = await registerUseCase(email: email, password: password);
+      final user = await registerUseCase(
+        email: email,
+        password: password,
+        passwordConfirm: passwordConfirm,
+        displayName: displayName,
+        dateOfBirth: dateOfBirth,
+        gender: gender,
+        captchaToken: captchaToken,
+      );
       emit(AuthRegisterSuccess(user));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
@@ -104,10 +125,47 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> logout() async {
+    emit(AuthLoading());
+    try {
+      await logoutUseCase();
+      emit(AuthUnauthenticated());
+    } on DioException catch (e) {
+      final failure = ErrorMapper.mapDioErrorToFailure(e);
+      emit(AuthError(failure.message));
+    } catch (e) {
+      emit(AuthUnauthenticated());
+    }
+  }
+
   Future<void> sendEmailVerification({required String email}) async {
+    final now = DateTime.now();
+
+    // Prevent call if cooldown is still active (Security check)
+    if (remainingResendSeconds > 0) return;
+
+    // Constraints: Max 3 times per minute
+    if (_firstResendAttempt != null) {
+      final difference = now.difference(_firstResendAttempt!);
+      if (difference.inMinutes < 1) {
+        if (_resendCount >= 3) {
+          emit(AuthError(
+              "Too many requests. Please wait a minute before trying again."));
+          return;
+        }
+      } else {
+        _resendCount = 0;
+        _firstResendAttempt = now;
+      }
+    } else {
+      _firstResendAttempt = now;
+    }
+
     emit(AuthLoading());
     try {
       await sendEmailVerificationUseCase(email: email);
+      _resendCount++;
+      _lastResendDateTime = DateTime.now(); // Record successful attempt time
       emit(AuthVerificationEmailSent(email));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
@@ -117,11 +175,10 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> verifyEmail(
-      {required String email, required String code}) async {
+  Future<void> verifyEmail({required String code}) async {
     emit(AuthLoading());
     try {
-      await verifyEmailUseCase(email: email, code: code);
+      await verifyEmailUseCase(code: code);
       emit(AuthEmailVerified());
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
@@ -145,57 +202,21 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> resetPassword({
-    required String email,
     required String code,
     required String newPassword,
+    required String newPasswordConfirm,
   }) async {
     emit(AuthLoading());
     try {
       await resetPasswordUseCase(
-        email: email,
         code: code,
         newPassword: newPassword,
+        newPasswordConfirm: newPasswordConfirm,
       );
       emit(AuthResetPasswordSuccess());
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       emit(AuthError(failure.message));
-    } catch (e) {
-      emit(AuthError('An unexpected error occurred.'));
-    }
-  }
-
-  Future<void> completeProfile({
-    required String displayName,
-    required int birthMonth,
-    required int birthDay,
-    required int birthYear,
-    required String gender,
-  }) async {
-    emit(AuthLoading());
-    try {
-      final user = await completeProfileUseCase(
-        displayName: displayName,
-        birthMonth: birthMonth,
-        birthDay: birthDay,
-        birthYear: birthYear,
-        gender: gender,
-      );
-      emit(AuthProfileCompleted(user));
-      emit(AuthAuthenticated(user));
-    } on DioException catch (e) {
-      final failure = ErrorMapper.mapDioErrorToFailure(e);
-      emit(AuthError(failure.message));
-    } catch (e) {
-      emit(AuthError('An unexpected error occurred.'));
-    }
-  }
-
-  Future<void> logout() async {
-    emit(AuthLoading());
-    try {
-      await logoutUseCase();
-      emit(AuthUnauthenticated());
     } catch (e) {
       emit(AuthError('An unexpected error occurred.'));
     }
