@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -35,6 +34,19 @@ class ProfileImageUploadCubit extends Cubit<ProfileImageUploadState> {
     );
 
     try {
+      if (source == ImageSource.camera && !_supportsCameraCapture()) {
+        emit(
+          state.copyWith(
+            status: ProfileImageUploadStatus.failure,
+            errorMessage:
+                'Camera capture is not supported on this platform yet. Please choose an image from gallery.',
+            clearPreparedImage: true,
+            clearLastUploadResult: true,
+          ),
+        );
+        return;
+      }
+
       final XFile? pickedFile = await _imagePicker.pickImage(source: source);
 
       if (pickedFile == null) {
@@ -49,29 +61,12 @@ class ProfileImageUploadCubit extends Cubit<ProfileImageUploadState> {
         return;
       }
 
-      final CroppedFile? croppedFile = await ImageCropper().cropImage(
-        sourcePath: pickedFile.path,
-        aspectRatio: CropAspectRatio(
-          ratioX: type == ProfileImageType.avatar ? 1 : 16,
-          ratioY: type == ProfileImageType.avatar ? 1 : 9,
-        ),
-        compressFormat: ImageCompressFormat.jpg,
-        compressQuality: 100,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Crop ${type.displayName}',
-            lockAspectRatio: true,
-            hideBottomControls: false,
-          ),
-          IOSUiSettings(
-            title: 'Crop ${type.displayName}',
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-          ),
-        ],
+      final _PreparedProfileImage? preparedImage = await _prepareImageForUpload(
+        pickedFile: pickedFile,
+        type: type,
       );
 
-      if (croppedFile == null) {
+      if (preparedImage == null) {
         emit(
           state.copyWith(
             status: ProfileImageUploadStatus.initial,
@@ -83,19 +78,12 @@ class ProfileImageUploadCubit extends Cubit<ProfileImageUploadState> {
         return;
       }
 
-      final Uint8List croppedBytes =
-          await XFile(croppedFile.path).readAsBytes();
-      final Uint8List optimizedBytes = await _compressImage(
-        inputBytes: croppedBytes,
-        type: type,
-      );
-
-      if (optimizedBytes.lengthInBytes > type.maxFileSizeInBytes) {
+      if (preparedImage.bytes.lengthInBytes > type.maxFileSizeInBytes) {
         emit(
           state.copyWith(
             status: ProfileImageUploadStatus.failure,
             errorMessage:
-                '${type.displayName} image is still too large after optimization. Maximum allowed size is ${_formatBytes(type.maxFileSizeInBytes)}.',
+                '${type.displayName} image is too large. Maximum allowed size is ${_formatBytes(type.maxFileSizeInBytes)}.',
             clearPreparedImage: true,
             clearLastUploadResult: true,
           ),
@@ -107,21 +95,22 @@ class ProfileImageUploadCubit extends Cubit<ProfileImageUploadState> {
         state.copyWith(
           status: ProfileImageUploadStatus.ready,
           activeImageType: type,
-          previewBytes: optimizedBytes,
-          selectedFileName: _buildUploadFileName(type),
-          selectedMimeType: 'image/jpeg',
-          selectedFileSizeInBytes: optimizedBytes.lengthInBytes,
+          previewBytes: preparedImage.bytes,
+          selectedFileName: preparedImage.fileName,
+          selectedMimeType: preparedImage.mimeType,
+          selectedFileSizeInBytes: preparedImage.bytes.lengthInBytes,
           uploadProgress: 0.0,
           clearLastUploadResult: true,
           clearErrorMessage: true,
         ),
       );
-    } catch (_) {
+    } catch (exception) {
       emit(
         state.copyWith(
           status: ProfileImageUploadStatus.failure,
-          errorMessage:
-              'Unable to prepare ${type.displayName.toLowerCase()} image. Please try again.',
+          errorMessage: kDebugMode
+              ? 'Unable to prepare ${type.displayName.toLowerCase()} image. ${exception.toString().replaceFirst('Exception: ', '')}'
+              : 'Unable to prepare ${type.displayName.toLowerCase()} image. Please try again.',
           clearPreparedImage: true,
           clearLastUploadResult: true,
         ),
@@ -220,6 +209,83 @@ class ProfileImageUploadCubit extends Cubit<ProfileImageUploadState> {
     );
   }
 
+  Future<_PreparedProfileImage?> _prepareImageForUpload({
+    required XFile pickedFile,
+    required ProfileImageType type,
+  }) async {
+    if (_shouldUseOriginalDesktopImage()) {
+      final Uint8List originalBytes = await pickedFile.readAsBytes();
+      final String mimeType = _inferMimeTypeFromFileName(pickedFile.name);
+      final String fileName = _normalizePickedFileName(
+        originalName: pickedFile.name,
+        fallbackType: type,
+      );
+
+      return _PreparedProfileImage(
+        bytes: originalBytes,
+        fileName: fileName,
+        mimeType: mimeType,
+      );
+    }
+
+    final CroppedFile? croppedFile = await ImageCropper().cropImage(
+      sourcePath: pickedFile.path,
+      aspectRatio: CropAspectRatio(
+        ratioX: type == ProfileImageType.avatar ? 1 : 16,
+        ratioY: type == ProfileImageType.avatar ? 1 : 9,
+      ),
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 100,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop ${type.displayName}',
+          lockAspectRatio: true,
+          hideBottomControls: false,
+        ),
+        IOSUiSettings(
+          title: 'Crop ${type.displayName}',
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
+        ),
+      ],
+    );
+
+    if (croppedFile == null) {
+      return null;
+    }
+
+    final Uint8List croppedBytes = await XFile(croppedFile.path).readAsBytes();
+    final Uint8List optimizedBytes = await _compressImage(
+      inputBytes: croppedBytes,
+      type: type,
+    );
+
+    return _PreparedProfileImage(
+      bytes: optimizedBytes,
+      fileName: _buildUploadFileName(type),
+      mimeType: 'image/jpeg',
+    );
+  }
+
+  bool _shouldUseOriginalDesktopImage() {
+    if (kIsWeb) {
+      return true;
+    }
+
+    return defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux ||
+        defaultTargetPlatform == TargetPlatform.macOS;
+  }
+
+  bool _supportsCameraCapture() {
+    if (kIsWeb) {
+      return false;
+    }
+
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
   Future<Uint8List> _compressImage({
     required Uint8List inputBytes,
     required ProfileImageType type,
@@ -239,6 +305,36 @@ class ProfileImageUploadCubit extends Cubit<ProfileImageUploadState> {
     return '${type.name}_${DateTime.now().millisecondsSinceEpoch}.jpg';
   }
 
+  String _normalizePickedFileName({
+    required String originalName,
+    required ProfileImageType fallbackType,
+  }) {
+    final String trimmed = originalName.trim();
+
+    if (trimmed.isNotEmpty && trimmed.contains('.')) {
+      return trimmed;
+    }
+
+    final String fallbackExtension =
+        fallbackType == ProfileImageType.avatar ? 'jpg' : 'jpg';
+
+    return '${fallbackType.name}_${DateTime.now().millisecondsSinceEpoch}.$fallbackExtension';
+  }
+
+  String _inferMimeTypeFromFileName(String fileName) {
+    final String lower = fileName.toLowerCase();
+
+    if (lower.endsWith('.png')) {
+      return 'image/png';
+    }
+
+    if (lower.endsWith('.webp')) {
+      return 'image/webp';
+    }
+
+    return 'image/jpeg';
+  }
+
   String _formatBytes(int bytes) {
     if (bytes < 1024) {
       return '$bytes B';
@@ -250,4 +346,16 @@ class ProfileImageUploadCubit extends Cubit<ProfileImageUploadState> {
 
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
+}
+
+class _PreparedProfileImage {
+  const _PreparedProfileImage({
+    required this.bytes,
+    required this.fileName,
+    required this.mimeType,
+  });
+
+  final Uint8List bytes;
+  final String fileName;
+  final String mimeType;
 }

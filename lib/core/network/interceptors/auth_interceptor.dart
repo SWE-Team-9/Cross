@@ -11,9 +11,8 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // Don't add token for auth endpoints
     if (!options.path.contains('/auth/')) {
-      final token = await secureStorage.read('access_token');
+      final token = await secureStorage.read('auth_token');
       if (token != null) {
         options.headers['Authorization'] = 'Bearer $token';
       }
@@ -23,7 +22,6 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // Handle 401 unauthorized errors (token expired)
     if (err.response?.statusCode == 401) {
       // TODO: Trigger token refresh or logout
     }
