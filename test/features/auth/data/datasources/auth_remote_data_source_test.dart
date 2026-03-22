@@ -70,6 +70,7 @@ void main() {
             'user': {
               'id': '1',
               'email': 'test@example.com',
+              'handle': 'muslim',
               'username': 'muslim',
               'display_name': 'Muslim',
               'avatar_url': 'https://example.com/avatar.png',
@@ -93,6 +94,7 @@ void main() {
       expect(result.user, isA<UserDto>());
       expect(result.user.id, '1');
       expect(result.user.email, 'test@example.com');
+      expect(result.user.handle, 'muslim');
       verify(() => mockDio.post(
             '/auth/login',
             data: {
@@ -119,6 +121,7 @@ void main() {
             'user': {
               'id': '2',
               'email': 'new@example.com',
+              'handle': 'new_user',
               'username': 'new_user',
               'display_name': 'New User',
               'avatar_url': null,
@@ -142,6 +145,7 @@ void main() {
       expect(result.user, isA<UserDto>());
       expect(result.user.id, '2');
       expect(result.user.email, 'new@example.com');
+      expect(result.user.handle, 'new_user');
       verify(() => mockDio.post(
             '/auth/register',
             data: {
@@ -281,6 +285,7 @@ void main() {
           data: {
             'id': '1',
             'email': 'test@example.com',
+            'handle': 'muslim',
             'username': 'muslim',
             'display_name': 'Muslim',
             'avatar_url': null,
@@ -305,6 +310,7 @@ void main() {
       expect(result, isA<UserDto>());
       expect(result.id, '1');
       expect(result.email, 'test@example.com');
+      expect(result.handle, 'muslim');
 
       final captured = verify(() => mockDio.post(
             '/auth/complete-profile',
@@ -334,6 +340,7 @@ void main() {
           data: {
             'id': '1',
             'email': 'test@example.com',
+            'handle': 'muslim',
             'username': 'muslim',
             'display_name': 'Muslim',
             'avatar_url': 'https://example.com/avatar.png',
@@ -353,6 +360,7 @@ void main() {
       expect(result, isA<UserDto>());
       expect(result.id, '1');
       expect(result.email, 'test@example.com');
+      expect(result.handle, 'muslim');
 
       final captured = verify(() => mockDio.get(
             '/auth/me',

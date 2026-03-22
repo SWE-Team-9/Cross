@@ -1,34 +1,44 @@
-class ApiConstants {
-  // Base URLs - should come from environment config
-  static const String baseUrlDev = 'https://dev-api.soundcloud.com';
-  static const String baseUrlStaging = 'https://staging-api.soundcloud.com';
-  static const String baseUrlProd = 'https://api.soundcloud.com';
+// Dart SDK
+// Flutter
+// Third-party
+// Project
 
-  // Auth endpoints
+abstract class ApiConstants {
+  static const String baseUrl = 'http://13.53.103.19:3001/api/v1';
+
+  // ── Auth (not your task — keeping for reference) ───────────────────────
   static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String logout = '/auth/logout';
   static const String refreshToken = '/auth/refresh';
-  static const String verifyEmail = '/auth/verify';
+  static const String verifyEmail = '/auth/verify-email';
   static const String forgotPassword = '/auth/forgot-password';
   static const String resetPassword = '/auth/reset-password';
+  static const String currentUser = '/auth/me';
 
-  // User endpoints
-  static const String profile = '/users/profile';
-  static const String updateProfile = '/users/update';
-  static const String uploadAvatar = '/users/avatar';
+  // ── Profiles (T2.3 + T2.4) ────────────────────────────────────────────
+  // GET    /profiles/:handle          → fetch any profile by handle
+  // PATCH  /profiles/me               → update own profile fields
+  // POST   /profiles/me/images/avatar → upload avatar
+  // POST   /profiles/me/images/cover  → upload cover photo
+  // GET    /profiles/check-handle     → check handle availability
+  // DELETE /profiles/me               → deactivate account
+  static const String profileByHandle = '/profiles'; // append /:handle
+  static const String myProfile = '/profiles/me';
+  static const String profileImages =
+      '/profiles/me/images'; // append /avatar or /cover
+  static const String checkHandle = '/profiles/check-handle';
 
-  // Track endpoints
+  // ── Social graph (T2.9, T2.10, T2.11 — Ahmed Reda) ────────────────────
+  // POST   /social/follow/:userId
+  // DELETE /social/follow/:userId
+  // GET    /social/:userId/followers
+  // GET    /social/:userId/following
+  // POST   /social/block/:userId
+  // DELETE /social/block/:userId
+  static const String socialBase = '/social';
+
+  // ── Tracks (Sprint 3+) ─────────────────────────────────────────────────
   static const String tracks = '/tracks';
-  static const String uploadTrack = '/tracks/upload';
-  static const String trackDetail = '/tracks';
-  static const String likeTrack = '/tracks/like';
-
-  // Social endpoints
-  static const String follow = '/users/follow';
-  static const String followers = '/users/followers';
-  static const String following = '/users/following';
-  static const String block = '/users/block';
-
-  // Add more as needed
+  static const String userTracks = '/users'; // append /:userId/tracks
 }

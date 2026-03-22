@@ -1,5 +1,8 @@
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 
+// Project
 import '../storage/secure_storage.dart';
 import 'error_mapper.dart';
 import 'interceptors/auth_interceptor.dart';
@@ -18,8 +21,15 @@ class DioClient {
             headers: const {'Content-Type': 'application/json'},
           ),
         ) {
+    final authInterceptor = AuthInterceptor(secureStorage: secureStorage);
+    // Give AuthInterceptor a reference to Dio so it can
+    // call the refresh endpoint and retry failed requests
+    authInterceptor.setDio(dio);
+
     dio.interceptors.addAll([
-      AuthInterceptor(secureStorage: secureStorage),
+      // CookieManager MUST be first — saves and sends httpOnly cookies
+      CookieManager(CookieJar()),
+      authInterceptor,
       ErrorInterceptor(),
       LoggingInterceptor(),
     ]);

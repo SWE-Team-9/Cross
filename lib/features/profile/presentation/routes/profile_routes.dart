@@ -6,28 +6,28 @@ import 'package:go_router/go_router.dart';
 ///
 /// Usage:
 /// ```dart
-/// ProfileRoutes.goToProfile(context, userId);
-/// ProfileRoutes.goToFollowers(context, userId);
+/// ProfileRoutes.goToProfile(context, handle);
+/// ProfileRoutes.goToFollowers(context, handle);
 /// ```
 abstract class ProfileRoutes {
   // ── Route path constants ──────────────────────────────────────────────────
-  static const String profile = '/profile/:userId';
+  static const String profile = '/profile/:handle';
   static const String editProfile = '/profile/edit';
-  static const String followers = '/followers/:userId';
-  static const String following = '/following/:userId';
+  static const String followers = '/followers/:handle';
+  static const String following = '/following/:handle';
 
   // ── Navigation helpers ────────────────────────────────────────────────────
   // Use these instead of hardcoding path strings across the app.
 
-  static void goToProfile(BuildContext context, String userId) =>
-      context.push('/profile/$userId');
+  static void goToProfile(BuildContext context, String handle) =>
+      context.push('/profile/$handle');
 
   static void goToEditProfile(BuildContext context) =>
       context.push('/profile/edit');
 
-  static void goToFollowers(BuildContext context, String userId) =>
-      context.push('/followers/$userId');
+  static void goToFollowers(BuildContext context, String handle) =>
+      context.push('/followers/$handle');
 
-  static void goToFollowing(BuildContext context, String userId) =>
-      context.push('/following/$userId');
+  static void goToFollowing(BuildContext context, String handle) =>
+      context.push('/following/$handle');
 }
