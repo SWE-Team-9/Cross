@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
@@ -308,6 +309,12 @@ void setupDependencies() {
         sendEmailVerificationUseCase: getIt<SendEmailVerificationUseCase>(),
         verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
       ),
+    );
+  }
+
+  if (!getIt.isRegistered<RecentlyPlayedCubit>()) {
+    getIt.registerLazySingleton<RecentlyPlayedCubit>(
+      () => RecentlyPlayedCubit(),
     );
   }
 }
