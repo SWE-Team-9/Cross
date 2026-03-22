@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
-import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart'; // تأكد من صحة المسار
+import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 
@@ -15,8 +15,6 @@ class MockHomePage extends StatefulWidget {
 }
 
 class _MockHomePageState extends State<MockHomePage> {
-  static const _currentUserHandle = 'eyad-adel'; // ← Only handle
-
   int _selectedTab = 0;
   String _selectedGenre = 'ELECTRONIC';
 
@@ -31,11 +29,10 @@ class _MockHomePageState extends State<MockHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // استخدام BlocConsumer للجمع بين مراقبة الحالة (Listener) وبناء الواجهة (Builder)
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthUnauthenticated) {
-          context.go('/welcome'); // العودة للترحيب عند تسجيل الخروج
+          context.go('/welcome'); 
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message)),
@@ -43,13 +40,18 @@ class _MockHomePageState extends State<MockHomePage> {
         }
       },
       builder: (context, state) {
+        // سحب الـ handle الحقيقي لليوزر لو كان عامل تسجيل دخول
+        String currentHandle = '';
+        if (state is AuthAuthenticated) {
+          currentHandle = state.user.handle; 
+        }
+
         return Scaffold(
           backgroundColor: Colors.black,
           body: SafeArea(
             child: Column(
               children: [
-                // تمرير الحالة (state) للـ TopBar ليقرر عرض زر الـ Logout
-                _TopBar(currentUserHandle: _currentUserHandle, authState: state),
+                _TopBar(currentUserHandle: currentHandle, authState: state),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
@@ -57,8 +59,8 @@ class _MockHomePageState extends State<MockHomePage> {
                       children: [
                         const _SectionHeader(title: 'More of what you like'),
                         const _RelatedTracksRow(),
-                        const _SectionHeader(title: 'Mixed for Eyad Adel'),
-                        _MixesRow(userHandle: _currentUserHandle),
+                        const _SectionHeader(title: 'Mixed for you'),
+                        _MixesRow(userHandle: currentHandle),
                         const _SectionHeader(title: 'Trending by genre'),
                         _GenreChips(
                           genres: _genres,
@@ -104,9 +106,8 @@ class _MockHomePageState extends State<MockHomePage> {
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
-  final String currentUserHandle; // ← Only handle
-
-  final AuthState authState; // استقبال الحالة هنا
+  final String currentUserHandle; 
+  final AuthState authState; 
 
   const _TopBar({
     required this.currentUserHandle,
@@ -143,7 +144,7 @@ class _TopBar extends StatelessWidget {
                   ),
                   onPressed: () {
                     Navigator.pop(bContext);
-                    context.read<AuthCubit>().logout(); // تنفيذ الخروج
+                    context.read<AuthCubit>().logout(); 
                   },
                   child: const Text('Log out',
                       style: TextStyle(
@@ -183,21 +184,18 @@ class _TopBar extends StatelessWidget {
                 fontWeight: FontWeight.w700),
           ),
           const Spacer(),
-
-          // شرط عرض زر الـ Logout: يظهر إذا كان المستخدم مسجلاً
           if (authState is AuthAuthenticated)
             _IconBtn(
               icon: Icons.logout_rounded,
               onTap: () => _showLogoutSheet(context),
             ),
-
           const SizedBox(width: 4),
-
           GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(
-              context,
-              currentUserHandle,
-            ),
+            onTap: () {
+              if (currentUserHandle.isNotEmpty) {
+                ProfileRoutes.goToProfile(context, currentUserHandle);
+              }
+            },
             child: CircleAvatar(
               radius: 14,
               backgroundColor: const Color(0xFFFF5500),
@@ -220,7 +218,6 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ── بقية الـ Widgets الفرعية كما هي بدون تغيير ──────────────────────────────────
 class _IconBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -263,21 +260,21 @@ class _RelatedTracksRow extends StatelessWidget {
       const _AlbumData(
           label: 'Related tracks: L...',
           sub: 'SoundCloud',
-          userId: 'sc_1',
+          handle: 'sc1', // تم إزالة العلامات الخاصة ليكون Handle صالح
           topText: 'Cage\nThe\nElephant',
           color1: Color(0xFF1a1a2e),
           color2: Color(0xFF16213e)),
       const _AlbumData(
           label: 'Related tracks: E...',
           sub: 'SoundCloud',
-          userId: 'sc_2',
+          handle: 'sc2', 
           topText: 'THE\nStrokes',
           color1: Color(0xFF2d1b2e),
           color2: Color(0xFF8b1a1a)),
       const _AlbumData(
           label: 'Related tracks: A...',
           sub: 'SoundCloud',
-          userId: 'sc_3',
+          handle: 'sc3', 
           topText: 'ARABIC\nARTISTS',
           color1: Color(0xFF2a2a1a),
           color2: Color(0xFF1a2a1a)),
@@ -337,7 +334,7 @@ class _RelatedTracksRow extends StatelessWidget {
 }
 
 class _MixesRow extends StatelessWidget {
-  final String userHandle; // ← Only handle
+  final String userHandle; 
 
   const _MixesRow({required this.userHandle});
   @override
@@ -372,10 +369,11 @@ class _MixesRow extends StatelessWidget {
         itemBuilder: (context, i) {
           final m = mixes[i];
           return GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(
-              context,
-              userHandle,
-            ),
+            onTap: () {
+              if (userHandle.isNotEmpty) {
+                ProfileRoutes.goToProfile(context, userHandle);
+              }
+            },
             child: SizedBox(
               width: 148,
               child: Column(
@@ -494,7 +492,7 @@ class _TrendingTracks extends StatelessWidget {
         audioUrl:
             'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
         artworkUrl: 'https://picsum.photos/200?2',
-        handle: 'cage-the-elephant',
+        handle: 'cagetheelephant', // تم تعديل الهندل أيضاً
       ),
       Track(
         id: '3',
@@ -503,7 +501,7 @@ class _TrendingTracks extends StatelessWidget {
         audioUrl:
             'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
         artworkUrl: 'https://picsum.photos/200?3',
-        handle: 'franz-ferdinand',
+        handle: 'franzferdinand', // تم تعديل الهندل أيضاً
       ),
     ];
     return Column(
@@ -588,7 +586,7 @@ class _BottomNav extends StatelessWidget {
 }
 
 class _AlbumData {
-  final String label, sub, handle, topText; // ← Only handle
+  final String label, sub, handle, topText; 
   final Color color1, color2;
 
   const _AlbumData(

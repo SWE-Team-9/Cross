@@ -4,7 +4,7 @@
 // Project
 
 abstract class ApiConstants {
-  static const String baseUrl = 'http://13.53.103.19:3001/api/v1';
+  static const String baseUrl = 'http://10.0.2.2:3006';
 
   // ── Auth (not your task — keeping for reference) ───────────────────────
   static const String login = '/auth/login';
