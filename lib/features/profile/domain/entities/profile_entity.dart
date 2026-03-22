@@ -23,6 +23,8 @@ class ProfileEntity {
   final List<String> favoriteGenres;
   final Map<String, String> externalLinks;
   final ProfileVisibility visibility;
+  final int followersCount;  // Add this
+  final int followingCount;  // Add this
 
   const ProfileEntity({
     required this.id,
@@ -36,6 +38,8 @@ class ProfileEntity {
     required this.favoriteGenres,
     required this.externalLinks,
     required this.visibility,
+    required this.followersCount,  // Add this
+    required this.followingCount,  // Add this
   });
 
   /// Creates a copy of this entity with certain fields replaced.
@@ -48,6 +52,8 @@ class ProfileEntity {
     List<String>? favoriteGenres,
     Map<String, String>? externalLinks,
     ProfileVisibility? visibility,
+    int? followersCount,  // Add this
+    int? followingCount,  // Add this
   }) {
     return ProfileEntity(
       id: id,
@@ -61,6 +67,8 @@ class ProfileEntity {
       favoriteGenres: favoriteGenres ?? this.favoriteGenres,
       externalLinks: externalLinks ?? this.externalLinks,
       visibility: visibility ?? this.visibility,
+      followersCount: followersCount ?? this.followersCount,  // Add this
+      followingCount: followingCount ?? this.followingCount,  // Add this
     );
   }
 }

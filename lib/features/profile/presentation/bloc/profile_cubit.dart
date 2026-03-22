@@ -32,15 +32,27 @@ class ProfileCubit extends Cubit<ProfileState> {
   /// Called by ProfilePage on creation.
   Future<void> loadProfile(String handle) async {
     emit(ProfileLoading());
-
+    
     try {
-      final profile = await _getProfileUseCase(handle);
+      final profile = await _getProfileUseCase(handle)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              print('Timeout loading profile for handle: $handle');
+              // Use a concrete Failure subclass - adjust based on your actual failure types
+              throw const ServerFailure('Request timed out. Please check your connection.');
+            },
+          );
       emit(ProfileLoaded(profile));
     } on Failure catch (f) {
-      // Failure thrown by ProfileRepositoryImpl._mapDioError()
       emit(ProfileError(f.message));
+    } catch (e) {
+      // Catches any other unexpected errors
+      print('Unexpected error loading profile: $e');
+      emit(ProfileError('Something went wrong. Please try again.'));
     }
   }
+    
 
   // ── T2.4 ──────────────────────────────────────────────────────────────────
 

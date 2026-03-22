@@ -32,7 +32,7 @@ class _MockHomePageState extends State<MockHomePage> {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthUnauthenticated) {
-          context.go('/welcome'); 
+          context.go('/welcome');
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message)),
@@ -40,10 +40,10 @@ class _MockHomePageState extends State<MockHomePage> {
         }
       },
       builder: (context, state) {
-        // سحب الـ handle الحقيقي لليوزر لو كان عامل تسجيل دخول
+        // Get the actual user handle if authenticated
         String currentHandle = '';
         if (state is AuthAuthenticated) {
-          currentHandle = state.user.handle; 
+          currentHandle = state.user.handle;
         }
 
         return Scaffold(
@@ -51,7 +51,10 @@ class _MockHomePageState extends State<MockHomePage> {
           body: SafeArea(
             child: Column(
               children: [
-                _TopBar(currentUserHandle: currentHandle, authState: state),
+                _TopBar(
+                  currentUserHandle: currentHandle,
+                  authState: state,
+                ),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
@@ -106,8 +109,8 @@ class _MockHomePageState extends State<MockHomePage> {
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
-  final String currentUserHandle; 
-  final AuthState authState; 
+  final String currentUserHandle;
+  final AuthState authState;
 
   const _TopBar({
     required this.currentUserHandle,
@@ -130,9 +133,10 @@ class _TopBar extends StatelessWidget {
               const Text(
                 'Log out of SoundCloud?',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -144,24 +148,57 @@ class _TopBar extends StatelessWidget {
                   ),
                   onPressed: () {
                     Navigator.pop(bContext);
-                    context.read<AuthCubit>().logout(); 
+                    context.read<AuthCubit>().logout();
                   },
-                  child: const Text('Log out',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Log out',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => Navigator.pop(bContext),
-                child: const Text('Cancel',
-                    style: TextStyle(color: Colors.white70)),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white70),
+                ),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _navigateToProfile(BuildContext context) {
+    // Safety check: ensure handle is not empty
+    if (currentUserHandle.isEmpty) {
+      debugPrint('Cannot navigate to profile: handle is empty');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to view profile'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Navigate to profile with valid handle
+    try {
+      ProfileRoutes.goToProfile(context, currentUserHandle);
+    } catch (e) {
+      debugPrint('Error navigating to profile: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error opening profile: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -173,15 +210,19 @@ class _TopBar extends StatelessWidget {
           const Text(
             'Home',
             style: TextStyle(
-                color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(width: 12),
           const Text(
             'GET PRO',
             style: TextStyle(
-                color: Color(0xFFFF5500),
-                fontSize: 13,
-                fontWeight: FontWeight.w700),
+              color: Color(0xFFFF5500),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const Spacer(),
           if (authState is AuthAuthenticated)
@@ -191,19 +232,20 @@ class _TopBar extends StatelessWidget {
             ),
           const SizedBox(width: 4),
           GestureDetector(
-            onTap: () {
-              if (currentUserHandle.isNotEmpty) {
-                ProfileRoutes.goToProfile(context, currentUserHandle);
-              }
-            },
+            onTap: () => _navigateToProfile(context),
             child: CircleAvatar(
               radius: 14,
               backgroundColor: const Color(0xFFFF5500),
-              child: const Text('EY',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
+              child: Text(
+                currentUserHandle.isNotEmpty
+                    ? currentUserHandle.substring(0, 1).toUpperCase()
+                    : '?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 4),
@@ -246,7 +288,10 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(
-            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -254,31 +299,42 @@ class _SectionHeader extends StatelessWidget {
 
 class _RelatedTracksRow extends StatelessWidget {
   const _RelatedTracksRow();
+
+  void _navigateToProfile(BuildContext context, String handle) {
+    if (handle.isNotEmpty) {
+      ProfileRoutes.goToProfile(context, handle);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cards = [
       const _AlbumData(
-          label: 'Related tracks: L...',
-          sub: 'SoundCloud',
-          handle: 'sc1', // تم إزالة العلامات الخاصة ليكون Handle صالح
-          topText: 'Cage\nThe\nElephant',
-          color1: Color(0xFF1a1a2e),
-          color2: Color(0xFF16213e)),
+        label: 'Related tracks: L...',
+        sub: 'SoundCloud',
+        handle: 'sc1',
+        topText: 'Cage\nThe\nElephant',
+        color1: Color(0xFF1a1a2e),
+        color2: Color(0xFF16213e),
+      ),
       const _AlbumData(
-          label: 'Related tracks: E...',
-          sub: 'SoundCloud',
-          handle: 'sc2', 
-          topText: 'THE\nStrokes',
-          color1: Color(0xFF2d1b2e),
-          color2: Color(0xFF8b1a1a)),
+        label: 'Related tracks: E...',
+        sub: 'SoundCloud',
+        handle: 'sc2',
+        topText: 'THE\nStrokes',
+        color1: Color(0xFF2d1b2e),
+        color2: Color(0xFF8b1a1a),
+      ),
       const _AlbumData(
-          label: 'Related tracks: A...',
-          sub: 'SoundCloud',
-          handle: 'sc3', 
-          topText: 'ARABIC\nARTISTS',
-          color1: Color(0xFF2a2a1a),
-          color2: Color(0xFF1a2a1a)),
+        label: 'Related tracks: A...',
+        sub: 'SoundCloud',
+        handle: 'sc3',
+        topText: 'ARABIC\nARTISTS',
+        color1: Color(0xFF2a2a1a),
+        color2: Color(0xFF1a2a1a),
+      ),
     ];
+
     return SizedBox(
       height: 192,
       child: ListView.separated(
@@ -289,10 +345,7 @@ class _RelatedTracksRow extends StatelessWidget {
         itemBuilder: (context, i) {
           final c = cards[i];
           return GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(
-              context,
-              c.handle,
-            ),
+            onTap: () => _navigateToProfile(context, c.handle),
             child: SizedBox(
               width: 148,
               child: Column(
@@ -306,23 +359,33 @@ class _RelatedTracksRow extends StatelessWidget {
                       gradient: LinearGradient(colors: [c.color1, c.color2]),
                     ),
                     alignment: Alignment.center,
-                    child: Text(c.topText,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800)),
+                    child: Text(
+                      c.topText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 6),
-                  Text(c.label,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600)),
-                  Text(c.sub,
-                      style: const TextStyle(
-                          color: Color(0xFF999999), fontSize: 12)),
+                  Text(
+                    c.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    c.sub,
+                    style: const TextStyle(
+                      color: Color(0xFF999999),
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -334,31 +397,42 @@ class _RelatedTracksRow extends StatelessWidget {
 }
 
 class _MixesRow extends StatelessWidget {
-  final String userHandle; 
+  final String userHandle;
 
   const _MixesRow({required this.userHandle});
+
+  void _navigateToProfile(BuildContext context) {
+    if (userHandle.isNotEmpty) {
+      ProfileRoutes.goToProfile(context, userHandle);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mixes = [
       const _MixData(
-          label: 'MIX 1',
-          sub: 'Balthazar, Cage...',
-          badgeColor: Color(0xFF8250C8),
-          color1: Color(0xFF1a1a1a),
-          color2: Color(0xFF2d1b2e)),
+        label: 'MIX 1',
+        sub: 'Balthazar, Cage...',
+        badgeColor: Color(0xFF8250C8),
+        color1: Color(0xFF1a1a1a),
+        color2: Color(0xFF2d1b2e),
+      ),
       const _MixData(
-          label: 'MIX 2',
-          sub: 'Arctic Monkeys...',
-          badgeColor: Color(0xFF1E64C8),
-          color1: Color(0xFF0d1b2a),
-          color2: Color(0xFF1a3a2a)),
+        label: 'MIX 2',
+        sub: 'Arctic Monkeys...',
+        badgeColor: Color(0xFF1E64C8),
+        color1: Color(0xFF0d1b2a),
+        color2: Color(0xFF1a3a2a),
+      ),
       const _MixData(
-          label: 'MIX 3',
-          sub: 'The Weeknd, Drake...',
-          badgeColor: Color(0x66CCCCCC),
-          color1: Color(0xFF2d1b2e),
-          color2: Color(0xFF6b2d4a)),
+        label: 'MIX 3',
+        sub: 'The Weeknd, Drake...',
+        badgeColor: Color(0x66CCCCCC),
+        color1: Color(0xFF2d1b2e),
+        color2: Color(0xFF6b2d4a),
+      ),
     ];
+
     return SizedBox(
       height: 200,
       child: ListView.separated(
@@ -369,11 +443,7 @@ class _MixesRow extends StatelessWidget {
         itemBuilder: (context, i) {
           final m = mixes[i];
           return GestureDetector(
-            onTap: () {
-              if (userHandle.isNotEmpty) {
-                ProfileRoutes.goToProfile(context, userHandle);
-              }
-            },
+            onTap: () => _navigateToProfile(context),
             child: SizedBox(
               width: 148,
               child: Column(
@@ -386,8 +456,9 @@ class _MixesRow extends StatelessWidget {
                         height: 148,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
-                          gradient:
-                              LinearGradient(colors: [m.color1, m.color2]),
+                          gradient: LinearGradient(
+                            colors: [m.color1, m.color2],
+                          ),
                         ),
                       ),
                       Positioned(
@@ -396,27 +467,38 @@ class _MixesRow extends StatelessWidget {
                         right: 0,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
-                              color: m.badgeColor,
-                              borderRadius: const BorderRadius.only(
-                                  bottomLeft: Radius.circular(4),
-                                  bottomRight: Radius.circular(4))),
-                          child: Text(m.label,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700)),
+                            color: m.badgeColor,
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(4),
+                              bottomRight: Radius.circular(4),
+                            ),
+                          ),
+                          child: Text(
+                            m.label,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 5),
-                  Text(m.sub,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Color(0xFF999999), fontSize: 11)),
+                  Text(
+                    m.sub,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF999999),
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -431,8 +513,12 @@ class _GenreChips extends StatelessWidget {
   final List<String> genres;
   final String selected;
   final ValueChanged<String> onSelect;
-  const _GenreChips(
-      {required this.genres, required this.selected, required this.onSelect});
+
+  const _GenreChips({
+    required this.genres,
+    required this.selected,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -453,16 +539,20 @@ class _GenreChips extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: active
-                        ? const Color(0xFFFF5500)
-                        : const Color(0xFF444444)),
+                  color: active
+                      ? const Color(0xFFFF5500)
+                      : const Color(0xFF444444),
+                ),
               ),
               alignment: Alignment.center,
-              child: Text(g,
-                  style: TextStyle(
-                      color: active ? const Color(0xFFFF5500) : Colors.white70,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+              child: Text(
+                g,
+                style: TextStyle(
+                  color: active ? const Color(0xFFFF5500) : Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           );
         },
@@ -473,6 +563,7 @@ class _GenreChips extends StatelessWidget {
 
 class _TrendingTracks extends StatelessWidget {
   const _TrendingTracks();
+
   @override
   Widget build(BuildContext context) {
     final tracks = [
@@ -492,7 +583,7 @@ class _TrendingTracks extends StatelessWidget {
         audioUrl:
             'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
         artworkUrl: 'https://picsum.photos/200?2',
-        handle: 'cagetheelephant', // تم تعديل الهندل أيضاً
+        handle: 'cagetheelephant',
       ),
       Track(
         id: '3',
@@ -501,23 +592,26 @@ class _TrendingTracks extends StatelessWidget {
         audioUrl:
             'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
         artworkUrl: 'https://picsum.photos/200?3',
-        handle: 'franzferdinand', // تم تعديل الهندل أيضاً
+        handle: 'franzferdinand',
       ),
     ];
+
     return Column(
       children: List.generate(
-          tracks.length,
-          (i) => Column(
-                children: [
-                  TrackRow(track: tracks[i]),
-                  if (i < tracks.length - 1)
-                    const Divider(
-                        color: Color(0xFF1A1A1A),
-                        height: 1,
-                        indent: 14,
-                        endIndent: 14),
-                ],
-              )),
+        tracks.length,
+        (i) => Column(
+          children: [
+            TrackRow(track: tracks[i]),
+            if (i < tracks.length - 1)
+              const Divider(
+                color: Color(0xFF1A1A1A),
+                height: 1,
+                indent: 14,
+                endIndent: 14,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -525,93 +619,117 @@ class _TrendingTracks extends StatelessWidget {
 class _BottomNav extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onTap;
+
   const _BottomNav({required this.selected, required this.onTap});
+
   @override
   Widget build(BuildContext context) {
     const items = [
       _NavItem(
-          icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home,
+        label: 'Home',
+      ),
       _NavItem(
-          icon: Icons.grid_view_outlined,
-          activeIcon: Icons.grid_view,
-          label: 'Feed'),
-      _NavItem(icon: Icons.search, activeIcon: Icons.search, label: 'Search'),
+        icon: Icons.grid_view_outlined,
+        activeIcon: Icons.grid_view,
+        label: 'Feed',
+      ),
       _NavItem(
-          icon: Icons.library_music_outlined,
-          activeIcon: Icons.library_music,
-          label: 'Library'),
+        icon: Icons.search,
+        activeIcon: Icons.search,
+        label: 'Search',
+      ),
       _NavItem(
-          icon: Icons.equalizer_outlined,
-          activeIcon: Icons.equalizer,
-          label: 'Upgrade'),
+        icon: Icons.library_music_outlined,
+        activeIcon: Icons.library_music,
+        label: 'Library',
+      ),
+      _NavItem(
+        icon: Icons.equalizer_outlined,
+        activeIcon: Icons.equalizer,
+        label: 'Upgrade',
+      ),
     ];
+
     return Container(
       decoration: const BoxDecoration(
-          color: Colors.black,
-          border: Border(top: BorderSide(color: Color(0xFF1F1F1F)))),
+        color: Colors.black,
+        border: Border(top: BorderSide(color: Color(0xFF1F1F1F))),
+      ),
       child: Row(
         children: List.generate(
-            items.length,
-            (i) => Expanded(
-                  child: GestureDetector(
-                    onTap: () => onTap(i),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                              selected == i
-                                  ? items[i].activeIcon
-                                  : items[i].icon,
-                              color: selected == i
-                                  ? Colors.white
-                                  : const Color(0xFF555555),
-                              size: 22),
-                          const SizedBox(height: 3),
-                          Text(items[i].label,
-                              style: TextStyle(
-                                  color: selected == i
-                                      ? Colors.white
-                                      : const Color(0xFF555555),
-                                  fontSize: 10)),
-                        ],
+          items.length,
+          (i) => Expanded(
+            child: GestureDetector(
+              onTap: () => onTap(i),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      selected == i ? items[i].activeIcon : items[i].icon,
+                      color: selected == i
+                          ? Colors.white
+                          : const Color(0xFF555555),
+                      size: 22,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      items[i].label,
+                      style: TextStyle(
+                        color: selected == i
+                            ? Colors.white
+                            : const Color(0xFF555555),
+                        fontSize: 10,
                       ),
                     ),
-                  ),
-                )),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
 class _AlbumData {
-  final String label, sub, handle, topText; 
+  final String label, sub, handle, topText;
   final Color color1, color2;
 
-  const _AlbumData(
-      {required this.label,
-      required this.sub,
-      required this.handle,
-      required this.topText,
-      required this.color1,
-      required this.color2});
+  const _AlbumData({
+    required this.label,
+    required this.sub,
+    required this.handle,
+    required this.topText,
+    required this.color1,
+    required this.color2,
+  });
 }
 
 class _MixData {
   final String label, sub;
   final Color badgeColor, color1, color2;
-  const _MixData(
-      {required this.label,
-      required this.sub,
-      required this.badgeColor,
-      required this.color1,
-      required this.color2});
+
+  const _MixData({
+    required this.label,
+    required this.sub,
+    required this.badgeColor,
+    required this.color1,
+    required this.color2,
+  });
 }
 
 class _NavItem {
   final IconData icon, activeIcon;
   final String label;
-  const _NavItem(
-      {required this.icon, required this.activeIcon, required this.label});
+
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
 }

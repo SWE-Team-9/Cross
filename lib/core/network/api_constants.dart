@@ -16,6 +16,8 @@ abstract class ApiConstants {
   static const String resetPassword = '/auth/reset-password';
   static const String currentUser = '/auth/me';
 
+  static const Duration connectTimeout = Duration(seconds: 10);
+  static const Duration receiveTimeout = Duration(seconds: 10);
   // ── Profiles (T2.3 + T2.4) ────────────────────────────────────────────
   // GET    /profiles/:handle          → fetch any profile by handle
   // PATCH  /profiles/me               → update own profile fields
