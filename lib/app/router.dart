@@ -115,6 +115,15 @@ final GoRouter router = GoRouter(
 
     // ── Profile (Sprint 2 — T2.1) ────────────────────────────────
     GoRoute(
+      path: AppRoutes.editProfile,
+      name: 'edit-profile',
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) => const MaterialPage(
+        child: EditProfilePage(),
+      ),
+    ),
+
+    GoRoute(
       path: AppRoutes.profile,
       name: 'profile',
       parentNavigatorKey: _rootNavigatorKey,
@@ -124,15 +133,6 @@ final GoRouter router = GoRouter(
           child: ProfilePage(handle: handle),
         );
       },
-    ),
-
-    GoRoute(
-      path: AppRoutes.editProfile,
-      name: 'edit-profile',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) => const MaterialPage(
-        child: EditProfilePage(),
-      ),
     ),
 
     // ── Social (Followers/Following) ──────────────────────────────
