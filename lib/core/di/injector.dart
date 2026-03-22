@@ -234,7 +234,7 @@ void setupDependencies() {
 
   if (!getIt.isRegistered<AuthLocalDataSource>()) {
     getIt.registerLazySingleton<AuthLocalDataSource>(
-      () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+      () => AuthLocalDataSourceImpl(getIt<SecureStorage>()),
     );
   }
 
