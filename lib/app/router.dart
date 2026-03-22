@@ -20,6 +20,12 @@ import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/social/presentation/pages/followers_page.dart';
 import '../features/social/presentation/pages/following_page.dart';
 
+// Recently Played
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+
+// Library
+import '../features/library/presentation/pages/library_page.dart';
+
 // Mock home page (temporary — replace with real home page in Sprint 4)
 import '../features/home/presentation/pages/mock_home_page.dart';
 import '../features/upload/presentation/bloc/trackManagementCubit.dart';
@@ -31,6 +37,7 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 // ── Route name constants ─────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
+  static const String library = '/library';
   static const String uploadPicker = '/upload-picker';
   static const String profileImageUploadDemo = '/profile-image-upload-demo';
   static const String profile = '/profile/:userId';
@@ -43,7 +50,7 @@ class AppRoutes {
 // ── Router ───────────────────────────────────────────────────────────────────
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/track-management-demo',
+  initialLocation: AppRoutes.home,
   routes: [
     // ── Auth (Sprint 1) ───────────────────────────────────────────
     ...AuthRoutes.routes,
@@ -57,7 +64,19 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // ── Upload picker (Sprint 1) ─────────────────────────────────
+    // ── Library ───────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoutes.library,
+      name: 'library',
+      pageBuilder: (context, state) => NoTransitionPage(
+        child: BlocProvider(
+          create: (_) => RecentlyPlayedCubit(),
+          child: const LibraryPage(),
+        ),
+      ),
+    ),
+
+    // ── Upload picker (Sprint 1) ──────────────────────────────────
     GoRoute(
       path: AppRoutes.uploadPicker,
       name: 'upload-picker',
@@ -69,7 +88,7 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // ── Profile image upload demo (Sprint 2 — T2.7) ─────────────
+    // ── Profile image upload demo (Sprint 2 — T2.7) ──────────────
     GoRoute(
       path: AppRoutes.profileImageUploadDemo,
       name: 'profile-image-upload-demo',
