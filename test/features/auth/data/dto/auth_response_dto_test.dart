@@ -12,6 +12,7 @@ void main() {
         'user': {
           'id': '1',
           'email': 'test@example.com',
+          'handle': 'muslim',
           'display_name': 'Test User',
           'gender': 'MALE',
           'date_of_birth': '2000-01-01',
@@ -28,6 +29,7 @@ void main() {
       expect(result.user, isA<UserDto>());
       expect(result.user.id, '1');
       expect(result.user.email, 'test@example.com');
+      expect(result.user.handle, 'muslim');
     });
 
     test('fromJson returns empty tokens when tokens are missing', () {
@@ -36,6 +38,7 @@ void main() {
         'user': {
           'id': '1',
           'email': 'test@example.com',
+          'handle': 'muslim',
           'display_name': 'Test User',
         },
       };

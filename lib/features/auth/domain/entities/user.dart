@@ -2,6 +2,7 @@ class User {
   final String id;
   final String email;
   final String? displayName;
+  final String handle;
   final String? username;
   final String? avatarUrl;
   final String? bio;
@@ -14,6 +15,7 @@ class User {
     required this.id,
     required this.email,
     this.displayName,
+    required this.handle,
     this.username,
     this.avatarUrl,
     this.bio,

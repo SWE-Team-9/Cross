@@ -1,4 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+
+// Third-party
+// Project
 import 'package:soundcloud_clone/features/auth/data/dto/user_dto.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 

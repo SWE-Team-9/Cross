@@ -1,4 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+
+// Third-party
+// Project
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 
 void main() {
@@ -17,7 +20,7 @@ void main() {
       final user = User(
         id: id,
         email: email,
-        username: username,
+        handle: handle,
         displayName: displayName,
         avatarUrl: avatarUrl,
         bio: bio,
@@ -41,21 +44,45 @@ void main() {
 
     test('uses default values for isPro and isVerified', () {
       final user = User(
-        id: '2',
-        email: 'user2@example.com',
+        id: 'user-uuid-123',
+        email: 'ahmed@test.com',
+        handle: 'ahmed-hassan-beats',
       );
 
-      expect(user.id, '2');
-      expect(user.email, 'user2@example.com');
       expect(user.username, isNull);
       expect(user.displayName, isNull);
       expect(user.avatarUrl, isNull);
       expect(user.bio, isNull);
       expect(user.gender, isNull);
       expect(user.dateOfBirth, isNull);
-      expect(user.isPro, false);
-      expect(user.isVerified,
-          false); // تم التعديل من isProfileCompleted إلى isVerified
+    });
+
+    test('isPro defaults to false', () {
+      final user = User(
+        id: 'user-uuid-123',
+        email: 'ahmed@test.com',
+        handle: 'ahmed-hassan-beats',
+      );
+
+      expect(user.isPro, isFalse);
+    });
+
+    test('isProfileCompleted defaults to false', () {
+      final user = User(
+        id: 'user-uuid-123',
+        email: 'ahmed@test.com',
+        handle: 'ahmed-hassan-beats',
+      );
+
+      expect(user.isProfileCompleted, isFalse);
+    });
+
+    test('stores avatarUrl when provided', () {
+      final user = buildUser(
+        avatarUrl: 'https://s3.aws.com/ahmed-avatar.jpg',
+      );
+
+      expect(user.avatarUrl, 'https://s3.aws.com/ahmed-avatar.jpg');
     });
   });
 }

@@ -36,6 +36,7 @@ void main() {
             'user': {
               'id': '1',
               'email': tEmail,
+              'handle': 'muslim',
               'display_name': 'Test User',
               'gender': 'MALE',
               'date_of_birth': '2000-01-01',
@@ -59,9 +60,18 @@ void main() {
 
       // Assert
       expect(result, isA<AuthResponseDto>());
-      expect(result.accessToken, 'access_123');
-      expect(result.refreshToken, 'refresh_456');
-      expect(result.user.email, tEmail);
+      expect(result.token, 'token_123');
+      expect(result.user, isA<UserDto>());
+      expect(result.user.id, '1');
+      expect(result.user.email, 'test@example.com');
+      expect(result.user.handle, 'muslim');
+      verify(() => mockDio.post(
+            '/auth/login',
+            data: {
+              'email': 'test@example.com',
+              'password': '12345678',
+            },
+          )).called(1);
     });
   });
 
@@ -76,6 +86,7 @@ void main() {
             'user': {
               'id': '1',
               'email': 'new@example.com',
+              'handle': 'new_user',
               'display_name': 'New User',
               'gender': 'FEMALE',
               'date_of_birth': '1995-01-01',
@@ -133,6 +144,7 @@ void main() {
             'user': {
               'id': '1',
               'email': 'me@example.com',
+            'handle': 'muslim',
               'display_name': 'Me',
               'gender': 'MALE',
               'date_of_birth': '1990-01-01',
@@ -146,6 +158,7 @@ void main() {
 
       // Assert
       expect(result.email, 'me@example.com');
+      expect(result.handle, 'muslim');
       verify(() => mockDio.get('/api/v1/auth/me')).called(1);
     });
   });

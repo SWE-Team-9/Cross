@@ -4,6 +4,7 @@ class UserDto {
   final String id;
   final String email;
   final String? displayName;
+  final String handle;
   final String? username;
   final String? dateOfBirth;
   final String? gender;
@@ -16,6 +17,7 @@ class UserDto {
     required this.id,
     required this.email,
     this.displayName,
+    required this.handle,
     this.username,
     this.dateOfBirth,
     this.gender,
@@ -30,6 +32,7 @@ class UserDto {
       id: json['id']?.toString() ?? '',
       email: json['email'] ?? '',
       displayName: json['display_name'],
+      handle: (json['handle'] ?? json['username'] ?? '').toString(),
       username: json['username'],
       dateOfBirth: json['date_of_birth'],
       gender: json['gender'],
@@ -45,6 +48,7 @@ class UserDto {
       id: id,
       email: email,
       displayName: displayName,
+      handle: handle,
       username: username,
       avatarUrl: avatarUrl,
       bio: bio,
