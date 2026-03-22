@@ -43,10 +43,10 @@ class AppRoutes {
 // ── Router ────────────────────────────────────────────────────────────────────
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  
+
   // 1. التعديل هنا: نخلي البداية من الـ Splash
   // بما إننا عدلنا AuthRoutes.splash لتكون '/'، هنستخدمها هنا
-  initialLocation: AuthRoutes.splash, 
+  initialLocation: AuthRoutes.splash,
 
   routes: [
     // ── Auth (Sprint 1) ───────────────────────────────────────────

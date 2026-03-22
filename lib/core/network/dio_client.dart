@@ -35,7 +35,7 @@ class DioClient {
 
     dio.interceptors.addAll([
       CookieManager(cookieJar),
-      
+
       // Auth Interceptor لتجديد الـ Token تلقائياً
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -48,8 +48,9 @@ class DioClient {
         onError: (DioException e, handler) async {
           // إذا كان الخطأ 401 (غير مصرح به) يعني أن التوكن قد انتهى
           if (e.response?.statusCode == 401) {
-            final refreshToken = await secureStorage.read(SecureStorage.refreshTokenKey);
-            
+            final refreshToken =
+                await secureStorage.read(SecureStorage.refreshTokenKey);
+
             if (refreshToken != null) {
               try {
                 // محاولة طلب توكن جديد باستخدام الـ Refresh Token
@@ -61,13 +62,16 @@ class DioClient {
                 if (response.statusCode == 200) {
                   final newToken = response.data['access_token'];
                   final newRefresh = response.data['refresh_token'];
-                  
+
                   // حفظ البيانات الجديدة
-                  await secureStorage.write(SecureStorage.accessTokenKey, newToken);
-                  await secureStorage.write(SecureStorage.refreshTokenKey, newRefresh);
+                  await secureStorage.write(
+                      SecureStorage.accessTokenKey, newToken);
+                  await secureStorage.write(
+                      SecureStorage.refreshTokenKey, newRefresh);
 
                   // إعادة الطلب الأصلي الذي فشل باستخدام التوكن الجديد
-                  e.requestOptions.headers['Authorization'] = 'Bearer $newToken';
+                  e.requestOptions.headers['Authorization'] =
+                      'Bearer $newToken';
                   final retryResponse = await dio.fetch(e.requestOptions);
                   return handler.resolve(retryResponse);
                 }
@@ -87,33 +91,61 @@ class DioClient {
   }
 
   // الدوال المساعدة للطلبات
-  Future<Response<T>> get<T>(String path, {Map<String, dynamic>? queryParameters, Options? options}) async {
+  Future<Response<T>> get<T>(String path,
+      {Map<String, dynamic>? queryParameters, Options? options}) async {
     try {
-      return await dio.get<T>(path, queryParameters: queryParameters, options: options);
-    } on DioException catch (e) { throw ErrorMapper.mapDioErrorToFailure(e); }
+      return await dio.get<T>(path,
+          queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ErrorMapper.mapDioErrorToFailure(e);
+    }
   }
 
-  Future<Response<T>> post<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+  Future<Response<T>> post<T>(String path,
+      {dynamic data,
+      Map<String, dynamic>? queryParameters,
+      Options? options}) async {
     try {
-      return await dio.post<T>(path, data: data, queryParameters: queryParameters, options: options);
-    } on DioException catch (e) { throw ErrorMapper.mapDioErrorToFailure(e); }
+      return await dio.post<T>(path,
+          data: data, queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ErrorMapper.mapDioErrorToFailure(e);
+    }
   }
 
-  Future<Response<T>> put<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+  Future<Response<T>> put<T>(String path,
+      {dynamic data,
+      Map<String, dynamic>? queryParameters,
+      Options? options}) async {
     try {
-      return await dio.put<T>(path, data: data, queryParameters: queryParameters, options: options);
-    } on DioException catch (e) { throw ErrorMapper.mapDioErrorToFailure(e); }
+      return await dio.put<T>(path,
+          data: data, queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ErrorMapper.mapDioErrorToFailure(e);
+    }
   }
 
-  Future<Response<T>> delete<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+  Future<Response<T>> delete<T>(String path,
+      {dynamic data,
+      Map<String, dynamic>? queryParameters,
+      Options? options}) async {
     try {
-      return await dio.delete<T>(path, data: data, queryParameters: queryParameters, options: options);
-    } on DioException catch (e) { throw ErrorMapper.mapDioErrorToFailure(e); }
+      return await dio.delete<T>(path,
+          data: data, queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ErrorMapper.mapDioErrorToFailure(e);
+    }
   }
 
-  Future<Response<T>> patch<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+  Future<Response<T>> patch<T>(String path,
+      {dynamic data,
+      Map<String, dynamic>? queryParameters,
+      Options? options}) async {
     try {
-      return await dio.patch<T>(path, data: data, queryParameters: queryParameters, options: options);
-    } on DioException catch (e) { throw ErrorMapper.mapDioErrorToFailure(e); }
+      return await dio.patch<T>(path,
+          data: data, queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ErrorMapper.mapDioErrorToFailure(e);
+    }
   }
 }

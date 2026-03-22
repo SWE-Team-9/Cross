@@ -1,100 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/auth/presentation/widgets/auth_text_field.dart';
+import 'package:soundcloud_clone/features/auth/presentation/widgets/social_auth_button.dart';
 
 void main() {
-  group('AuthTextField', () {
-    testWidgets('renders hint text', (tester) async {
-      final controller = TextEditingController();
+  group('SocialAuthButton Widget Tests', () {
+    testWidgets('renders text and background color correctly', (tester) async {
+      const buttonText = 'Continue with Google';
+      const bgColor = Colors.white;
+      const txtColor = Colors.black;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: AuthTextField(
-              controller: controller,
-              hintText: 'Enter email',
+            body: SocialAuthButton(
+              text: buttonText,
+              backgroundColor: bgColor,
+              textColor: txtColor,
+              onPressed: () {},
             ),
           ),
         ),
       );
 
-      expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Enter email'), findsOneWidget);
+      // التأكد من ظهور النص
+      expect(find.text(buttonText), findsOneWidget);
+
+      // التأكد من تطبيق اللون الخلفي على الـ ElevatedButton
+      final elevatedButton =
+          tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+      expect(elevatedButton.style?.backgroundColor?.resolve({}), bgColor);
     });
 
-    testWidgets('updates controller text', (tester) async {
-      final controller = TextEditingController();
-
+    testWidgets('renders leading widget (icon) when provided', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: AuthTextField(
-              controller: controller,
-              hintText: 'Enter email',
+            body: SocialAuthButton(
+              text: 'Facebook',
+              backgroundColor: Colors.blue,
+              textColor: Colors.white,
+              leading: const Icon(Icons.facebook, key: Key('social_icon')),
+              onPressed: () {},
             ),
           ),
         ),
       );
 
-      await tester.enterText(find.byType(TextField), 'test@example.com');
-
-      expect(controller.text, 'test@example.com');
+      // التأكد من ظهور الأيقونة الممررة في الـ leading
+      expect(find.byKey(const Key('social_icon')), findsOneWidget);
     });
 
-    testWidgets('supports obscureText', (tester) async {
-      final controller = TextEditingController();
+    testWidgets('calls onPressed when tapped', (tester) async {
+      bool isPressed = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: AuthTextField(
-              controller: controller,
-              hintText: 'Password',
-              obscureText: true,
+            body: SocialAuthButton(
+              text: 'Tap Me',
+              backgroundColor: Colors.black,
+              textColor: Colors.white,
+              onPressed: () {
+                isPressed = true;
+              },
             ),
           ),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.obscureText, true);
+      await tester.tap(find.byType(ElevatedButton));
+      expect(isPressed, isTrue);
     });
 
-    testWidgets('supports enabled false', (tester) async {
-      final controller = TextEditingController();
-
+    testWidgets('has correct height and full width', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: AuthTextField(
-              controller: controller,
-              hintText: 'Disabled',
-              enabled: false,
+            body: SocialAuthButton(
+              text: 'Width Test',
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              onPressed: () {},
             ),
           ),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.enabled, false);
-    });
-
-    testWidgets('renders suffix icon', (tester) async {
-      final controller = TextEditingController();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: AuthTextField(
-              controller: controller,
-              hintText: 'Password',
-              suffixIcon: const Icon(Icons.visibility),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.byIcon(Icons.visibility), findsOneWidget);
+      // البحث عن الـ SizedBox المحيط بالزر للتأكد من الأبعاد
+      final sizedBox = tester.widget<SizedBox>(find.byType(SizedBox).first);
+      expect(sizedBox.height, 54);
+      expect(sizedBox.width, double.infinity);
     });
   });
 }

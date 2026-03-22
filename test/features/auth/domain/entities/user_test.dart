@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 
 void main() {
-  group('User', () {
+  group('User Entity', () {
     test('creates instance with all fields', () {
       final date = DateTime(2000, 5, 15);
 
@@ -12,7 +12,7 @@ void main() {
       const displayName = 'Muslim';
       const avatarUrl = 'https://example.com/avatar.png';
       const bio = 'Hello world';
-      const gender = 'Male';
+      const gender = 'MALE';
 
       final user = User(
         id: id,
@@ -24,7 +24,7 @@ void main() {
         gender: gender,
         dateOfBirth: date,
         isPro: true,
-        isProfileCompleted: true,
+        isVerified: true, // تم التعديل من isProfileCompleted إلى isVerified
       );
 
       expect(user.id, id);
@@ -36,10 +36,10 @@ void main() {
       expect(user.gender, gender);
       expect(user.dateOfBirth, date);
       expect(user.isPro, true);
-      expect(user.isProfileCompleted, true);
+      expect(user.isVerified, true); // التعديل هنا أيضاً
     });
 
-    test('uses default values for isPro and isProfileCompleted', () {
+    test('uses default values for isPro and isVerified', () {
       final user = User(
         id: '2',
         email: 'user2@example.com',
@@ -54,7 +54,8 @@ void main() {
       expect(user.gender, isNull);
       expect(user.dateOfBirth, isNull);
       expect(user.isPro, false);
-      expect(user.isProfileCompleted, false);
+      expect(user.isVerified,
+          false); // تم التعديل من isProfileCompleted إلى isVerified
     });
   });
 }
