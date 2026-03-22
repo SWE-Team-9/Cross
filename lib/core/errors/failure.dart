@@ -1,4 +1,4 @@
-abstract class Failure {
+abstract class Failure implements Exception {
   final String message;
 
   const Failure(this.message);
@@ -25,4 +25,8 @@ class ValidationFailure extends Failure {
 
 class NotFoundFailure extends Failure {
   const NotFoundFailure(super.message);
+}
+
+class ForbiddenFailure extends Failure {
+  const ForbiddenFailure(super.message);
 }
