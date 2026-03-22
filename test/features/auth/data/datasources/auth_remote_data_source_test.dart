@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:soundcloud_clone/features/auth/data/dto/auth_response_dto.dart';
+import 'package:soundcloud_clone/features/auth/data/dto/user_dto.dart';
 
 class MockDioClient extends Mock implements DioClient {}
 
@@ -60,7 +61,8 @@ void main() {
 
       // Assert
       expect(result, isA<AuthResponseDto>());
-      expect(result.token, 'token_123');
+      expect(result.accessToken, 'token_123');
+      expect(result.refreshToken, 'token_456');
       expect(result.user, isA<UserDto>());
       expect(result.user.id, '1');
       expect(result.user.email, 'test@example.com');

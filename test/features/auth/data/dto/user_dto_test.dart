@@ -61,6 +61,7 @@ void main() {
         id: '1',
         email: 'test@example.com',
         username: 'muslim',
+        handle: "test-handle",
         displayName: 'Muslim',
         avatarUrl: 'https://example.com/avatar.png',
         bio: 'Hello world',
@@ -89,6 +90,7 @@ void main() {
         email: 'test@example.com',
         isVerified: false,
         dateOfBirth: null,
+        handle: "test-handle",
       );
 
       // Act

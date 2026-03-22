@@ -14,7 +14,7 @@ void main() {
     handle: 'ahmed-hassan-beats',
     displayName: 'Ahmed Hassan',
     isPro: false,
-    isProfileCompleted: false,
+    isVerified: false,
   );
 
   group('AuthState', () {
@@ -52,6 +52,15 @@ void main() {
       });
     });
 
+    group('AuthProfileCompleted', () {
+      test('holds the user object', () {
+        final state = AuthProfileCompleted(tUser);
+
+        expect(state.user, tUser);
+        expect(state.user.displayName, 'Ahmed Hassan');
+      });
+    });
+
     group('AuthEmailCheckSuccess', () {
       test('holds exists true and email when account exists', () {
         final state = AuthEmailCheckSuccess(
@@ -59,7 +68,7 @@ void main() {
           email: 'ahmed@test.com',
         );
 
-        expect(state.exists, isTrue);
+        expect(state.exists, true);
         expect(state.email, 'ahmed@test.com');
       });
 
@@ -69,7 +78,7 @@ void main() {
           email: 'new@test.com',
         );
 
-        expect(state.exists, isFalse);
+        expect(state.exists, false);
       });
     });
 

@@ -13,6 +13,8 @@ final tProfileEntity = ProfileEntity(
   favoriteGenres: ['Oriental', 'Electronic'],
   externalLinks: {'instagram': '@ahmed_hassan_music'},
   visibility: ProfileVisibility.PUBLIC,
+  followersCount: 123,  // Add this
+  followingCount: 456,  // Add this
 );
 
 /// Raw JSON that the API returns for GET /api/v1/profiles/:handle.
