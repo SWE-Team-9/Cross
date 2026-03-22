@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:path_provider/path_provider.dart';
 
-
 // Project
 import '../storage/secure_storage.dart';
 import 'error_mapper.dart';

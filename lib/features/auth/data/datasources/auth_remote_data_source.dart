@@ -1,20 +1,20 @@
 // Dart SDK
 import 'dart:convert';
- 
+
 // Flutter
 // Third-party
 // Project
 import '../../../../core/network/dio_client.dart';
 import '../dto/auth_response_dto.dart';
 import '../dto/user_dto.dart';
- 
+
 abstract class AuthRemoteDataSource {
   Future<AuthResponseDto> login({
     required String email,
     required String password,
     required String captchaToken,
   });
- 
+
   Future<AuthResponseDto> register({
     required String email,
     required String password,
@@ -24,7 +24,7 @@ abstract class AuthRemoteDataSource {
     required String gender,
     required String captchaToken,
   });
- 
+
   Future<void> forgotPassword({required String email});
   Future<void> resetPassword({
     required String code,
@@ -36,12 +36,12 @@ abstract class AuthRemoteDataSource {
   Future<UserDto> getCurrentUser();
   Future<void> logout();
 }
- 
+
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final DioClient dioClient;
- 
+
   AuthRemoteDataSourceImpl(this.dioClient);
- 
+
   @override
   Future<AuthResponseDto> login({
     required String email,
@@ -56,22 +56,22 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'remember_me': true,
       },
     );
- 
+
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
- 
+
     // CookieManager automatically stores the httpOnly access_token and
     // refresh_token cookies from the Set-Cookie header.
     // We must NOT extract them manually here — doing so would save them
     // to SecureStorage, which causes AuthInterceptor to add them as a
     // Bearer header on every subsequent request, resulting in double auth.
     return AuthResponseDto(
-      accessToken: '',   // intentionally empty — managed by CookieManager
-      refreshToken: '',  // intentionally empty — managed by CookieManager
+      accessToken: '', // intentionally empty — managed by CookieManager
+      refreshToken: '', // intentionally empty — managed by CookieManager
       user: UserDto.fromJson(responseData['user']),
     );
   }
- 
+
   @override
   Future<AuthResponseDto> register({
     required String email,
@@ -94,10 +94,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'captcha_token': captchaToken,
       },
     );
- 
+
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
- 
+
     // Same as login — no manual cookie extraction.
     return AuthResponseDto(
       accessToken: '',
@@ -105,7 +105,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       user: UserDto.fromJson(responseData['user']),
     );
   }
- 
+
   @override
   Future<void> forgotPassword({required String email}) async {
     await dioClient.dio.post(
@@ -113,7 +113,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {'email': email},
     );
   }
- 
+
   @override
   Future<void> resetPassword({
     required String code,
@@ -129,7 +129,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       },
     );
   }
- 
+
   @override
   Future<void> sendEmailVerification({required String email}) async {
     await dioClient.dio.post(
@@ -137,7 +137,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {'email': email},
     );
   }
- 
+
   @override
   Future<void> verifyEmail({required String code}) async {
     await dioClient.dio.get(
@@ -145,7 +145,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       queryParameters: {'token': code},
     );
   }
- 
+
   @override
   Future<UserDto> getCurrentUser() async {
     final response = await dioClient.dio.get('/api/v1/auth/me');
@@ -153,10 +153,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         response.data is String ? jsonDecode(response.data) : response.data;
     return UserDto.fromJson(responseData['user'] ?? responseData);
   }
- 
+
   @override
   Future<void> logout() async {
     await dioClient.dio.post('/api/v1/auth/logout');
   }
 }
- 

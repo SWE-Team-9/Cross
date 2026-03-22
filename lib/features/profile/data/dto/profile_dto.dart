@@ -21,16 +21,16 @@ import '../../domain/entities/profile_entity.dart';
 ///   "track_count": 0
 /// }
 class ProfileDto {
-  final String? id;  // Make nullable - API might not return it
+  final String? id; // Make nullable - API might not return it
   final String displayName;
   final String handle;
   final String? bio;
   final String? location;
   final String? avatarUrl;
   final String? coverPhotoUrl;
-  final String accountType;  // Changed from accountTier to match API
+  final String accountType; // Changed from accountTier to match API
   final List<String> favoriteGenres;
-  final Map<String, String> socialLinks;  // Changed from externalLinks
+  final Map<String, String> socialLinks; // Changed from externalLinks
   final String visibility;
   final int trackCount;
   final int? followersCount;
@@ -57,7 +57,7 @@ class ProfileDto {
     // Handle social_links which might be a List or Map
     final rawLinks = json['social_links'];
     Map<String, String> links = {};
-    
+
     if (rawLinks is Map<String, dynamic>) {
       links = rawLinks.map((k, v) => MapEntry(k, v.toString()));
     } else if (rawLinks is List) {
@@ -76,7 +76,8 @@ class ProfileDto {
       location: json['location'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       coverPhotoUrl: json['cover_photo_url'] as String?,
-      accountType: json['account_type'] as String? ?? 'LISTENER',  // Changed from account_tier
+      accountType: json['account_type'] as String? ??
+          'LISTENER', // Changed from account_tier
       favoriteGenres: genres,
       socialLinks: links,
       visibility: json['visibility'] as String? ?? 'PUBLIC',
@@ -89,7 +90,7 @@ class ProfileDto {
   ProfileEntity toEntity() {
     // Generate a temporary ID if none exists
     final entityId = id ?? handle;
-    
+
     return ProfileEntity(
       id: entityId,
       displayName: displayName,
@@ -98,9 +99,8 @@ class ProfileDto {
       location: location,
       avatarUrl: avatarUrl,
       coverPhotoUrl: coverPhotoUrl,
-      accountTier: accountType == 'ARTIST' 
-          ? AccountTier.ARTIST 
-          : AccountTier.LISTENER,
+      accountTier:
+          accountType == 'ARTIST' ? AccountTier.ARTIST : AccountTier.LISTENER,
       favoriteGenres: favoriteGenres,
       externalLinks: socialLinks,
       visibility: visibility == 'PRIVATE'
