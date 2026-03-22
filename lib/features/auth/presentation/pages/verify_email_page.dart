@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -19,27 +20,63 @@ class VerifyEmailPage extends StatefulWidget {
 }
 
 class _VerifyEmailPageState extends State<VerifyEmailPage> {
-  final _codeController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  Timer? _timer;
+  int _start = 0;
+  bool _canResend = false;
 
   @override
-  void dispose() {
-    _codeController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _initializeTimer();
   }
 
-  void _onVerifyPressed() {
-    if (_formKey.currentState!.validate()) {
-      context.read<AuthCubit>().verifyEmail(
-            code: _codeController.text.trim(),
-          );
+  void _initializeTimer() {
+    final cubit = context.read<AuthCubit>();
+    final remaining = cubit.remainingResendSeconds;
+
+    if (remaining > 0) {
+      // User returned while cooldown is still active
+      _start = remaining;
+      _startTimer();
+    } else {
+      // No active cooldown, trigger auto-send and start 60s timer
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        cubit.sendEmailVerification(email: widget.email);
+        _start = 60;
+        _startTimer();
+      });
     }
   }
 
+  void _startTimer() {
+    setState(() => _canResend = false);
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_start <= 0) {
+        setState(() {
+          _canResend = true;
+          timer.cancel();
+        });
+      } else {
+        setState(() {
+          _start--;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   void _onResendPressed() {
-    context.read<AuthCubit>().sendEmailVerification(
-          email: widget.email,
-        );
+    if (_canResend) {
+      context.read<AuthCubit>().sendEmailVerification(email: widget.email);
+      _start = 60; // Reset countdown for UI
+      _startTimer();
+    }
   }
 
   @override
@@ -50,132 +87,58 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
         child: AuthScreenWrapper(
           child: BlocConsumer<AuthCubit, AuthState>(
             listener: (context, state) {
-              if (state is AuthEmailVerified) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Email verified successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-
-                context.go(AuthRoutes.completeProfile);
-              }
-
               if (state is AuthVerificationEmailSent) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Verification email sent again'),
+                    content: Text('A verification link has been sent to your email.'),
                     backgroundColor: Colors.blueAccent,
                   ),
                 );
               }
-
               if (state is AuthError) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message,
-                        style: const TextStyle(color: Colors.white)),
-                    backgroundColor: Colors.redAccent,
-                  ),
+                  SnackBar(content: Text(state.message), backgroundColor: Colors.redAccent),
                 );
+              }
+              if (state is AuthUnauthenticated) {
+                context.go(AuthRoutes.login);
               }
             },
             builder: (context, state) {
               final isLoading = state is AuthLoading;
 
-              return SingleChildScrollView(
+              return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              color: Colors.white),
-                          onPressed: () {
-                            context.go(AuthRoutes.register);
-                          },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.mark_email_unread_rounded, size: 100, color: Color(0xFF6D8FFF)),
+                    const SizedBox(height: 32),
+                    const Text('Check Your Email', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 16),
+                    Text('We have sent a verification link to:', textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Text(widget.email, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 24),
+                    const Text('Please click on the link in the email to verify your account. Once verified, return here to log in.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 14, height: 1.5)),
+                    const SizedBox(height: 48),
+                    AuthButton(
+                      text: 'Go to Login',
+                      onPressed: () => context.read<AuthCubit>().logout(),
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: _canResend && !isLoading ? _onResendPressed : null,
+                      child: Text(
+                        _canResend ? 'Resend Link' : 'Resend link in $_start s',
+                        style: TextStyle(
+                          color: _canResend ? const Color(0xFF6D8FFF) : Colors.grey,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 32),
-                      const Center(
-                        child: Text(
-                          'Verify Email',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: Text(
-                          'Enter the verification code sent to:\n${widget.email}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFF9B9B9B),
-                            fontSize: 16,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      const Text(
-                        'Verification Code',
-                        style:
-                            TextStyle(color: Color(0xFF9B9B9B), fontSize: 16),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _codeController,
-                        style: const TextStyle(
-                            color: Colors.white, letterSpacing: 2.0),
-                        textAlign: TextAlign.center,
-                        decoration: InputDecoration(
-                          hintText: 'Enter code',
-                          hintStyle: const TextStyle(
-                              color: Color(0xFF8B8B8B), letterSpacing: 0),
-                          filled: true,
-                          fillColor: const Color(0xFF2C2C2E),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter the code';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      AuthButton(
-                        text: 'Verify Email',
-                        isLoading: isLoading,
-                        onPressed: isLoading ? null : _onVerifyPressed,
-                      ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: TextButton(
-                          onPressed: isLoading ? null : _onResendPressed,
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFF6D8FFF),
-                          ),
-                          child: const Text(
-                            'Resend Code',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               );
             },

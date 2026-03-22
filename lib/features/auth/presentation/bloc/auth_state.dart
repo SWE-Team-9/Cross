@@ -49,5 +49,6 @@ class AuthResetPasswordSuccess extends AuthState {}
 
 class AuthError extends AuthState {
   final String message;
-  AuthError(this.message);
+  final bool isNotVerified; // Flag for unverified email cases
+  AuthError(this.message, {this.isNotVerified = false});
 }
