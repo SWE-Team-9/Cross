@@ -38,7 +38,7 @@ void main() {
       expect(dioClient.dio.options.baseUrl, testBaseUrl);
       expect(dioClient.dio.options.connectTimeout, const Duration(seconds: 30));
       expect(dioClient.dio.options.receiveTimeout, const Duration(seconds: 30));
-      expect(dioClient.dio.options.headers['Content-Type'], 'application/json');
+      expect(dioClient.dio.options.headers['Content-Type'], isNull);
     });
 
     test('should have all interceptors registered', () {

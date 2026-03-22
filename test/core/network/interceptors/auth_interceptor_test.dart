@@ -1,18 +1,16 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:dio/dio.dart';
 import 'package:soundcloud_clone/core/network/interceptors/auth_interceptor.dart';
 import 'package:soundcloud_clone/core/storage/secure_storage.dart';
 
 class MockSecureStorage extends Mock implements SecureStorage {}
 
-// Create a fake DioException for fallback
 class FakeDioException extends Fake implements DioException {
   @override
   RequestOptions get requestOptions => RequestOptions(path: '');
 }
 
-// Mock ErrorInterceptorHandler
 class MockErrorInterceptorHandler extends Mock
     implements ErrorInterceptorHandler {}
 
@@ -20,7 +18,6 @@ void main() {
   late AuthInterceptor authInterceptor;
   late MockSecureStorage mockSecureStorage;
 
-  // ✅ ADD THIS - Register fallback value ONCE before all tests
   setUpAll(() {
     registerFallbackValue(FakeDioException());
   });
@@ -29,7 +26,6 @@ void main() {
     mockSecureStorage = MockSecureStorage();
     authInterceptor = AuthInterceptor(secureStorage: mockSecureStorage);
 
-    // Default mock behavior
     when(() => mockSecureStorage.read(any())).thenAnswer((_) async => null);
   });
 
@@ -39,13 +35,13 @@ void main() {
       final options = RequestOptions(path: '/protected');
       final handler = RequestInterceptorHandler();
 
-      when(() => mockSecureStorage.read('access_token'))
+      when(() => mockSecureStorage.read('auth_token'))
           .thenAnswer((_) async => token);
 
       await authInterceptor.onRequest(options, handler);
 
       expect(options.headers['Authorization'], 'Bearer $token');
-      verify(() => mockSecureStorage.read('access_token')).called(1);
+      verify(() => mockSecureStorage.read('auth_token')).called(1);
     });
 
     test('should NOT add token for auth endpoints', () async {
@@ -62,13 +58,13 @@ void main() {
       final options = RequestOptions(path: '/protected');
       final handler = RequestInterceptorHandler();
 
-      when(() => mockSecureStorage.read('access_token'))
+      when(() => mockSecureStorage.read('auth_token'))
           .thenAnswer((_) async => null);
 
       await authInterceptor.onRequest(options, handler);
 
       expect(options.headers.containsKey('Authorization'), false);
-      verify(() => mockSecureStorage.read('access_token')).called(1);
+      verify(() => mockSecureStorage.read('auth_token')).called(1);
     });
   });
 
@@ -83,13 +79,10 @@ void main() {
       );
       final handler = MockErrorInterceptorHandler();
 
-      // Setup mock
       when(() => handler.next(any())).thenReturn(null);
 
-      // Act
       authInterceptor.onError(error, handler);
 
-      // Assert - should call next with the error
       verify(() => handler.next(error)).called(1);
     });
 
@@ -103,13 +96,10 @@ void main() {
       );
       final handler = MockErrorInterceptorHandler();
 
-      // Setup mock
       when(() => handler.next(any())).thenReturn(null);
 
-      // Act
       authInterceptor.onError(error, handler);
 
-      // Assert - should call next with the error
       verify(() => handler.next(error)).called(1);
     });
   });

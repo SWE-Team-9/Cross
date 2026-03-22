@@ -6,11 +6,13 @@ class ProfileImagePickerSheet extends StatelessWidget {
     required this.title,
     required this.onGalleryTap,
     required this.onCameraTap,
+    this.showCameraOption = true,
   });
 
   final String title;
   final VoidCallback onGalleryTap;
   final VoidCallback onCameraTap;
+  final bool showCameraOption;
 
   @override
   Widget build(BuildContext context) {
@@ -29,11 +31,12 @@ class ProfileImagePickerSheet extends StatelessWidget {
               title: const Text('Choose from gallery'),
               onTap: onGalleryTap,
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take a photo'),
-              onTap: onCameraTap,
-            ),
+            if (showCameraOption)
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Take a photo'),
+                onTap: onCameraTap,
+              ),
           ],
         ),
       ),

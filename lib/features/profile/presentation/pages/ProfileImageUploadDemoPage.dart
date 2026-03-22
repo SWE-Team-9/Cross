@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,6 +24,15 @@ class ProfileImageUploadDemoPage extends StatelessWidget {
 
 class _ProfileImageUploadDemoView extends StatelessWidget {
   const _ProfileImageUploadDemoView();
+
+  bool get _supportsCameraCapture {
+    if (kIsWeb) {
+      return false;
+    }
+
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +73,7 @@ class _ProfileImageUploadDemoView extends StatelessWidget {
                   onChangeTap: () => _showPickerSheet(
                     context,
                     title: 'Change Cover Image',
+                    showCameraOption: _supportsCameraCapture,
                     onGalleryTap: () {
                       Navigator.of(context).pop();
                       cubit.pickImage(
@@ -87,6 +96,7 @@ class _ProfileImageUploadDemoView extends StatelessWidget {
                   onChangeTap: () => _showPickerSheet(
                     context,
                     title: 'Change Avatar',
+                    showCameraOption: _supportsCameraCapture,
                     onGalleryTap: () {
                       Navigator.of(context).pop();
                       cubit.pickImage(
@@ -151,6 +161,7 @@ class _ProfileImageUploadDemoView extends StatelessWidget {
   void _showPickerSheet(
     BuildContext context, {
     required String title,
+    required bool showCameraOption,
     required VoidCallback onGalleryTap,
     required VoidCallback onCameraTap,
   }) {
@@ -159,6 +170,7 @@ class _ProfileImageUploadDemoView extends StatelessWidget {
       builder: (_) {
         return ProfileImagePickerSheet(
           title: title,
+          showCameraOption: showCameraOption,
           onGalleryTap: onGalleryTap,
           onCameraTap: onCameraTap,
         );
