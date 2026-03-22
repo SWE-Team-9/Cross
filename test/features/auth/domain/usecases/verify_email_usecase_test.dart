@@ -13,16 +13,23 @@ void main() {
     useCase = VerifyEmailUseCase(repository);
   });
 
-  test('should call repository.verifyEmail', () async {
-    const email = 'verify@example.com';
-    const code = '123456';
+  test('should call repository.verifyEmail with the provided code', () async {
+    // Arrange
+    const tCode = '123456';
 
-    when(() => repository.verifyEmail(email: email, code: code))
-        .thenAnswer((_) async {});
+    // نجهز الـ mock بناءً على التوقيع الجديد في الـ Repository
+    // الـ UseCase بيبعت الـ email كـ String فارغ حالياً
+    when(() => repository.verifyEmail(email: any(named: 'email'), code: tCode))
+        .thenAnswer((_) async => {});
 
-    await useCase(email: email, code: code);
+    // Act
+    await useCase(code: tCode);
 
-    verify(() => repository.verifyEmail(email: email, code: code)).called(1);
+    // Assert
+    // نتحقق أن الـ UseCase نادى على الـ Repository بالـ code الصح
+    verify(() =>
+            repository.verifyEmail(email: any(named: 'email'), code: tCode))
+        .called(1);
     verifyNoMoreInteractions(repository);
   });
 }

@@ -1,19 +1,18 @@
 import 'package:go_router/go_router.dart';
-
-import '../pages/auth_method_page.dart';
 import '../pages/complete_profile_page.dart';
-import '../pages/create_password_page.dart';
 import '../pages/forgot_password_page.dart';
-import '../pages/login_password_page.dart';
+import '../pages/login_page.dart';
+import '../pages/register_page.dart';
 import '../pages/reset_password_page.dart';
 import '../pages/verify_email_page.dart';
 import '../pages/welcome_page.dart';
+import '../pages/splash_page.dart'; // إضافة الـ Splash
 
 class AuthRoutes {
-  static const String welcome = '/';
-  static const String authMethod = '/auth-method';
-  static const String loginPassword = '/login-password';
-  static const String createPassword = '/create-password';
+  static const String splash = '/'; // جعل الـ Splash هو المسار الرئيسي
+  static const String welcome = '/welcome'; // تغيير مسار الـ welcome
+  static const String login = '/login';
+  static const String register = '/register';
   static const String completeProfile = '/complete-profile';
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
@@ -21,35 +20,33 @@ class AuthRoutes {
 
   static final List<GoRoute> routes = [
     GoRoute(
+      path: splash,
+      name: 'splash',
+      builder: (context, state) => const SplashPage(),
+    ),
+    GoRoute(
       path: welcome,
       name: 'welcome',
       builder: (context, state) => const WelcomePage(),
     ),
     GoRoute(
-      path: authMethod,
-      name: 'auth-method',
-      builder: (context, state) => const AuthMethodPage(),
+      path: login,
+      name: 'login',
+      builder: (context, state) => const LoginPage(),
     ),
     GoRoute(
-      path: loginPassword,
-      name: 'login-password',
-      builder: (context, state) {
-        final email = state.extra as String;
-        return LoginPasswordPage(email: email);
-      },
+      path: register,
+      name: 'register',
+      builder: (context, state) => const RegisterPage(),
     ),
-    GoRoute(
-      path: createPassword,
-      name: 'create-password',
-      builder: (context, state) {
-        final email = state.extra as String;
-        return CreatePasswordPage(email: email);
-      },
-    ),
+    // ... باقي الـ routes كما هي في كودك الأصلي
     GoRoute(
       path: completeProfile,
       name: 'complete-profile',
-      builder: (context, state) => const CompleteProfilePage(),
+      builder: (context, state) {
+        final data = state.extra as Map<String, String>;
+        return CompleteProfilePage(registrationData: data);
+      },
     ),
     GoRoute(
       path: forgotPassword,

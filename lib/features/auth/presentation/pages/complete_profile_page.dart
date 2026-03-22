@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../app/router.dart';
+import '../routes/auth_routes.dart';
 import '../bloc/auth_cubit.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_button.dart';
@@ -10,14 +9,19 @@ import '../widgets/auth_screen_wrapper.dart';
 import '../widgets/auth_text_field.dart';
 
 class CompleteProfilePage extends StatefulWidget {
-  const CompleteProfilePage({super.key});
+  final Map<String, String> registrationData;
+
+  const CompleteProfilePage({
+    super.key,
+    required this.registrationData,
+  });
 
   @override
   State<CompleteProfilePage> createState() => _CompleteProfilePageState();
 }
 
 class _CompleteProfilePageState extends State<CompleteProfilePage> {
-  late final TextEditingController displayNameController;
+  final TextEditingController _displayNameController = TextEditingController();
 
   String? selectedMonth;
   String? selectedDay;
@@ -37,25 +41,18 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'September',
     'October',
     'November',
-    'December',
+    'December'
   ];
 
+  // تم تعديل القائمة لتشمل Male و Female فقط
   final List<String> genders = const [
     'Male',
     'Female',
-    'Non-binary',
-    'Prefer not to say',
   ];
 
   @override
-  void initState() {
-    super.initState();
-    displayNameController = TextEditingController();
-  }
-
-  @override
   void dispose() {
-    displayNameController.dispose();
+    _displayNameController.dispose();
     super.dispose();
   }
 
@@ -66,8 +63,19 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     return List.generate(100, (index) => '${currentYear - index}');
   }
 
+  String _getGenderEnumValue(String genderUiString) {
+    switch (genderUiString) {
+      case 'Male':
+        return 'MALE';
+      case 'Female':
+        return 'FEMALE';
+      default:
+        return 'MALE'; // Default value as a fallback
+    }
+  }
+
   void _onContinuePressed() {
-    final displayName = displayNameController.text.trim();
+    final displayName = _displayNameController.text.trim();
 
     if (displayName.isEmpty ||
         selectedMonth == null ||
@@ -80,118 +88,81 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       return;
     }
 
-    final monthIndex = months.indexOf(selectedMonth!);
+    final monthIndex =
+        months.indexOf(selectedMonth!).toString().padLeft(2, '0');
+    final dayStr = selectedDay!.padLeft(2, '0');
+    final birthDate = "$selectedYear-$monthIndex-$dayStr";
 
-    context.read<AuthCubit>().completeProfile(
+    context.read<AuthCubit>().register(
+          email: widget.registrationData['email']!,
+          password: widget.registrationData['password']!,
+          passwordConfirm: widget.registrationData['passwordConfirm']!,
           displayName: displayName,
-          birthMonth: monthIndex,
-          birthDay: int.parse(selectedDay!),
-          birthYear: int.parse(selectedYear!),
-          gender: selectedGender!,
+          dateOfBirth: birthDate,
+          gender: _getGenderEnumValue(selectedGender!),
+          captchaToken: widget.registrationData['captchaToken']!,
         );
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthScreenWrapper(
-      child: BlocConsumer<AuthCubit, AuthState>(
-        listener: (context, state) {
-          if (state is AuthProfileCompleted || state is AuthAuthenticated) {
-            context.go(AppRoutes.home);
-          }
+    return Scaffold(
+      backgroundColor: const Color(0xFF111111),
+      body: SafeArea(
+        child: AuthScreenWrapper(
+          child: BlocConsumer<AuthCubit, AuthState>(
+            listener: (context, state) {
+              if (state is AuthRegisterSuccess) {
+                context.go(AuthRoutes.verifyEmail,
+                    extra: widget.registrationData['email']);
+              }
+              if (state is AuthError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.redAccent),
+                );
+              }
+            },
+            builder: (context, state) {
+              final isLoading = state is AuthLoading;
 
-          if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
-          }
-        },
-        builder: (context, state) {
-          final isLoading = state is AuthLoading;
-
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                const AuthBackButton(),
-                const SizedBox(height: 24),
-                const Center(
-                  child: Text(
-                    'Tell us more about you',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    const AuthBackButton(),
+                    const SizedBox(height: 24),
+                    const Center(
+                      child: Text(
+                        'Tell us more about you',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                AuthTextField(
-                  controller: displayNameController,
-                  hintText: 'Display name',
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Your display name can be anything you like. Your name or artist name are good choices.',
-                  style: TextStyle(
-                    color: Color(0xFF9B9B9B),
-                    fontSize: 15,
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 26),
-                const Text(
-                  'Date of birth (required)',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth < 380) {
-                      return Column(
-                        children: [
-                          _AuthDropdown(
-                            value: selectedMonth,
-                            hint: 'Month',
-                            items: months.skip(1).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedMonth = value;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          _AuthDropdown(
-                            value: selectedDay,
-                            hint: 'Day',
-                            items: days,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedDay = value;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          _AuthDropdown(
-                            value: selectedYear,
-                            hint: 'Year',
-                            items: years,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedYear = value;
-                              });
-                            },
-                          ),
-                        ],
-                      );
-                    }
-
-                    return Row(
+                    const SizedBox(height: 28),
+                    AuthTextField(
+                      controller: _displayNameController,
+                      hintText: 'Display name',
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Your display name can be anything you like. Your name or artist name are good choices.',
+                      style: TextStyle(color: Color(0xFF9B9B9B), fontSize: 14),
+                    ),
+                    const SizedBox(height: 26),
+                    const Text(
+                      'Date of birth (required)',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
                       children: [
                         Expanded(
                           flex: 2,
@@ -199,74 +170,52 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             value: selectedMonth,
                             hint: 'Month',
                             items: months.skip(1).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedMonth = value;
-                              });
-                            },
+                            onChanged: (val) =>
+                                setState(() => selectedMonth = val),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _AuthDropdown(
                             value: selectedDay,
                             hint: 'Day',
                             items: days,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedDay = value;
-                              });
-                            },
+                            onChanged: (val) =>
+                                setState(() => selectedDay = val),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _AuthDropdown(
                             value: selectedYear,
                             hint: 'Year',
                             items: years,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedYear = value;
-                              });
-                            },
+                            onChanged: (val) =>
+                                setState(() => selectedYear = val),
                           ),
                         ),
                       ],
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 26),
+                    _AuthDropdown(
+                      value: selectedGender,
+                      hint: 'Gender (required)',
+                      items: genders,
+                      onChanged: (val) => setState(() => selectedGender = val),
+                    ),
+                    const SizedBox(height: 32),
+                    AuthButton(
+                      text: 'Continue',
+                      isLoading: isLoading,
+                      onPressed: _onContinuePressed,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Your date of birth is used to verify your age and is not shared publicly.',
-                  style: TextStyle(
-                    color: Color(0xFF9B9B9B),
-                    fontSize: 15,
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 26),
-                _AuthDropdown(
-                  value: selectedGender,
-                  hint: 'Gender (required)',
-                  items: genders,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedGender = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 26),
-                AuthButton(
-                  text: 'Continue',
-                  isLoading: isLoading,
-                  onPressed: _onContinuePressed,
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -289,58 +238,19 @@ class _AuthDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       initialValue: value,
-      isExpanded: true,
       dropdownColor: const Color(0xFF2C2C2E),
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 16,
-      ),
+      style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          color: Color(0xFF8B8B8B),
-          fontSize: 16,
-        ),
+        hintStyle: const TextStyle(color: Color(0xFF8B8B8B)),
         filled: true,
         fillColor: const Color(0xFF2C2C2E),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 16,
-        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF4C4C4E),
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF4C4C4E),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF4C4C4E),
-          ),
-        ),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none),
       ),
-      icon: const Icon(
-        Icons.keyboard_arrow_down_rounded,
-        color: Colors.white,
-      ),
-      items: items
-          .map(
-            (item) => DropdownMenuItem<String>(
-              value: item,
-              child: Text(
-                item,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          )
-          .toList(),
+      items:
+          items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
       onChanged: onChanged,
     );
   }

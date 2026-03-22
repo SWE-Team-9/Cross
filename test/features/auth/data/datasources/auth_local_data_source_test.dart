@@ -1,69 +1,81 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/auth/data/datasources/auth_local_data_source.dart';
+import 'package:soundcloud_clone/core/storage/secure_storage.dart';
 
-class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
+// بنعمل Mock للكلاس الوسيط اللي الـ DataSource بتستخدمه فعلياً
+class MockSecureStorage extends Mock implements SecureStorage {}
 
 void main() {
-  late MockFlutterSecureStorage secureStorage;
+  late MockSecureStorage mockSecureStorage;
   late AuthLocalDataSourceImpl dataSource;
 
   setUp(() {
-    secureStorage = MockFlutterSecureStorage();
-    dataSource = AuthLocalDataSourceImpl(secureStorage);
+    mockSecureStorage = MockSecureStorage();
+    dataSource = AuthLocalDataSourceImpl(mockSecureStorage);
   });
 
-  group('saveToken', () {
-    test('writes token to secure storage', () async {
-      when(() => secureStorage.write(
-            key: 'auth_token',
-            value: 'token_123',
-          )).thenAnswer((_) async {});
+  group('AuthLocalDataSource - Tokens Management', () {
+    const tAccessToken = 'access_123';
+    const tRefreshToken = 'refresh_456';
 
-      await dataSource.saveToken('token_123');
+    test('saveTokens should call write on secureStorage for both tokens',
+        () async {
+      // Arrange
+      when(() => mockSecureStorage.write(SecureStorage.accessTokenKey, any()))
+          .thenAnswer((_) async => {});
+      when(() => mockSecureStorage.write(SecureStorage.refreshTokenKey, any()))
+          .thenAnswer((_) async => {});
 
-      verify(() => secureStorage.write(
-            key: 'auth_token',
-            value: 'token_123',
-          )).called(1);
-      verifyNoMoreInteractions(secureStorage);
+      // Act
+      await dataSource.saveTokens(access: tAccessToken, refresh: tRefreshToken);
+
+      // Assert
+      verify(() => mockSecureStorage.write(
+          SecureStorage.accessTokenKey, tAccessToken)).called(1);
+      verify(() => mockSecureStorage.write(
+          SecureStorage.refreshTokenKey, tRefreshToken)).called(1);
+    });
+
+    test('getAccessToken should return token from secureStorage', () async {
+      // Arrange
+      when(() => mockSecureStorage.read(SecureStorage.accessTokenKey))
+          .thenAnswer((_) async => tAccessToken);
+
+      // Act
+      final result = await dataSource.getAccessToken();
+
+      // Assert
+      expect(result, tAccessToken);
+      verify(() => mockSecureStorage.read(SecureStorage.accessTokenKey))
+          .called(1);
+    });
+
+    test('getRefreshToken should return token from secureStorage', () async {
+      // Arrange
+      when(() => mockSecureStorage.read(SecureStorage.refreshTokenKey))
+          .thenAnswer((_) async => tRefreshToken);
+
+      // Act
+      final result = await dataSource.getRefreshToken();
+
+      // Assert
+      expect(result, tRefreshToken);
+      verify(() => mockSecureStorage.read(SecureStorage.refreshTokenKey))
+          .called(1);
     });
   });
 
-  group('getToken', () {
-    test('reads token from secure storage', () async {
-      when(() => secureStorage.read(key: 'auth_token'))
-          .thenAnswer((_) async => 'token_123');
+  group('clearAll', () {
+    test('should call clearAuthData on secureStorage', () async {
+      // Arrange
+      when(() => mockSecureStorage.clearAuthData()).thenAnswer((_) async => {});
 
-      final result = await dataSource.getToken();
+      // Act
+      await dataSource.clearAll();
 
-      expect(result, 'token_123');
-      verify(() => secureStorage.read(key: 'auth_token')).called(1);
-      verifyNoMoreInteractions(secureStorage);
-    });
-
-    test('returns null when no token exists', () async {
-      when(() => secureStorage.read(key: 'auth_token'))
-          .thenAnswer((_) async => null);
-
-      final result = await dataSource.getToken();
-
-      expect(result, isNull);
-      verify(() => secureStorage.read(key: 'auth_token')).called(1);
-      verifyNoMoreInteractions(secureStorage);
-    });
-  });
-
-  group('clearToken', () {
-    test('deletes token from secure storage', () async {
-      when(() => secureStorage.delete(key: 'auth_token'))
-          .thenAnswer((_) async {});
-
-      await dataSource.clearToken();
-
-      verify(() => secureStorage.delete(key: 'auth_token')).called(1);
-      verifyNoMoreInteractions(secureStorage);
+      // Assert
+      verify(() => mockSecureStorage.clearAuthData()).called(1);
     });
   });
 }
