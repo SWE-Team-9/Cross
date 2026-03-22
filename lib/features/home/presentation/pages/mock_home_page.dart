@@ -5,6 +5,11 @@ import '/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 
+import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
+import 'package:soundcloud_clone/features/upload/presentation/models/applyTrackManagementResult.dart';
+import 'package:soundcloud_clone/features/upload/presentation/models/trackManagementResult.dart';
+
 /// Mock Home page — matches the real SoundCloud home layout.
 /// Used in Sprint 2 to test all navigation entry points.
 /// Replace with real feed data in Sprint 4 (T4.11).
@@ -30,6 +35,45 @@ class _MockHomePageState extends State<MockHomePage> {
     'HIP-HOP',
   ];
 
+  List<ManagedTrack> _managedTracks = const [
+    ManagedTrack(
+      id: 'managed-track-1',
+      title: 'Midnight Echoes',
+      description: 'A temporary owner track for Sprint 2 testing.',
+      genreId: 1,
+      genreName: 'Ambient',
+      tags: <String>['owner', 'ambient'],
+      visibility: TrackManagementVisibility.publicTrack,
+      durationInSeconds: 212,
+    ),
+    ManagedTrack(
+      id: 'managed-track-2',
+      title: 'City Lights',
+      description: 'Second temporary owner track for edit/delete testing.',
+      genreId: 2,
+      genreName: 'Electronic',
+      tags: <String>['night', 'synth'],
+      visibility: TrackManagementVisibility.privateTrack,
+      durationInSeconds: 184,
+    ),
+  ];
+
+  Future<void> _openTrackManagement(ManagedTrack track) async {
+    final result = await context.pushNamed(
+      'track-management',
+      extra: track,
+    );
+
+    if (result is TrackManagementResult && mounted) {
+      setState(() {
+        _managedTracks = applyTrackManagementResult(
+          tracks: _managedTracks,
+          result: result,
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,6 +91,11 @@ class _MockHomePageState extends State<MockHomePage> {
                     const _RelatedTracksRow(),
                     const _SectionHeader(title: 'Mixed for Eyad Adel'),
                     _MixesRow(userId: _currentUserId),
+                    const _SectionHeader(title: 'Your Tracks (Sprint 2 Test)'),
+                    _ManagedTracksSection(
+                      tracks: _managedTracks,
+                      onManageTap: _openTrackManagement,
+                    ),
                     const _SectionHeader(title: 'Trending by genre'),
                     _GenreChips(
                       genres: _genres,
@@ -102,34 +151,40 @@ class _TopBar extends StatelessWidget {
           const Text(
             'Home',
             style: TextStyle(
-                color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(width: 12),
-
           const Text(
             'GET PRO',
             style: TextStyle(
-                color: Color(0xFFFF5500),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: .5),
+              color: Color(0xFFFF5500),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: .5,
+            ),
           ),
           const Spacer(),
 
-          //  Profile Avatar
+          // Profile Avatar
           GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(context, currentUserId),
+            onTap: () => context.push('/profile-image-upload-demo'),
             child: CircleAvatar(
               radius: 14,
               backgroundColor: const Color(0xFFFF5500),
-              child: const Text('EY',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
+              child: const Text(
+                'EY',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 8), // Add spacing after avatar
+          const SizedBox(width: 8),
 
           _IconBtn(icon: Icons.cast, onTap: () {}),
           _IconBtn(
@@ -195,7 +250,10 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(
-            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -267,21 +325,29 @@ class _RelatedTracksRow extends StatelessWidget {
                       c.topText,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800),
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(c.label,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600)),
-                  Text(c.sub,
-                      style: const TextStyle(
-                          color: Color(0xFF999999), fontSize: 12)),
+                  Text(
+                    c.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    c.sub,
+                    style: const TextStyle(
+                      color: Color(0xFF999999),
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -360,7 +426,9 @@ class _MixesRow extends StatelessWidget {
                         right: 0,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: m.badgeColor,
                             borderRadius: const BorderRadius.only(
@@ -371,10 +439,11 @@ class _MixesRow extends StatelessWidget {
                           child: Text(
                             m.label,
                             style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1),
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1,
+                            ),
                           ),
                         ),
                       ),
@@ -386,7 +455,10 @@ class _MixesRow extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        color: Color(0xFF999999), fontSize: 11, height: 1.4),
+                      color: Color(0xFF999999),
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -398,14 +470,94 @@ class _MixesRow extends StatelessWidget {
   }
 }
 
+// ── Managed tracks section ────────────────────────────────────────────────────
+
+class _ManagedTracksSection extends StatelessWidget {
+  const _ManagedTracksSection({
+    required this.tracks,
+    required this.onManageTap,
+  });
+
+  final List<ManagedTrack> tracks;
+  final ValueChanged<ManagedTrack> onManageTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tracks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Text(
+          'No managed tracks remaining.',
+          style: TextStyle(color: Color(0xFF999999), fontSize: 13),
+        ),
+      );
+    }
+
+    return Column(
+      children: tracks.map((track) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          track.title,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${track.genreName ?? 'Unknown genre'} • ${track.visibility.displayLabel}',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () => onManageTap(track),
+                    child: const Text('Manage'),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(
+              color: Color(0xFF1A1A1A),
+              height: 1,
+              indent: 14,
+              endIndent: 14,
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+}
+
 // ── Genre chips ───────────────────────────────────────────────────────────────
 
 class _GenreChips extends StatelessWidget {
   final List<String> genres;
   final String selected;
   final ValueChanged<String> onSelect;
-  const _GenreChips(
-      {required this.genres, required this.selected, required this.onSelect});
+  const _GenreChips({
+    required this.genres,
+    required this.selected,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -512,18 +664,21 @@ class _BottomNav extends StatelessWidget {
   static const _items = [
     _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
     _NavItem(
-        icon: Icons.grid_view_outlined,
-        activeIcon: Icons.grid_view,
-        label: 'Feed'),
+      icon: Icons.grid_view_outlined,
+      activeIcon: Icons.grid_view,
+      label: 'Feed',
+    ),
     _NavItem(icon: Icons.search, activeIcon: Icons.search, label: 'Search'),
     _NavItem(
-        icon: Icons.library_music_outlined,
-        activeIcon: Icons.library_music,
-        label: 'Library'),
+      icon: Icons.library_music_outlined,
+      activeIcon: Icons.library_music,
+      label: 'Library',
+    ),
     _NavItem(
-        icon: Icons.equalizer_outlined,
-        activeIcon: Icons.equalizer,
-        label: 'Upgrade'),
+      icon: Icons.equalizer_outlined,
+      activeIcon: Icons.equalizer,
+      label: 'Upgrade',
+    ),
   ];
 
   @override
@@ -599,6 +754,9 @@ class _MixData {
 class _NavItem {
   final IconData icon, activeIcon;
   final String label;
-  const _NavItem(
-      {required this.icon, required this.activeIcon, required this.label});
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
 }

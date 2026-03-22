@@ -29,7 +29,9 @@ import '../features/library/presentation/pages/library_page.dart';
 // Mock home page (temporary — replace with real home page in Sprint 4)
 import '../features/home/presentation/pages/mock_home_page.dart';
 import '../features/upload/presentation/bloc/trackManagementCubit.dart';
-import '../features/upload/presentation/pages/TrackManagementDemoPage.dart';
+import '../features/upload/presentation/pages/TrackManagementPage.dart';
+import '../features/upload/domain/entities/ManagedTrack.dart';
+import '../features/upload/domain/entities/TrackManagementVisibility.dart';
 
 // ── Navigator Keys ───────────────────────────────────────────────────────────
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -45,6 +47,19 @@ class AppRoutes {
   static const String followers = '/followers/:userId';
   static const String following = '/following/:userId';
   static const String trackManagementDemo = '/track-management-demo';
+}
+
+ManagedTrack _fallbackTrackManagementSeed() {
+  return const ManagedTrack(
+    id: 'demo-track-001',
+    title: 'Midnight Echoes',
+    description: 'Sprint 2 local demo track for edit/delete testing.',
+    genreId: 1,
+    genreName: 'Ambient',
+    tags: <String>['demo', 'sprint2'],
+    visibility: TrackManagementVisibility.publicTrack,
+    durationInSeconds: 212,
+  );
 }
 
 // ── Router ───────────────────────────────────────────────────────────────────
@@ -147,13 +162,21 @@ final GoRouter router = GoRouter(
     // ── Track management demo (Sprint 2) ─────────────────────────
     GoRoute(
       path: AppRoutes.trackManagementDemo,
-      name: 'track-management-demo',
-      pageBuilder: (context, state) => MaterialPage(
-        child: BlocProvider<TrackManagementCubit>(
-          create: (_) => getIt<TrackManagementCubit>(),
-          child: const TrackManagementDemoPage(),
-        ),
-      ),
+      name: 'track-management',
+      pageBuilder: (context, state) {
+        final ManagedTrack initialTrack = state.extra is ManagedTrack
+            ? state.extra as ManagedTrack
+            : _fallbackTrackManagementSeed();
+
+        return MaterialPage(
+          child: BlocProvider<TrackManagementCubit>(
+            create: (_) => getIt<TrackManagementCubit>(),
+            child: TrackManagementPage(
+              initialTrack: initialTrack,
+            ),
+          ),
+        );
+      },
     ),
   ],
 
