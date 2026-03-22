@@ -15,7 +15,7 @@ class MockHomePage extends StatefulWidget {
 }
 
 class _MockHomePageState extends State<MockHomePage> {
-  static const _currentUserId = 'user_eyad';
+  static const _currentUserHandle = 'eyad-adel'; // ← Only handle
 
   int _selectedTab = 0;
   String _selectedGenre = 'ELECTRONIC';
@@ -49,7 +49,7 @@ class _MockHomePageState extends State<MockHomePage> {
             child: Column(
               children: [
                 // تمرير الحالة (state) للـ TopBar ليقرر عرض زر الـ Logout
-                _TopBar(currentUserId: _currentUserId, authState: state),
+                _TopBar(currentUserHandle: _currentUserHandle, authState: state),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
@@ -58,7 +58,7 @@ class _MockHomePageState extends State<MockHomePage> {
                         const _SectionHeader(title: 'More of what you like'),
                         const _RelatedTracksRow(),
                         const _SectionHeader(title: 'Mixed for Eyad Adel'),
-                        _MixesRow(userId: _currentUserId),
+                        _MixesRow(userHandle: _currentUserHandle),
                         const _SectionHeader(title: 'Trending by genre'),
                         _GenreChips(
                           genres: _genres,
@@ -104,11 +104,12 @@ class _MockHomePageState extends State<MockHomePage> {
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
-  final String currentUserId;
+  final String currentUserHandle; // ← Only handle
+
   final AuthState authState; // استقبال الحالة هنا
 
   const _TopBar({
-    required this.currentUserId,
+    required this.currentUserHandle,
     required this.authState,
   });
 
@@ -193,7 +194,10 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 4),
 
           GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(context, currentUserId),
+            onTap: () => ProfileRoutes.goToProfile(
+              context,
+              currentUserHandle,
+            ),
             child: CircleAvatar(
               radius: 14,
               backgroundColor: const Color(0xFFFF5500),
@@ -288,7 +292,10 @@ class _RelatedTracksRow extends StatelessWidget {
         itemBuilder: (context, i) {
           final c = cards[i];
           return GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(context, c.userId),
+            onTap: () => ProfileRoutes.goToProfile(
+              context,
+              c.handle,
+            ),
             child: SizedBox(
               width: 148,
               child: Column(
@@ -330,8 +337,9 @@ class _RelatedTracksRow extends StatelessWidget {
 }
 
 class _MixesRow extends StatelessWidget {
-  final String userId;
-  const _MixesRow({required this.userId});
+  final String userHandle; // ← Only handle
+
+  const _MixesRow({required this.userHandle});
   @override
   Widget build(BuildContext context) {
     final mixes = [
@@ -364,7 +372,10 @@ class _MixesRow extends StatelessWidget {
         itemBuilder: (context, i) {
           final m = mixes[i];
           return GestureDetector(
-            onTap: () => ProfileRoutes.goToProfile(context, userId),
+            onTap: () => ProfileRoutes.goToProfile(
+              context,
+              userHandle,
+            ),
             child: SizedBox(
               width: 148,
               child: Column(
@@ -468,23 +479,32 @@ class _TrendingTracks extends StatelessWidget {
   Widget build(BuildContext context) {
     final tracks = [
       Track(
-          id: '1',
-          title: 'Bunker - Balthazar',
-          artist: 'Balthazar',
-          audioUrl: '',
-          artworkUrl: 'https://picsum.photos/200?1'),
+        id: '1',
+        title: 'Bunker - Balthazar',
+        artist: 'Balthazar',
+        audioUrl:
+            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        artworkUrl: 'https://picsum.photos/200?1',
+        handle: 'balthazar',
+      ),
       Track(
-          id: '2',
-          title: 'Take It or Leave It',
-          artist: 'Cage Elephant',
-          audioUrl: '',
-          artworkUrl: 'https://picsum.photos/200?2'),
+        id: '2',
+        title: 'Take It or Leave It',
+        artist: 'Cage the Elephant',
+        audioUrl:
+            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+        artworkUrl: 'https://picsum.photos/200?2',
+        handle: 'cage-the-elephant',
+      ),
       Track(
-          id: '3',
-          title: 'Take Me Out',
-          artist: 'Franz Ferdinand',
-          audioUrl: '',
-          artworkUrl: 'https://picsum.photos/200?3'),
+        id: '3',
+        title: 'Take Me Out',
+        artist: 'Franz Ferdinand',
+        audioUrl:
+            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+        artworkUrl: 'https://picsum.photos/200?3',
+        handle: 'franz-ferdinand',
+      ),
     ];
     return Column(
       children: List.generate(
@@ -568,12 +588,13 @@ class _BottomNav extends StatelessWidget {
 }
 
 class _AlbumData {
-  final String label, sub, userId, topText;
+  final String label, sub, handle, topText; // ← Only handle
   final Color color1, color2;
+
   const _AlbumData(
       {required this.label,
       required this.sub,
-      required this.userId,
+      required this.handle,
       required this.topText,
       required this.color1,
       required this.color2});

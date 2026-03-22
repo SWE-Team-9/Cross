@@ -20,7 +20,19 @@ import '../../features/upload/data/repositories/uploadRepositoryImpl.dart';
 import '../../features/upload/domain/repositories/uploadRepository.dart';
 import '../../features/upload/domain/usecases/pickAudioFileUseCase.dart';
 import '../../features/upload/presentation/bloc/uploadPickerCubit.dart';
+
+// ============================================================================
+// Profile Feature Imports
+// ============================================================================
+import '../../features/profile/data/datasources/profile_remote_data_source.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
+import '../../features/profile/domain/usecases/get_profile_usecase.dart';
+import '../../features/profile/domain/usecases/update_profile_usecase.dart';
+import '../../features/profile/presentation/bloc/profile_cubit.dart';
+
 import '../network/dio_client.dart';
+import '../network/api_constants.dart';
 import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
@@ -44,7 +56,8 @@ void setupDependencies() {
   if (!getIt.isRegistered<DioClient>()) {
     getIt.registerLazySingleton<DioClient>(
       () => DioClient(
-        baseUrl: 'http://10.0.2.2:3006',
+        // Use the real deployed backend URL
+        baseUrl: ApiConstants.baseUrl,
         secureStorage: getIt<SecureStorage>(),
       ),
     );
@@ -153,4 +166,47 @@ void setupDependencies() {
   getIt.registerLazySingleton<RecentlyPlayedCubit>(
     () => RecentlyPlayedCubit(),
   );
+
+  // ==========================================================================
+  // Profile Feature (Sprint 2)
+  // ==========================================================================
+
+  // Data source — takes DioClient, not raw Dio
+  getIt.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(getIt<DioClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(getIt<ProfileRemoteDataSource>()),
+  );
+
+  // Use cases — stateless so lazySingleton is fine
+  getIt.registerLazySingleton(
+    () => GetProfileUseCase(getIt<ProfileRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => UpdateProfileUseCase(getIt<ProfileRepository>()),
+  );
+
+  // Cubit — registerFactory so each ProfilePage gets its own instance.
+  // If we used lazySingleton, navigating to two different profiles would
+  // show the same data on both because they'd share one Cubit.
+  getIt.registerFactory(
+    () => ProfileCubit(
+      getProfileUseCase: getIt<GetProfileUseCase>(),
+      updateProfileUseCase: getIt<UpdateProfileUseCase>(),
+      profileRepository: getIt<ProfileRepository>(),
+    ),
+  );
+
+  // print('✅ All dependencies registered');
+
+  // // Verify ProfileCubit registration
+  // try {
+  //   final test = getIt<ProfileCubit>();
+  //   print('✅ ProfileCubit verified - registration successful');
+  // } catch (e) {
+  //   print('❌ ProfileCubit registration FAILED: $e');
+  // }
 }
