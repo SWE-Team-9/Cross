@@ -11,7 +11,7 @@ void main() {
 
       const id = '1';
       const email = 'test@example.com';
-      const username = 'muslim';
+      const handle = 'muslim';
       const displayName = 'Muslim';
       const avatarUrl = 'https://example.com/avatar.png';
       const bio = 'Hello world';
@@ -27,29 +27,28 @@ void main() {
         gender: gender,
         dateOfBirth: date,
         isPro: true,
-        isVerified: true, // تم التعديل من isProfileCompleted إلى isVerified
+        isVerified: true,
       );
 
       expect(user.id, id);
       expect(user.email, email);
-      expect(user.username, username);
+      expect(user.handle, handle); // Changed from username to handle
       expect(user.displayName, displayName);
       expect(user.avatarUrl, avatarUrl);
       expect(user.bio, bio);
       expect(user.gender, gender);
       expect(user.dateOfBirth, date);
       expect(user.isPro, true);
-      expect(user.isVerified, true); // التعديل هنا أيضاً
+      expect(user.isVerified, true);
     });
 
-    test('uses default values for isPro and isVerified', () {
+    test('uses default values for optional fields', () {
       final user = User(
         id: 'user-uuid-123',
         email: 'ahmed@test.com',
         handle: 'ahmed-hassan-beats',
       );
 
-      expect(user.username, isNull);
       expect(user.displayName, isNull);
       expect(user.avatarUrl, isNull);
       expect(user.bio, isNull);
@@ -64,21 +63,24 @@ void main() {
         handle: 'ahmed-hassan-beats',
       );
 
-      expect(user.isPro, isFalse);
+      expect(user.isPro, false);
     });
 
-    test('isProfileCompleted defaults to false', () {
+    test('isVerified defaults to false', () {
       final user = User(
         id: 'user-uuid-123',
         email: 'ahmed@test.com',
         handle: 'ahmed-hassan-beats',
       );
 
-      expect(user.isProfileCompleted, isFalse);
+      expect(user.isVerified, false);
     });
 
     test('stores avatarUrl when provided', () {
-      final user = buildUser(
+      final user = User(
+        id: 'user-uuid-123',
+        email: 'ahmed@test.com',
+        handle: 'ahmed-hassan-beats',
         avatarUrl: 'https://s3.aws.com/ahmed-avatar.jpg',
       );
 

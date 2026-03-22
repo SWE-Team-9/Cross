@@ -1,17 +1,21 @@
+// Dart SDK
+// Flutter
+// Third-party
+// Project
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
 import '../datasources/auth_remote_data_source.dart';
-
+ 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
   final AuthLocalDataSource localDataSource;
-
+ 
   AuthRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
   });
-
+ 
   @override
   Future<User> login({
     required String email,
@@ -23,16 +27,16 @@ class AuthRepositoryImpl implements AuthRepository {
       password: password,
       captchaToken: captchaToken,
     );
-
-    // حفظ التوكنز التي سحبناها من الـ Cookies
-    await localDataSource.saveTokens(
-      access: authResponse.accessToken,
-      refresh: authResponse.refreshToken,
-    );
-
+ 
+    // Tokens are managed by CookieManager as httpOnly cookies.
+    // Saving them to SecureStorage is what caused the double auth bug —
+    // the stored token was being read by something and added as a Bearer
+    // header on every request while CookieManager was also sending the cookie.
+    // Solution: do not save tokens here at all.
+ 
     return authResponse.user.toEntity();
   }
-
+ 
   @override
   Future<User> register({
     required String email,
@@ -52,20 +56,16 @@ class AuthRepositoryImpl implements AuthRepository {
       gender: gender,
       captchaToken: captchaToken,
     );
-
-    await localDataSource.saveTokens(
-      access: authResponse.accessToken,
-      refresh: authResponse.refreshToken,
-    );
-
+ 
+    // Same reason as login — no token saving.
     return authResponse.user.toEntity();
   }
-
+ 
   @override
   Future<void> forgotPassword({required String email}) {
     return remoteDataSource.forgotPassword(email: email);
   }
-
+ 
   @override
   Future<void> resetPassword({
     required String code,
@@ -78,17 +78,17 @@ class AuthRepositoryImpl implements AuthRepository {
       newPasswordConfirm: newPasswordConfirm,
     );
   }
-
+ 
   @override
   Future<void> sendEmailVerification({required String email}) {
     return remoteDataSource.sendEmailVerification(email: email);
   }
-
+ 
   @override
   Future<void> verifyEmail({required String email, required String code}) {
     return remoteDataSource.verifyEmail(code: code);
   }
-
+ 
   @override
   Future<User?> getCurrentUser() async {
     try {
@@ -98,19 +98,40 @@ class AuthRepositoryImpl implements AuthRepository {
       return null;
     }
   }
-
+ 
+  @override
+  Future<bool> isLoggedIn() async {
+    // CHANGED: was reading token from SecureStorage:
+    //   final token = await localDataSource.getAccessToken();
+    //   return token != null && token.isNotEmpty;
+    //
+    // Problem with the old approach:
+    // 1. A saved token could be expired — user would appear logged in but all
+    //    requests would fail with 401
+    // 2. Reading from SecureStorage is what triggered AuthInterceptor to add
+    //    the Bearer header, causing the double auth bug
+    //
+    // New approach: call GET /auth/me directly.
+    // If the httpOnly cookie is valid → server returns 200 → user is logged in
+    // If the cookie is expired/missing → server returns 401 → not logged in
+    // This is always accurate and removes the need for SecureStorage entirely.
+    try {
+      await remoteDataSource.getCurrentUser();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+ 
   @override
   Future<void> logout() async {
     try {
       await remoteDataSource.logout();
     } finally {
+      // Clear any previously saved tokens from SecureStorage.
+      // After this fix tokens won't be saved anymore, but clearAll()
+      // handles any tokens that were saved by the old version.
       await localDataSource.clearAll();
     }
-  }
-
-  @override
-  Future<bool> isLoggedIn() async {
-    final token = await localDataSource.getAccessToken();
-    return token != null && token.isNotEmpty;
   }
 }
