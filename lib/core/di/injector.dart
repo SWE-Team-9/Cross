@@ -1,7 +1,13 @@
+import 'package:flutter/widgets.dart';
+
+// Third-party
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
+// Project
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -62,7 +68,16 @@ import '../storage/secure_storage.dart';
 
 final getIt = GetIt.instance;
 
-void setupDependencies() {
+Future<void> setupDependencies() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final appDocDir = await getApplicationDocumentsDirectory();
+  final cookieJar = PersistCookieJar(
+    storage: FileStorage('${appDocDir.path}/.cookies/'),
+  );
+
+  // ── Core ───────────────────────────────────────────────────────────────────
+
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
     getIt.registerLazySingleton<FlutterSecureStorage>(
       () => const FlutterSecureStorage(aOptions: AndroidOptions()),
@@ -83,18 +98,21 @@ void setupDependencies() {
           defaultValue: ApiConstants.baseUrl,
         ),
         secureStorage: getIt<SecureStorage>(),
+        cookieJar: cookieJar,
       ),
     );
   }
 
-  // --- Core Services ---
+  // ── Core Services ──────────────────────────────────────────────────────────
+
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
       () => JustAudioPlayerService(),
     );
   }
 
-  // --- Upload Feature: File Picker ---
+  // ── Upload Feature: File Picker ────────────────────────────────────────────
+
   if (!getIt.isRegistered<AudioFilePickerDataSource>()) {
     getIt.registerLazySingleton<AudioFilePickerDataSource>(
       () => const AudioFilePickerDataSourceImpl(),
@@ -119,7 +137,8 @@ void setupDependencies() {
     );
   }
 
-  // --- Upload Feature: Track Management Basics ---
+  // ── Upload Feature: Track Management Basics ────────────────────────────────
+
   const bool useMockTrackManagement = bool.fromEnvironment(
     'USE_MOCK_TRACK_MANAGEMENT',
     defaultValue: false,
@@ -179,7 +198,8 @@ void setupDependencies() {
     );
   }
 
-  // --- Profile Feature: Sprint 2 Profile Image Upload Flow ---
+  // ── Profile Feature: Sprint 2 Profile Image Upload Flow ───────────────────
+
   const bool useMockProfileImageUpload = bool.fromEnvironment(
     'USE_MOCK_PROFILE_IMAGE_UPLOAD',
     defaultValue: false,
@@ -225,7 +245,8 @@ void setupDependencies() {
     );
   }
 
-  // --- Auth Feature ---
+  // ── Auth Feature ───────────────────────────────────────────────────────────
+
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
     getIt.registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(getIt<DioClient>()),
@@ -323,7 +344,8 @@ void setupDependencies() {
     );
   }
 
-  // --- Profile Feature from dev ---
+  // ── Profile Feature from dev ───────────────────────────────────────────────
+
   if (!getIt.isRegistered<profile_data.ProfileRemoteDataSource>()) {
     getIt.registerLazySingleton<profile_data.ProfileRemoteDataSource>(
       () => profile_data.ProfileRemoteDataSourceImpl(getIt<DioClient>()),
