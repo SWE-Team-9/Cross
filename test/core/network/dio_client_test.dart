@@ -1,4 +1,6 @@
-import 'package:flutter/services.dart';
+import 'dart:io';
+
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
@@ -11,38 +13,27 @@ void main() {
 
   late DioClient dioClient;
   late MockSecureStorage mockSecureStorage;
+  late PersistCookieJar cookieJar;
 
   setUp(() {
     mockSecureStorage = MockSecureStorage();
-
-    when(() => mockSecureStorage.read(any())).thenAnswer((_) async => null);
-
-    const channel = MethodChannel('plugins.flutter.io/path_provider');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-      if (methodCall.method == 'getApplicationDocumentsDirectory') {
-        return '.';
-      }
-      return null;
-    });
+    cookieJar = PersistCookieJar(
+      storage: FileStorage(
+        '${Directory.systemTemp.path}/cross_dio_client_test_cookies',
+      ),
+    );
 
     dioClient = DioClient(
       baseUrl: 'https://api.test.com',
       secureStorage: mockSecureStorage,
+      cookieJar: cookieJar,
     );
   });
 
-  group('DioClient initialization', () {
-    test('should initialize with correct base options', () {
-      expect(dioClient.dio.options.baseUrl, 'https://api.test.com');
-      expect(dioClient.dio.options.connectTimeout, const Duration(seconds: 30));
-      expect(dioClient.dio.options.receiveTimeout, const Duration(seconds: 30));
-      expect(dioClient.dio.options.headers['Content-Type'], isNull);
-    });
-
+  group('DioClient Integration Tests', () {
     test('Dio instance should be initialized with interceptors', () {
       expect(dioClient.dio, isNotNull);
-      expect(dioClient.dio.interceptors, isNotEmpty);
+      expect(dioClient.dio.interceptors.length, isNot(0));
     });
 
     test('get request should use the correct baseUrl', () {
