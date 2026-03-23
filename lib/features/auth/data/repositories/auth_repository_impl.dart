@@ -127,10 +127,11 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> logout() async {
     try {
       await remoteDataSource.logout();
+    } catch (_) {
+      // Remote logout failure is non-fatal.
+      // The user is logged out locally regardless —
+      // cookies will expire on the server eventually.
     } finally {
-      // Clear any previously saved tokens from SecureStorage.
-      // After this fix tokens won't be saved anymore, but clearAll()
-      // handles any tokens that were saved by the old version.
       await localDataSource.clearAll();
     }
   }
