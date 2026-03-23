@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../core/di/injector.dart';
 
+// Profile
+import '../features/profile/presentation/bloc/profile_cubit.dart';
+
 // Upload (existing — Sprint 1)
 import '../features/upload/domain/entities/ManagedTrack.dart';
 import '../features/upload/domain/entities/TrackManagementVisibility.dart';
@@ -42,8 +45,8 @@ class AppRoutes {
   static const String library = '/library';
   static const String uploadPicker = '/upload-picker';
   static const String profileImageUploadDemo = '/profile-image-upload-demo';
-  static const String profile = '/profile/:handle';
   static const String editProfile = '/profile/edit';
+  static const String profile = '/profile/:handle';
   static const String followers = '/followers/:handle';
   static const String following = '/following/:handle';
   static const String trackManagementDemo = '/track-management-demo';
@@ -118,9 +121,15 @@ final GoRouter router = GoRouter(
       path: AppRoutes.editProfile,
       name: 'edit-profile',
       parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) => const MaterialPage(
-        child: EditProfilePage(),
-      ),
+      pageBuilder: (context, state) {
+        final cubit = state.extra as ProfileCubit;
+        return MaterialPage(
+          child: BlocProvider.value(
+            value: cubit,
+            child: const EditProfilePage(),
+          ),
+        );
+      },
     ),
 
     GoRoute(
@@ -134,6 +143,9 @@ final GoRouter router = GoRouter(
         );
       },
     ),
+
+    // Note: This must come BEFORE or be distinct from /profile/:handle
+    // to avoid being captured by the dynamic parameter if paths overlap.
 
     // ── Social (Followers/Following) ──────────────────────────────
     GoRoute(
