@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/profile_cubit.dart';
 
 /// Named route paths and navigation helpers for the profile feature.
 /// Import this anywhere you need to navigate to a profile screen.
@@ -22,9 +24,10 @@ abstract class ProfileRoutes {
   static void goToProfile(BuildContext context, String handle) =>
       context.push('/profile/$handle');
 
-  static void goToEditProfile(BuildContext context) =>
-      context.push('/profile/edit');
-
+  static void goToEditProfile(BuildContext context) {
+    final cubit = context.read<ProfileCubit>();
+    context.push('/profile/edit', extra: cubit);
+  }
   static void goToFollowers(BuildContext context, String handle) =>
       context.push('/followers/$handle');
 

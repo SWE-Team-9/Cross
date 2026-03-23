@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+
 import '../core/di/injector.dart';
+
+//profile
+import '../features/profile/presentation/bloc/profile_cubit.dart';
 
 // Upload (existing — Sprint 1)
 import '../features/upload/presentation/bloc/uploadPickerCubit.dart';
@@ -34,8 +38,8 @@ class AppRoutes {
   static const String home = '/home';
   static const String library = '/library';
   static const String uploadPicker = '/upload-picker';
-  static const String profile = '/profile/:handle';
   static const String editProfile = '/profile/edit';
+  static const String profile = '/profile/:handle';
   static const String followers = '/followers/:handle';
   static const String following = '/following/:handle';
 }
@@ -87,6 +91,25 @@ final GoRouter router = GoRouter(
     ),
 
     // ── Profile (Sprint 2 — T2.1) ─────────────────────────────────
+
+    GoRoute(
+      path: AppRoutes.editProfile,
+      name: 'edit-profile',
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) {
+        // The ProfileCubit is passed from ProfilePage via extra.
+        // BlocProvider.value shares the existing instance — no new cubit,
+        // no new network call, the loaded profile is already in its state.
+        final cubit = state.extra as ProfileCubit;
+        return MaterialPage(
+          child: BlocProvider.value(
+            value: cubit,
+            child: const EditProfilePage(),
+          ),
+        );
+      },
+    ),
+
     GoRoute(
       path: AppRoutes.profile,
       name: 'profile',
@@ -101,14 +124,6 @@ final GoRouter router = GoRouter(
 
     // Note: This must come BEFORE or be distinct from /profile/:handle
     // to avoid being captured by the dynamic parameter if paths overlap.
-    GoRoute(
-      path: AppRoutes.editProfile,
-      name: 'edit-profile',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) => const MaterialPage(
-        child: EditProfilePage(),
-      ),
-    ),
 
     // ── Social (Followers/Following) ──────────────────────────────
     GoRoute(

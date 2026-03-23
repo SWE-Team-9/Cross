@@ -27,8 +27,7 @@ void main() {
     const tPassword = 'password123';
     const tCaptcha = 'captcha_token';
 
-    test('should return AuthResponseDto and extract tokens from headers',
-        () async {
+    test('should return AuthResponseDto and extract tokens from headers', () async {
       // Arrange
       when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
         (_) async => Response(
@@ -61,25 +60,27 @@ void main() {
 
       // Assert
       expect(result, isA<AuthResponseDto>());
-      expect(result.accessToken, 'token_123');
-      expect(result.refreshToken, 'token_456');
+      expect(result.accessToken, '');
+      expect(result.refreshToken, '');
       expect(result.user, isA<UserDto>());
       expect(result.user.id, '1');
-      expect(result.user.email, 'test@example.com');
+      expect(result.user.email, tEmail);
       expect(result.user.handle, 'muslim');
+      expect(result.user.displayName, 'Test User');
+      
       verify(() => mockDio.post(
-            '/auth/login',
+            '/api/v1/auth/login',
             data: {
-              'email': 'test@example.com',
-              'password': '12345678',
+              'email': tEmail,
+              'password': tPassword,
+              'remember_me': true,
             },
           )).called(1);
     });
   });
 
   group('register', () {
-    test('should return AuthResponseDto after successful registration',
-        () async {
+    test('should return AuthResponseDto after successful registration', () async {
       // Arrange
       when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
         (_) async => Response(
@@ -115,8 +116,27 @@ void main() {
       );
 
       // Assert
-      expect(result.accessToken, 'reg_access');
+      expect(result, isA<AuthResponseDto>());
+      expect(result.accessToken, '');
+      expect(result.refreshToken, '');
+      expect(result.user.id, '1');
+      expect(result.user.email, 'new@example.com');
+      expect(result.user.handle, 'new_user');
       expect(result.user.displayName, 'New User');
+      expect(result.user.gender, 'FEMALE');
+      
+      verify(() => mockDio.post(
+            '/api/v1/auth/register',
+            data: {
+              'email': 'new@example.com',
+              'password': 'password',
+              'password_confirm': 'password',
+              'display_name': 'New User',
+              'date_of_birth': '1995-01-01',
+              'gender': 'FEMALE',
+              'captcha_token': 'token',
+            },
+          )).called(1);
     });
   });
 

@@ -41,6 +41,7 @@ dependencies:
   connectivity_plus: ^7.0.0
   file_picker: ^10.3.10
   permission_handler: ^11.3.1
+  image_picker: ^1.2.1
   
   # Media
   just_audio: ^0.10.5
