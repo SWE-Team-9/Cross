@@ -29,6 +29,7 @@ void main() {
 
     test('should return AuthResponseDto and leave tokens empty for cookie auth',
         () async {
+      // Arrange
       when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/auth/login'),
@@ -51,12 +52,14 @@ void main() {
         ),
       );
 
+      // Act
       final result = await dataSource.login(
         email: tEmail,
         password: tPassword,
         captchaToken: tCaptcha,
       );
 
+      // Assert
       expect(result, isA<AuthResponseDto>());
       expect(result.accessToken, '');
       expect(result.refreshToken, '');
@@ -64,6 +67,7 @@ void main() {
       expect(result.user.id, '1');
       expect(result.user.email, tEmail);
       expect(result.user.handle, 'muslim');
+      expect(result.user.displayName, 'Test User');
 
       verify(() => mockDio.post(
             '/api/v1/auth/login',
@@ -79,6 +83,7 @@ void main() {
   group('register', () {
     test('should return AuthResponseDto after successful registration',
         () async {
+      // Arrange
       when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/auth/register'),
@@ -101,6 +106,7 @@ void main() {
         ),
       );
 
+      // Act
       final result = await dataSource.register(
         email: 'new@example.com',
         password: 'password',
@@ -111,9 +117,15 @@ void main() {
         captchaToken: 'token',
       );
 
+      // Assert
+      expect(result, isA<AuthResponseDto>());
       expect(result.accessToken, '');
       expect(result.refreshToken, '');
+      expect(result.user.id, '1');
+      expect(result.user.email, 'new@example.com');
+      expect(result.user.handle, 'new_user');
       expect(result.user.displayName, 'New User');
+      expect(result.user.gender, 'FEMALE');
 
       verify(() => mockDio.post(
             '/api/v1/auth/register',
@@ -132,12 +144,15 @@ void main() {
 
   group('sendEmailVerification', () {
     test('should call correct endpoint for resending verification', () async {
+      // Arrange
       when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
         (_) async => Response(requestOptions: RequestOptions(path: '')),
       );
 
+      // Act
       await dataSource.sendEmailVerification(email: 'test@example.com');
 
+      // Assert
       verify(() => mockDio.post(
             '/api/v1/auth/resend-verification',
             data: {'email': 'test@example.com'},
@@ -147,6 +162,7 @@ void main() {
 
   group('getCurrentUser', () {
     test('should return UserDto from /me endpoint', () async {
+      // Arrange
       when(() => mockDio.get(any())).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
@@ -163,8 +179,10 @@ void main() {
         ),
       );
 
+      // Act
       final result = await dataSource.getCurrentUser();
 
+      // Assert
       expect(result.email, 'me@example.com');
       expect(result.handle, 'muslim');
       verify(() => mockDio.get('/api/v1/auth/me')).called(1);
@@ -173,12 +191,15 @@ void main() {
 
   group('logout', () {
     test('should call logout endpoint', () async {
+      // Arrange
       when(() => mockDio.post(any())).thenAnswer(
         (_) async => Response(requestOptions: RequestOptions(path: '')),
       );
 
+      // Act
       await dataSource.logout();
 
+      // Assert
       verify(() => mockDio.post('/api/v1/auth/logout')).called(1);
     });
   });
