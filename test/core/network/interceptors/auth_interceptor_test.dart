@@ -6,6 +6,8 @@ import 'package:soundcloud_clone/core/storage/secure_storage.dart';
 
 class _MockSecureStorage extends Mock implements SecureStorage {}
 
+class _MockDio extends Mock implements Dio {}
+
 class _MockRequestInterceptorHandler extends Mock
     implements RequestInterceptorHandler {}
 
@@ -15,80 +17,38 @@ class _MockErrorInterceptorHandler extends Mock
 void main() {
   late AuthInterceptor interceptor;
   late _MockSecureStorage mockSecureStorage;
-  late Dio testDio;
+  late _MockDio mockDio;
 
   setUpAll(() {
-    registerFallbackValue(RequestOptions(path: ''));
+    registerFallbackValue(RequestOptions(path: '/fallback'));
     registerFallbackValue(
-      DioException(requestOptions: RequestOptions(path: '')),
+      DioException(requestOptions: RequestOptions(path: '/fallback')),
+    );
+    registerFallbackValue(
+      Response<dynamic>(requestOptions: RequestOptions(path: '/fallback')),
     );
   });
 
   setUp(() {
     mockSecureStorage = _MockSecureStorage();
+    mockDio = _MockDio();
     interceptor = AuthInterceptor(secureStorage: mockSecureStorage);
-    testDio = Dio();
-
-    when(() => mockSecureStorage.read(any())).thenAnswer((_) async => null);
   });
 
   group('AuthInterceptor', () {
-    group('setDio', () {
-      test('sets internal dio reference without throwing', () {
-        expect(
-          () => interceptor.setDio(testDio),
-          returnsNormally,
-        );
-      });
+    test('setDio stores dio instance without throwing', () {
+      expect(() => interceptor.setDio(mockDio), returnsNormally);
     });
 
     group('onRequest', () {
-      test(
-          'sets Content-Type to application/json and adds Authorization for protected non-FormData requests',
-          () async {
+      test('sets json content type for non-FormData requests', () {
         final options = RequestOptions(
           path: '/profiles/me',
-          data: {'bio': 'test'},
+          data: <String, dynamic>{'bio': 'updated'},
         );
         final handler = _MockRequestInterceptorHandler();
 
-        when(() => mockSecureStorage.read('auth_token'))
-            .thenAnswer((_) async => 'test-token-123');
-
-        await interceptor.onRequest(options, handler);
-
-        expect(options.headers['Content-Type'], 'application/json');
-        expect(options.headers['Authorization'], 'Bearer test-token-123');
-        verify(() => mockSecureStorage.read('auth_token')).called(1);
-        verify(() => handler.next(options)).called(1);
-      });
-
-      test('does not override Content-Type for FormData requests', () async {
-        final options = RequestOptions(
-          path: '/profiles/me/images/avatar',
-          data: FormData(),
-        );
-        final handler = _MockRequestInterceptorHandler();
-
-        when(() => mockSecureStorage.read('auth_token'))
-            .thenAnswer((_) async => null);
-
-        await interceptor.onRequest(options, handler);
-
-        expect(options.headers.containsKey('Content-Type'), isFalse);
-        expect(options.headers.containsKey('Authorization'), isFalse);
-        verify(() => mockSecureStorage.read('auth_token')).called(1);
-        verify(() => handler.next(options)).called(1);
-      });
-
-      test('does not read token for auth endpoints', () async {
-        final options = RequestOptions(
-          path: '/auth/login',
-          data: {'email': 'ali@example.com'},
-        );
-        final handler = _MockRequestInterceptorHandler();
-
-        await interceptor.onRequest(options, handler);
+        interceptor.onRequest(options, handler);
 
         expect(options.headers['Content-Type'], 'application/json');
         expect(options.headers.containsKey('Authorization'), isFalse);
@@ -96,21 +56,42 @@ void main() {
         verify(() => handler.next(options)).called(1);
       });
 
-      test('always calls handler.next() to continue the pipeline', () async {
-        final options = RequestOptions(path: '/profiles/me');
+      test('does not override content type for FormData requests', () {
+        final options = RequestOptions(
+          path: '/profiles/me/images/avatar',
+          data: FormData(),
+        );
         final handler = _MockRequestInterceptorHandler();
 
-        await interceptor.onRequest(options, handler);
+        interceptor.onRequest(options, handler);
 
+        expect(options.headers.containsKey('Content-Type'), isFalse);
+        expect(options.headers.containsKey('Authorization'), isFalse);
+        verifyNever(() => mockSecureStorage.read(any()));
+        verify(() => handler.next(options)).called(1);
+      });
+
+      test('does not add authorization header for auth endpoints', () {
+        final options = RequestOptions(
+          path: '/auth/login',
+          data: <String, dynamic>{'email': 'ali@example.com'},
+        );
+        final handler = _MockRequestInterceptorHandler();
+
+        interceptor.onRequest(options, handler);
+
+        expect(options.headers['Content-Type'], 'application/json');
+        expect(options.headers.containsKey('Authorization'), isFalse);
+        verifyNever(() => mockSecureStorage.read(any()));
         verify(() => handler.next(options)).called(1);
       });
     });
 
     group('onError', () {
-      test('calls handler.next() for non-401 errors', () async {
+      test('passes through non-401 errors', () async {
         final err = DioException(
           requestOptions: RequestOptions(path: '/profiles/me'),
-          response: Response(
+          response: Response<dynamic>(
             requestOptions: RequestOptions(path: '/profiles/me'),
             statusCode: 404,
           ),
@@ -122,12 +103,10 @@ void main() {
         verify(() => handler.next(err)).called(1);
       });
 
-      test(
-          'calls handler.next() for 401 on login endpoint without refresh attempt',
-          () async {
+      test('passes through 401 on login endpoint without refresh', () async {
         final err = DioException(
           requestOptions: RequestOptions(path: '/auth/login'),
-          response: Response(
+          response: Response<dynamic>(
             requestOptions: RequestOptions(path: '/auth/login'),
             statusCode: 401,
           ),
@@ -136,15 +115,14 @@ void main() {
 
         await interceptor.onError(err, handler);
 
+        verifyNever(() => mockDio.post(any()));
         verify(() => handler.next(err)).called(1);
       });
 
-      test(
-          'calls handler.next() for 401 on refresh endpoint to avoid refresh loop',
-          () async {
+      test('passes through 401 on refresh endpoint to avoid loop', () async {
         final err = DioException(
           requestOptions: RequestOptions(path: '/auth/refresh'),
-          response: Response(
+          response: Response<dynamic>(
             requestOptions: RequestOptions(path: '/auth/refresh'),
             statusCode: 401,
           ),
@@ -153,15 +131,14 @@ void main() {
 
         await interceptor.onError(err, handler);
 
+        verifyNever(() => mockDio.post(any()));
         verify(() => handler.next(err)).called(1);
       });
 
-      test(
-          'passes error through when dio is not set and 401 happens on protected endpoint',
-          () async {
+      test('passes through 401 when dio is not set', () async {
         final err = DioException(
           requestOptions: RequestOptions(path: '/profiles/me'),
-          response: Response(
+          response: Response<dynamic>(
             requestOptions: RequestOptions(path: '/profiles/me'),
             statusCode: 401,
           ),
@@ -170,6 +147,70 @@ void main() {
 
         await interceptor.onError(err, handler);
 
+        verify(() => handler.next(err)).called(1);
+      });
+
+      test('refreshes and retries protected request on 401', () async {
+        interceptor.setDio(mockDio);
+
+        final requestOptions = RequestOptions(path: '/profiles/me');
+        final err = DioException(
+          requestOptions: requestOptions,
+          response: Response<dynamic>(
+            requestOptions: requestOptions,
+            statusCode: 401,
+          ),
+        );
+        final retryResponse = Response<dynamic>(
+          requestOptions: requestOptions,
+          statusCode: 200,
+          data: <String, dynamic>{'ok': true},
+        );
+        final handler = _MockErrorInterceptorHandler();
+
+        when(() => mockDio.post('/auth/refresh')).thenAnswer(
+          (_) async => Response<dynamic>(
+            requestOptions: RequestOptions(path: '/auth/refresh'),
+            statusCode: 200,
+          ),
+        );
+        when(() => mockDio.fetch<dynamic>(requestOptions))
+            .thenAnswer((_) async => retryResponse);
+
+        await interceptor.onError(err, handler);
+
+        verify(() => mockDio.post('/auth/refresh')).called(1);
+        verify(() => mockDio.fetch<dynamic>(requestOptions)).called(1);
+        verify(() => handler.resolve(retryResponse)).called(1);
+      });
+
+      test('passes original error through when refresh fails', () async {
+        interceptor.setDio(mockDio);
+
+        final requestOptions = RequestOptions(path: '/profiles/me');
+        final err = DioException(
+          requestOptions: requestOptions,
+          response: Response<dynamic>(
+            requestOptions: requestOptions,
+            statusCode: 401,
+          ),
+        );
+        final handler = _MockErrorInterceptorHandler();
+
+        when(() => mockDio.post('/auth/refresh')).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/auth/refresh'),
+            response: Response<dynamic>(
+              requestOptions: RequestOptions(path: '/auth/refresh'),
+              statusCode: 401,
+            ),
+          ),
+        );
+
+        await interceptor.onError(err, handler);
+
+        verify(() => mockDio.post('/auth/refresh')).called(1);
+        verifyNever(() => mockDio.fetch<dynamic>(any()));
         verify(() => handler.next(err)).called(1);
       });
     });
