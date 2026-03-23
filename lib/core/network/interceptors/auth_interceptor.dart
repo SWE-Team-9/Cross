@@ -2,28 +2,29 @@ import 'package:dio/dio.dart';
 
 import '../../storage/secure_storage.dart';
 
+/// Handles automatic token refresh when the access token expires.
+///
+/// The access_token and refresh_token are httpOnly cookies managed
+/// automatically by CookieManager in DioClient.
+/// This interceptor's only job is to call the refresh endpoint on 401
+/// so the user is never unexpectedly logged out mid-session.
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor({required this.secureStorage});
-
   final SecureStorage secureStorage;
   Dio? _dio;
 
+  AuthInterceptor({required this.secureStorage});
+
+  /// Called by DioClient after construction so we have access to the Dio instance
   void setDio(Dio dio) => _dio = dio;
 
   @override
-  Future<void> onRequest(
+  void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
-  ) async {
+  ) {
+    // CookieManager handles cookie attachment automatically.
     if (options.data is! FormData) {
       options.headers['Content-Type'] = 'application/json';
-    }
-
-    if (!options.path.contains('/auth/')) {
-      final token = await secureStorage.read('auth_token');
-      if (token != null && token.isNotEmpty) {
-        options.headers['Authorization'] = 'Bearer $token';
-      }
     }
 
     handler.next(options);
@@ -34,18 +35,18 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    final isUnauthorized = err.response?.statusCode == 401;
-    final isRefreshEndpoint = err.requestOptions.path.contains('/auth/refresh');
-    final isLoginEndpoint = err.requestOptions.path.contains('/auth/login');
+    final bool isUnauthorized = err.response?.statusCode == 401;
+    final bool isRefreshEndpoint =
+        err.requestOptions.path.contains('/auth/refresh');
+    final bool isLoginEndpoint =
+        err.requestOptions.path.contains('/auth/login');
 
-    if (isUnauthorized &&
-        !isRefreshEndpoint &&
-        !isLoginEndpoint &&
-        _dio != null) {
+    if (isUnauthorized && !isRefreshEndpoint && !isLoginEndpoint && _dio != null) {
       try {
         await _refreshToken();
 
-        final retryResponse = await _dio!.fetch(err.requestOptions);
+        final Response<dynamic> retryResponse =
+            await _dio!.fetch(err.requestOptions);
         return handler.resolve(retryResponse);
       } catch (_) {
         // Refresh failed — let the original error continue.
