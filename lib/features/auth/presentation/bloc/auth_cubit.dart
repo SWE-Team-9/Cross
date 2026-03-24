@@ -221,4 +221,18 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthError('An unexpected error occurred.'));
     }
   }
+
+  Future<void> refreshCurrentUserSilently() async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    try {
+      final user = await getCurrentUserUseCase();
+      if (user != null) {
+        emit(AuthAuthenticated(user));
+      }
+    } catch (_) {
+      // Keep the current authenticated state unchanged on refresh failure.
+    }
+  }
 }

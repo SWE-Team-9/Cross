@@ -1,17 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// Project
 import '../../../../core/errors/failure.dart';
+import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../domain/usecases/get_profile_usecase.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
 import 'profile_state.dart';
 
-/// Manages all state changes for the profile feature.
-///
-/// T2.3: loadProfile()   → GET /api/v1/profiles/:handle
-/// T2.4: updateProfile() → PATCH /api/v1/profiles/me
-/// T2.4: uploadImage()   → POST /api/v1/profiles/me/images/:type
 class ProfileCubit extends Cubit<ProfileState> {
   final GetProfileUseCase _getProfileUseCase;
   final UpdateProfileUseCase _updateProfileUseCase;
@@ -26,10 +21,6 @@ class ProfileCubit extends Cubit<ProfileState> {
         _profileRepository = profileRepository,
         super(ProfileInitial());
 
-  // ── T2.3 ──────────────────────────────────────────────────────────────────
-
-  /// Loads a user profile by handle.
-  /// Called by ProfilePage on creation.
   Future<void> loadProfile(String handle) async {
     emit(ProfileLoading());
 
@@ -37,68 +28,93 @@ class ProfileCubit extends Cubit<ProfileState> {
       final profile = await _getProfileUseCase(handle).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
-          print('Timeout loading profile for handle: $handle');
-          // Use a concrete Failure subclass - adjust based on your actual failure types
           throw const ServerFailure(
-              'Request timed out. Please check your connection.');
+            'Request timed out. Please check your connection.',
+          );
         },
       );
+
       emit(ProfileLoaded(profile));
-    } on Failure catch (f) {
-      emit(ProfileError(f.message));
-    } catch (e) {
-      // Catches any other unexpected errors
-      print('Unexpected error loading profile: $e');
+    } on Failure catch (failure) {
+      emit(ProfileError(failure.message));
+    } catch (_) {
       emit(ProfileError('Something went wrong. Please try again.'));
     }
   }
 
-  // ── T2.4 ──────────────────────────────────────────────────────────────────
-
-  /// Saves profile text field changes.
-  /// Called by EditProfilePage after form validation passes.
   Future<void> updateProfile(UpdateProfileParams params) async {
-    final currentState = state;
-    // Guard: can only update if a profile is already loaded
-    if (currentState is! ProfileLoaded) return;
+    final ProfileEntity? currentProfile = _currentProfileFromState();
+    if (currentProfile == null) return;
 
-    emit(ProfileUpdating(currentState.profile));
+    emit(ProfileUpdating(currentProfile));
 
     try {
       final updatedProfile = await _updateProfileUseCase(params);
       emit(ProfileUpdateSuccess(updatedProfile));
-    } on Failure catch (f) {
-      // Stay on the edit page with the existing data — just show the error
-      emit(ProfileUpdateError(currentState.profile, f.message));
+      emit(ProfileLoaded(updatedProfile));
+    } on Failure catch (failure) {
+      emit(ProfileUpdateError(currentProfile, failure.message));
+    } catch (_) {
+      emit(
+        ProfileUpdateError(
+          currentProfile,
+          'Unable to update profile. Please try again.',
+        ),
+      );
     }
   }
 
-  /// Uploads a new avatar or cover photo.
-  /// Called by EditProfilePage after the user picks an image.
   Future<void> uploadImage({
     required ProfileImageType imageType,
     required String filePath,
   }) async {
-    final currentState = state;
-    if (currentState is! ProfileLoaded) return;
+    final ProfileEntity? currentProfile = _currentProfileFromState();
+    if (currentProfile == null) return;
 
-    emit(ProfileImageUploading(currentState.profile, imageType));
+    emit(ProfileImageUploading(currentProfile, imageType));
 
     try {
-      final newUrl = await _profileRepository.uploadProfileImage(
+      final String newUrl = await _profileRepository.uploadProfileImage(
         imageType: imageType,
         filePath: filePath,
       );
 
-      // Update only the changed image URL — keep all other profile data.
-      final updatedProfile = imageType == ProfileImageType.AVATAR
-          ? currentState.profile.copyWith(avatarUrl: newUrl)
-          : currentState.profile.copyWith(coverPhotoUrl: newUrl);
+      final ProfileEntity updatedProfile = imageType == ProfileImageType.AVATAR
+          ? currentProfile.copyWith(avatarUrl: newUrl)
+          : currentProfile.copyWith(coverPhotoUrl: newUrl);
 
       emit(ProfileLoaded(updatedProfile));
-    } on Failure catch (f) {
-      // Upload failed — go back to showing the current profile unchanged
-      emit(ProfileUpdateError(currentState.profile, f.message));
+    } on Failure catch (failure) {
+      emit(ProfileUpdateError(currentProfile, failure.message));
+    } catch (_) {
+      emit(
+        ProfileUpdateError(
+          currentProfile,
+          'Unable to upload image. Please try again.',
+        ),
+      );
     }
+  }
+
+  ProfileEntity? _currentProfileFromState() {
+    final currentState = state;
+
+    if (currentState is ProfileLoaded) {
+      return currentState.profile;
+    }
+    if (currentState is ProfileUpdating) {
+      return currentState.currentProfile;
+    }
+    if (currentState is ProfileUpdateError) {
+      return currentState.currentProfile;
+    }
+    if (currentState is ProfileImageUploading) {
+      return currentState.currentProfile;
+    }
+    if (currentState is ProfileUpdateSuccess) {
+      return currentState.updatedProfile;
+    }
+
+    return null;
   }
 }

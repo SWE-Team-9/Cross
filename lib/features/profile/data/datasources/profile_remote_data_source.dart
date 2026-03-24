@@ -70,10 +70,10 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     required String filePath,
   }) async {
     try {
-      final typeString =
+      final String typeString =
           imageType == ProfileImageType.AVATAR ? 'avatar' : 'cover';
 
-      final formData = FormData.fromMap({
+      final FormData formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(filePath),
       });
 
@@ -83,9 +83,26 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         options: Options(contentType: 'multipart/form-data'),
       );
 
-      final responseData =
+      final dynamic responseData =
           response.data is String ? jsonDecode(response.data) : response.data;
-      return responseData['url'] as String;
+
+      if (responseData is Map<String, dynamic>) {
+        final dynamic directUrl = responseData['url'];
+        if (directUrl is String && directUrl.trim().isNotEmpty) {
+          return directUrl;
+        }
+
+        final dynamic nestedData = responseData['data'];
+        if (nestedData is Map<String, dynamic>) {
+          final dynamic nestedUrl = nestedData['url'];
+          if (nestedUrl is String && nestedUrl.trim().isNotEmpty) {
+            return nestedUrl;
+          }
+        }
+      }
+
+      throw const FormatException(
+          'Invalid upload response: missing image url.');
     } catch (e) {
       print('🔥 Error in uploadProfileImage: $e');
       rethrow;

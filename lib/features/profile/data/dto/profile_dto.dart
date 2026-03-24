@@ -54,36 +54,45 @@ class ProfileDto {
   });
 
   factory ProfileDto.fromJson(Map<String, dynamic> json) {
-    // Handle social_links which might be a List or Map
-    final rawLinks = json['social_links'];
+    final rawLinks = json['social_links'] ?? json['socialLinks'];
     Map<String, String> links = {};
 
     if (rawLinks is Map<String, dynamic>) {
       links = rawLinks.map((k, v) => MapEntry(k, v.toString()));
     } else if (rawLinks is List) {
-      // If it's a list, convert to empty map
       links = {};
     }
 
-    final rawGenres = json['favorite_genres'] as List<dynamic>? ?? [];
-    final genres = rawGenres.map((e) => e.toString()).toList();
+    final rawGenres =
+        (json['favorite_genres'] ?? json['favoriteGenres']) as List<dynamic>? ??
+            [];
+    final genres = rawGenres.map((e) {
+      if (e is Map<String, dynamic>) {
+        return (e['slug'] ?? e['name'] ?? e.toString()).toString();
+      }
+      return e.toString();
+    }).toList();
 
     return ProfileDto(
-      id: json['id'] as String?,
-      displayName: json['display_name'] as String? ?? '',
-      handle: json['handle'] as String? ?? '',
-      bio: json['bio'] as String?,
-      location: json['location'] as String?,
-      avatarUrl: json['avatar_url'] as String?,
-      coverPhotoUrl: json['cover_photo_url'] as String?,
-      accountType: json['account_type'] as String? ??
-          'LISTENER', // Changed from account_tier
+      id: (json['id'] ?? json['userId']) as String?,
+      displayName:
+          (json['display_name'] ?? json['displayName']) as String? ?? '',
+      handle: (json['handle']) as String? ?? '',
+      bio: (json['bio']) as String?,
+      location: (json['location']) as String?,
+      avatarUrl: (json['avatar_url'] ?? json['avatarUrl']) as String?,
+      coverPhotoUrl:
+          (json['cover_photo_url'] ?? json['coverPhotoUrl']) as String?,
+      accountType: (json['account_type'] ?? json['accountType']) as String? ??
+          'LISTENER',
       favoriteGenres: genres,
       socialLinks: links,
-      visibility: json['visibility'] as String? ?? 'PUBLIC',
-      trackCount: json['track_count'] as int? ?? 0,
-      followersCount: json['followers_count'] as int?,
-      followingCount: json['following_count'] as int?,
+      visibility: (json['visibility']) as String? ?? 'PUBLIC',
+      trackCount: (json['track_count'] ?? json['trackCount']) as int? ?? 0,
+      followersCount:
+          (json['followers_count'] ?? json['followersCount']) as int?,
+      followingCount:
+          (json['following_count'] ?? json['followingCount']) as int?,
     );
   }
 

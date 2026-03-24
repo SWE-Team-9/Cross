@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:go_router/go_router.dart';
 
 import '../core/di/injector.dart';
 
-//profile
+// Profile
 import '../features/profile/presentation/bloc/profile_cubit.dart';
 
 // Upload (existing — Sprint 1)
+import '../features/upload/domain/entities/ManagedTrack.dart';
+import '../features/upload/domain/entities/TrackManagementVisibility.dart';
+import '../features/upload/presentation/bloc/trackManagementCubit.dart';
 import '../features/upload/presentation/bloc/uploadPickerCubit.dart';
+import '../features/upload/presentation/pages/TrackManagementPage.dart';
 import '../features/upload/presentation/pages/UploadPickerPage.dart';
 
 // Auth (existing — Sprint 1)
 import '../features/auth/presentation/routes/auth_routes.dart';
 
 // Profile (Sprint 2 — T2.1)
-import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
+import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/social/presentation/pages/followers_page.dart';
 import '../features/social/presentation/pages/following_page.dart';
 
@@ -33,7 +36,7 @@ import '../features/home/presentation/pages/mock_home_page.dart';
 // ── Navigator Keys ───────────────────────────────────────────────────────────
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-// ── Route name constants ──────────────────────────────────────────────────────
+// ── Route name constants ─────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
   static const String library = '/library';
@@ -42,22 +45,31 @@ class AppRoutes {
   static const String profile = '/profile/:handle';
   static const String followers = '/followers/:handle';
   static const String following = '/following/:handle';
+  static const String trackManagementDemo = '/track-management-demo';
 }
 
-// ── Router ────────────────────────────────────────────────────────────────────
+ManagedTrack _fallbackTrackManagementSeed() {
+  return const ManagedTrack(
+    id: 'demo-track-001',
+    title: 'Midnight Echoes',
+    description: 'Sprint 2 local demo track for edit/delete testing.',
+    genreId: 1,
+    genreName: 'Ambient',
+    tags: <String>['demo', 'sprint2'],
+    visibility: TrackManagementVisibility.publicTrack,
+    durationInSeconds: 212,
+  );
+}
+
+// ── Router ───────────────────────────────────────────────────────────────────
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-
-  // 1. التعديل هنا: نخلي البداية من الـ Splash
-  // بما إننا عدلنا AuthRoutes.splash لتكون '/'، هنستخدمها هنا
   initialLocation: AuthRoutes.splash,
-
   routes: [
     // ── Auth (Sprint 1) ───────────────────────────────────────────
-    // دي دلوقتي جواها الـ Splash مسارها '/' والـ Welcome مسارها '/welcome'
     ...AuthRoutes.routes,
 
-    // ── Home ───────────────────────────────────────────────────────
+    // ── Home ──────────────────────────────────────────────────────
     GoRoute(
       path: AppRoutes.home,
       name: 'home',
@@ -66,7 +78,7 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // ── Library ───────────────────────────────────────────────────────
+    // ── Library ───────────────────────────────────────────────────
     GoRoute(
       path: AppRoutes.library,
       name: 'library',
@@ -78,7 +90,7 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // ── Upload picker ──────────────────────────────────────────────
+    // ── Upload picker (Sprint 1) ──────────────────────────────────
     GoRoute(
       path: AppRoutes.uploadPicker,
       name: 'upload-picker',
@@ -90,16 +102,12 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // ── Profile (Sprint 2 — T2.1) ─────────────────────────────────
-
+    // ── Profile (Sprint 2 — T2.1) ────────────────────────────────
     GoRoute(
       path: AppRoutes.editProfile,
       name: 'edit-profile',
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) {
-        // The ProfileCubit is passed from ProfilePage via extra.
-        // BlocProvider.value shares the existing instance — no new cubit,
-        // no new network call, the loaded profile is already in its state.
         final cubit = state.extra as ProfileCubit;
         return MaterialPage(
           child: BlocProvider.value(
@@ -145,13 +153,33 @@ final GoRouter router = GoRouter(
       pageBuilder: (context, state) {
         final handle = state.pathParameters['handle'] ?? '';
         return MaterialPage(
-          child: FollowingPage(handle: handle), // Updated from userId to handle
+          child: FollowingPage(handle: handle),
+        );
+      },
+    ),
+
+    // ── Track management demo (Sprint 2) ─────────────────────────
+    GoRoute(
+      path: AppRoutes.trackManagementDemo,
+      name: 'track-management',
+      pageBuilder: (context, state) {
+        final ManagedTrack initialTrack = state.extra is ManagedTrack
+            ? state.extra as ManagedTrack
+            : _fallbackTrackManagementSeed();
+
+        return MaterialPage(
+          child: BlocProvider<TrackManagementCubit>(
+            create: (_) => getIt<TrackManagementCubit>(),
+            child: TrackManagementPage(
+              initialTrack: initialTrack,
+            ),
+          ),
         );
       },
     ),
   ],
 
-  // ── 404 fallback ─────────────────────────────────────────────────
+  // ── 404 fallback ───────────────────────────────────────────────
   errorBuilder: (context, state) => Scaffold(
     backgroundColor: Colors.black,
     body: Center(
@@ -165,7 +193,6 @@ final GoRouter router = GoRouter(
             style: TextStyle(color: Colors.white, fontSize: 20),
           ),
           const SizedBox(height: 8),
-          // 2. تعديل هنا: خليه يرجع للهوم لو تاه
           TextButton(
             onPressed: () => context.go(AppRoutes.home),
             child: const Text(

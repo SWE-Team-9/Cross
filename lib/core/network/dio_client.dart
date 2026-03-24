@@ -1,18 +1,17 @@
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
- 
-// Project
+
 import '../storage/secure_storage.dart';
 import 'error_mapper.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/error_interceptor.dart';
 import 'interceptors/logging_interceptor.dart';
- 
+
 class DioClient {
   final Dio dio;
   final SecureStorage secureStorage;
- 
+
   DioClient({
     required String baseUrl,
     required this.secureStorage,
@@ -27,7 +26,7 @@ class DioClient {
         ) {
     final authInterceptor = AuthInterceptor(secureStorage: secureStorage);
     authInterceptor.setDio(dio);
- 
+
     dio.interceptors.addAll([
       CookieManager(cookieJar),
       authInterceptor,
@@ -35,7 +34,7 @@ class DioClient {
       LoggingInterceptor(),
     ]);
   }
- 
+
   Future<Response<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -51,7 +50,7 @@ class DioClient {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
   }
- 
+
   Future<Response<T>> post<T>(
     String path, {
     dynamic data,
@@ -69,7 +68,7 @@ class DioClient {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
   }
- 
+
   Future<Response<T>> put<T>(
     String path, {
     dynamic data,
@@ -87,7 +86,7 @@ class DioClient {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
   }
- 
+
   Future<Response<T>> delete<T>(
     String path, {
     dynamic data,
@@ -105,7 +104,7 @@ class DioClient {
       throw ErrorMapper.mapDioErrorToFailure(e);
     }
   }
- 
+
   Future<Response<T>> patch<T>(
     String path, {
     dynamic data,
