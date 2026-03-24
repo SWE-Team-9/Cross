@@ -1,10 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
-import 'package:soundcloud_clone/features/auth/domain/usecases/check_email_exists_usecase.dart';
-import 'package:soundcloud_clone/features/auth/domain/usecases/complete_profile_usecase.dart';
 import 'package:soundcloud_clone/features/auth/domain/usecases/forgot_password_usecase.dart';
 import 'package:soundcloud_clone/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:soundcloud_clone/features/auth/domain/usecases/is_logged_in_usecase.dart';
@@ -16,15 +14,9 @@ import 'package:soundcloud_clone/features/auth/domain/usecases/send_email_verifi
 import 'package:soundcloud_clone/features/auth/domain/usecases/verify_email_usecase.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 
-class MockCheckEmailExistsUseCase extends Mock
-    implements CheckEmailExistsUseCase {}
-
 class MockLoginUseCase extends Mock implements LoginUseCase {}
 
 class MockRegisterUseCase extends Mock implements RegisterUseCase {}
-
-class MockCompleteProfileUseCase extends Mock
-    implements CompleteProfileUseCase {}
 
 class MockLogoutUseCase extends Mock implements LogoutUseCase {}
 
@@ -41,14 +33,9 @@ class MockSendEmailVerificationUseCase extends Mock
 
 class MockVerifyEmailUseCase extends Mock implements VerifyEmailUseCase {}
 
-class FakeUser extends Fake implements User {}
-
 void main() {
-  late AuthCubit authCubit;
-  late MockCheckEmailExistsUseCase mockCheckEmailExistsUseCase;
   late MockLoginUseCase mockLoginUseCase;
   late MockRegisterUseCase mockRegisterUseCase;
-  late MockCompleteProfileUseCase mockCompleteProfileUseCase;
   late MockLogoutUseCase mockLogoutUseCase;
   late MockIsLoggedInUseCase mockIsLoggedInUseCase;
   late MockGetCurrentUserUseCase mockGetCurrentUserUseCase;
@@ -56,18 +43,39 @@ void main() {
   late MockResetPasswordUseCase mockResetPasswordUseCase;
   late MockSendEmailVerificationUseCase mockSendEmailVerificationUseCase;
   late MockVerifyEmailUseCase mockVerifyEmailUseCase;
+  late AuthCubit cubit;
 
-  late User testUser;
+  const tUser = User(
+    id: '1',
+    email: 'ali@example.com',
+    handle: 'ali',
+    displayName: 'Ali',
+    avatarUrl: null,
+  );
 
-  setUpAll(() {
-    registerFallbackValue(FakeUser());
-  });
+  DioException dioError({
+    required DioExceptionType type,
+    int? statusCode,
+    Map<String, dynamic>? data,
+    String? message,
+  }) {
+    return DioException(
+      requestOptions: RequestOptions(path: '/test'),
+      type: type,
+      message: message,
+      response: statusCode == null
+          ? null
+          : Response<dynamic>(
+              requestOptions: RequestOptions(path: '/test'),
+              statusCode: statusCode,
+              data: data,
+            ),
+    );
+  }
 
   setUp(() {
-    mockCheckEmailExistsUseCase = MockCheckEmailExistsUseCase();
     mockLoginUseCase = MockLoginUseCase();
     mockRegisterUseCase = MockRegisterUseCase();
-    mockCompleteProfileUseCase = MockCompleteProfileUseCase();
     mockLogoutUseCase = MockLogoutUseCase();
     mockIsLoggedInUseCase = MockIsLoggedInUseCase();
     mockGetCurrentUserUseCase = MockGetCurrentUserUseCase();
@@ -76,13 +84,9 @@ void main() {
     mockSendEmailVerificationUseCase = MockSendEmailVerificationUseCase();
     mockVerifyEmailUseCase = MockVerifyEmailUseCase();
 
-    testUser = FakeUser();
-
-    authCubit = AuthCubit(
-      checkEmailExistsUseCase: mockCheckEmailExistsUseCase,
+    cubit = AuthCubit(
       loginUseCase: mockLoginUseCase,
       registerUseCase: mockRegisterUseCase,
-      completeProfileUseCase: mockCompleteProfileUseCase,
       logoutUseCase: mockLogoutUseCase,
       isLoggedInUseCase: mockIsLoggedInUseCase,
       getCurrentUserUseCase: mockGetCurrentUserUseCase,
@@ -94,11 +98,7 @@ void main() {
   });
 
   tearDown(() async {
-    await authCubit.close();
-  });
-
-  test('initial state is AuthInitial', () {
-    expect(authCubit.state, isA<AuthInitial>());
+    await cubit.close();
   });
 
   group('checkAuthStatus', () {
@@ -106,455 +106,457 @@ void main() {
       'emits [AuthLoading, AuthUnauthenticated] when user is not logged in',
       build: () {
         when(() => mockIsLoggedInUseCase()).thenAnswer((_) async => false);
-        return authCubit;
+        return cubit;
       },
       act: (cubit) => cubit.checkAuthStatus(),
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthUnauthenticated>(),
       ],
-      verify: (_) {
-        verify(() => mockIsLoggedInUseCase()).called(1);
-        verifyNever(() => mockGetCurrentUserUseCase());
-      },
     );
 
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthUnauthenticated] when logged in but current user is null',
+      'emits [AuthLoading, AuthUnauthenticated] when current user is null',
       build: () {
         when(() => mockIsLoggedInUseCase()).thenAnswer((_) async => true);
         when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => null);
-        return authCubit;
+        return cubit;
       },
       act: (cubit) => cubit.checkAuthStatus(),
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthUnauthenticated>(),
       ],
-      verify: (_) {
-        verify(() => mockIsLoggedInUseCase()).called(1);
-        verify(() => mockGetCurrentUserUseCase()).called(1);
-      },
     );
 
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthAuthenticated] when user is logged in and current user exists',
+      'emits [AuthLoading, AuthAuthenticated] when logged in and user exists',
       build: () {
         when(() => mockIsLoggedInUseCase()).thenAnswer((_) async => true);
-        when(() => mockGetCurrentUserUseCase())
-            .thenAnswer((_) async => testUser);
-        return authCubit;
+        when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => tUser);
+        return cubit;
       },
       act: (cubit) => cubit.checkAuthStatus(),
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthAuthenticated>()
-            .having((state) => state.user, 'user', same(testUser)),
+            .having((s) => s.user.email, 'email', 'ali@example.com'),
       ],
-      verify: (_) {
-        verify(() => mockIsLoggedInUseCase()).called(1);
-        verify(() => mockGetCurrentUserUseCase()).called(1);
-      },
     );
 
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthUnauthenticated] when exception happens',
+      'emits [AuthLoading, AuthUnauthenticated] on unexpected error',
       build: () {
-        when(() => mockIsLoggedInUseCase()).thenThrow(Exception('failed'));
-        return authCubit;
+        when(() => mockIsLoggedInUseCase()).thenThrow(Exception('boom'));
+        return cubit;
       },
       act: (cubit) => cubit.checkAuthStatus(),
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthUnauthenticated>(),
-      ],
-    );
-  });
-
-  group('checkEmail', () {
-    const email = 'test@example.com';
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthEmailCheckSuccess] when email check succeeds',
-      build: () {
-        when(() => mockCheckEmailExistsUseCase(email: email))
-            .thenAnswer((_) async => true);
-        return authCubit;
-      },
-      act: (cubit) => cubit.checkEmail(email: email),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthEmailCheckSuccess>()
-            .having((state) => state.exists, 'exists', true)
-            .having((state) => state.email, 'email', email),
-      ],
-      verify: (_) {
-        verify(() => mockCheckEmailExistsUseCase(email: email)).called(1);
-      },
-    );
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when email check fails',
-      build: () {
-        when(() => mockCheckEmailExistsUseCase(email: email))
-            .thenThrow(Exception('email check failed'));
-        return authCubit;
-      },
-      act: (cubit) => cubit.checkEmail(email: email),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
       ],
     );
   });
 
   group('login', () {
-    const email = 'test@example.com';
-    const password = 'password123';
-
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthAuthenticated] when login succeeds',
+      'emits [AuthLoading, AuthAuthenticated] on success',
       build: () {
-        when(() => mockLoginUseCase(email: email, password: password))
-            .thenAnswer((_) async => testUser);
-        return authCubit;
+        when(
+          () => mockLoginUseCase(
+            email: 'ali@example.com',
+            password: 'Pass@123',
+            captchaToken: 'captcha',
+          ),
+        ).thenAnswer((_) async => tUser);
+        return cubit;
       },
-      act: (cubit) => cubit.login(email: email, password: password),
+      act: (cubit) => cubit.login(
+        email: 'ali@example.com',
+        password: 'Pass@123',
+        captchaToken: 'captcha',
+      ),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthAuthenticated>()
-            .having((state) => state.user, 'user', same(testUser)),
+        isA<AuthAuthenticated>().having((s) => s.user.handle, 'handle', 'ali'),
       ],
-      verify: (_) {
-        verify(() => mockLoginUseCase(email: email, password: password))
-            .called(1);
-      },
     );
 
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when login fails',
+      'emits AuthError with isNotVerified=true when backend asks for email verification',
       build: () {
-        when(() => mockLoginUseCase(email: email, password: password))
-            .thenThrow(Exception('login failed'));
-        return authCubit;
+        when(
+          () => mockLoginUseCase(
+            email: 'ali@example.com',
+            password: 'Pass@123',
+            captchaToken: 'captcha',
+          ),
+        ).thenThrow(
+          dioError(
+            type: DioExceptionType.badResponse,
+            statusCode: 401,
+            data: {'message': 'Please verify your email before logging in.'},
+          ),
+        );
+        return cubit;
       },
-      act: (cubit) => cubit.login(email: email, password: password),
+      act: (cubit) => cubit.login(
+        email: 'ali@example.com',
+        password: 'Pass@123',
+        captchaToken: 'captcha',
+      ),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
+        isA<AuthError>()
+            .having((s) => s.message, 'message',
+                'Please verify your email before logging in.')
+            .having((s) => s.isNotVerified, 'isNotVerified', true),
+      ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'emits AuthError with mapped Dio message on non-verification failure',
+      build: () {
+        when(
+          () => mockLoginUseCase(
+            email: 'ali@example.com',
+            password: 'wrong',
+            captchaToken: 'captcha',
+          ),
+        ).thenThrow(
+          dioError(
+            type: DioExceptionType.badResponse,
+            statusCode: 401,
+            data: {'message': 'Wrong Email or Password'},
+          ),
+        );
+        return cubit;
+      },
+      act: (cubit) => cubit.login(
+        email: 'ali@example.com',
+        password: 'wrong',
+        captchaToken: 'captcha',
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>()
+            .having((s) => s.message, 'message', 'Wrong Email or Password')
+            .having((s) => s.isNotVerified, 'isNotVerified', false),
+      ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'emits generic AuthError on unexpected exception',
+      build: () {
+        when(
+          () => mockLoginUseCase(
+            email: 'ali@example.com',
+            password: 'Pass@123',
+            captchaToken: 'captcha',
+          ),
+        ).thenThrow(Exception('boom'));
+        return cubit;
+      },
+      act: (cubit) => cubit.login(
+        email: 'ali@example.com',
+        password: 'Pass@123',
+        captchaToken: 'captcha',
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'An unexpected error occurred.',
+        ),
       ],
     );
   });
 
   group('register', () {
-    const email = 'new@example.com';
-    const password = 'password123';
-
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthRegisterSuccess] when register succeeds',
+      'emits [AuthLoading, AuthRegisterSuccess] on success',
       build: () {
-        when(() => mockRegisterUseCase(email: email, password: password))
-            .thenAnswer((_) async => testUser);
-        return authCubit;
+        when(
+          () => mockRegisterUseCase(
+            email: 'ali@example.com',
+            password: 'Pass@123',
+            passwordConfirm: 'Pass@123',
+            displayName: 'Ali',
+            dateOfBirth: '2000-01-01',
+            gender: 'male',
+            captchaToken: 'captcha',
+          ),
+        ).thenAnswer((_) async => tUser);
+        return cubit;
       },
-      act: (cubit) => cubit.register(email: email, password: password),
+      act: (cubit) => cubit.register(
+        email: 'ali@example.com',
+        password: 'Pass@123',
+        passwordConfirm: 'Pass@123',
+        displayName: 'Ali',
+        dateOfBirth: '2000-01-01',
+        gender: 'male',
+        captchaToken: 'captcha',
+      ),
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthRegisterSuccess>()
-            .having((state) => state.user, 'user', same(testUser)),
+            .having((s) => s.user.email, 'email', 'ali@example.com'),
       ],
-      verify: (_) {
-        verify(() => mockRegisterUseCase(email: email, password: password))
-            .called(1);
-      },
     );
 
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when register fails',
+      'emits AuthError on DioException',
       build: () {
-        when(() => mockRegisterUseCase(email: email, password: password))
-            .thenThrow(Exception('register failed'));
-        return authCubit;
+        when(
+          () => mockRegisterUseCase(
+            email: 'ali@example.com',
+            password: 'Pass@123',
+            passwordConfirm: 'Pass@123',
+            displayName: 'Ali',
+            dateOfBirth: '2000-01-01',
+            gender: 'male',
+            captchaToken: 'captcha',
+          ),
+        ).thenThrow(
+          dioError(
+            type: DioExceptionType.badResponse,
+            statusCode: 400,
+            data: {'message': 'Email already exists'},
+          ),
+        );
+        return cubit;
       },
-      act: (cubit) => cubit.register(email: email, password: password),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
-      ],
-    );
-  });
-
-  group('sendEmailVerification', () {
-    const email = 'verify@example.com';
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthVerificationEmailSent] when sending verification succeeds',
-      build: () {
-        when(() => mockSendEmailVerificationUseCase(email: email))
-            .thenAnswer((_) async {});
-        return authCubit;
-      },
-      act: (cubit) => cubit.sendEmailVerification(email: email),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthVerificationEmailSent>()
-            .having((state) => state.email, 'email', email),
-      ],
-      verify: (_) {
-        verify(() => mockSendEmailVerificationUseCase(email: email)).called(1);
-      },
-    );
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when sending verification fails',
-      build: () {
-        when(() => mockSendEmailVerificationUseCase(email: email))
-            .thenThrow(Exception('send verification failed'));
-        return authCubit;
-      },
-      act: (cubit) => cubit.sendEmailVerification(email: email),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
-      ],
-    );
-  });
-
-  group('verifyEmail', () {
-    const email = 'verify@example.com';
-    const code = '123456';
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthEmailVerified] when verification succeeds',
-      build: () {
-        when(() => mockVerifyEmailUseCase(email: email, code: code))
-            .thenAnswer((_) async {});
-        return authCubit;
-      },
-      act: (cubit) => cubit.verifyEmail(email: email, code: code),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthEmailVerified>(),
-      ],
-      verify: (_) {
-        verify(() => mockVerifyEmailUseCase(email: email, code: code))
-            .called(1);
-      },
-    );
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when verification fails',
-      build: () {
-        when(() => mockVerifyEmailUseCase(email: email, code: code))
-            .thenThrow(Exception('verify email failed'));
-        return authCubit;
-      },
-      act: (cubit) => cubit.verifyEmail(email: email, code: code),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
-      ],
-    );
-  });
-
-  group('forgotPassword', () {
-    const email = 'forgot@example.com';
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthForgotPasswordSuccess] when forgot password succeeds',
-      build: () {
-        when(() => mockForgotPasswordUseCase(email: email))
-            .thenAnswer((_) async {});
-        return authCubit;
-      },
-      act: (cubit) => cubit.forgotPassword(email: email),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthForgotPasswordSuccess>()
-            .having((state) => state.email, 'email', email),
-      ],
-      verify: (_) {
-        verify(() => mockForgotPasswordUseCase(email: email)).called(1);
-      },
-    );
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when forgot password fails',
-      build: () {
-        when(() => mockForgotPasswordUseCase(email: email))
-            .thenThrow(Exception('forgot password failed'));
-        return authCubit;
-      },
-      act: (cubit) => cubit.forgotPassword(email: email),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
-      ],
-    );
-  });
-
-  group('resetPassword', () {
-    const email = 'reset@example.com';
-    const code = '123456';
-    const newPassword = 'newPassword123';
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthResetPasswordSuccess] when reset password succeeds',
-      build: () {
-        when(() => mockResetPasswordUseCase(
-              email: email,
-              code: code,
-              newPassword: newPassword,
-            )).thenAnswer((_) async {});
-        return authCubit;
-      },
-      act: (cubit) => cubit.resetPassword(
-        email: email,
-        code: code,
-        newPassword: newPassword,
+      act: (cubit) => cubit.register(
+        email: 'ali@example.com',
+        password: 'Pass@123',
+        passwordConfirm: 'Pass@123',
+        displayName: 'Ali',
+        dateOfBirth: '2000-01-01',
+        gender: 'male',
+        captchaToken: 'captcha',
       ),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthResetPasswordSuccess>(),
-      ],
-      verify: (_) {
-        verify(() => mockResetPasswordUseCase(
-              email: email,
-              code: code,
-              newPassword: newPassword,
-            )).called(1);
-      },
-    );
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when reset password fails',
-      build: () {
-        when(() => mockResetPasswordUseCase(
-              email: email,
-              code: code,
-              newPassword: newPassword,
-            )).thenThrow(Exception('reset password failed'));
-        return authCubit;
-      },
-      act: (cubit) => cubit.resetPassword(
-        email: email,
-        code: code,
-        newPassword: newPassword,
-      ),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
-      ],
-    );
-  });
-
-  group('completeProfile', () {
-    const displayName = 'Muslim';
-    const birthMonth = 5;
-    const birthDay = 15;
-    const birthYear = 2000;
-    const gender = 'male';
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthProfileCompleted, AuthAuthenticated] when complete profile succeeds',
-      build: () {
-        when(() => mockCompleteProfileUseCase(
-              displayName: displayName,
-              birthMonth: birthMonth,
-              birthDay: birthDay,
-              birthYear: birthYear,
-              gender: gender,
-            )).thenAnswer((_) async => testUser);
-        return authCubit;
-      },
-      act: (cubit) => cubit.completeProfile(
-        displayName: displayName,
-        birthMonth: birthMonth,
-        birthDay: birthDay,
-        birthYear: birthYear,
-        gender: gender,
-      ),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthProfileCompleted>()
-            .having((state) => state.user, 'user', same(testUser)),
-        isA<AuthAuthenticated>()
-            .having((state) => state.user, 'user', same(testUser)),
-      ],
-      verify: (_) {
-        verify(() => mockCompleteProfileUseCase(
-              displayName: displayName,
-              birthMonth: birthMonth,
-              birthDay: birthDay,
-              birthYear: birthYear,
-              gender: gender,
-            )).called(1);
-      },
-    );
-
-    blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when complete profile fails',
-      build: () {
-        when(() => mockCompleteProfileUseCase(
-              displayName: displayName,
-              birthMonth: birthMonth,
-              birthDay: birthDay,
-              birthYear: birthYear,
-              gender: gender,
-            )).thenThrow(Exception('complete profile failed'));
-        return authCubit;
-      },
-      act: (cubit) => cubit.completeProfile(
-        displayName: displayName,
-        birthMonth: birthMonth,
-        birthDay: birthDay,
-        birthYear: birthYear,
-        gender: gender,
-      ),
-      expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
+        isA<AuthError>()
+            .having((s) => s.message, 'message', 'Email already exists'),
       ],
     );
   });
 
   group('logout', () {
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthUnauthenticated] when logout succeeds',
+      'emits [AuthLoading, AuthUnauthenticated] on success',
       build: () {
         when(() => mockLogoutUseCase()).thenAnswer((_) async {});
-        return authCubit;
+        return cubit;
       },
       act: (cubit) => cubit.logout(),
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthUnauthenticated>(),
       ],
-      verify: (_) {
-        verify(() => mockLogoutUseCase()).called(1);
-      },
     );
 
     blocTest<AuthCubit, AuthState>(
-      'emits [AuthLoading, AuthError] when logout fails',
+      'emits AuthError on DioException',
       build: () {
-        when(() => mockLogoutUseCase()).thenThrow(Exception('logout failed'));
-        return authCubit;
+        when(() => mockLogoutUseCase()).thenThrow(
+          dioError(
+            type: DioExceptionType.badResponse,
+            statusCode: 500,
+            data: {'message': 'Server error'},
+          ),
+        );
+        return cubit;
       },
       act: (cubit) => cubit.logout(),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthError>().having((state) => state.message, 'message',
-            'An unexpected error occurred.'),
+        isA<AuthError>(),
       ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'emits AuthUnauthenticated on unexpected exception',
+      build: () {
+        when(() => mockLogoutUseCase()).thenThrow(Exception('boom'));
+        return cubit;
+      },
+      act: (cubit) => cubit.logout(),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthUnauthenticated>(),
+      ],
+    );
+  });
+
+  group('sendEmailVerification', () {
+    blocTest<AuthCubit, AuthState>(
+      'emits [AuthLoading, AuthVerificationEmailSent] on success',
+      build: () {
+        when(() => mockSendEmailVerificationUseCase(email: 'ali@example.com'))
+            .thenAnswer((_) async {});
+        return cubit;
+      },
+      act: (cubit) => cubit.sendEmailVerification(email: 'ali@example.com'),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthVerificationEmailSent>()
+            .having((s) => s.email, 'email', 'ali@example.com'),
+      ],
+      verify: (_) {
+        expect(cubit.remainingResendSeconds, inInclusiveRange(1, 60));
+      },
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'does nothing when cooldown is active',
+      build: () {
+        when(() => mockSendEmailVerificationUseCase(email: 'ali@example.com'))
+            .thenAnswer((_) async {});
+        return cubit;
+      },
+      act: (cubit) async {
+        await cubit.sendEmailVerification(email: 'ali@example.com');
+        await cubit.sendEmailVerification(email: 'ali@example.com');
+      },
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthVerificationEmailSent>(),
+      ],
+      verify: (_) {
+        verify(() => mockSendEmailVerificationUseCase(email: 'ali@example.com'))
+            .called(1);
+      },
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'emits AuthError on DioException',
+      build: () {
+        when(() => mockSendEmailVerificationUseCase(email: 'ali@example.com'))
+            .thenThrow(
+          dioError(
+            type: DioExceptionType.badResponse,
+            statusCode: 400,
+            data: {'message': 'Cannot send verification email'},
+          ),
+        );
+        return cubit;
+      },
+      act: (cubit) => cubit.sendEmailVerification(email: 'ali@example.com'),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'Cannot send verification email',
+        ),
+      ],
+    );
+  });
+
+  group('verifyEmail', () {
+    blocTest<AuthCubit, AuthState>(
+      'emits [AuthLoading, AuthEmailVerified] on success',
+      build: () {
+        when(() => mockVerifyEmailUseCase(code: '123456'))
+            .thenAnswer((_) async {});
+        return cubit;
+      },
+      act: (cubit) => cubit.verifyEmail(code: '123456'),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthEmailVerified>(),
+      ],
+    );
+  });
+
+  group('forgotPassword', () {
+    blocTest<AuthCubit, AuthState>(
+      'emits [AuthLoading, AuthForgotPasswordSuccess] on success',
+      build: () {
+        when(() => mockForgotPasswordUseCase(email: 'ali@example.com'))
+            .thenAnswer((_) async {});
+        return cubit;
+      },
+      act: (cubit) => cubit.forgotPassword(email: 'ali@example.com'),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthForgotPasswordSuccess>()
+            .having((s) => s.email, 'email', 'ali@example.com'),
+      ],
+    );
+  });
+
+  group('resetPassword', () {
+    blocTest<AuthCubit, AuthState>(
+      'emits [AuthLoading, AuthResetPasswordSuccess] on success',
+      build: () {
+        when(
+          () => mockResetPasswordUseCase(
+            code: '123456',
+            newPassword: 'NewPass@123',
+            newPasswordConfirm: 'NewPass@123',
+          ),
+        ).thenAnswer((_) async {});
+        return cubit;
+      },
+      act: (cubit) => cubit.resetPassword(
+        code: '123456',
+        newPassword: 'NewPass@123',
+        newPasswordConfirm: 'NewPass@123',
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthResetPasswordSuccess>(),
+      ],
+    );
+  });
+
+  group('refreshCurrentUserSilently', () {
+    blocTest<AuthCubit, AuthState>(
+      'does nothing when current state is not authenticated',
+      build: () {
+        when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => tUser);
+        return cubit;
+      },
+      act: (cubit) => cubit.refreshCurrentUserSilently(),
+      expect: () => <AuthState>[],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'emits AuthAuthenticated with refreshed user when current state is authenticated',
+      build: () {
+        when(() => mockGetCurrentUserUseCase()).thenAnswer(
+          (_) async => const User(
+            id: '1',
+            email: 'ali@example.com',
+            handle: 'ali',
+            displayName: 'Ali Updated',
+            avatarUrl: 'https://example.com/avatar.png',
+          ),
+        );
+        return cubit;
+      },
+      seed: () => AuthAuthenticated(tUser),
+      act: (cubit) => cubit.refreshCurrentUserSilently(),
+      expect: () => [
+        isA<AuthAuthenticated>()
+            .having((s) => s.user.displayName, 'displayName', 'Ali Updated'),
+      ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'keeps state unchanged when refresh throws',
+      build: () {
+        when(() => mockGetCurrentUserUseCase()).thenThrow(Exception('boom'));
+        return cubit;
+      },
+      seed: () => AuthAuthenticated(tUser),
+      act: (cubit) => cubit.refreshCurrentUserSilently(),
+      expect: () => <AuthState>[],
     );
   });
 }

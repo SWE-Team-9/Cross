@@ -1,21 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/di/injector.dart';
 
+// Profile
+import '../features/profile/presentation/bloc/profile_cubit.dart';
+
 // Upload (existing — Sprint 1)
+import '../features/upload/domain/entities/ManagedTrack.dart';
+import '../features/upload/domain/entities/TrackManagementVisibility.dart';
+import '../features/upload/presentation/bloc/trackManagementCubit.dart';
 import '../features/upload/presentation/bloc/uploadPickerCubit.dart';
+import '../features/upload/presentation/pages/TrackManagementPage.dart';
 import '../features/upload/presentation/pages/UploadPickerPage.dart';
 
 // Auth (existing — Sprint 1)
 import '../features/auth/presentation/routes/auth_routes.dart';
 
 // Profile (Sprint 2 — T2.1)
-import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
+import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/social/presentation/pages/followers_page.dart';
 import '../features/social/presentation/pages/following_page.dart';
+
+// Recently Played
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+
+// Library
+import '../features/library/presentation/pages/library_page.dart';
 
 // Mock home page (temporary — replace with real home page in Sprint 4)
 import '../features/home/presentation/pages/mock_home_page.dart';
@@ -23,26 +36,40 @@ import '../features/home/presentation/pages/mock_home_page.dart';
 // ── Navigator Keys ───────────────────────────────────────────────────────────
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-// ── Route name constants ──────────────────────────────────────────────────────
+// ── Route name constants ─────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
+  static const String library = '/library';
   static const String uploadPicker = '/upload-picker';
-  static const String profile = '/profile/:userId';
   static const String editProfile = '/profile/edit';
-  static const String followers = '/followers/:userId';
-  static const String following = '/following/:userId';
+  static const String profile = '/profile/:handle';
+  static const String followers = '/followers/:handle';
+  static const String following = '/following/:handle';
+  static const String trackManagementDemo = '/track-management-demo';
 }
 
-// ── Router ────────────────────────────────────────────────────────────────────
+ManagedTrack _fallbackTrackManagementSeed() {
+  return const ManagedTrack(
+    id: 'demo-track-001',
+    title: 'Midnight Echoes',
+    description: 'Sprint 2 local demo track for edit/delete testing.',
+    genreId: 1,
+    genreName: 'Ambient',
+    tags: <String>['demo', 'sprint2'],
+    visibility: TrackManagementVisibility.publicTrack,
+    durationInSeconds: 212,
+  );
+}
+
+// ── Router ───────────────────────────────────────────────────────────────────
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: AuthRoutes.welcome,
-
+  initialLocation: AuthRoutes.splash,
   routes: [
     // ── Auth (Sprint 1) ───────────────────────────────────────────
     ...AuthRoutes.routes,
 
-    // ── Home ───────────────────────────────────────────────────────
+    // ── Home ──────────────────────────────────────────────────────
     GoRoute(
       path: AppRoutes.home,
       name: 'home',
@@ -51,7 +78,19 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // ── Upload picker ──────────────────────────────────────────────
+    // ── Library ───────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoutes.library,
+      name: 'library',
+      pageBuilder: (context, state) => NoTransitionPage(
+        child: BlocProvider(
+          create: (_) => RecentlyPlayedCubit(),
+          child: const LibraryPage(),
+        ),
+      ),
+    ),
+
+    // ── Upload picker (Sprint 1) ──────────────────────────────────
     GoRoute(
       path: AppRoutes.uploadPicker,
       name: 'upload-picker',
@@ -63,36 +102,46 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // ── Profile (Sprint 2 — T2.1) ─────────────────────────────────
+    // ── Profile (Sprint 2 — T2.1) ────────────────────────────────
     GoRoute(
-      path: AppRoutes.profile,
-      name: 'profile',
+      path: AppRoutes.editProfile,
+      name: 'edit-profile',
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) {
-        final userId = state.pathParameters['userId']!;
+        final cubit = state.extra as ProfileCubit;
         return MaterialPage(
-          child: ProfilePage(userId: userId),
+          child: BlocProvider.value(
+            value: cubit,
+            child: const EditProfilePage(),
+          ),
         );
       },
     ),
 
     GoRoute(
-      path: AppRoutes.editProfile,
-      name: 'edit-profile',
+      path: AppRoutes.profile,
+      name: 'profile',
       parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) => const MaterialPage(
-        child: EditProfilePage(),
-      ),
+      pageBuilder: (context, state) {
+        final handle = state.pathParameters['handle'] ?? '';
+        return MaterialPage(
+          child: ProfilePage(handle: handle),
+        );
+      },
     ),
 
+    // Note: This must come BEFORE or be distinct from /profile/:handle
+    // to avoid being captured by the dynamic parameter if paths overlap.
+
+    // ── Social (Followers/Following) ──────────────────────────────
     GoRoute(
       path: AppRoutes.followers,
       name: 'followers',
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) {
-        final userId = state.pathParameters['userId']!;
+        final handle = state.pathParameters['handle'] ?? '';
         return MaterialPage(
-          child: FollowersPage(userId: userId),
+          child: FollowersPage(handle: handle),
         );
       },
     ),
@@ -102,15 +151,35 @@ final GoRouter router = GoRouter(
       name: 'following',
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) {
-        final userId = state.pathParameters['userId']!;
+        final handle = state.pathParameters['handle'] ?? '';
         return MaterialPage(
-          child: FollowingPage(userId: userId),
+          child: FollowingPage(handle: handle),
+        );
+      },
+    ),
+
+    // ── Track management demo (Sprint 2) ─────────────────────────
+    GoRoute(
+      path: AppRoutes.trackManagementDemo,
+      name: 'track-management',
+      pageBuilder: (context, state) {
+        final ManagedTrack initialTrack = state.extra is ManagedTrack
+            ? state.extra as ManagedTrack
+            : _fallbackTrackManagementSeed();
+
+        return MaterialPage(
+          child: BlocProvider<TrackManagementCubit>(
+            create: (_) => getIt<TrackManagementCubit>(),
+            child: TrackManagementPage(
+              initialTrack: initialTrack,
+            ),
+          ),
         );
       },
     ),
   ],
 
-  // ── 404 fallback ─────────────────────────────────────────────────
+  // ── 404 fallback ───────────────────────────────────────────────
   errorBuilder: (context, state) => Scaffold(
     backgroundColor: Colors.black,
     body: Center(

@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/features/auth/presentation/widgets/auth_text_field.dart';
 
 void main() {
-  group('AuthTextField', () {
-    testWidgets('renders hint text', (tester) async {
+  group('AuthTextField Widget Tests', () {
+    testWidgets('renders hint text correctly', (tester) async {
       final controller = TextEditingController();
 
       await tester.pumpWidget(
@@ -18,11 +18,12 @@ void main() {
         ),
       );
 
+      // TextFormField يبني TextField داخلياً، لذا نبحث عن TextField
       expect(find.byType(TextField), findsOneWidget);
       expect(find.text('Enter email'), findsOneWidget);
     });
 
-    testWidgets('updates controller text', (tester) async {
+    testWidgets('updates controller text when user types', (tester) async {
       final controller = TextEditingController();
 
       await tester.pumpWidget(
@@ -37,11 +38,10 @@ void main() {
       );
 
       await tester.enterText(find.byType(TextField), 'test@example.com');
-
       expect(controller.text, 'test@example.com');
     });
 
-    testWidgets('supports obscureText', (tester) async {
+    testWidgets('respects isPassword property (obscureText)', (tester) async {
       final controller = TextEditingController();
 
       await tester.pumpWidget(
@@ -50,7 +50,8 @@ void main() {
             body: AuthTextField(
               controller: controller,
               hintText: 'Password',
-              obscureText: true,
+              isPassword:
+                  true, // استخدام الاسم الصحيح للخاصية في الكود الخاص بك
             ),
           ),
         ),
@@ -60,7 +61,7 @@ void main() {
       expect(textField.obscureText, true);
     });
 
-    testWidgets('supports enabled false', (tester) async {
+    testWidgets('respects enabled property', (tester) async {
       final controller = TextEditingController();
 
       await tester.pumpWidget(
@@ -79,7 +80,7 @@ void main() {
       expect(textField.enabled, false);
     });
 
-    testWidgets('renders suffix icon', (tester) async {
+    testWidgets('renders suffix icon when provided', (tester) async {
       final controller = TextEditingController();
 
       await tester.pumpWidget(
