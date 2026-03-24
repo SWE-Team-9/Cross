@@ -280,7 +280,8 @@ class _TopBar extends StatelessWidget {
                       ? user.handle.substring(0, 1).toUpperCase()
                       : '?';
                 } else if (currentUserHandle.isNotEmpty) {
-                  fallbackText = currentUserHandle.substring(0, 1).toUpperCase();
+                  fallbackText =
+                      currentUserHandle.substring(0, 1).toUpperCase();
                 }
 
                 return CircleAvatar(

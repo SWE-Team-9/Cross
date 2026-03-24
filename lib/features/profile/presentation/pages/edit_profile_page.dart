@@ -172,39 +172,40 @@ class _EditProfilePageState extends State<EditProfilePage> {
         );
   }
 
-Future<String?> _cropImage({
-  required String sourcePath,
-  required ProfileImageType imageType,
-}) async {
-  final croppedFile = await ImageCropper().cropImage(
-    sourcePath: sourcePath,
-    compressFormat: ImageCompressFormat.png,
-    compressQuality: 90,
-    uiSettings: [
-      AndroidUiSettings(
-        toolbarTitle:
-            imageType == ProfileImageType.AVATAR ? 'Crop Avatar' : 'Crop Cover',
-        toolbarColor: Colors.black,
-        toolbarWidgetColor: Colors.white,
-        backgroundColor: Colors.black,
-        activeControlsWidgetColor: const Color(0xFFFF5500),
-        lockAspectRatio: imageType == ProfileImageType.AVATAR,
-        hideBottomControls: false,
-        aspectRatioPresets: imageType == ProfileImageType.AVATAR
-            ? [
-                CropAspectRatioPreset.square,
-              ]
-            : [
-                CropAspectRatioPreset.original,
-                CropAspectRatioPreset.ratio16x9,
-                CropAspectRatioPreset.ratio4x3,
-              ],
-      ),
-    ],
-  );
+  Future<String?> _cropImage({
+    required String sourcePath,
+    required ProfileImageType imageType,
+  }) async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: sourcePath,
+      compressFormat: ImageCompressFormat.png,
+      compressQuality: 90,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: imageType == ProfileImageType.AVATAR
+              ? 'Crop Avatar'
+              : 'Crop Cover',
+          toolbarColor: Colors.black,
+          toolbarWidgetColor: Colors.white,
+          backgroundColor: Colors.black,
+          activeControlsWidgetColor: const Color(0xFFFF5500),
+          lockAspectRatio: imageType == ProfileImageType.AVATAR,
+          hideBottomControls: false,
+          aspectRatioPresets: imageType == ProfileImageType.AVATAR
+              ? [
+                  CropAspectRatioPreset.square,
+                ]
+              : [
+                  CropAspectRatioPreset.original,
+                  CropAspectRatioPreset.ratio16x9,
+                  CropAspectRatioPreset.ratio4x3,
+                ],
+        ),
+      ],
+    );
 
-  return croppedFile?.path;
-}
+    return croppedFile?.path;
+  }
 
   Future<void> _onPickImage(ProfileImageType imageType) async {
     final ImagePicker picker = ImagePicker();

@@ -324,7 +324,6 @@ Future<void> setupDependencies() async {
   }
 }
 
-
 MockTrackManagementMode _parseMockTrackManagementMode(String value) {
   switch (value.toLowerCase()) {
     case 'alwaysfail':

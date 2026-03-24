@@ -45,10 +45,9 @@ class EditProfileTextField extends StatelessWidget {
               border: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
-              counterStyle: const TextStyle(
-                  color: Color(0xFF888888), fontSize: 11),
-              errorStyle:
-                  const TextStyle(color: Colors.red, fontSize: 11),
+              counterStyle:
+                  const TextStyle(color: Color(0xFF888888), fontSize: 11),
+              errorStyle: const TextStyle(color: Colors.red, fontSize: 11),
             ),
           ),
         ],

@@ -41,7 +41,10 @@ class AuthInterceptor extends Interceptor {
     final bool isLoginEndpoint =
         err.requestOptions.path.contains('/auth/login');
 
-    if (isUnauthorized && !isRefreshEndpoint && !isLoginEndpoint && _dio != null) {
+    if (isUnauthorized &&
+        !isRefreshEndpoint &&
+        !isLoginEndpoint &&
+        _dio != null) {
       try {
         await _refreshToken();
 
