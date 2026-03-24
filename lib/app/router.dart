@@ -18,7 +18,6 @@ import '../features/upload/presentation/pages/UploadPickerPage.dart';
 // Auth (existing — Sprint 1)
 import '../features/auth/presentation/routes/auth_routes.dart';
 
-
 // Profile (Sprint 2 — T2.1)
 import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';

@@ -82,7 +82,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.text('Library'), findsNWidgets(2));  });
+    expect(find.text('Library'), findsNWidgets(2));
+  });
 
   testWidgets('shows empty state when no tracks', (tester) async {
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(

@@ -93,42 +93,39 @@ void main() {
       bio: 'New EP dropping soon',
     );
 
-blocTest<ProfileCubit, ProfileState>(
-  'allows updateProfile retry from ProfileUpdateError state',
-  build: () {
-    when(() => mockUpdateProfileUseCase(tParams))
-        .thenAnswer((_) async => tProfileEntity);
-    return cubit;
-  },
-  seed: () => ProfileUpdateError(tProfileEntity, 'Previous failure'),
-  act: (c) => c.updateProfile(tParams),
-  expect: () => [
-    isA<ProfileUpdating>(),
-    isA<ProfileUpdateSuccess>(),
-    isA<ProfileLoaded>(),
-  ],
-);
+    blocTest<ProfileCubit, ProfileState>(
+      'allows updateProfile retry from ProfileUpdateError state',
+      build: () {
+        when(() => mockUpdateProfileUseCase(tParams))
+            .thenAnswer((_) async => tProfileEntity);
+        return cubit;
+      },
+      seed: () => ProfileUpdateError(tProfileEntity, 'Previous failure'),
+      act: (c) => c.updateProfile(tParams),
+      expect: () => [
+        isA<ProfileUpdating>(),
+        isA<ProfileUpdateSuccess>(),
+        isA<ProfileLoaded>(),
+      ],
+    );
 
-
-
-
-blocTest<ProfileCubit, ProfileState>(
-  'emits updating, success, then loaded with updated profile on success',
-  build: () {
-    when(() => mockUpdateProfileUseCase(tParams))
-        .thenAnswer((_) async => tProfileEntity);
-    return cubit;
-  },
-  seed: () => ProfileLoaded(tProfileEntity),
-  act: (c) => c.updateProfile(tParams),
-  expect: () => [
-    isA<ProfileUpdating>(),
-    isA<ProfileUpdateSuccess>(),
-    predicate<ProfileState>(
-      (s) => s is ProfileLoaded && s.profile == tProfileEntity,
-    ),
-  ],
-);
+    blocTest<ProfileCubit, ProfileState>(
+      'emits updating, success, then loaded with updated profile on success',
+      build: () {
+        when(() => mockUpdateProfileUseCase(tParams))
+            .thenAnswer((_) async => tProfileEntity);
+        return cubit;
+      },
+      seed: () => ProfileLoaded(tProfileEntity),
+      act: (c) => c.updateProfile(tParams),
+      expect: () => [
+        isA<ProfileUpdating>(),
+        isA<ProfileUpdateSuccess>(),
+        predicate<ProfileState>(
+          (s) => s is ProfileLoaded && s.profile == tProfileEntity,
+        ),
+      ],
+    );
 
     blocTest<ProfileCubit, ProfileState>(
       'emits nothing when state is not ProfileLoaded (guard condition)',

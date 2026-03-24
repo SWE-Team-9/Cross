@@ -53,46 +53,48 @@ class ProfileDto {
     this.followingCount,
   });
 
-factory ProfileDto.fromJson(Map<String, dynamic> json) {
-  final rawLinks = json['social_links'] ?? json['socialLinks'];
-  Map<String, String> links = {};
+  factory ProfileDto.fromJson(Map<String, dynamic> json) {
+    final rawLinks = json['social_links'] ?? json['socialLinks'];
+    Map<String, String> links = {};
 
-  if (rawLinks is Map<String, dynamic>) {
-    links = rawLinks.map((k, v) => MapEntry(k, v.toString()));
-  } else if (rawLinks is List) {
-    links = {};
-  }
-
-  final rawGenres =
-      (json['favorite_genres'] ?? json['favoriteGenres']) as List<dynamic>? ?? [];
-  final genres = rawGenres.map((e) {
-    if (e is Map<String, dynamic>) {
-      return (e['slug'] ?? e['name'] ?? e.toString()).toString();
+    if (rawLinks is Map<String, dynamic>) {
+      links = rawLinks.map((k, v) => MapEntry(k, v.toString()));
+    } else if (rawLinks is List) {
+      links = {};
     }
-    return e.toString();
-  }).toList();
 
-  return ProfileDto(
-    id: (json['id'] ?? json['userId']) as String?,
-    displayName: (json['display_name'] ?? json['displayName']) as String? ?? '',
-    handle: (json['handle']) as String? ?? '',
-    bio: (json['bio']) as String?,
-    location: (json['location']) as String?,
-    avatarUrl: (json['avatar_url'] ?? json['avatarUrl']) as String?,
-    coverPhotoUrl:
-        (json['cover_photo_url'] ?? json['coverPhotoUrl']) as String?,
-    accountType:
-        (json['account_type'] ?? json['accountType']) as String? ?? 'LISTENER',
-    favoriteGenres: genres,
-    socialLinks: links,
-    visibility: (json['visibility']) as String? ?? 'PUBLIC',
-    trackCount: (json['track_count'] ?? json['trackCount']) as int? ?? 0,
-    followersCount:
-        (json['followers_count'] ?? json['followersCount']) as int?,
-    followingCount:
-        (json['following_count'] ?? json['followingCount']) as int?,
-  );
-}
+    final rawGenres =
+        (json['favorite_genres'] ?? json['favoriteGenres']) as List<dynamic>? ??
+            [];
+    final genres = rawGenres.map((e) {
+      if (e is Map<String, dynamic>) {
+        return (e['slug'] ?? e['name'] ?? e.toString()).toString();
+      }
+      return e.toString();
+    }).toList();
+
+    return ProfileDto(
+      id: (json['id'] ?? json['userId']) as String?,
+      displayName:
+          (json['display_name'] ?? json['displayName']) as String? ?? '',
+      handle: (json['handle']) as String? ?? '',
+      bio: (json['bio']) as String?,
+      location: (json['location']) as String?,
+      avatarUrl: (json['avatar_url'] ?? json['avatarUrl']) as String?,
+      coverPhotoUrl:
+          (json['cover_photo_url'] ?? json['coverPhotoUrl']) as String?,
+      accountType: (json['account_type'] ?? json['accountType']) as String? ??
+          'LISTENER',
+      favoriteGenres: genres,
+      socialLinks: links,
+      visibility: (json['visibility']) as String? ?? 'PUBLIC',
+      trackCount: (json['track_count'] ?? json['trackCount']) as int? ?? 0,
+      followersCount:
+          (json['followers_count'] ?? json['followersCount']) as int?,
+      followingCount:
+          (json['following_count'] ?? json['followingCount']) as int?,
+    );
+  }
 
   ProfileEntity toEntity() {
     // Generate a temporary ID if none exists

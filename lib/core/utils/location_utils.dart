@@ -2,7 +2,6 @@
 /// The API stores location as a single string (e.g. "Cairo, Egypt").
 /// The UI splits it into City and Country fields.
 abstract class LocationUtils {
-
   /// Parses "Cairo, Egypt" → {city: "Cairo", country: "Egypt"}
   /// Parses "Egypt"        → {city: "", country: "Egypt"} if in country list
   /// Parses "Cairo"        → {city: "Cairo", country: ""}

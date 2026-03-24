@@ -70,7 +70,6 @@ void main() {
       expect(getIt.isRegistered<DeleteTrackUseCase>(), isTrue);
       expect(getIt.isRegistered<TrackManagementCubit>(), isTrue);
 
-
       final uploadCubit = getIt<UploadPickerCubit>();
       expect(uploadCubit, isA<UploadPickerCubit>());
       await uploadCubit.close();
@@ -78,7 +77,6 @@ void main() {
       final trackCubit = getIt<TrackManagementCubit>();
       expect(trackCubit, isA<TrackManagementCubit>());
       await trackCubit.close();
-
     });
   });
 }
