@@ -28,7 +28,7 @@ class SocialRepo {
     return data.map((e) => User.fromJson(e)).toList();
   }
 
-  //  Follow / Unfollow 
+  //  Follow / Unfollow
   Future<bool> followUser(String userId) async {
     await dio.post('${ApiConstants.socialBase}/follow/$userId');
     return true;
@@ -50,7 +50,7 @@ class SocialRepo {
     return true;
   }
 
-  // Handle → userId 
+  // Handle → userId
   Future<String> getUserIdByHandle(String handle) async {
     final response = await dio.get(
       '${ApiConstants.profileByHandle}/check-handle',

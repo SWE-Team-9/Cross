@@ -11,7 +11,6 @@ class User {
     this.followersCount = 0,
   });
 
-
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'].toString(),
@@ -21,7 +20,6 @@ class User {
     );
   }
 
-  
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -31,7 +29,6 @@ class User {
     };
   }
 
-  
   User copyWith({
     bool? isFollowing,
     int? followersCount,
