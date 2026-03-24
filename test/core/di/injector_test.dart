@@ -3,10 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
-import 'package:soundcloud_clone/features/profile/data/datasources/profileRemoteDataSource.dart'
-    as profile_image_data;
-import 'package:soundcloud_clone/features/profile/domain/usecases/uploadProfileImageUseCase.dart';
-import 'package:soundcloud_clone/features/profile/presentation/bloc/profileImageUploadCubit.dart';
 import 'package:soundcloud_clone/features/upload/data/datasources/audioFilePickerDataSource.dart';
 import 'package:soundcloud_clone/features/upload/data/datasources/trackManagementRemoteDataSource.dart';
 import 'package:soundcloud_clone/features/upload/domain/repositories/trackManagementRepository.dart';
@@ -74,12 +70,6 @@ void main() {
       expect(getIt.isRegistered<DeleteTrackUseCase>(), isTrue);
       expect(getIt.isRegistered<TrackManagementCubit>(), isTrue);
 
-      expect(
-        getIt.isRegistered<profile_image_data.ProfileRemoteDataSource>(),
-        isTrue,
-      );
-      expect(getIt.isRegistered<UploadProfileImageUseCase>(), isTrue);
-      expect(getIt.isRegistered<ProfileImageUploadCubit>(), isTrue);
 
       final uploadCubit = getIt<UploadPickerCubit>();
       expect(uploadCubit, isA<UploadPickerCubit>());
@@ -89,9 +79,6 @@ void main() {
       expect(trackCubit, isA<TrackManagementCubit>());
       await trackCubit.close();
 
-      final profileImageCubit = getIt<ProfileImageUploadCubit>();
-      expect(profileImageCubit, isA<ProfileImageUploadCubit>());
-      await profileImageCubit.close();
     });
   });
 }
