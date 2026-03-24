@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 
 // Third-party
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 // Project
 import '../../../../core/utils/location_utils.dart';
+import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
@@ -35,20 +37,80 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late ProfileEntity _initialProfile;
 
   static const List<String> _countries = [
-    'Afghanistan', 'Albania', 'Algeria', 'Argentina', 'Australia',
-    'Austria', 'Bahrain', 'Bangladesh', 'Belgium', 'Brazil',
-    'Canada', 'Chile', 'China', 'Colombia', 'Croatia',
-    'Czech Republic', 'Denmark', 'Egypt', 'Ethiopia', 'Finland',
-    'France', 'Germany', 'Ghana', 'Greece', 'Hungary',
-    'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Italy',
-    'Japan', 'Jordan', 'Kenya', 'Kuwait', 'Lebanon', 'Libya',
-    'Malaysia', 'Mexico', 'Morocco', 'Netherlands', 'New Zealand',
-    'Nigeria', 'Norway', 'Oman', 'Pakistan', 'Palestine', 'Peru',
-    'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia',
-    'Saudi Arabia', 'Serbia', 'Singapore', 'South Africa', 'South Korea',
-    'Spain', 'Sudan', 'Sweden', 'Switzerland', 'Syria', 'Thailand',
-    'Tunisia', 'Turkey', 'Ukraine', 'United Arab Emirates',
-    'United Kingdom', 'United States', 'Venezuela', 'Vietnam', 'Yemen',
+    'Afghanistan',
+    'Albania',
+    'Algeria',
+    'Argentina',
+    'Australia',
+    'Austria',
+    'Bahrain',
+    'Bangladesh',
+    'Belgium',
+    'Brazil',
+    'Canada',
+    'Chile',
+    'China',
+    'Colombia',
+    'Croatia',
+    'Czech Republic',
+    'Denmark',
+    'Egypt',
+    'Ethiopia',
+    'Finland',
+    'France',
+    'Germany',
+    'Ghana',
+    'Greece',
+    'Hungary',
+    'India',
+    'Indonesia',
+    'Iran',
+    'Iraq',
+    'Ireland',
+    'Italy',
+    'Japan',
+    'Jordan',
+    'Kenya',
+    'Kuwait',
+    'Lebanon',
+    'Libya',
+    'Malaysia',
+    'Mexico',
+    'Morocco',
+    'Netherlands',
+    'New Zealand',
+    'Nigeria',
+    'Norway',
+    'Oman',
+    'Pakistan',
+    'Palestine',
+    'Peru',
+    'Philippines',
+    'Poland',
+    'Portugal',
+    'Qatar',
+    'Romania',
+    'Russia',
+    'Saudi Arabia',
+    'Serbia',
+    'Singapore',
+    'South Africa',
+    'South Korea',
+    'Spain',
+    'Sudan',
+    'Sweden',
+    'Switzerland',
+    'Syria',
+    'Thailand',
+    'Tunisia',
+    'Turkey',
+    'Ukraine',
+    'United Arab Emirates',
+    'United Kingdom',
+    'United States',
+    'Venezuela',
+    'Vietnam',
+    'Yemen',
   ];
 
   bool get _hasUnsavedChanges {
@@ -62,6 +124,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
+
     final cubitState = context.read<ProfileCubit>().state;
     _initialProfile = cubitState is ProfileLoaded
         ? cubitState.profile
@@ -77,13 +140,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             followingCount: 0,
           );
 
-    final parsed =
-        LocationUtils.parse(_initialProfile.location, _countries);
+    final parsed = LocationUtils.parse(_initialProfile.location, _countries);
 
     _displayNameController =
         TextEditingController(text: _initialProfile.displayName);
-    _bioController =
-        TextEditingController(text: _initialProfile.bio ?? '');
+    _bioController = TextEditingController(text: _initialProfile.bio ?? '');
     _cityController = TextEditingController(text: parsed.city);
     _selectedCountry = parsed.country;
   }
@@ -98,41 +159,95 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _onSaveTapped() async {
     if (!_formKey.currentState!.validate()) return;
+
     context.read<ProfileCubit>().updateProfile(
           UpdateProfileParams(
             displayName: _displayNameController.text.trim(),
             bio: _bioController.text.trim().isEmpty
                 ? null
                 : _bioController.text.trim(),
-            location: LocationUtils.build(
-                _cityController.text, _selectedCountry),
+            location:
+                LocationUtils.build(_cityController.text, _selectedCountry),
           ),
         );
   }
 
+Future<String?> _cropImage({
+  required String sourcePath,
+  required ProfileImageType imageType,
+}) async {
+  final croppedFile = await ImageCropper().cropImage(
+    sourcePath: sourcePath,
+    compressFormat: ImageCompressFormat.png,
+    compressQuality: 90,
+    uiSettings: [
+      AndroidUiSettings(
+        toolbarTitle:
+            imageType == ProfileImageType.AVATAR ? 'Crop Avatar' : 'Crop Cover',
+        toolbarColor: Colors.black,
+        toolbarWidgetColor: Colors.white,
+        backgroundColor: Colors.black,
+        activeControlsWidgetColor: const Color(0xFFFF5500),
+        lockAspectRatio: imageType == ProfileImageType.AVATAR,
+        hideBottomControls: false,
+        aspectRatioPresets: imageType == ProfileImageType.AVATAR
+            ? [
+                CropAspectRatioPreset.square,
+              ]
+            : [
+                CropAspectRatioPreset.original,
+                CropAspectRatioPreset.ratio16x9,
+                CropAspectRatioPreset.ratio4x3,
+              ],
+      ),
+    ],
+  );
+
+  return croppedFile?.path;
+}
+
   Future<void> _onPickImage(ProfileImageType imageType) async {
-    final picked = await ImagePicker().pickImage(
+    final ImagePicker picker = ImagePicker();
+
+    final XFile? picked = await picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 85,
+      imageQuality: 100,
     );
-    if (picked != null && mounted) {
-      context.read<ProfileCubit>().uploadImage(
-            imageType: imageType,
-            filePath: picked.path,
-          );
+
+    if (picked == null || !mounted) {
+      return;
+    }
+
+    final String? croppedPath = await _cropImage(
+      sourcePath: picked.path,
+      imageType: imageType,
+    );
+
+    if (croppedPath == null || !mounted) {
+      return;
+    }
+
+    await context.read<ProfileCubit>().uploadImage(
+          imageType: imageType,
+          filePath: croppedPath,
+        );
+
+    if (mounted) {
+      await context.read<AuthCubit>().refreshCurrentUserSilently();
     }
   }
 
   Future<bool> _onWillPop() async {
     if (!_hasUnsavedChanges) return true;
+
     final shouldDiscard = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('Discard changes?',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Discard changes?',
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           'You have unsaved changes. Leaving will discard them.',
           style: TextStyle(color: Color(0xFF999999)),
@@ -140,27 +255,32 @@ class _EditProfilePageState extends State<EditProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep editing',
-                style: TextStyle(color: Color(0xFFAAAAAA))),
+            child: const Text(
+              'Keep editing',
+              style: TextStyle(color: Color(0xFFAAAAAA)),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Discard',
-                style: TextStyle(color: Color(0xFFFF5500))),
+            child: const Text(
+              'Discard',
+              style: TextStyle(color: Color(0xFFFF5500)),
+            ),
           ),
         ],
       ),
     );
+
     return shouldDiscard ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIX: Using onPopInvokedWithResult instead of deprecated onPopInvoked
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+
         final shouldPop = await _onWillPop();
         if (shouldPop && mounted) {
           Navigator.of(context).pop();
@@ -178,6 +298,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             );
             Navigator.of(context).pop();
           }
+
           if (state is ProfileUpdateError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -222,7 +343,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Image section (own widget) ─────────────────────
                     EditProfileImageSection(
                       avatarUrl: currentAvatarUrl,
                       coverUrl: currentCoverUrl,
@@ -231,8 +351,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       onPickImage: _onPickImage,
                     ),
                     const SizedBox(height: 24),
-
-                    // ── Display Name ───────────────────────────────────
                     EditProfileTextField(
                       label: 'Display Name',
                       controller: _displayNameController,
@@ -245,16 +363,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       },
                     ),
                     _divider(),
-
-                    // ── City ───────────────────────────────────────────
                     EditProfileTextField(
                       label: 'City',
                       controller: _cityController,
                       maxLength: 35,
                     ),
                     _divider(),
-
-                    // ── Country (own widget) ───────────────────────────
                     EditProfileCountryPicker(
                       selectedCountry: _selectedCountry,
                       countries: _countries,
@@ -262,8 +376,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           setState(() => _selectedCountry = c),
                     ),
                     _divider(),
-
-                    // ── Bio ────────────────────────────────────────────
                     EditProfileTextField(
                       label: 'Bio',
                       controller: _bioController,
@@ -271,7 +383,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       maxLines: 4,
                     ),
                     _divider(),
-
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -291,13 +402,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () async {
           final shouldPop = await _onWillPop();
-          if (shouldPop && mounted) Navigator.of(context).pop();
+          if (shouldPop && mounted) {
+            Navigator.of(context).pop();
+          }
         },
       ),
       title: const Text(
         'Edit profile',
         style: TextStyle(
-            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       actions: [
         Padding(
@@ -308,14 +424,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   ),
                 )
               : GestureDetector(
                   onTap: _onSaveTapped,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -323,9 +443,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     child: const Text(
                       'Save',
                       style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700),
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
