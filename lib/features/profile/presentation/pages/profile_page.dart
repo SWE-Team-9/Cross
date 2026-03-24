@@ -32,8 +32,15 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => cubit ?? (getIt<ProfileCubit>()..loadProfile(handle)),
+    if (cubit != null) {
+      return BlocProvider<ProfileCubit>.value(
+        value: cubit!,
+        child: _ProfilePageBody(handle: handle),
+      );
+    }
+
+    return BlocProvider<ProfileCubit>(
+      create: (_) => getIt<ProfileCubit>()..loadProfile(handle),
       child: _ProfilePageBody(handle: handle),
     );
   }

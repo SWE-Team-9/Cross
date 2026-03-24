@@ -101,7 +101,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         }
       }
 
-      throw const FormatException('Invalid upload response: missing image url.');
+      throw const FormatException(
+          'Invalid upload response: missing image url.');
     } catch (e) {
       print('🔥 Error in uploadProfileImage: $e');
       rethrow;

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 // Third-party
@@ -65,7 +64,9 @@ class EditProfileImageSection extends StatelessWidget {
             ),
           if (isUploadingCover)
             Positioned(
-              top: 0, left: 0, right: 0,
+              top: 0,
+              left: 0,
+              right: 0,
               child: Container(
                 height: 140,
                 color: Colors.black38,

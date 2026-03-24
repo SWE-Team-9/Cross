@@ -44,8 +44,7 @@ class EditProfileCountryPicker extends StatelessWidget {
               ),
             ),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -55,8 +54,8 @@ class EditProfileCountryPicker extends StatelessWidget {
                       Navigator.of(sheetContext).pop();
                     },
                     child: const Text('Clear',
-                        style: TextStyle(
-                            color: Color(0xFFFF5500), fontSize: 14)),
+                        style:
+                            TextStyle(color: Color(0xFFFF5500), fontSize: 14)),
                   ),
                   const Text('Select Country',
                       style: TextStyle(
@@ -66,8 +65,8 @@ class EditProfileCountryPicker extends StatelessWidget {
                   TextButton(
                     onPressed: () => Navigator.of(sheetContext).pop(),
                     child: const Text('Cancel',
-                        style: TextStyle(
-                            color: Color(0xFF888888), fontSize: 14)),
+                        style:
+                            TextStyle(color: Color(0xFF888888), fontSize: 14)),
                   ),
                 ],
               ),
@@ -84,9 +83,8 @@ class EditProfileCountryPicker extends StatelessWidget {
                     title: Text(
                       country,
                       style: TextStyle(
-                        color: isSelected
-                            ? const Color(0xFFFF5500)
-                            : Colors.white,
+                        color:
+                            isSelected ? const Color(0xFFFF5500) : Colors.white,
                         fontSize: 15,
                       ),
                     ),
@@ -121,15 +119,11 @@ class EditProfileCountryPicker extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Country',
-                      style: TextStyle(
-                          color: Color(0xFF888888), fontSize: 12)),
+                      style: TextStyle(color: Color(0xFF888888), fontSize: 12)),
                   const SizedBox(height: 2),
                   Text(
-                    selectedCountry.isEmpty
-                        ? 'Not specified'
-                        : selectedCountry,
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 15),
+                    selectedCountry.isEmpty ? 'Not specified' : selectedCountry,
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
                   ),
                 ],
               ),
