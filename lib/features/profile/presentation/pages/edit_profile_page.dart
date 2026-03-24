@@ -4,23 +4,21 @@ import 'package:flutter/material.dart';
 
 // Third-party
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 // Project
+import '../../../../core/utils/location_utils.dart';
+import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
 import '../bloc/profile_cubit.dart';
 import '../bloc/profile_state.dart';
+import '../widgets/edit_profile_country_picker.dart';
+import '../widgets/edit_profile_image_section.dart';
+import '../widgets/edit_profile_text_field.dart';
 
-/// T2.4 — Edit Profile Page.
-/// Matches real SoundCloud edit profile UI:
-/// - Cover photo banner + overlapping avatar
-/// - Back arrow + white pill Save button
-/// - Display Name — inline text field
-/// - City — inline text field
-/// - Country — tappable row that opens a bottom sheet picker
-/// - Bio — inline multiline text field (not a navigation row)
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
 
@@ -38,29 +36,90 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String _selectedCountry = '';
   late ProfileEntity _initialProfile;
 
-  // Full country list for the picker
   static const List<String> _countries = [
-    'Afghanistan', 'Albania', 'Algeria', 'Argentina', 'Australia',
-    'Austria', 'Bahrain', 'Bangladesh', 'Belgium', 'Brazil',
-    'Canada', 'Chile', 'China', 'Colombia', 'Croatia',
-    'Czech Republic', 'Denmark', 'Egypt', 'Ethiopia', 'Finland',
-    'France', 'Germany', 'Ghana', 'Greece', 'Hungary',
-    'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Italy', 'Japan', 'Jordan', 'Kenya',
-    'Kuwait', 'Lebanon', 'Libya', 'Malaysia', 'Mexico',
-    'Morocco', 'Netherlands', 'New Zealand', 'Nigeria', 'Norway',
-    'Oman', 'Pakistan', 'Palestine', 'Peru', 'Philippines',
-    'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia',
-    'Saudi Arabia', 'Serbia', 'Singapore', 'South Africa', 'South Korea',
-    'Spain', 'Sudan', 'Sweden', 'Switzerland', 'Syria',
-    'Thailand', 'Tunisia', 'Turkey', 'Ukraine', 'United Arab Emirates',
-    'United Kingdom', 'United States', 'Venezuela', 'Vietnam', 'Yemen',
+    'Afghanistan',
+    'Albania',
+    'Algeria',
+    'Argentina',
+    'Australia',
+    'Austria',
+    'Bahrain',
+    'Bangladesh',
+    'Belgium',
+    'Brazil',
+    'Canada',
+    'Chile',
+    'China',
+    'Colombia',
+    'Croatia',
+    'Czech Republic',
+    'Denmark',
+    'Egypt',
+    'Ethiopia',
+    'Finland',
+    'France',
+    'Germany',
+    'Ghana',
+    'Greece',
+    'Hungary',
+    'India',
+    'Indonesia',
+    'Iran',
+    'Iraq',
+    'Ireland',
+    'Italy',
+    'Japan',
+    'Jordan',
+    'Kenya',
+    'Kuwait',
+    'Lebanon',
+    'Libya',
+    'Malaysia',
+    'Mexico',
+    'Morocco',
+    'Netherlands',
+    'New Zealand',
+    'Nigeria',
+    'Norway',
+    'Oman',
+    'Pakistan',
+    'Palestine',
+    'Peru',
+    'Philippines',
+    'Poland',
+    'Portugal',
+    'Qatar',
+    'Romania',
+    'Russia',
+    'Saudi Arabia',
+    'Serbia',
+    'Singapore',
+    'South Africa',
+    'South Korea',
+    'Spain',
+    'Sudan',
+    'Sweden',
+    'Switzerland',
+    'Syria',
+    'Thailand',
+    'Tunisia',
+    'Turkey',
+    'Ukraine',
+    'United Arab Emirates',
+    'United Kingdom',
+    'United States',
+    'Venezuela',
+    'Vietnam',
+    'Yemen',
   ];
 
-  bool get _hasUnsavedChanges =>
-      _displayNameController.text != _initialProfile.displayName ||
-      _bioController.text != (_initialProfile.bio ?? '') ||
-      _cityController.text != (_initialProfile.location ?? '') ||
-      _selectedCountry != '';
+  bool get _hasUnsavedChanges {
+    final currentLocation =
+        LocationUtils.build(_cityController.text, _selectedCountry);
+    return _displayNameController.text != _initialProfile.displayName ||
+        _bioController.text != (_initialProfile.bio ?? '') ||
+        currentLocation != _initialProfile.location;
+  }
 
   @override
   void initState() {
@@ -81,13 +140,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
             followingCount: 0,
           );
 
+    final parsed = LocationUtils.parse(_initialProfile.location, _countries);
+
     _displayNameController =
         TextEditingController(text: _initialProfile.displayName);
-    _bioController =
-        TextEditingController(text: _initialProfile.bio ?? '');
-    _cityController =
-        TextEditingController(text: _initialProfile.location ?? '');
-    _selectedCountry = '';
+    _bioController = TextEditingController(text: _initialProfile.bio ?? '');
+    _cityController = TextEditingController(text: parsed.city);
+    _selectedCountry = parsed.country;
   }
 
   @override
@@ -98,20 +157,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  // ── Actions ────────────────────────────────────────────────────────────────
-
   Future<void> _onSaveTapped() async {
     if (!_formKey.currentState!.validate()) return;
-
-    // Combine city + country into location string if both provided
-    final cityText = _cityController.text.trim();
-    final locationText = _selectedCountry.isNotEmpty && cityText.isNotEmpty
-        ? '$cityText, $_selectedCountry'
-        : cityText.isNotEmpty
-            ? cityText
-            : _selectedCountry.isNotEmpty
-                ? _selectedCountry
-                : null;
 
     context.read<ProfileCubit>().updateProfile(
           UpdateProfileParams(
@@ -119,106 +166,81 @@ class _EditProfilePageState extends State<EditProfilePage> {
             bio: _bioController.text.trim().isEmpty
                 ? null
                 : _bioController.text.trim(),
-            location: locationText,
+            location:
+                LocationUtils.build(_cityController.text, _selectedCountry),
           ),
         );
   }
 
-  Future<void> _onPickImage(ProfileImageType imageType) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 85,
+  Future<String?> _cropImage({
+    required String sourcePath,
+    required ProfileImageType imageType,
+  }) async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: sourcePath,
+      compressFormat: ImageCompressFormat.png,
+      compressQuality: 90,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: imageType == ProfileImageType.AVATAR
+              ? 'Crop Avatar'
+              : 'Crop Cover',
+          toolbarColor: Colors.black,
+          toolbarWidgetColor: Colors.white,
+          backgroundColor: Colors.black,
+          activeControlsWidgetColor: const Color(0xFFFF5500),
+          lockAspectRatio: imageType == ProfileImageType.AVATAR,
+          hideBottomControls: false,
+          aspectRatioPresets: imageType == ProfileImageType.AVATAR
+              ? [
+                  CropAspectRatioPreset.square,
+                ]
+              : [
+                  CropAspectRatioPreset.original,
+                  CropAspectRatioPreset.ratio16x9,
+                  CropAspectRatioPreset.ratio4x3,
+                ],
+        ),
+      ],
     );
-    if (picked != null && mounted) {
-      context.read<ProfileCubit>().uploadImage(
-            imageType: imageType,
-            filePath: picked.path,
-          );
-    }
+
+    return croppedFile?.path;
   }
 
-  /// Opens a bottom sheet with a scrollable list of countries.
-  void _showCountryPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          maxChildSize: 0.9,
-          minChildSize: 0.4,
-          expand: false,
-          builder: (_, scrollController) {
-            return Column(
-              children: [
-                // Handle bar
-                Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF555555),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Select Country',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const Divider(color: Color(0xFF333333), height: 1),
-                Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    itemCount: _countries.length,
-                    itemBuilder: (_, i) {
-                      final country = _countries[i];
-                      final isSelected = country == _selectedCountry;
-                      return ListTile(
-                        title: Text(
-                          country,
-                          style: TextStyle(
-                            color: isSelected
-                                ? const Color(0xFFFF5500)
-                                : Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check,
-                                color: Color(0xFFFF5500), size: 18)
-                            : null,
-                        onTap: () {
-                          setState(() => _selectedCountry = country);
-                          Navigator.of(sheetContext).pop();
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  Future<void> _onPickImage(ProfileImageType imageType) async {
+    final ImagePicker picker = ImagePicker();
+
+    final XFile? picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 100,
     );
+
+    if (picked == null || !mounted) {
+      return;
+    }
+
+    final String? croppedPath = await _cropImage(
+      sourcePath: picked.path,
+      imageType: imageType,
+    );
+
+    if (croppedPath == null || !mounted) {
+      return;
+    }
+
+    await context.read<ProfileCubit>().uploadImage(
+          imageType: imageType,
+          filePath: croppedPath,
+        );
+
+    if (mounted) {
+      await context.read<AuthCubit>().refreshCurrentUserSilently();
+    }
   }
 
   Future<bool> _onWillPop() async {
     if (!_hasUnsavedChanges) return true;
+
     final shouldDiscard = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -249,19 +271,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ],
       ),
     );
+
     return shouldDiscard ?? false;
   }
-
-  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+
         final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) Navigator.of(context).pop();
+        if (shouldPop && mounted) {
+          Navigator.of(context).pop();
+        }
       },
       child: BlocConsumer<ProfileCubit, ProfileState>(
         listener: (context, state) {
@@ -275,6 +299,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             );
             Navigator.of(context).pop();
           }
+
           if (state is ProfileUpdateError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -319,49 +344,46 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildCoverAndAvatar(
+                    EditProfileImageSection(
                       avatarUrl: currentAvatarUrl,
                       coverUrl: currentCoverUrl,
                       isUploadingAvatar: isUploadingAvatar,
                       isUploadingCover: isUploadingCover,
+                      onPickImage: _onPickImage,
                     ),
                     const SizedBox(height: 24),
-
-                    // Display Name — inline field
-                    _buildInlineField(
+                    EditProfileTextField(
                       label: 'Display Name',
                       controller: _displayNameController,
                       maxLength: 50,
-                      validator: (value) {
-                        if (value == null || value.trim().length < 2) {
+                      validator: (v) {
+                        if (v == null || v.trim().length < 2) {
                           return 'Name must be at least 2 characters';
                         }
                         return null;
                       },
                     ),
-                    _buildDivider(),
-
-                    // City — inline field
-                    _buildInlineField(
+                    _divider(),
+                    EditProfileTextField(
                       label: 'City',
                       controller: _cityController,
                       maxLength: 35,
                     ),
-                    _buildDivider(),
-
-                    // Country — tappable row → bottom sheet picker
-                    _buildCountryRow(),
-                    _buildDivider(),
-
-                    // Bio — inline multiline text field
-                    _buildInlineField(
+                    _divider(),
+                    EditProfileCountryPicker(
+                      selectedCountry: _selectedCountry,
+                      countries: _countries,
+                      onCountrySelected: (c) =>
+                          setState(() => _selectedCountry = c),
+                    ),
+                    _divider(),
+                    EditProfileTextField(
                       label: 'Bio',
                       controller: _bioController,
                       maxLength: 160,
                       maxLines: 4,
                     ),
-                    _buildDivider(),
-
+                    _divider(),
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -373,8 +395,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // ── AppBar ─────────────────────────────────────────────────────────────────
-
   AppBar _buildAppBar(bool isSaving) {
     return AppBar(
       backgroundColor: Colors.black,
@@ -383,7 +403,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () async {
           final shouldPop = await _onWillPop();
-          if (shouldPop && mounted) Navigator.of(context).pop();
+          if (shouldPop && mounted) {
+            Navigator.of(context).pop();
+          }
         },
       ),
       title: const Text(
@@ -412,7 +434,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   onTap: _onSaveTapped,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -432,222 +456,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // ── Cover + Avatar ─────────────────────────────────────────────────────────
-
-  Widget _buildCoverAndAvatar({
-    required String? avatarUrl,
-    required String? coverUrl,
-    required bool isUploadingAvatar,
-    required bool isUploadingCover,
-  }) {
-    return SizedBox(
-      height: 180,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Cover banner
-          GestureDetector(
-            onTap: isUploadingCover
-                ? null
-                : () => _onPickImage(ProfileImageType.COVER),
-            child: Container(
-              width: double.infinity,
-              height: 140,
-              color: const Color(0xFFAAAAAA),
-              child: coverUrl != null
-                  ? Image.network(coverUrl, fit: BoxFit.cover)
-                  : null,
-            ),
-          ),
-          // Camera icon on cover
-          if (!isUploadingCover)
-            Positioned(
-              top: 12,
-              right: 12,
-              child: GestureDetector(
-                onTap: () => _onPickImage(ProfileImageType.COVER),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt_outlined,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-          if (isUploadingCover)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: 140,
-                color: Colors.black38,
-                child: const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                ),
-              ),
-            ),
-          // Avatar overlapping cover at bottom-left
-          Positioned(
-            bottom: 0,
-            left: 16,
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 46,
-                  backgroundColor: const Color(0xFFB8CDE8),
-                  backgroundImage:
-                      avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                  child: avatarUrl == null
-                      ? const Icon(Icons.person,
-                          size: 52, color: Color(0xFF8AAECF))
-                      : null,
-                ),
-                if (isUploadingAvatar)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  Positioned.fill(
-                    child: GestureDetector(
-                      onTap: () => _onPickImage(ProfileImageType.AVATAR),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.transparent,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Inline text field (Display Name, City, Bio) ───────────────────────────
-
-  Widget _buildInlineField({
-    required String label,
-    required TextEditingController controller,
-    int? maxLength,
-    int maxLines = 1,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF888888),
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 4),
-          TextFormField(
-            controller: controller,
-            maxLength: maxLength,
-            maxLines: maxLines,
-            validator: validator,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-              counterStyle: const TextStyle(
-                color: Color(0xFF888888),
-                fontSize: 11,
-              ),
-              errorStyle: const TextStyle(color: Colors.red, fontSize: 11),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Country row — taps to open bottom sheet ────────────────────────────────
-
-  Widget _buildCountryRow() {
-    return InkWell(
-      onTap: _showCountryPicker,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Country',
-                    style: TextStyle(
-                      color: Color(0xFF888888),
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _selectedCountry.isEmpty ? 'Country' : _selectedCountry,
-                    style: TextStyle(
-                      color: _selectedCountry.isEmpty
-                          ? Colors.white
-                          : Colors.white,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.white,
-              size: 22,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Divider ────────────────────────────────────────────────────────────────
-
-  Widget _buildDivider() {
-    return const Divider(
-      color: Color(0xFF222222),
-      height: 1,
-      indent: 16,
-      endIndent: 16,
-    );
-  }
+  Widget _divider() => const Divider(
+        color: Color(0xFF222222),
+        height: 1,
+        indent: 16,
+        endIndent: 16,
+      );
 }

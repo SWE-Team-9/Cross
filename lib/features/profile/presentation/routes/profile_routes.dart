@@ -28,6 +28,7 @@ abstract class ProfileRoutes {
     final cubit = context.read<ProfileCubit>();
     context.push('/profile/edit', extra: cubit);
   }
+
   static void goToFollowers(BuildContext context, String handle) =>
       context.push('/followers/$handle');
 
