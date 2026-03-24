@@ -1,5 +1,4 @@
 import 'package:bloc/bloc.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/enums/user_action_type.dart';
 import '../../../data/repositories/social_repo.dart';
 
@@ -35,7 +34,10 @@ class UserActionCubit extends Cubit<UserActionState> {
           break;
       }
 
-      emit(UserActionSuccess(action));
+      emit(UserActionSuccess(
+        userId: userId,
+        action: action,
+      ));
     } catch (e) {
       emit(UserActionError(e.toString()));
     }

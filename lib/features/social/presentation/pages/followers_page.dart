@@ -1,46 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
-import 'package:soundcloud_clone/features/social/presentation/bloc/user_action_bloc/user_action_cubit.dart';
+import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/social/domain/enums/user_action_type.dart';
+import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
+import 'package:soundcloud_clone/features/social/presentation/bloc/user_action_bloc/user_action_cubit.dart';
 
-/// Followers list page stub.
-/// Route: /followers/:userId
-///
-/// TODO (Ahmed Reda — T2.10):
-///   1. Replace `String` with your real UserEntity type.
-///   2. Inject the social repository and call getFollowers(userId, page: page).
-///   3. Replace ListTile with your UserListTile widget from social/widgets/.
 class FollowersPage extends StatelessWidget {
-  final String userId;
+  final String? userId;
+  final String? handle;
 
-  const FollowersPage({super.key, required this.userId});
+  const FollowersPage({
+    super.key,
+    this.userId,
+    this.handle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
+   final repo = context.read<SocialRepo>();
+
+    return BlocProvider(
+      create: (_) => UserActionCubit(repo),
+      child: Scaffold(
         backgroundColor: Colors.black,
-        title: const Text('Followers', style: TextStyle(color: Colors.white)),
-      ),
-      body: PaginatedUserList<String>(
-        // TODO: Ahmed Reda — replace with real repository call
-        fetcher: (_) async => [],
-        itemBuilder: (context, user) => ListTile(
-          title: Text(user, style: const TextStyle(color: Colors.white)),
-          trailing: ElevatedButton(
-            onPressed: () {
-              context.read<UserActionCubit>().performAction(
-                    userId: user,
-                    action: UserActionType.block,
-                  );
-            },
-            child: const Text("Block"),
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          title: const Text(
+            'Followers',
+            style: TextStyle(color: Colors.white),
           ),
         ),
-        emptyMessage: 'No followers yet',
-        emptyIcon: Icons.people_outline,
+        body: PaginatedUserList<User>(
+          fetcher: (page) async {
+            final resolvedUserId = userId ??
+                (handle != null
+                    ? await repo.getUserIdByHandle(handle!)
+                    : '');
+
+            if (resolvedUserId.isEmpty) {
+              return [];
+            }
+
+            return repo.getFollowers(resolvedUserId, page);
+          },
+          itemBuilder: (context, user) {
+            return ListTile(
+              title: Text(
+                user.username,
+                style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                '${user.followersCount} followers',
+                style: const TextStyle(color: Colors.grey),
+              ),
+              trailing: BlocBuilder<UserActionCubit, UserActionState>(
+                builder: (context, state) {
+                  return ElevatedButton(
+                    onPressed: state is UserActionLoading
+                        ? null
+                        : () {
+                            context.read<UserActionCubit>().performAction(
+                                  userId: user.id,
+                                  action: user.isFollowing
+                                      ? UserActionType.unfollow
+                                      : UserActionType.follow,
+                                );
+                          },
+                    child: Text(
+                      user.isFollowing ? "Unfollow" : "Follow",
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+          emptyMessage: 'No followers yet',
+          emptyIcon: Icons.people_outline,
+        ),
       ),
     );
   }

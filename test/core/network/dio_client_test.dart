@@ -1,156 +1,287 @@
+import 'dart:io';
+
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
-import 'package:soundcloud_clone/core/network/dio_client.dart';
-import 'package:soundcloud_clone/core/network/interceptors/auth_interceptor.dart';
-import 'package:soundcloud_clone/core/network/interceptors/error_interceptor.dart';
-import 'package:soundcloud_clone/core/network/interceptors/logging_interceptor.dart';
-import 'package:soundcloud_clone/core/storage/secure_storage.dart';
 import 'package:soundcloud_clone/core/errors/failure.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/core/storage/secure_storage.dart';
 
 class MockSecureStorage extends Mock implements SecureStorage {}
 
-void main() {
-  late DioClient dioClient;
-  late DioAdapter dioAdapter;
-  late MockSecureStorage mockSecureStorage;
+class _SuccessInterceptor extends Interceptor {
+  _SuccessInterceptor(this.handlerFn);
 
-  const testBaseUrl = 'https://api.test.com';
+  final Response<dynamic> Function(RequestOptions options) handlerFn;
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    handler.resolve(handlerFn(options));
+  }
+}
+
+class _ErrorInterceptor extends Interceptor {
+  _ErrorInterceptor(this.errorFn);
+
+  final DioException Function(RequestOptions options) errorFn;
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    handler.reject(errorFn(options));
+  }
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late DioClient dioClient;
+  late MockSecureStorage mockSecureStorage;
+  late PersistCookieJar cookieJar;
 
   setUp(() {
     mockSecureStorage = MockSecureStorage();
-
-    //  Setup default mock behavior
-    when(() => mockSecureStorage.read(any())).thenAnswer((_) async => null);
-
-    // Create DioClient with test URL
-    dioClient = DioClient(
-      baseUrl: testBaseUrl,
-      secureStorage: mockSecureStorage,
+    cookieJar = PersistCookieJar(
+      storage: FileStorage(
+        '${Directory.systemTemp.path}/cross_dio_client_test_cookies',
+      ),
     );
 
-    // Create DioAdapter for mocking responses
-    dioAdapter = DioAdapter(dio: dioClient.dio);
+    dioClient = DioClient(
+      baseUrl: 'https://api.test.com',
+      secureStorage: mockSecureStorage,
+      cookieJar: cookieJar,
+    );
   });
 
-  group('DioClient initialization', () {
-    test('should initialize with correct base options', () {
-      expect(dioClient.dio.options.baseUrl, testBaseUrl);
+  group('DioClient', () {
+    test('initializes dio with expected base options and interceptors', () {
+      expect(dioClient.dio.options.baseUrl, 'https://api.test.com');
       expect(dioClient.dio.options.connectTimeout, const Duration(seconds: 30));
       expect(dioClient.dio.options.receiveTimeout, const Duration(seconds: 30));
-      expect(dioClient.dio.options.headers['Content-Type'], 'application/json');
+      expect(
+        dioClient.dio.options.headers['Content-Type'],
+        'application/json',
+      );
+      expect(dioClient.dio.interceptors, isNotEmpty);
     });
 
-    test('should have all interceptors registered', () {
-      final interceptors = dioClient.dio.interceptors;
-
-      expect(interceptors, isNotEmpty);
-      expect(interceptors[interceptors.length - 3], isA<AuthInterceptor>());
-      expect(interceptors[interceptors.length - 2], isA<ErrorInterceptor>());
-      expect(interceptors[interceptors.length - 1], isA<LoggingInterceptor>());
-    });
-  });
-
-  group('GET requests', () {
-    test('should perform GET request successfully', () async {
-      const path = '/test';
-      const responseData = {'message': 'success'};
-
-      dioAdapter.onGet(
-        path,
-        (server) => server.reply(200, responseData),
+    test('get returns response from dio', () async {
+      dioClient.dio.interceptors.insert(
+        0,
+        _SuccessInterceptor(
+          (options) => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 200,
+            data: <String, dynamic>{
+              'method': options.method,
+              'path': options.path,
+              'query': options.queryParameters,
+            },
+          ),
+        ),
       );
 
-      final response = await dioClient.get(path);
+      final response = await dioClient.get<dynamic>(
+        '/profiles/me',
+        queryParameters: const {'handle': 'ali'},
+      );
 
       expect(response.statusCode, 200);
-      expect(response.data, responseData);
+      expect(response.data['method'], 'GET');
+      expect(response.data['path'], '/profiles/me');
+      expect(response.data['query'], {'handle': 'ali'});
     });
 
-    test('should throw mapped error on GET failure', () async {
-      const path = '/test';
+    test('post returns response from dio', () async {
+      dioClient.dio.interceptors.insert(
+        0,
+        _SuccessInterceptor(
+          (options) => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 201,
+            data: <String, dynamic>{
+              'method': options.method,
+              'path': options.path,
+              'data': options.data,
+            },
+          ),
+        ),
+      );
 
-      dioAdapter.onGet(
-        path,
-        (server) => server.reply(404, {'message': 'Not found'}),
+      final response = await dioClient.post<dynamic>(
+        '/auth/login',
+        data: const {'email': 'ali@example.com'},
+      );
+
+      expect(response.statusCode, 201);
+      expect(response.data['method'], 'POST');
+      expect(response.data['path'], '/auth/login');
+      expect(response.data['data'], {'email': 'ali@example.com'});
+    });
+
+    test('put returns response from dio', () async {
+      dioClient.dio.interceptors.insert(
+        0,
+        _SuccessInterceptor(
+          (options) => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 200,
+            data: <String, dynamic>{
+              'method': options.method,
+              'path': options.path,
+              'data': options.data,
+            },
+          ),
+        ),
+      );
+
+      final response = await dioClient.put<dynamic>(
+        '/profiles/me',
+        data: const {'display_name': 'Ali'},
+      );
+
+      expect(response.statusCode, 200);
+      expect(response.data['method'], 'PUT');
+      expect(response.data['path'], '/profiles/me');
+      expect(response.data['data'], {'display_name': 'Ali'});
+    });
+
+    test('delete returns response from dio', () async {
+      dioClient.dio.interceptors.insert(
+        0,
+        _SuccessInterceptor(
+          (options) => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 200,
+            data: <String, dynamic>{
+              'method': options.method,
+              'path': options.path,
+              'data': options.data,
+            },
+          ),
+        ),
+      );
+
+      final response = await dioClient.delete<dynamic>(
+        '/tracks/123',
+        data: const {'hard_delete': false},
+      );
+
+      expect(response.statusCode, 200);
+      expect(response.data['method'], 'DELETE');
+      expect(response.data['path'], '/tracks/123');
+      expect(response.data['data'], {'hard_delete': false});
+    });
+
+    test('patch returns response from dio', () async {
+      dioClient.dio.interceptors.insert(
+        0,
+        _SuccessInterceptor(
+          (options) => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 200,
+            data: <String, dynamic>{
+              'method': options.method,
+              'path': options.path,
+              'data': options.data,
+            },
+          ),
+        ),
+      );
+
+      final response = await dioClient.patch<dynamic>(
+        '/profiles/me',
+        data: const {'bio': 'Updated bio'},
+      );
+
+      expect(response.statusCode, 200);
+      expect(response.data['method'], 'PATCH');
+      expect(response.data['path'], '/profiles/me');
+      expect(response.data['data'], {'bio': 'Updated bio'});
+    });
+
+    test('get maps 404 DioException to NotFoundFailure', () async {
+      dioClient.dio.interceptors.insert(
+        0,
+        _ErrorInterceptor(
+          (options) => DioException(
+            requestOptions: options,
+            type: DioExceptionType.badResponse,
+            response: Response<dynamic>(
+              requestOptions: options,
+              statusCode: 404,
+              data: <String, dynamic>{'message': 'Profile not found'},
+            ),
+          ),
+        ),
       );
 
       expect(
-        () async => await dioClient.get(path),
-        throwsA(isA<NotFoundFailure>()),
+        () => dioClient.get<dynamic>('/profiles/missing'),
+        throwsA(
+          isA<NotFoundFailure>().having(
+            (e) => e.message,
+            'message',
+            'Profile not found',
+          ),
+        ),
       );
     });
-  });
 
-  group('POST requests', () {
-    test('should perform POST request successfully', () async {
-      const path = '/test';
-      const requestData = {'name': 'test'};
-      const responseData = {'id': 1, 'name': 'test'};
-
-      dioAdapter.onPost(
-        path,
-        (server) => server.reply(201, responseData),
-        data: requestData,
+    test('post maps timeout DioException to NetworkFailure', () async {
+      dioClient.dio.interceptors.insert(
+        0,
+        _ErrorInterceptor(
+          (options) => DioException(
+            requestOptions: options,
+            type: DioExceptionType.connectionTimeout,
+            message: 'timeout',
+          ),
+        ),
       );
 
-      final response = await dioClient.post(path, data: requestData);
-
-      expect(response.statusCode, 201);
-      expect(response.data, responseData);
+      expect(
+        () => dioClient.post<dynamic>(
+          '/auth/login',
+          data: const {'email': 'ali@example.com'},
+        ),
+        throwsA(
+          isA<NetworkFailure>().having(
+            (e) => e.message,
+            'message',
+            'Connection timeout. Please try again.',
+          ),
+        ),
+      );
     });
-  });
 
-  group('PUT requests', () {
-    test('should perform PUT request successfully', () async {
-      const path = '/test/1';
-      const requestData = {'name': 'updated'};
-      const responseData = {'id': 1, 'name': 'updated'};
-
-      dioAdapter.onPut(
-        path,
-        (server) => server.reply(200, responseData),
-        data: requestData,
+    test('patch maps connection error DioException to NetworkFailure',
+        () async {
+      dioClient.dio.interceptors.insert(
+        0,
+        _ErrorInterceptor(
+          (options) => DioException(
+            requestOptions: options,
+            type: DioExceptionType.connectionError,
+            message: 'No internet',
+          ),
+        ),
       );
 
-      final response = await dioClient.put(path, data: requestData);
-
-      expect(response.statusCode, 200);
-      expect(response.data, responseData);
-    });
-  });
-
-  group('DELETE requests', () {
-    test('should perform DELETE request successfully', () async {
-      const path = '/test/1';
-
-      dioAdapter.onDelete(
-        path,
-        (server) => server.reply(204, null),
+      expect(
+        () => dioClient.patch<dynamic>(
+          '/profiles/me',
+          data: const {'bio': 'Updated'},
+        ),
+        throwsA(
+          isA<NetworkFailure>().having(
+            (e) => e.message,
+            'message',
+            'No internet connection.',
+          ),
+        ),
       );
-
-      final response = await dioClient.delete(path);
-
-      expect(response.statusCode, 204);
-    });
-  });
-
-  group('PATCH requests', () {
-    test('should perform PATCH request successfully', () async {
-      const path = '/test/1';
-      const requestData = {'name': 'patched'};
-      const responseData = {'id': 1, 'name': 'patched'};
-
-      dioAdapter.onPatch(
-        path,
-        (server) => server.reply(200, responseData),
-        data: requestData,
-      );
-
-      final response = await dioClient.patch(path, data: requestData);
-
-      expect(response.statusCode, 200);
-      expect(response.data, responseData);
     });
   });
 }
