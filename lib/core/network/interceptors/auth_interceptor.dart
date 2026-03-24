@@ -1,9 +1,5 @@
-// Dart SDK
-// Flutter
-// Third-party
 import 'package:dio/dio.dart';
 
-// Project
 import '../../storage/secure_storage.dart';
 
 /// Handles automatic token refresh when the access token expires.
@@ -14,8 +10,6 @@ import '../../storage/secure_storage.dart';
 /// so the user is never unexpectedly logged out mid-session.
 class AuthInterceptor extends Interceptor {
   final SecureStorage secureStorage;
-  // Keep a reference to Dio so we can retry the failed request
-  // after a successful token refresh
   Dio? _dio;
 
   AuthInterceptor({required this.secureStorage});
@@ -28,12 +22,11 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) {
-    // Nothing to add manually — CookieManager handles cookie attachment
-    // The only thing we do here is ensure JSON content type is set
-    // for non-multipart requests
+    // CookieManager handles cookie attachment automatically.
     if (options.data is! FormData) {
       options.headers['Content-Type'] = 'application/json';
     }
+
     handler.next(options);
   }
 
@@ -42,27 +35,24 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    final isUnauthorized = err.response?.statusCode == 401;
-    final isRefreshEndpoint = err.requestOptions.path.contains('/auth/refresh');
-    final isLoginEndpoint = err.requestOptions.path.contains('/auth/login');
+    final bool isUnauthorized = err.response?.statusCode == 401;
+    final bool isRefreshEndpoint =
+        err.requestOptions.path.contains('/auth/refresh');
+    final bool isLoginEndpoint =
+        err.requestOptions.path.contains('/auth/login');
 
-    // Only attempt refresh if:
-    // 1. The error is a 401 (token expired)
-    // 2. The failing request was NOT the refresh endpoint itself
-    //    (avoids infinite refresh loop)
-    // 3. The failing request was NOT login
-    //    (if login fails with 401, it's wrong credentials — not expired token)
-    if (isUnauthorized && !isRefreshEndpoint && !isLoginEndpoint) {
+    if (isUnauthorized &&
+        !isRefreshEndpoint &&
+        !isLoginEndpoint &&
+        _dio != null) {
       try {
         await _refreshToken();
 
-        // Retry the original request — CookieManager will now attach
-        // the new access_token cookie automatically
-        final retryResponse = await _dio!.fetch(err.requestOptions);
+        final Response<dynamic> retryResponse =
+            await _dio!.fetch(err.requestOptions);
         return handler.resolve(retryResponse);
       } catch (_) {
-        // Refresh failed — user must log in again
-        // TODO: call getIt<AuthCubit>().logout() here in Sprint 2 integration
+        // Refresh failed — let the original error continue.
       }
     }
 
@@ -70,9 +60,6 @@ class AuthInterceptor extends Interceptor {
   }
 
   Future<void> _refreshToken() async {
-    // POST /api/v1/auth/refresh
-    // No body needed — refresh_token cookie is sent automatically
-    // by CookieManager. Server rotates both cookies on success.
     await _dio!.post('/auth/refresh');
   }
 }

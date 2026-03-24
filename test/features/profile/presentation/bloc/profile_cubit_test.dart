@@ -94,7 +94,23 @@ void main() {
     );
 
     blocTest<ProfileCubit, ProfileState>(
-      'emits [ProfileUpdating, ProfileUpdateSuccess] on success',
+      'allows updateProfile retry from ProfileUpdateError state',
+      build: () {
+        when(() => mockUpdateProfileUseCase(tParams))
+            .thenAnswer((_) async => tProfileEntity);
+        return cubit;
+      },
+      seed: () => ProfileUpdateError(tProfileEntity, 'Previous failure'),
+      act: (c) => c.updateProfile(tParams),
+      expect: () => [
+        isA<ProfileUpdating>(),
+        isA<ProfileUpdateSuccess>(),
+        isA<ProfileLoaded>(),
+      ],
+    );
+
+    blocTest<ProfileCubit, ProfileState>(
+      'emits updating, success, then loaded with updated profile on success',
       build: () {
         when(() => mockUpdateProfileUseCase(tParams))
             .thenAnswer((_) async => tProfileEntity);
@@ -105,6 +121,9 @@ void main() {
       expect: () => [
         isA<ProfileUpdating>(),
         isA<ProfileUpdateSuccess>(),
+        predicate<ProfileState>(
+          (s) => s is ProfileLoaded && s.profile == tProfileEntity,
+        ),
       ],
     );
 

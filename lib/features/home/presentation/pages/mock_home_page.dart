@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
-import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
-import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/widgets/track_row.dart';
+import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
+import 'package:soundcloud_clone/features/upload/presentation/models/applyTrackManagementResult.dart';
+import 'package:soundcloud_clone/features/upload/presentation/models/trackManagementResult.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -27,6 +31,45 @@ class _MockHomePageState extends State<MockHomePage> {
     'HIP-HOP',
   ];
 
+  List<ManagedTrack> _managedTracks = const [
+    ManagedTrack(
+      id: 'managed-track-1',
+      title: 'Midnight Echoes',
+      description: 'A temporary owner track for Sprint 2 testing.',
+      genreId: 1,
+      genreName: 'Ambient',
+      tags: <String>['owner', 'ambient'],
+      visibility: TrackManagementVisibility.publicTrack,
+      durationInSeconds: 212,
+    ),
+    ManagedTrack(
+      id: 'managed-track-2',
+      title: 'City Lights',
+      description: 'Second temporary owner track for edit/delete testing.',
+      genreId: 2,
+      genreName: 'Electronic',
+      tags: <String>['night', 'synth'],
+      visibility: TrackManagementVisibility.privateTrack,
+      durationInSeconds: 184,
+    ),
+  ];
+
+  Future<void> _openTrackManagement(ManagedTrack track) async {
+    final result = await context.pushNamed(
+      'track-management',
+      extra: track,
+    );
+
+    if (result is TrackManagementResult && mounted) {
+      setState(() {
+        _managedTracks = applyTrackManagementResult(
+          tracks: _managedTracks,
+          result: result,
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AuthCubit, AuthState>(
@@ -40,7 +83,6 @@ class _MockHomePageState extends State<MockHomePage> {
         }
       },
       builder: (context, state) {
-        // Get the actual user handle if authenticated
         String currentHandle = '';
         if (state is AuthAuthenticated) {
           currentHandle = state.user.handle;
@@ -64,6 +106,12 @@ class _MockHomePageState extends State<MockHomePage> {
                         const _RelatedTracksRow(),
                         const _SectionHeader(title: 'Mixed for you'),
                         _MixesRow(userHandle: currentHandle),
+                        const _SectionHeader(
+                            title: 'Your Tracks (Sprint 2 Test)'),
+                        _ManagedTracksSection(
+                          tracks: _managedTracks,
+                          onManageTap: _openTrackManagement,
+                        ),
                         const _SectionHeader(title: 'Trending by genre'),
                         _GenreChips(
                           genres: _genres,
@@ -175,9 +223,7 @@ class _TopBar extends StatelessWidget {
   }
 
   void _navigateToProfile(BuildContext context) {
-    // Safety check: ensure handle is not empty
     if (currentUserHandle.isEmpty) {
-      debugPrint('Cannot navigate to profile: handle is empty');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please log in to view profile'),
@@ -187,18 +233,7 @@ class _TopBar extends StatelessWidget {
       return;
     }
 
-    // Navigate to profile with valid handle
-    try {
-      ProfileRoutes.goToProfile(context, currentUserHandle);
-    } catch (e) {
-      debugPrint('Error navigating to profile: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error opening profile: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    ProfileRoutes.goToProfile(context, currentUserHandle);
   }
 
   @override
@@ -233,19 +268,40 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 4),
           GestureDetector(
             onTap: () => _navigateToProfile(context),
-            child: CircleAvatar(
-              radius: 14,
-              backgroundColor: const Color(0xFFFF5500),
-              child: Text(
-                currentUserHandle.isNotEmpty
-                    ? currentUserHandle.substring(0, 1).toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+            child: Builder(
+              builder: (_) {
+                String? avatarUrl;
+                String fallbackText = '?';
+
+                if (authState is AuthAuthenticated) {
+                  final user = (authState as AuthAuthenticated).user;
+                  avatarUrl = user.avatarUrl;
+                  fallbackText = user.handle.isNotEmpty
+                      ? user.handle.substring(0, 1).toUpperCase()
+                      : '?';
+                } else if (currentUserHandle.isNotEmpty) {
+                  fallbackText =
+                      currentUserHandle.substring(0, 1).toUpperCase();
+                }
+
+                return CircleAvatar(
+                  radius: 14,
+                  backgroundColor: const Color(0xFFFF5500),
+                  backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                      ? NetworkImage(avatarUrl)
+                      : null,
+                  child: avatarUrl == null || avatarUrl.isEmpty
+                      ? Text(
+                          fallbackText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )
+                      : null,
+                );
+              },
             ),
           ),
           const SizedBox(width: 4),
@@ -263,6 +319,7 @@ class _TopBar extends StatelessWidget {
 class _IconBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
+
   const _IconBtn({required this.icon, required this.onTap});
 
   @override
@@ -279,6 +336,7 @@ class _IconBtn extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+
   const _SectionHeader({required this.title});
 
   @override
@@ -505,6 +563,81 @@ class _MixesRow extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _ManagedTracksSection extends StatelessWidget {
+  const _ManagedTracksSection({
+    required this.tracks,
+    required this.onManageTap,
+  });
+
+  final List<ManagedTrack> tracks;
+  final ValueChanged<ManagedTrack> onManageTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tracks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Text(
+          'No managed tracks remaining.',
+          style: TextStyle(color: Color(0xFF999999), fontSize: 13),
+        ),
+      );
+    }
+
+    return Column(
+      children: tracks.map((track) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          track.title,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${track.genreName ?? 'Unknown genre'} • ${track.visibility.displayLabel}',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () => onManageTap(track),
+                    child: const Text('Manage'),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(
+              color: Color(0xFF1A1A1A),
+              height: 1,
+              indent: 14,
+              endIndent: 14,
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
@@ -26,27 +27,49 @@ class LibraryPage extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          actions: const [
-            Padding(
+          actions: [
+            const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Icon(Icons.cast, color: Colors.white70),
             ),
-            Padding(
+            const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Icon(Icons.settings, color: Colors.white70),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: CircleAvatar(
-                radius: 14,
-                backgroundColor: Color(0xFFFF5500),
-                child: Text(
-                  'EY',
-                  style: TextStyle(fontSize: 10, color: Colors.white),
-                ),
-              ),
+            BlocBuilder<AuthCubit, AuthState>(
+              builder: (context, state) {
+                String? avatarUrl;
+                String fallbackText = '?';
+
+                if (state is AuthAuthenticated) {
+                  avatarUrl = state.user.avatarUrl;
+                  fallbackText = state.user.handle.isNotEmpty
+                      ? state.user.handle.substring(0, 1).toUpperCase()
+                      : '?';
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: const Color(0xFFFF5500),
+                    backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                        ? NetworkImage(avatarUrl)
+                        : null,
+                    child: avatarUrl == null || avatarUrl.isEmpty
+                        ? Text(
+                            fallbackText,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                );
+              },
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
           ],
         ),
         body: SingleChildScrollView(
@@ -114,7 +137,7 @@ class LibraryPage extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: _BottomNav(selected: 3),
+        bottomNavigationBar: const _BottomNav(selected: 3),
       ),
     );
   }
@@ -195,9 +218,11 @@ class _BottomNav extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  final IconData icon, activeIcon;
+  final IconData icon;
+  final IconData activeIcon;
   final String label;
-  final int index, selected;
+  final int index;
+  final int selected;
   final VoidCallback onTap;
 
   const _NavItem({

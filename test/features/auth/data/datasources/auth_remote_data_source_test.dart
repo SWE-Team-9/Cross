@@ -27,7 +27,8 @@ void main() {
     const tPassword = 'password123';
     const tCaptcha = 'captcha_token';
 
-    test('should return AuthResponseDto and extract tokens from headers', () async {
+    test('should return AuthResponseDto and leave tokens empty for cookie auth',
+        () async {
       // Arrange
       when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
         (_) async => Response(
@@ -67,7 +68,7 @@ void main() {
       expect(result.user.email, tEmail);
       expect(result.user.handle, 'muslim');
       expect(result.user.displayName, 'Test User');
-      
+
       verify(() => mockDio.post(
             '/api/v1/auth/login',
             data: {
@@ -80,7 +81,8 @@ void main() {
   });
 
   group('register', () {
-    test('should return AuthResponseDto after successful registration', () async {
+    test('should return AuthResponseDto after successful registration',
+        () async {
       // Arrange
       when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
         (_) async => Response(
@@ -98,7 +100,7 @@ void main() {
           headers: Headers.fromMap({
             'set-cookie': [
               'access_token=reg_access; Path=/',
-              'refresh_token=reg_refresh; Path=/'
+              'refresh_token=reg_refresh; Path=/',
             ],
           }),
         ),
@@ -124,7 +126,7 @@ void main() {
       expect(result.user.handle, 'new_user');
       expect(result.user.displayName, 'New User');
       expect(result.user.gender, 'FEMALE');
-      
+
       verify(() => mockDio.post(
             '/api/v1/auth/register',
             data: {
@@ -151,8 +153,10 @@ void main() {
       await dataSource.sendEmailVerification(email: 'test@example.com');
 
       // Assert
-      verify(() => mockDio.post('/api/v1/auth/resend-verification',
-          data: {'email': 'test@example.com'})).called(1);
+      verify(() => mockDio.post(
+            '/api/v1/auth/resend-verification',
+            data: {'email': 'test@example.com'},
+          )).called(1);
     });
   });
 
