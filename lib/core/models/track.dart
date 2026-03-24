@@ -4,6 +4,7 @@ class Track {
   final String artist;
   final String audioUrl;
   final String? artworkUrl;
+  final String? handle;
 
   const Track({
     required this.id,
@@ -11,5 +12,6 @@ class Track {
     required this.artist,
     required this.audioUrl,
     this.artworkUrl,
+    this.handle,
   });
 }
