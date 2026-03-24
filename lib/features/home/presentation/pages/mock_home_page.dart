@@ -309,10 +309,6 @@ class _TopBar extends StatelessWidget {
             icon: Icons.upload_outlined,
             onTap: () => context.push('/upload-picker'),
           ),
-          _IconBtn(
-            icon: Icons.image_outlined,
-            onTap: () => context.push('/profile-image-upload-demo'),
-          ),
         ],
       ),
     );

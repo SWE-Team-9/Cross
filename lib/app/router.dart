@@ -18,8 +18,6 @@ import '../features/upload/presentation/pages/UploadPickerPage.dart';
 // Auth (existing — Sprint 1)
 import '../features/auth/presentation/routes/auth_routes.dart';
 
-// Profile image upload demo (Sprint 2 — T2.7 temporary demo/testing page)
-import '../features/profile/presentation/pages/ProfileImageUploadDemoPage.dart';
 
 // Profile (Sprint 2 — T2.1)
 import '../features/profile/presentation/pages/edit_profile_page.dart';
@@ -44,7 +42,6 @@ class AppRoutes {
   static const String home = '/home';
   static const String library = '/library';
   static const String uploadPicker = '/upload-picker';
-  static const String profileImageUploadDemo = '/profile-image-upload-demo';
   static const String editProfile = '/profile/edit';
   static const String profile = '/profile/:handle';
   static const String followers = '/followers/:handle';
@@ -103,16 +100,6 @@ final GoRouter router = GoRouter(
           create: (_) => getIt<UploadPickerCubit>(),
           child: const UploadPickerPage(),
         ),
-      ),
-    ),
-
-    // ── Profile image upload demo (Sprint 2 — T2.7) ──────────────
-    GoRoute(
-      path: AppRoutes.profileImageUploadDemo,
-      name: 'profile-image-upload-demo',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) => const MaterialPage(
-        child: ProfileImageUploadDemoPage(),
       ),
     ),
 

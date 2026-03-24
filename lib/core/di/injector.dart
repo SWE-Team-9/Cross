@@ -23,17 +23,6 @@ import '../../features/auth/domain/usecases/send_email_verification_usecase.dart
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_cubit.dart';
 
-// Sprint 2 — Profile image upload flow
-import '../../features/profile/data/datasources/profileRemoteDataSource.dart'
-    as profile_image_data;
-import '../../features/profile/data/repositories/profileRepositoryFake.dart';
-import '../../features/profile/data/repositories/profileRepositoryImpl.dart'
-    as profile_image_repo;
-import '../../features/profile/domain/repositories/profileRepository.dart'
-    as profile_image_domain;
-import '../../features/profile/domain/usecases/uploadProfileImageUseCase.dart';
-import '../../features/profile/presentation/bloc/profileImageUploadCubit.dart';
-
 // Upload
 import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
 import '../../features/upload/data/datasources/trackManagementRemoteDataSource.dart';
@@ -197,54 +186,6 @@ Future<void> setupDependencies() async {
       ),
     );
   }
-
-  // ── Profile Feature: Sprint 2 Profile Image Upload Flow ───────────────────
-
-  const bool useMockProfileImageUpload = bool.fromEnvironment(
-    'USE_MOCK_PROFILE_IMAGE_UPLOAD',
-    defaultValue: false,
-  );
-
-  const String mockProfileImageUploadModeValue = String.fromEnvironment(
-    'MOCK_PROFILE_IMAGE_UPLOAD_MODE',
-    defaultValue: 'success',
-  );
-
-  final MockProfileImageUploadMode mockProfileImageUploadMode =
-      _parseMockProfileImageUploadMode(mockProfileImageUploadModeValue);
-
-  if (!getIt.isRegistered<profile_image_data.ProfileRemoteDataSource>()) {
-    getIt.registerLazySingleton<profile_image_data.ProfileRemoteDataSource>(
-      () => profile_image_data.ProfileRemoteDataSourceImpl(getIt<DioClient>()),
-    );
-  }
-
-  if (!getIt.isRegistered<profile_image_domain.ProfileRepository>()) {
-    getIt.registerLazySingleton<profile_image_domain.ProfileRepository>(
-      () => useMockProfileImageUpload
-          ? ProfileRepositoryFake(
-              mode: mockProfileImageUploadMode,
-            )
-          : profile_image_repo.ProfileRepositoryImpl(
-              getIt<profile_image_data.ProfileRemoteDataSource>(),
-            ),
-    );
-  }
-
-  if (!getIt.isRegistered<UploadProfileImageUseCase>()) {
-    getIt.registerLazySingleton<UploadProfileImageUseCase>(
-      () => UploadProfileImageUseCase(
-        getIt<profile_image_domain.ProfileRepository>(),
-      ),
-    );
-  }
-
-  if (!getIt.isRegistered<ProfileImageUploadCubit>()) {
-    getIt.registerFactory<ProfileImageUploadCubit>(
-      () => ProfileImageUploadCubit(getIt<UploadProfileImageUseCase>()),
-    );
-  }
-
   // ── Auth Feature ───────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
@@ -383,17 +324,6 @@ Future<void> setupDependencies() async {
   }
 }
 
-MockProfileImageUploadMode _parseMockProfileImageUploadMode(String value) {
-  switch (value.toLowerCase()) {
-    case 'alwaysfail':
-      return MockProfileImageUploadMode.alwaysFail;
-    case 'failonce':
-      return MockProfileImageUploadMode.failOnce;
-    case 'success':
-    default:
-      return MockProfileImageUploadMode.success;
-  }
-}
 
 MockTrackManagementMode _parseMockTrackManagementMode(String value) {
   switch (value.toLowerCase()) {
