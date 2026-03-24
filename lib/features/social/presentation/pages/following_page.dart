@@ -25,7 +25,6 @@ class FollowingPage extends StatelessWidget {
           style: TextStyle(color: Colors.white),
         ),
       ),
-
       body: BlocProvider(
         create: (_) => UserActionCubit(repo),
         child: PaginatedUserList<User>(
@@ -33,23 +32,19 @@ class FollowingPage extends StatelessWidget {
             final userId = await repo.getUserIdByHandle(handle);
             return repo.getFollowing(userId, page);
           },
-
           itemBuilder: (context, user) {
             return ListTile(
               title: Text(
                 user.username,
                 style: const TextStyle(color: Colors.white),
               ),
-
               subtitle: Text(
                 '${user.followersCount} followers',
                 style: const TextStyle(color: Colors.grey),
               ),
-
               trailing: BlocConsumer<UserActionCubit, UserActionState>(
                 listener: (context, state) {
-                  if (state is UserActionSuccess &&
-                      state.userId == user.id) {
+                  if (state is UserActionSuccess && state.userId == user.id) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(state.action.toString()),
@@ -57,7 +52,6 @@ class FollowingPage extends StatelessWidget {
                     );
                   }
                 },
-
                 builder: (context, state) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
@@ -66,9 +60,7 @@ class FollowingPage extends StatelessWidget {
                         onPressed: state is UserActionLoading
                             ? null
                             : () {
-                                context
-                                    .read<UserActionCubit>()
-                                    .performAction(
+                                context.read<UserActionCubit>().performAction(
                                       userId: user.id,
                                       action: UserActionType.unfollow,
                                     );
@@ -80,9 +72,7 @@ class FollowingPage extends StatelessWidget {
                         onPressed: state is UserActionLoading
                             ? null
                             : () {
-                                context
-                                    .read<UserActionCubit>()
-                                    .performAction(
+                                context.read<UserActionCubit>().performAction(
                                       userId: user.id,
                                       action: UserActionType.block,
                                     );
@@ -95,7 +85,6 @@ class FollowingPage extends StatelessWidget {
               ),
             );
           },
-
           emptyMessage: 'Not following anyone yet',
           emptyIcon: Icons.person_add_outlined,
         ),

@@ -19,7 +19,7 @@ class FollowersPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-   final repo = context.read<SocialRepo>();
+    final repo = context.read<SocialRepo>();
 
     return BlocProvider(
       create: (_) => UserActionCubit(repo),
@@ -35,9 +35,7 @@ class FollowersPage extends StatelessWidget {
         body: PaginatedUserList<User>(
           fetcher: (page) async {
             final resolvedUserId = userId ??
-                (handle != null
-                    ? await repo.getUserIdByHandle(handle!)
-                    : '');
+                (handle != null ? await repo.getUserIdByHandle(handle!) : '');
 
             if (resolvedUserId.isEmpty) {
               return [];
