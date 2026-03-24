@@ -268,19 +268,39 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 4),
           GestureDetector(
             onTap: () => _navigateToProfile(context),
-            child: CircleAvatar(
-              radius: 14,
-              backgroundColor: const Color(0xFFFF5500),
-              child: Text(
-                currentUserHandle.isNotEmpty
-                    ? currentUserHandle.substring(0, 1).toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+            child: Builder(
+              builder: (_) {
+                String? avatarUrl;
+                String fallbackText = '?';
+
+                if (authState is AuthAuthenticated) {
+                  final user = (authState as AuthAuthenticated).user;
+                  avatarUrl = user.avatarUrl;
+                  fallbackText = user.handle.isNotEmpty
+                      ? user.handle.substring(0, 1).toUpperCase()
+                      : '?';
+                } else if (currentUserHandle.isNotEmpty) {
+                  fallbackText = currentUserHandle.substring(0, 1).toUpperCase();
+                }
+
+                return CircleAvatar(
+                  radius: 14,
+                  backgroundColor: const Color(0xFFFF5500),
+                  backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                      ? NetworkImage(avatarUrl)
+                      : null,
+                  child: avatarUrl == null || avatarUrl.isEmpty
+                      ? Text(
+                          fallbackText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )
+                      : null,
+                );
+              },
             ),
           ),
           const SizedBox(width: 4),
