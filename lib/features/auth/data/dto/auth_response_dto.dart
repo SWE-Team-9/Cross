@@ -12,7 +12,6 @@ class AuthResponseDto {
   });
 
   factory AuthResponseDto.fromJson(Map<String, dynamic> json) {
-
     return AuthResponseDto(
       accessToken: json['access_token'] ?? '',
       refreshToken: json['refresh_token'] ?? '',
