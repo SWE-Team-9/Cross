@@ -38,7 +38,6 @@ migrate_working_dir/
 /coverage/
 
 # Android
-android/.gradle/
 android/local.properties
 android/*.iml
 android/app/debug
@@ -46,6 +45,17 @@ android/app/profile
 android/app/release
 android/app/.cxx/
 android/captures/
+
+# Android build outputs
+android/build/
+android/app/build/
+android/.gradle/
+
+# Android local properties (contains SDK path - PERSONAL!)
+android/local.properties
+
+# Gradle wrapper (keep the jar, but not the properties if they contain local paths)
+!gradle-wrapper.jar
 
 # iOS
 ios/Pods/
@@ -141,3 +151,4 @@ fastlane/README.md
 
 # Dependency directories
 node_modules/
+linux/flutter/generated_plugin_registrant.cc
