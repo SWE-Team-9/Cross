@@ -2,15 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
+import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/social/domain/enums/user_action_type.dart';
-import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/presentation/bloc/user_action_bloc/user_action_cubit.dart';
 
 class FollowingPage extends StatelessWidget {
   final String handle;
 
-  const FollowingPage({super.key, required this.handle});
+  const FollowingPage({
+    super.key,
+    required this.handle,
+  });
+
+  Future<String?> _resolveTargetUserId(
+    BuildContext context,
+    SocialRepo repo,
+  ) async {
+    final authState = context.read<AuthCubit>().state;
+
+    if (authState is AuthAuthenticated &&
+        authState.user.handle == handle.trim()) {
+      return authState.user.id;
+    }
+
+    try {
+      return await repo.getUserIdByHandle(handle.trim());
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +51,13 @@ class FollowingPage extends StatelessWidget {
         create: (_) => UserActionCubit(repo),
         child: PaginatedUserList<User>(
           fetcher: (page) async {
-            final userId = await repo.getUserIdByHandle(handle);
-            return repo.getFollowing(userId, page);
+            final resolvedUserId = await _resolveTargetUserId(context, repo);
+
+            if (resolvedUserId == null || resolvedUserId.isEmpty) {
+              return const <User>[];
+            }
+
+            return repo.getFollowing(resolvedUserId, page);
           },
           itemBuilder: (context, user) {
             return ListTile(
@@ -65,7 +92,7 @@ class FollowingPage extends StatelessWidget {
                                       action: UserActionType.unfollow,
                                     );
                               },
-                        child: const Text("Unfollow"),
+                        child: const Text('Unfollow'),
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
@@ -77,7 +104,7 @@ class FollowingPage extends StatelessWidget {
                                       action: UserActionType.block,
                                     );
                               },
-                        child: const Text("Block"),
+                        child: const Text('Block'),
                       ),
                     ],
                   );
