@@ -1,4 +1,3 @@
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
@@ -10,7 +9,6 @@ void main() {
 
   late JustAudioPlayerService service;
   late RecentlyPlayedCubit recentlyPlayedCubit;
-
 
   setUp(() {
     GetIt.I.reset();
