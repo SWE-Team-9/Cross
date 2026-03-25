@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cross Codebase Course</title>
+  <style>
+    :root {
+      --bg: #f7f2ea;
+      --bg-alt: #efe7db;
+      --paper: #fffaf2;
+      --ink: #2a241f;
+      --muted: #6d635a;
+      --line: #d9cdbd;
+      --accent: #e55a2b;
+      --accent-2: #0f766e;
+      --accent-soft: #ffe3d8;
+      --card: #fffdf8;
+      --shadow: 0 10px 30px rgba(90, 64, 38, 0.10);
+      --code-bg: #1e1e2e;
+      --code-ink: #f8f8f2;
+      --good: #166534;
+      --bad: #991b1b;
+      --radius: 20px;
+      --radius-sm: 14px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55;
+    }
+
+    h1, h2, h3, h4 {
+      margin: 0 0 12px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    h1 { font-size: clamp(2.2rem, 4vw, 4.6rem); }
+    h2 { font-size: clamp(1.6rem, 2.5vw, 2.5rem); }
+    h3 { font-size: 1.15rem; }
+    p { margin: 0 0 12px; color: var(--ink); }
+    a { color: inherit; }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      padding: 24px 18px;
+      background: rgba(255, 250, 242, 0.9);
+      border-right: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      padding: 10px 8px 20px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+    }
+
+    .brand .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .brand p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      padding: 12px 14px;
+      border-radius: 14px;
+      color: var(--muted);
+      border: 1px solid transparent;
+      transition: 0.2s ease;
+      font-weight: 600;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: var(--ink);
+      background: var(--paper);
+      border-color: var(--line);
+      transform: translateX(2px);
+    }
+
+    .progress-box {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 16px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+    }
+
+    .progress-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #eadfce;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #f59e0b);
+      transition: width 0.25s ease;
+    }
+
+    main {
+      min-width: 0;
+    }
+
+    .hero,
+    .module {
+      padding: 42px 30px;
+    }
+
+    .hero-inner,
+    .module-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+
+    .hero {
+      background:
+        radial-gradient(circle at top right, rgba(229, 90, 43, 0.15), transparent 30%),
+        linear-gradient(180deg, #fffaf2 0%, #f7f2ea 100%);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .hero-copy p {
+      font-size: 1.06rem;
+      max-width: 68ch;
+      color: var(--muted);
+    }
+
+    .hero-cards {
+      display: grid;
+      gap: 14px;
+    }
+
+    .info-card,
+    .card,
+    .quiz-card,
+    .timeline-card,
+    .flow-card,
+    .chat-card,
+    .translation,
+    .callout,
+    .glossary-box,
+    .checklist {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .info-card {
+      padding: 18px;
+    }
+
+    .info-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+
+    .module:nth-of-type(odd) { background: var(--bg); }
+    .module:nth-of-type(even) { background: var(--bg-alt); }
+
+    .module-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    .module-tag {
+      display: inline-block;
+      font-size: 0.82rem;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .module-subtitle {
+      max-width: 70ch;
+      color: var(--muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin: 18px 0 24px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin: 18px 0 24px;
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+    }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+    }
+
+    .timeline-card {
+      padding: 18px;
+      margin: 20px 0;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .timeline-step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .timeline-step .num {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+
+    .translation {
+      overflow: hidden;
+      margin: 24px 0;
+    }
+
+    .translation-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fff7ee;
+    }
+
+    .translation-head .path {
+      font-size: 0.92rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .translation-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .code-panel {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 18px;
+      min-width: 0;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .english-panel {
+      padding: 18px;
+      background: #fffdf8;
+      min-width: 0;
+    }
+
+    .english-panel ol {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    .english-panel li { margin-bottom: 10px; }
+
+    .flow-card,
+    .chat-card,
+    .quiz-card,
+    .glossary-box,
+    .checklist,
+    .callout {
+      padding: 18px;
+      margin: 20px 0;
+    }
+
+    .flow-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .node {
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: #fff4e8;
+      border: 1px solid #f0c4ad;
+      font-weight: 700;
+    }
+
+    .arrow {
+      font-size: 1.4rem;
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .chat {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .bubble {
+      max-width: 75%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      position: relative;
+      animation: riseIn 0.5s ease both;
+    }
+
+    .bubble.left {
+      background: #f2eee7;
+      border: 1px solid var(--line);
+    }
+
+    .bubble.right {
+      margin-left: auto;
+      background: #ffe8dc;
+      border: 1px solid #f1c7b4;
+    }
+
+    .quiz-options {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .quiz-options button {
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: white;
+      cursor: pointer;
+      font: inherit;
+      transition: 0.2s ease;
+    }
+
+    .quiz-options button:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .quiz-result {
+      margin-top: 12px;
+      font-weight: 700;
+      min-height: 24px;
+    }
+
+    .quiz-result.good { color: var(--good); }
+    .quiz-result.bad { color: var(--bad); }
+
+    .callout {
+      border-left: 6px solid var(--accent-2);
+      background: #f0fdfa;
+    }
+
+    .glossary-term {
+      border-bottom: 2px dashed var(--accent);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tooltip {
+      position: fixed;
+      z-index: 1000;
+      max-width: 280px;
+      background: #1f1720;
+      color: white;
+      padding: 12px 14px;
+      border-radius: 12px;
+      box-shadow: 0 18px 35px rgba(0,0,0,0.25);
+      font-size: 0.9rem;
+      line-height: 1.45;
+      display: none;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: white;
+      border: 1px solid var(--line);
+      font-size: 0.92rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .checklist ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+      color: var(--muted);
+    }
+
+    .footer {
+      padding: 36px 30px 60px;
+      background: #efe7db;
+      border-top: 1px solid var(--line);
+    }
+
+    .footer .module-inner {
+      display: grid;
+      gap: 14px;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid var(--line);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1024px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      .hero-grid,
+      .grid-2,
+      .grid-3,
+      .translation-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero,
+      .module,
+      .footer {
+        padding: 28px 16px;
+      }
+      .bubble { max-width: 100%; }
+      .timeline-step {
+        grid-template-columns: 40px 1fr;
+      }
+      .timeline-step .num {
+        width: 40px;
+        height: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="tooltip" id="tooltip"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="eyebrow">Interactive Course</div>
+        <h3>Cross Codebase</h3>
+        <p>A guided tour of the Flutter app, its startup path, routing, dependency injection, features, and Windows layer.</p>
+      </div>
+
+      <nav class="nav-list" id="navList">
+        <a class="nav-link active" href="#hero">Overview</a>
+        <a class="nav-link" href="#module-1">1. What this app is</a>
+        <a class="nav-link" href="#module-2">2. Startup flow</a>
+        <a class="nav-link" href="#module-3">3. Router map</a>
+        <a class="nav-link" href="#module-4">4. Dependency injection</a>
+        <a class="nav-link" href="#module-5">5. Feature modules</a>
+        <a class="nav-link" href="#module-6">6. Windows layer</a>
+        <a class="nav-link" href="#module-7">7. Debugging checklist</a>
+      </nav>
+
+      <div class="progress-box">
+        <strong>Reading progress</strong>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p id="progressText" style="margin-top:10px;color:var(--muted);font-size:0.95rem;">0% complete</p>
+      </div>
+    </aside>
+
+    <main>
+      <section class="hero" id="hero">
+        <div class="hero-inner">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <div class="module-tag">Cross / dev branch</div>
+              <h1>How the Cross app is wired</h1>
+              <p>
+                This course explains the current <strong>Flutter</strong> codebase from the top down. The app starts in <code>lib/main.dart</code>, builds the root widget in <code>lib/app/app.dart</code>, routes traffic in <code>lib/app/router.dart</code>, and wires dependencies in <code>lib/core/di/injector.dart</code>.
+              </p>
+              <p>
+                The practical goal is not theory. It is to help you answer questions like: <em>Where does a new feature belong?</em> <em>Why is a page not opening?</em> <em>Which dependency should I register?</em> <em>Why does Windows behave differently?</em>
+              </p>
+
+              <div class="pill-row">
+                <span class="pill">Flutter</span>
+                <span class="pill">flutter_bloc</span>
+                <span class="pill">go_router</span>
+                <span class="pill">get_it</span>
+                <span class="pill">dio</span>
+                <span class="pill">Windows support</span>
+              </div>
+            </div>
+
+            <div class="hero-cards">
+              <div class="info-card">
+                <strong>Core idea</strong>
+                <p>The app behaves like an airport. <b>main.dart</b> opens the building, <b>app.dart</b> sets the control desk, <b>router.dart</b> sends travelers to the right gate, and <b>injector.dart</b> makes sure each desk has the tools it needs.</p>
+              </div>
+              <div class="info-card">
+                <strong>Best first files to inspect</strong>
+                <p><code>lib/main.dart</code>, <code>lib/app/app.dart</code>, <code>lib/app/router.dart</code>, <code>lib/core/di/injector.dart</code>, <code>lib/core/config/app_config.dart</code>, and <code>windows/runner/main.cpp</code>.</p>
+              </div>
+              <div class="info-card">
+                <strong>Current reality on dev</strong>
+                <p>Some areas are real and wired. Some are still placeholder or mock-driven, especially the home screen and several routes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module" id="module-1">
+        <div class="module-inner">
+          <div class="module-header">
+            <div>
+              <div class="module-tag">Module 1</div>
+              <h2>What this app is right now</h2>
+              <p class="module-subtitle">
+                The current <span class="glossary-term" data-tip="A codebase is the full collection of source files that make up the project.">codebase</span> is a multi-feature Flutter app with authentication, profile, upload, social pages, library, recent-played logic, and platform-specific packages for Windows.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="card">
+              <h3>Boot layer</h3>
+              <p>Starts Flutter, initializes dependencies, then launches the root app widget.</p>
+            </div>
+            <div class="card">
+              <h3>Navigation layer</h3>
+              <p>Uses <span class="glossary-term" data-tip="A router decides which screen to show for each URL or route path. In Flutter, go_router handles that mapping.">go_router</span> to map paths like <code>/home</code>, <code>/library</code>, and profile pages.</p>
+            </div>
+            <div class="card">
+              <h3>Service layer</h3>
+              <p>Uses <span class="glossary-term" data-tip="Dependency injection means creating shared objects in one place and giving them to the parts of the app that need them.">dependency injection</span> through <code>get_it</code> so features can request ready-made services.</p>
+            </div>
+          </div>
+
+          <div class="flow-card">
+            <h3>Main architecture in one line</h3>
+            <div class="flow-line">
+              <div class="node">main.dart</div>
+              <div class="arrow">→</div>
+              <div class="node">setupDependencies()</div>
+              <div class="arrow">→</div>
+              <div class="node">App()</div>
+              <div class="arrow">→</div>
+              <div class="node">router</div>
+              <div class="arrow">→</div>
+              <div class="node">Feature page + Cubit/Repo</div>
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>Aha</h3>
+            <p>If a screen opens but has the wrong data, the problem is often <b>below the page</b>: bad route parameters, missing DI registration, or a repository talking to the wrong endpoint.</p>
+          </div>
+
+          <div class="quiz-card">
+            <h3>Quick check</h3>
+            <p>You want to understand why a page is not opening. Where should you inspect first?</p>
+            <div class="quiz-options" data-answer="b">
+              <button data-choice="a">Only the widget UI file</button>
+              <button data-choice="b">The router path, the pageBuilder, and any required extra/path parameters</button>
+              <button data-choice="c">Only pubspec.yaml</button>
+            </div>
+            <div class="quiz-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module" id="module-2">
+        <div class="module-inner">
+          <div class="module-header">
+            <div>
+              <div class="module-tag">Module 2</div>
+              <h2>Startup flow: from app launch to first screen</h2>
+              <p class="module-subtitle">
+                This is the most important path in the app. If startup fails, everything above it becomes irrelevant.
+              </p>
+            </div>
+          </div>
+
+          <div class="timeline-card">
+            <h3>The boot sequence</h3>
+            <div class="timeline">
+              <div class="timeline-step">
+                <div class="num">1</div>
+                <div>
+                  <h3>Flutter binds itself to the platform</h3>
+                  <p><code>WidgetsFlutterBinding.ensureInitialized()</code> makes sure Flutter is ready before async setup starts.</p>
+                </div>
+              </div>
+              <div class="timeline-step">
+                <div class="num">2</div>
+                <div>
+                  <h3>Dependency setup runs</h3>
+                  <p><code>setupDependencies()</code> registers storage, networking, repositories, use cases, cubits, and services.</p>
+                </div>
+              </div>
+              <div class="timeline-step">
+                <div class="num">3</div>
+                <div>
+                  <h3>The root widget is mounted</h3>
+                  <p><code>runApp(const App())</code> starts the app tree.</p>
+                </div>
+              </div>
+              <div class="timeline-step">
+                <div class="num">4</div>
+                <div>
+                  <h3>Router chooses the first visible route</h3>
+                  <p>The current initial location points to the auth splash page.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="translation">
+            <div class="translation-head">
+              <div>
+                <h3>Code ↔ English</h3>
+                <div class="path">lib/main.dart</div>
+              </div>
+            </div>
+            <div class="translation-grid">
+              <div class="code-panel">
+<pre>import 'package:flutter/material.dart';
+import 'app/app.dart';
+import 'core/di/injector.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await setupDependencies();
+  runApp(const App());
+}</pre>
+              </div>
+              <div class="english-panel">
+                <ol>
+                  <li>Import the Flutter UI toolkit.</li>
+                  <li>Import the root app widget.</li>
+                  <li>Import the file that prepares the shared services.</li>
+                  <li>Before doing anything else, make sure Flutter is fully ready.</li>
+                  <li>Wait for the dependency setup to finish. This matters because later screens expect those objects to exist already.</li>
+                  <li>Finally, attach the app to the screen.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-card">
+            <h3>Group chat between the startup actors</h3>
+            <div class="chat">
+              <div class="bubble left"><strong>main.dart</strong><br />“Flutter, wake up. I need the platform ready.”</div>
+              <div class="bubble right"><strong>Flutter Binding</strong><br />“Ready. You can now touch platform APIs safely.”</div>
+              <div class="bubble left"><strong>main.dart</strong><br />“Injector, register everything the app will need.”</div>
+              <div class="bubble right"><strong>injector.dart</strong><br />“Storage, Dio client, repositories, cubits, and services are being wired now.”</div>
+              <div class="bubble left"><strong>main.dart</strong><br />“Great. App, you can mount now.”</div>
+            </div>
+          </div>
+
+          <div class="quiz-card">
+            <h3>Quick check</h3>
+            <p>If you remove <code>await setupDependencies()</code>, what kind of bug becomes more likely?</p>
+            <div class="quiz-options" data-answer="c">
+              <button data-choice="a">The app icon changes</button>
+              <button data-choice="b">The router file gets deleted</button>
+              <button data-choice="c">Screens ask for services that were never registered yet</button>
+            </div>
+            <div class="quiz-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module" id="module-3">
+        <div class="module-inner">
+          <div class="module-header">
+            <div>
+              <div class="module-tag">Module 3</div>
+              <h2>The router map: how screens are chosen</h2>
+              <p class="module-subtitle">
+                The router is the building directory. It knows which path opens which page, and which pages need extra data before they can build.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <h3>Safe static routes</h3>
+              <p><code>/home</code>, <code>/feed</code>, <code>/search</code>, <code>/library</code>, and <code>/upgrade</code> are straightforward fixed paths.</p>
+            </div>
+            <div class="card">
+              <h3>Dynamic routes</h3>
+              <p><code>/profile/:handle</code>, <code>/followers/:handle</code>, and <code>/following/:handle</code> require a path value. If the handle is wrong or missing, the page will still build with bad input.</p>
+            </div>
+          </div>
+
+          <div class="translation">
+            <div class="translation-head">
+              <div>
+                <h3>Code ↔ English</h3>
+                <div class="path">lib/app/router.dart</div>
+              </div>
+            </div>
+            <div class="translation-grid">
+              <div class="code-panel">
+<pre>final GoRouter router = GoRouter(
+  navigatorKey: _rootNavigatorKey,
+  initialLocation: AuthRoutes.splash,
+  routes: [
+    ...AuthRoutes.routes,
+    GoRoute(
+      path: AppRoutes.home,
+      name: 'home',
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: MockHomePage(),
+      ),
+    ),
+  ],
+);</pre>
+              </div>
+              <div class="english-panel">
+                <ol>
+                  <li>Create one shared router object for the whole app.</li>
+                  <li>Give it the root navigator key so navigation can be controlled centrally.</li>
+                  <li>Set the first location to the auth splash page.</li>
+                  <li>Import all auth routes in bulk.</li>
+                  <li>Define the home route separately and map it to <code>MockHomePage()</code>.</li>
+                  <li>The current home is still a mock page, which is important when you debug “why is this dummy content showing?”</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-card">
+            <h3>Route decision flow</h3>
+            <div class="flow-line">
+              <div class="node">User action</div>
+              <div class="arrow">→</div>
+              <div class="node">context.go / context.push</div>
+              <div class="arrow">→</div>
+              <div class="node">GoRouter matches path</div>
+              <div class="arrow">→</div>
+              <div class="node">pageBuilder runs</div>
+              <div class="arrow">→</div>
+              <div class="node">Page receives cubit / params / extra</div>
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>Aha</h3>
+            <p>Routing bugs usually look like UI bugs. A page that opens blank may simply have received the wrong route data, especially when it expects <code>state.extra</code> or a path parameter.</p>
+          </div>
+
+          <div class="quiz-card">
+            <h3>Quick check</h3>
+            <p>A page opens, but the selected profile handle is empty. What is the first thing to inspect?</p>
+            <div class="quiz-options" data-answer="a">
+              <button data-choice="a">The dynamic route path and the value read from <code>state.pathParameters</code></button>
+              <button data-choice="b">The Windows CMake file</button>
+              <button data-choice="c">Only the icon theme</button>
+            </div>
+            <div class="quiz-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module" id="module-4">
+        <div class="module-inner">
+          <div class="module-header">
+            <div>
+              <div class="module-tag">Module 4</div>
+              <h2>Dependency injection: who builds the shared objects</h2>
+              <p class="module-subtitle">
+                <code>injector.dart</code> is the warehouse manager. It prepares the objects the app will reuse so features do not create their own copies everywhere.
+              </p>
+            </div>
+          </div>
+
+          <div class="translation">
+            <div class="translation-head">
+              <div>
+                <h3>Code ↔ English</h3>
+                <div class="path">lib/core/di/injector.dart</div>
+              </div>
+            </div>
+            <div class="translation-grid">
+              <div class="code-panel">
+<pre>if (!getIt.isRegistered<DioClient>()) {
+  getIt.registerLazySingleton<DioClient>(
+    () => DioClient(
+      baseUrl: ApiConstants.baseUrl,
+      secureStorage: getIt<SecureStorage>(),
+      cookieJar: cookieJar,
+    ),
+  );
+}
+
+if (!getIt.isRegistered<SocialRepo>()) {
+  getIt.registerLazySingleton<SocialRepo>(
+    () => SocialRepo(getIt<DioClient>().dio),
+  );
+}</pre>
+              </div>
+              <div class="english-panel">
+                <ol>
+                  <li>Before registering something, check whether it already exists.</li>
+                  <li>Create one shared <code>DioClient</code> lazily. “Lazy” means it is built only when first needed.</li>
+                  <li>That client uses the base API URL, secure storage, and a cookie jar.</li>
+                  <li>Then create one shared <code>SocialRepo</code>.</li>
+                  <li>The repository depends on the already-registered Dio client.</li>
+                  <li>This pattern keeps networking consistent across the app.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="card">
+              <h3>Storage objects</h3>
+              <p><code>FlutterSecureStorage</code> and the custom <code>SecureStorage</code> wrapper are registered early.</p>
+            </div>
+            <div class="card">
+              <h3>Network objects</h3>
+              <p><code>DioClient</code> becomes the shared HTTP gateway to the backend.</p>
+            </div>
+            <div class="card">
+              <h3>Feature objects</h3>
+              <p>Repos, use cases, and cubits are registered after their dependencies are ready.</p>
+            </div>
+          </div>
+
+          <div class="chat-card">
+            <h3>Group chat between app pieces</h3>
+            <div class="chat">
+              <div class="bubble left"><strong>ProfileCubit</strong><br />“I need a profile repository.”</div>
+              <div class="bubble right"><strong>GetIt</strong><br />“Done. Here is the registered repository instance.”</div>
+              <div class="bubble left"><strong>ProfileRepository</strong><br />“I need the remote data source.”</div>
+              <div class="bubble right"><strong>GetIt</strong><br />“Already wired. Use this one shared instance.”</div>
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>Aha</h3>
+            <p>If a new feature compiles but crashes when opened, a missing registration in <code>injector.dart</code> is one of the highest-probability causes.</p>
+          </div>
+
+          <div class="quiz-card">
+            <h3>Quick check</h3>
+            <p>You create a new cubit and page, but opening the page crashes with a service lookup error. What is the best first fix path?</p>
+            <div class="quiz-options" data-answer="b">
+              <button data-choice="a">Only change the page colors</button>
+              <button data-choice="b">Check whether the cubit and all of its dependencies were registered in <code>injector.dart</code></button>
+              <button data-choice="c">Delete the router</button>
+            </div>
+            <div class="quiz-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module" id="module-5">
+        <div class="module-inner">
+          <div class="module-header">
+            <div>
+              <div class="module-tag">Module 5</div>
+              <h2>Feature modules: what the app can do</h2>
+              <p class="module-subtitle">
+                The app is split into feature areas. That keeps responsibilities separate and makes debugging more local.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="card">
+              <h3>Auth</h3>
+              <p>Splash, welcome, login, register, forgot/reset password, and verify email routes already exist.</p>
+            </div>
+            <div class="card">
+              <h3>Profile + Social</h3>
+              <p>Profile pages, edit profile, followers, and following pages are wired through routes and cubits.</p>
+            </div>
+            <div class="card">
+              <h3>Upload + Track management</h3>
+              <p>Upload picker and track-management flows exist, and some behavior can run in mock mode depending on config.</p>
+            </div>
+          </div>
+
+          <div class="translation">
+            <div class="translation-head">
+              <div>
+                <h3>Code ↔ English</h3>
+                <div class="path">lib/core/config/app_config.dart</div>
+              </div>
+            </div>
+            <div class="translation-grid">
+              <div class="code-panel">
+<pre>static const String apiUrl = String.fromEnvironment(
+  'API_URL',
+  defaultValue: 'http://10.0.2.2:3006',
+);
+
+static const bool useMockTrackManagement = bool.fromEnvironment(
+  'USE_MOCK_TRACK_MANAGEMENT',
+  defaultValue: false,
+);</pre>
+              </div>
+              <div class="english-panel">
+                <ol>
+                  <li>Read the API base URL from a compile-time environment variable.</li>
+                  <li>If no variable is supplied, fall back to a default local backend address.</li>
+                  <li>Read a feature flag for mock track management.</li>
+                  <li>If enabled, the app can use fake behavior instead of real backend behavior for that area.</li>
+                  <li>This is useful during development, but it can also confuse you if you forget mock mode is on.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-card">
+            <h3>Example feature chain</h3>
+            <div class="flow-line">
+              <div class="node">Page</div>
+              <div class="arrow">→</div>
+              <div class="node">Cubit</div>
+              <div class="arrow">→</div>
+              <div class="node">Use case</div>
+              <div class="arrow">→</div>
+              <div class="node">Repository</div>
+              <div class="arrow">→</div>
+              <div class="node">Remote data source / Dio</div>
+            </div>
+          </div>
+
+          <div class="checklist">
+            <h3>When you add a new feature, check these layers</h3>
+            <ul>
+              <li>Page or widget exists</li>
+              <li>Route is registered</li>
+              <li>Cubit or state manager exists</li>
+              <li>Use case exists if the feature uses that pattern</li>
+              <li>Repository is registered</li>
+              <li>Endpoint or data source is correct</li>
+            </ul>
+          </div>
+
+          <div class="quiz-card">
+            <h3>Quick check</h3>
+            <p>You added a new backend-powered feature, but it still returns dummy data. What is the strongest suspicion?</p>
+            <div class="quiz-options" data-answer="c">
+              <button data-choice="a">The Windows window title is wrong</button>
+              <button data-choice="b">The font size is too small</button>
+              <button data-choice="c">A mock mode or fake repository path is still active for that feature</button>
+            </div>
+            <div class="quiz-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module" id="module-6">
+        <div class="module-inner">
+          <div class="module-header">
+            <div>
+              <div class="module-tag">Module 6</div>
+              <h2>The Windows layer: where desktop-specific issues start</h2>
+              <p class="module-subtitle">
+                Flutter apps are cross-platform, but the desktop launch layer still matters. Windows has its own runner, build files, and package behavior.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <h3>Build metadata</h3>
+              <p><code>windows/CMakeLists.txt</code> still uses the generic project and binary name <code>my_app</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Runner title</h3>
+              <p><code>windows/runner/main.cpp</code> also creates the window with title <code>my_app</code>.</p>
+            </div>
+          </div>
+
+          <div class="translation">
+            <div class="translation-head">
+              <div>
+                <h3>Code ↔ English</h3>
+                <div class="path">windows/runner/main.cpp</div>
+              </div>
+            </div>
+            <div class="translation-grid">
+              <div class="code-panel">
+<pre>flutter::DartProject project(L"data");
+
+FlutterWindow window(project);
+Win32Window::Point origin(10, 10);
+Win32Window::Size size(1280, 720);
+if (!window.Create(L"my_app", origin, size)) {
+  return EXIT_FAILURE;
+}</pre>
+              </div>
+              <div class="english-panel">
+                <ol>
+                  <li>Create the Dart project entry for the desktop runner.</li>
+                  <li>Create the native Windows window wrapper.</li>
+                  <li>Set the initial screen position and size.</li>
+                  <li>Try to create the desktop window.</li>
+                  <li>If creation fails, stop startup immediately.</li>
+                  <li>The window title still says <code>my_app</code>, which is a signal that the Windows shell layer has not been fully branded yet.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>Aha</h3>
+            <p>When a bug appears only on Windows, do not assume the Dart code is the only place to look. Plugin behavior, runner config, file picking, permissions, and native runner settings may all be part of the root cause.</p>
+          </div>
+
+          <div class="quiz-card">
+            <h3>Quick check</h3>
+            <p>A desktop-only issue appears on Windows while Android works. What is the best debugging mindset?</p>
+            <div class="quiz-options" data-answer="a">
+              <button data-choice="a">Inspect both Dart feature code and Windows-specific runner/plugin setup</button>
+              <button data-choice="b">Only inspect the mobile emulator</button>
+              <button data-choice="c">Rename README.md</button>
+            </div>
+            <div class="quiz-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module" id="module-7">
+        <div class="module-inner">
+          <div class="module-header">
+            <div>
+              <div class="module-tag">Module 7</div>
+              <h2>Debugging checklist: where to look first</h2>
+              <p class="module-subtitle">
+                This is the practical payoff. Use this map when something breaks so you can choose the right file faster.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="checklist">
+              <h3>If the app fails before any screen appears</h3>
+              <ul>
+                <li>Check <code>lib/main.dart</code></li>
+                <li>Check <code>setupDependencies()</code></li>
+                <li>Check service registrations and startup async code</li>
+              </ul>
+            </div>
+
+            <div class="checklist">
+              <h3>If a route opens the wrong page or bad data</h3>
+              <ul>
+                <li>Check <code>lib/app/router.dart</code></li>
+                <li>Check route path parameters</li>
+                <li>Check <code>state.extra</code> usage</li>
+              </ul>
+            </div>
+
+            <div class="checklist">
+              <h3>If a feature says “service not found”</h3>
+              <ul>
+                <li>Check <code>lib/core/di/injector.dart</code></li>
+                <li>Check every dependency in the chain, not only the top cubit</li>
+                <li>Check mock-vs-real repository path</li>
+              </ul>
+            </div>
+
+            <div class="checklist">
+              <h3>If desktop behavior differs</h3>
+              <ul>
+                <li>Check Windows runner files</li>
+                <li>Check plugin support on Windows</li>
+                <li>Check file paths and platform-specific packages</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="glossary-box">
+            <h3>Mini glossary</h3>
+            <p><span class="glossary-term" data-tip="A repository is a layer that hides where data comes from. It may talk to the network, local storage, or mocks.">Repository</span>, <span class="glossary-term" data-tip="A cubit is a simple state-management class from flutter_bloc that emits states over time.">Cubit</span>, <span class="glossary-term" data-tip="An endpoint is the specific URL path on a backend server that handles one kind of request.">Endpoint</span>, <span class="glossary-term" data-tip="A mock is a fake implementation used during development or testing instead of the real backend or service.">Mock</span>, and <span class="glossary-term" data-tip="A runner is the native platform shell that launches your Flutter code on a specific operating system.">Runner</span> are the five terms you need most often when discussing this codebase precisely.</p>
+          </div>
+
+          <div class="quiz-card">
+            <h3>Final check</h3>
+            <p>You need to add a new profile-related screen that fetches backend data. What is the most complete path?</p>
+            <div class="quiz-options" data-answer="b">
+              <button data-choice="a">Only create one widget file</button>
+              <button data-choice="b">Create the page, register the route, add state logic, wire repository/data flow, and register dependencies</button>
+              <button data-choice="c">Only change the Windows CMake file</button>
+            </div>
+            <div class="quiz-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="module-inner">
+          <h2>What to do next in the real repo</h2>
+          <p>Use this course as your fast map. When you debug, start from the symptom and move down the chain: route → cubit → use case → repository → endpoint or platform layer.</p>
+          <p>
+            Suggested keyboard habit while reading this file:
+            <span class="kbd">Home</span> to jump up,
+            <span class="kbd">End</span> to jump down,
+            <span class="kbd">Ctrl + F</span> to find file names quickly.
+          </p>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const sections = [...document.querySelectorAll('section[id]')];
+      const navLinks = [...document.querySelectorAll('.nav-link')];
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+      const tooltip = document.getElementById('tooltip');
+
+      function updateNav() {
+        let current = sections[0]?.id || '';
+        const trigger = window.innerHeight * 0.28;
+
+        sections.forEach(section => {
+          const rect = section.getBoundingClientRect();
+          if (rect.top <= trigger && rect.bottom >= trigger) {
+            current = section.id;
+          }
+        });
+
+        navLinks.forEach(link => {
+          const isActive = link.getAttribute('href') === '#' + current;
+          link.classList.toggle('active', isActive);
+        });
+
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+        progressFill.style.width = Math.max(0, Math.min(100, progress)) + '%';
+        progressText.textContent = Math.round(progress) + '% complete';
+      }
+
+      window.addEventListener('scroll', updateNav, { passive: true });
+      window.addEventListener('resize', updateNav);
+      updateNav();
+
+      document.querySelectorAll('.quiz-options').forEach(group => {
+        const answer = group.dataset.answer;
+        const result = group.parentElement.querySelector('.quiz-result');
+
+        group.querySelectorAll('button').forEach(button => {
+          button.addEventListener('click', () => {
+            const choice = button.dataset.choice;
+            if (choice === answer) {
+              result.textContent = 'Correct. That is the strongest first place to inspect.';
+              result.className = 'quiz-result good';
+            } else {
+              result.textContent = 'Not quite. Choose the place that controls the behavior most directly.';
+              result.className = 'quiz-result bad';
+            }
+          });
+        });
+      });
+
+      function showTooltip(term, text) {
+        tooltip.textContent = text;
+        tooltip.style.display = 'block';
+        const rect = term.getBoundingClientRect();
+        const ttRect = tooltip.getBoundingClientRect();
+
+        let top = rect.bottom + 10;
+        let left = rect.left;
+
+        if (left + ttRect.width > window.innerWidth - 12) {
+          left = window.innerWidth - ttRect.width - 12;
+        }
+        if (left < 12) left = 12;
+
+        if (top + ttRect.height > window.innerHeight - 12) {
+          top = rect.top - ttRect.height - 10;
+        }
+        if (top < 12) top = 12;
+
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+      }
+
+      function hideTooltip() {
+        tooltip.style.display = 'none';
+      }
+
+      document.querySelectorAll('.glossary-term').forEach(term => {
+        const text = term.dataset.tip;
+        term.addEventListener('mouseenter', () => showTooltip(term, text));
+        term.addEventListener('mouseleave', hideTooltip);
+        term.addEventListener('click', () => {
+          if (tooltip.style.display === 'block') {
+            hideTooltip();
+          } else {
+            showTooltip(term, text);
+          }
+        });
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('glossary-term')) {
+          hideTooltip();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
