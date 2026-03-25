@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
+import '../../../../core/network/api_constants.dart';
 
 class SocialRepo {
   final Dio dio;
@@ -10,7 +11,7 @@ class SocialRepo {
   Future<List<User>> getFollowers(String userId, int page) async {
     try {
       final response = await dio.get(
-        '/api/v1/social/$userId/followers',
+        ApiConstants.followersPath(userId),
         queryParameters: {'page': page},
       );
 
@@ -29,7 +30,7 @@ class SocialRepo {
   Future<List<User>> getFollowing(String userId, int page) async {
     try {
       final response = await dio.get(
-        '/api/v1/social/$userId/following',
+        ApiConstants.followingPath(userId),
         queryParameters: {'page': page},
       );
 
@@ -46,27 +47,27 @@ class SocialRepo {
   }
 
   Future<bool> followUser(String userId) async {
-    await dio.post('/api/v1/social/follow/$userId');
+    await dio.post(ApiConstants.followUserPath(userId));
     return true;
   }
 
   Future<bool> unfollowUser(String userId) async {
-    await dio.delete('/api/v1/social/follow/$userId');
+    await dio.delete(ApiConstants.followUserPath(userId));
     return true;
   }
 
   Future<bool> blockUser(String userId) async {
-    await dio.post('/api/v1/social/block/$userId');
+    await dio.post(ApiConstants.blockUserPath(userId));
     return true;
   }
 
   Future<bool> unblockUser(String userId) async {
-    await dio.delete('/api/v1/social/block/$userId');
+    await dio.delete(ApiConstants.blockUserPath(userId));
     return true;
   }
 
   Future<String> getUserIdByHandle(String handle) async {
-    final response = await dio.get('/api/v1/profiles/$handle');
+    final response = await dio.get(ApiConstants.profileByHandlePath(handle));
 
     final Map<String, dynamic> data = _asMap(response.data);
 

@@ -15,6 +15,8 @@ Use `.env.example` only as a reference for the required variables.
 - `API_URL`
 - `USE_MOCK_TRACK_MANAGEMENT`
 - `MOCK_TRACK_MANAGEMENT_MODE`
+- `RECAPTCHA_ANDROID_SITE_KEY`
+- `RECAPTCHA_WINDOWS_WEB_URL`
 
 ### Example values
 
@@ -39,11 +41,9 @@ These configurations already include the required `--dart-define` values, so you
 ### PowerShell - Android emulator
 
 ```powershell
-flutter run --dart-define=APP_ENV=dev --dart-define=API_URL=http://10.0.2.2:3006 --dart-define=USE_MOCK_TRACK_MANAGEMENT=false --dart-define=MOCK_TRACK_MANAGEMENT_MODE=success
-```
+flutter run --dart-define=APP_ENV=dev --dart-define=API_URL=http://10.0.2.2:3006 --dart-define=USE_MOCK_TRACK_MANAGEMENT=false --dart-define=MOCK_TRACK_MANAGEMENT_MODE=success --dart-define=RECAPTCHA_ANDROID_SITE_KEY=6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5 --dart-define=RECAPTCHA_WINDOWS_WEB_URL=https://inquisitive-seahorse-5af208.netlify.app```
 
 ### PowerShell - Windows desktop
 
 ```powershell
-flutter run -d windows --dart-define=APP_ENV=dev --dart-define=API_URL=http://localhost:3006 --dart-define=USE_MOCK_TRACK_MANAGEMENT=false --dart-define=MOCK_TRACK_MANAGEMENT_MODE=success
-```
+flutter run -d windows --dart-define=APP_ENV=dev --dart-define=API_URL=http://localhost:3006 --dart-define=USE_MOCK_TRACK_MANAGEMENT=false --dart-define=MOCK_TRACK_MANAGEMENT_MODE=success --dart-define=RECAPTCHA_ANDROID_SITE_KEY=6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5 --dart-define=RECAPTCHA_WINDOWS_WEB_URL=https://inquisitive-seahorse-5af208.netlify.app```
