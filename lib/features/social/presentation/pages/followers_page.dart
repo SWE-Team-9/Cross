@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
+import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/social/domain/enums/user_action_type.dart';
-import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/presentation/bloc/user_action_bloc/user_action_cubit.dart';
 
 class FollowersPage extends StatelessWidget {
@@ -16,6 +17,33 @@ class FollowersPage extends StatelessWidget {
     this.userId,
     this.handle,
   });
+
+  Future<String?> _resolveTargetUserId(
+    BuildContext context,
+    SocialRepo repo,
+  ) async {
+    if (userId != null && userId!.trim().isNotEmpty) {
+      return userId!.trim();
+    }
+
+    final authState = context.read<AuthCubit>().state;
+    if (authState is AuthAuthenticated &&
+        handle != null &&
+        handle!.trim().isNotEmpty &&
+        authState.user.handle == handle!.trim()) {
+      return authState.user.id;
+    }
+
+    if (handle == null || handle!.trim().isEmpty) {
+      return null;
+    }
+
+    try {
+      return await repo.getUserIdByHandle(handle!.trim());
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +62,10 @@ class FollowersPage extends StatelessWidget {
         ),
         body: PaginatedUserList<User>(
           fetcher: (page) async {
-            final resolvedUserId = userId ??
-                (handle != null ? await repo.getUserIdByHandle(handle!) : '');
+            final resolvedUserId = await _resolveTargetUserId(context, repo);
 
-            if (resolvedUserId.isEmpty) {
-              return [];
+            if (resolvedUserId == null || resolvedUserId.isEmpty) {
+              return const <User>[];
             }
 
             return repo.getFollowers(resolvedUserId, page);
@@ -67,7 +94,7 @@ class FollowersPage extends StatelessWidget {
                                 );
                           },
                     child: Text(
-                      user.isFollowing ? "Unfollow" : "Follow",
+                      user.isFollowing ? 'Unfollow' : 'Follow',
                     ),
                   );
                 },
