@@ -16,6 +16,7 @@ import '../../domain/entities/profile_entity.dart';
 import '../bloc/profile_cubit.dart';
 import '../bloc/profile_state.dart';
 import '../routes/profile_routes.dart';
+import '../../../../core/utils/platform_url_utils.dart';
 
 class ProfilePage extends StatelessWidget {
   final String handle;
@@ -187,8 +188,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTopBar(context),
-                  _buildAvatar(profile),
+                  _buildProfileHeader(context, profile),
                   _buildUserInfo(context, profile),
                   _buildActionRow(context, profile),
                   _buildTabBar(),
@@ -221,25 +221,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
-  Widget _buildTopBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _circleIconBtn(Icons.arrow_back, () => context.pop()),
-          Row(
-            children: [
-              _circleIconBtn(Icons.cast, () {}),
-              const SizedBox(width: 8),
-              _circleIconBtn(Icons.more_vert, () {}),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _circleIconBtn(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -255,16 +236,80 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
+  Widget _buildProfileHeader(BuildContext context, ProfileEntity profile) {
+    final normalizedCoverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(profile.coverPhotoUrl);
+
+    return SizedBox(
+      height: 230,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 150,
+            child: normalizedCoverUrl != null
+                ? Image.network(
+                    normalizedCoverUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: Colors.black,
+                    ),
+                  )
+                : Container(
+                    color: Colors.black,
+                  ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _circleIconBtn(Icons.arrow_back, () => context.pop()),
+                    Row(
+                      children: [
+                        _circleIconBtn(Icons.cast, () {}),
+                        const SizedBox(width: 8),
+                        _circleIconBtn(Icons.more_vert, () {}),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 14,
+            bottom: 0,
+            child: _buildAvatar(profile),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAvatar(ProfileEntity profile) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+    final normalizedAvatarUrl =
+        PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
+
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black, width: 4),
+      ),
       child: CircleAvatar(
         radius: 50,
         backgroundColor: const Color(0xFF5B7BBB),
-        backgroundImage: profile.avatarUrl != null
-            ? CachedNetworkImageProvider(profile.avatarUrl!)
+        backgroundImage: normalizedAvatarUrl != null
+            ? CachedNetworkImageProvider(normalizedAvatarUrl)
             : null,
-        child: profile.avatarUrl == null
+        child: normalizedAvatarUrl == null
             ? const Icon(Icons.person, size: 56, color: Color(0xFF7B9FD4))
             : null,
       ),
@@ -273,7 +318,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildUserInfo(BuildContext context, ProfileEntity profile) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
