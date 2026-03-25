@@ -1,0 +1,62 @@
+class User {
+  final String id;
+  final String username;
+  final bool isFollowing;
+  final int followersCount;
+
+  User({
+    required this.id,
+    required this.username,
+    this.isFollowing = false,
+    this.followersCount = 0,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    final dynamic rawId =
+        json['id'] ?? json['_id'] ?? json['userId'] ?? json['user_id'];
+
+    final dynamic rawUsername = json['username'] ??
+        json['handle'] ??
+        json['display_name'] ??
+        json['displayName'] ??
+        '';
+
+    final dynamic rawIsFollowing =
+        json['isFollowing'] ?? json['is_following'] ?? false;
+
+    final dynamic rawFollowersCount =
+        json['followersCount'] ?? json['followers_count'] ?? 0;
+
+    return User(
+      id: rawId?.toString() ?? '',
+      username: rawUsername?.toString() ?? '',
+      isFollowing: rawIsFollowing is bool
+          ? rawIsFollowing
+          : rawIsFollowing.toString().toLowerCase() == 'true',
+      followersCount: rawFollowersCount is int
+          ? rawFollowersCount
+          : int.tryParse(rawFollowersCount.toString()) ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'isFollowing': isFollowing,
+      'followersCount': followersCount,
+    };
+  }
+
+  User copyWith({
+    bool? isFollowing,
+    int? followersCount,
+  }) {
+    return User(
+      id: id,
+      username: username,
+      isFollowing: isFollowing ?? this.isFollowing,
+      followersCount: followersCount ?? this.followersCount,
+    );
+  }
+}

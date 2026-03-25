@@ -54,6 +54,7 @@ import '../network/dio_client.dart';
 import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
+import '../../features/social/data/repositories/social_repo.dart';
 
 final getIt = GetIt.instance;
 
@@ -89,6 +90,12 @@ Future<void> setupDependencies() async {
         secureStorage: getIt<SecureStorage>(),
         cookieJar: cookieJar,
       ),
+    );
+  }
+
+  if (!getIt.isRegistered<SocialRepo>()) {
+    getIt.registerLazySingleton<SocialRepo>(
+      () => SocialRepo(getIt<DioClient>().dio),
     );
   }
 
