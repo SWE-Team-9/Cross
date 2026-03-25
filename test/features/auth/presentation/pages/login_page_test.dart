@@ -22,6 +22,7 @@ void main() {
     when(() => authCubit.login(
           email: any(named: 'email'),
           password: any(named: 'password'),
+          rememberMe: any(named: 'rememberMe'),
           captchaToken: any(named: 'captchaToken'),
         )).thenAnswer((_) async {});
   });

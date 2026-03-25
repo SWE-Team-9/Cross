@@ -20,11 +20,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<User> login({
     required String email,
     required String password,
+    required bool rememberMe,
     required String captchaToken,
   }) async {
     final authResponse = await remoteDataSource.login(
       email: email,
       password: password,
+      rememberMe: rememberMe,
       captchaToken: captchaToken,
     );
 
@@ -57,7 +59,6 @@ class AuthRepositoryImpl implements AuthRepository {
       captchaToken: captchaToken,
     );
 
-    // Same reason as login — no token saving.
     return authResponse.user.toEntity();
   }
 
