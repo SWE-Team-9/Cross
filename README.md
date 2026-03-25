@@ -1,19 +1,45 @@
-# my_app
+# SoundCloud Clone - Cross
 
-A new Flutter project.
+Flutter cross-platform client for the SoundCloud clone project.
 
-## Getting Started
+## Configuration
 
-This project is a starting point for a Flutter application.
+This project uses compile-time environment variables via `--dart-define`.
 
-A few resources to get you started if this is your first Flutter project:
+The app does **not** load `.env` files directly.  
+Use `.env.example` only as a reference for the required variables.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### Required variables
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- `APP_ENV`
+- `API_URL`
+- `USE_MOCK_TRACK_MANAGEMENT`
+- `MOCK_TRACK_MANAGEMENT_MODE`
 
-Triggering CI workflow
+### Example values
+
+See `.env.example`.
+
+## VS Code Run Configurations
+
+The repository includes VS Code launch configurations for common development targets.
+
+Available configurations:
+- `Flutter - Android Emulator (Dev)`
+- `Flutter - Windows Desktop (Dev)`
+
+Open **Run and Debug** in VS Code and choose the configuration you want.
+
+These configurations already include the required `--dart-define` values, so you do not need to type them manually each time.
+
+## Running the app manually
+
+### PowerShell - Android emulator
+
+```powershell
+flutter run --dart-define=APP_ENV=dev --dart-define=API_URL=http://10.0.2.2:3006 --dart-define=USE_MOCK_TRACK_MANAGEMENT=false --dart-define=MOCK_TRACK_MANAGEMENT_MODE=success
+
+### PowerShell - Windows desktop
+
+```powershell
+flutter run -d windows --dart-define=APP_ENV=dev --dart-define=API_URL=http://localhost:3006 --dart-define=USE_MOCK_TRACK_MANAGEMENT=false --dart-define=MOCK_TRACK_MANAGEMENT_MODE=success
