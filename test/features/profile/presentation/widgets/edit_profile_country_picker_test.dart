@@ -3,136 +3,126 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/features/profile/presentation/widgets/edit_profile_country_picker.dart';
 
 void main() {
-  Widget wrap(Widget child) {
-    return MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.black,
-        body: child,
+  Future<void> pumpWidget(
+    WidgetTester tester, {
+    required String selectedCountry,
+    required List<String> countries,
+    required ValueChanged<String> onCountrySelected,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EditProfileCountryPicker(
+            selectedCountry: selectedCountry,
+            countries: countries,
+            onCountrySelected: onCountrySelected,
+          ),
+        ),
       ),
     );
   }
 
-  group('EditProfileCountryPicker', () {
-    testWidgets('shows Not specified when selectedCountry is empty',
-        (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          EditProfileCountryPicker(
-            selectedCountry: '',
-            countries: const ['Egypt', 'Saudi Arabia'],
-            onCountrySelected: (_) {},
-          ),
-        ),
-      );
+  testWidgets('shows selected country', (tester) async {
+    await pumpWidget(
+      tester,
+      selectedCountry: 'Egypt',
+      countries: const ['Egypt', 'Germany'],
+      onCountrySelected: (_) {},
+    );
 
-      expect(find.text('Country'), findsOneWidget);
-      expect(find.text('Not specified'), findsOneWidget);
-    });
+    expect(find.text('Country'), findsOneWidget);
+    expect(find.text('Egypt'), findsOneWidget);
+  });
 
-    testWidgets('shows selected country when provided', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          EditProfileCountryPicker(
-            selectedCountry: 'Egypt',
-            countries: const ['Egypt', 'Saudi Arabia'],
-            onCountrySelected: (_) {},
-          ),
-        ),
-      );
+  testWidgets('shows Not specified when selectedCountry is empty',
+      (tester) async {
+    await pumpWidget(
+      tester,
+      selectedCountry: '',
+      countries: const ['Egypt', 'Germany'],
+      onCountrySelected: (_) {},
+    );
 
-      expect(find.text('Egypt'), findsOneWidget);
-    });
+    expect(find.text('Not specified'), findsOneWidget);
+  });
 
-    testWidgets('opens bottom sheet on tap', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          EditProfileCountryPicker(
-            selectedCountry: '',
-            countries: const ['Egypt', 'Saudi Arabia'],
-            onCountrySelected: (_) {},
-          ),
-        ),
-      );
+  testWidgets('opens bottom sheet when tapped', (tester) async {
+    await pumpWidget(
+      tester,
+      selectedCountry: '',
+      countries: const ['Egypt', 'Germany'],
+      onCountrySelected: (_) {},
+    );
 
-      await tester.tap(find.byType(InkWell));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byType(InkWell));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Select Country'), findsOneWidget);
-      expect(find.text('Clear'), findsOneWidget);
-      expect(find.text('Cancel'), findsOneWidget);
-      expect(find.text('Egypt'), findsOneWidget);
-      expect(find.text('Saudi Arabia'), findsOneWidget);
-    });
+    expect(find.text('Select Country'), findsOneWidget);
+    expect(find.text('Clear'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Egypt'), findsOneWidget);
+    expect(find.text('Germany'), findsOneWidget);
+  });
 
-    testWidgets('calls onCountrySelected when a country is tapped',
-        (tester) async {
-      String? selectedValue;
+  testWidgets('selecting a country triggers callback and closes sheet',
+      (tester) async {
+    String? selected;
 
-      await tester.pumpWidget(
-        wrap(
-          EditProfileCountryPicker(
-            selectedCountry: '',
-            countries: const ['Egypt', 'Saudi Arabia'],
-            onCountrySelected: (value) => selectedValue = value,
-          ),
-        ),
-      );
+    await pumpWidget(
+      tester,
+      selectedCountry: '',
+      countries: const ['Egypt', 'Germany'],
+      onCountrySelected: (value) => selected = value,
+    );
 
-      await tester.tap(find.byType(InkWell));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byType(InkWell));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Saudi Arabia'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Germany'));
+    await tester.pumpAndSettle();
 
-      expect(selectedValue, 'Saudi Arabia');
-      expect(find.text('Select Country'), findsNothing);
-    });
+    expect(selected, 'Germany');
+    expect(find.text('Select Country'), findsNothing);
+  });
 
-    testWidgets(
-        'calls onCountrySelected with empty string when Clear is tapped',
-        (tester) async {
-      String? selectedValue = 'Egypt';
+  testWidgets('clear triggers empty selection and closes sheet',
+      (tester) async {
+    String? selected = 'Egypt';
 
-      await tester.pumpWidget(
-        wrap(
-          EditProfileCountryPicker(
-            selectedCountry: 'Egypt',
-            countries: const ['Egypt', 'Saudi Arabia'],
-            onCountrySelected: (value) => selectedValue = value,
-          ),
-        ),
-      );
+    await pumpWidget(
+      tester,
+      selectedCountry: 'Egypt',
+      countries: const ['Egypt', 'Germany'],
+      onCountrySelected: (value) => selected = value,
+    );
 
-      await tester.tap(find.byType(InkWell));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byType(InkWell));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Clear'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear'));
+    await tester.pumpAndSettle();
 
-      expect(selectedValue, '');
-      expect(find.text('Select Country'), findsNothing);
-    });
+    expect(selected, '');
+    expect(find.text('Select Country'), findsNothing);
+  });
 
-    testWidgets('closes bottom sheet when Cancel is tapped', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          EditProfileCountryPicker(
-            selectedCountry: 'Egypt',
-            countries: const ['Egypt', 'Saudi Arabia'],
-            onCountrySelected: (_) {},
-          ),
-        ),
-      );
+  testWidgets('cancel closes sheet without changing selection', (tester) async {
+    String? selected = 'Egypt';
 
-      await tester.tap(find.byType(InkWell));
-      await tester.pumpAndSettle();
+    await pumpWidget(
+      tester,
+      selectedCountry: 'Egypt',
+      countries: const ['Egypt', 'Germany'],
+      onCountrySelected: (value) => selected = value,
+    );
 
-      expect(find.text('Select Country'), findsOneWidget);
+    await tester.tap(find.byType(InkWell));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Select Country'), findsNothing);
-    });
+    expect(selected, 'Egypt');
+    expect(find.text('Select Country'), findsNothing);
   });
 }

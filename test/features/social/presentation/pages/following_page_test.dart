@@ -3,96 +3,137 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
-import 'package:soundcloud_clone/features/auth/domain/entities/user.dart'
-    as auth_user;
+import 'package:soundcloud_clone/features/auth/domain/entities/user.dart' as auth;
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/following_page.dart';
 
-class MockSocialRepo extends Mock implements SocialRepo {}
-
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
-void main() {
-  late MockSocialRepo repo;
-  late MockAuthCubit authCubit;
+class MockSocialRepo extends Mock implements SocialRepo {}
 
-  const currentUser = auth_user.User(
-    id: 'user-1',
-    email: 'ali@example.com',
+void main() {
+  late MockAuthCubit mockAuthCubit;
+  late MockSocialRepo mockSocialRepo;
+
+  const authUser = auth.User(
+    id: 'auth-1',
+    email: 'ali@test.com',
     handle: 'ali',
     displayName: 'Ali',
-    username: 'ali',
-    isVerified: true,
   );
 
-  Widget buildTestWidget() {
-    return MultiRepositoryProvider(
-      providers: [
-        RepositoryProvider<SocialRepo>.value(value: repo),
-      ],
-      child: MultiBlocProvider(
+  final following = [
+    User(
+      id: 'u1',
+      username: 'omar',
+      isFollowing: true,
+      followersCount: 12,
+    ),
+    User(
+      id: 'u2',
+      username: 'mona',
+      isFollowing: true,
+      followersCount: 20,
+    ),
+  ];
+
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    required String handle,
+  }) async {
+    await tester.pumpWidget(
+      MultiRepositoryProvider(
         providers: [
-          BlocProvider<AuthCubit>.value(value: authCubit),
+          RepositoryProvider<SocialRepo>.value(value: mockSocialRepo),
         ],
-        child: const MaterialApp(
-          home: FollowingPage(handle: 'ali'),
+        child: BlocProvider<AuthCubit>.value(
+          value: mockAuthCubit,
+          child: MaterialApp(
+            home: FollowingPage(handle: handle),
+          ),
         ),
       ),
     );
   }
 
   setUp(() {
-    repo = MockSocialRepo();
-    authCubit = MockAuthCubit();
-
-    when(() => authCubit.state).thenReturn(AuthAuthenticated(currentUser));
-
-    when(() => repo.getFollowing('user-1', any()))
-        .thenAnswer((_) async => const <User>[]);
-
-    when(() => repo.getUserIdByHandle(any())).thenAnswer((_) async => 'user-1');
+    mockAuthCubit = MockAuthCubit();
+    mockSocialRepo = MockSocialRepo();
   });
 
-  group('FollowingPage', () {
-    testWidgets('renders app bar title and empty state', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+  testWidgets('uses authenticated user id when viewing own following',
+      (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(
+      mockAuthCubit,
+      const Stream<AuthState>.empty(),
+      initialState: AuthAuthenticated(authUser),
+    );
 
-      expect(find.text('Following'), findsOneWidget);
-      expect(find.text('Not following anyone yet'), findsOneWidget);
-      expect(find.byIcon(Icons.person_add_outlined), findsOneWidget);
-    });
+    when(() => mockSocialRepo.getFollowing('auth-1', 1))
+        .thenAnswer((_) async => following);
 
-    testWidgets('uses black scaffold background', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+    await pumpPage(
+      tester,
+      handle: 'ali',
+    );
+    await tester.pumpAndSettle();
 
-      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-      expect(scaffold.backgroundColor, Colors.black);
-    });
+    verifyNever(() => mockSocialRepo.getUserIdByHandle(any()));
+    verify(() => mockSocialRepo.getFollowing('auth-1', 1)).called(1);
 
-    testWidgets('contains PaginatedUserList<User>', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+    expect(find.text('Following'), findsOneWidget);
+    expect(find.text('omar'), findsOneWidget);
+    expect(find.text('mona'), findsOneWidget);
+    expect(find.text('12 followers'), findsOneWidget);
+    expect(find.text('20 followers'), findsOneWidget);
+    expect(find.text('Unfollow'), findsNWidgets(2));
+    expect(find.text('Block'), findsNWidgets(2));
+  });
 
-      expect(find.byType(PaginatedUserList<User>), findsOneWidget);
-    });
+  testWidgets('resolves user id by handle for another profile', (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(
+      mockAuthCubit,
+      const Stream<AuthState>.empty(),
+      initialState: AuthAuthenticated(authUser),
+    );
 
-    testWidgets('stores provided handle', (tester) async {
-      const page = FollowingPage(handle: 'ali');
-      expect(page.handle, 'ali');
-    });
+    when(() => mockSocialRepo.getUserIdByHandle('other-handle'))
+        .thenAnswer((_) async => 'resolved-id');
+    when(() => mockSocialRepo.getFollowing('resolved-id', 1))
+        .thenAnswer((_) async => following);
 
-    testWidgets('uses authenticated user id when handle matches current user',
-        (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+    await pumpPage(
+      tester,
+      handle: 'other-handle',
+    );
+    await tester.pumpAndSettle();
 
-      verify(() => repo.getFollowing('user-1', 1)).called(1);
-      verifyNever(() => repo.getUserIdByHandle('ali'));
-    });
+    verify(() => mockSocialRepo.getUserIdByHandle('other-handle')).called(1);
+    verify(() => mockSocialRepo.getFollowing('resolved-id', 1)).called(1);
+  });
+
+  testWidgets('shows empty state when user id resolution fails', (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(
+      mockAuthCubit,
+      const Stream<AuthState>.empty(),
+      initialState: AuthAuthenticated(authUser),
+    );
+
+    when(() => mockSocialRepo.getUserIdByHandle('broken'))
+        .thenThrow(Exception('fail'));
+
+    await pumpPage(
+      tester,
+      handle: 'broken',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Not following anyone yet'), findsOneWidget);
+    verifyNever(() => mockSocialRepo.getFollowing(any(), any()));
   });
 }

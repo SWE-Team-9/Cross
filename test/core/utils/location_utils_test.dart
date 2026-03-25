@@ -3,20 +3,16 @@ import 'package:soundcloud_clone/core/utils/location_utils.dart';
 
 void main() {
   group('LocationUtils.parse', () {
-    const countries = <String>[
-      'Egypt',
-      'Saudi Arabia',
-      'United States',
-    ];
+    const countries = ['Egypt', 'Germany', 'France'];
 
-    test('returns empty city and country for null location', () {
+    test('returns empty city and country when location is null', () {
       final result = LocationUtils.parse(null, countries);
 
       expect(result.city, '');
       expect(result.country, '');
     });
 
-    test('returns empty city and country for empty location', () {
+    test('returns empty city and country when location is empty', () {
       final result = LocationUtils.parse('', countries);
 
       expect(result.city, '');
@@ -30,30 +26,30 @@ void main() {
       expect(result.country, 'Egypt');
     });
 
-    test('parses only country when value matches country list', () {
+    test('trims city and country when both are present', () {
+      final result = LocationUtils.parse('  Cairo  ,  Egypt  ', countries);
+
+      expect(result.city, 'Cairo');
+      expect(result.country, 'Egypt');
+    });
+
+    test('treats a known country-only value as country', () {
       final result = LocationUtils.parse('Egypt', countries);
 
       expect(result.city, '');
       expect(result.country, 'Egypt');
     });
 
-    test('parses only city when value does not match country list', () {
+    test('treats unknown single value as city', () {
       final result = LocationUtils.parse('Cairo', countries);
 
       expect(result.city, 'Cairo');
       expect(result.country, '');
     });
-
-    test('trims spaces around city and country', () {
-      final result = LocationUtils.parse('  Cairo  ,   Egypt  ', countries);
-
-      expect(result.city, 'Cairo');
-      expect(result.country, 'Egypt');
-    });
   });
 
   group('LocationUtils.build', () {
-    test('returns full location when city and country are present', () {
+    test('returns combined city and country when both are present', () {
       final result = LocationUtils.build('Cairo', 'Egypt');
 
       expect(result, 'Cairo, Egypt');
@@ -71,14 +67,14 @@ void main() {
       expect(result, 'Egypt');
     });
 
-    test('returns null when both city and country are empty', () {
+    test('returns null when both are empty', () {
       final result = LocationUtils.build('', '');
 
       expect(result, isNull);
     });
 
-    test('trims spaces before building', () {
-      final result = LocationUtils.build('  Cairo  ', '  Egypt  ');
+    test('trims whitespace before building', () {
+      final result = LocationUtils.build('  Cairo ', ' Egypt  ');
 
       expect(result, 'Cairo, Egypt');
     });
