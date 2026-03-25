@@ -173,8 +173,7 @@ void main() {
 
   group('action methods', () {
     test('followUser posts and returns true', () async {
-      when(() => mockDio.post(ApiConstants.followUserPath('u1')))
-          .thenAnswer(
+      when(() => mockDio.post(ApiConstants.followUserPath('u1'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
         ),
@@ -187,8 +186,7 @@ void main() {
     });
 
     test('unfollowUser deletes and returns true', () async {
-      when(() => mockDio.delete(ApiConstants.followUserPath('u1')))
-          .thenAnswer(
+      when(() => mockDio.delete(ApiConstants.followUserPath('u1'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
         ),

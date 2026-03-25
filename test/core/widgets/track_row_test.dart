@@ -58,7 +58,8 @@ void main() {
 
     mockAudioPlayerService = MockAudioPlayerService();
     recentlyPlayedCubit = RecentlyPlayedCubit();
-    playerStateController = StreamController<app_player.PlayerState>.broadcast();
+    playerStateController =
+        StreamController<app_player.PlayerState>.broadcast();
 
     when(() => mockAudioPlayerService.playerStateStream)
         .thenAnswer((_) => playerStateController.stream);

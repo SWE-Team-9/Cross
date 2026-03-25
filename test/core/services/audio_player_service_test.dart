@@ -52,7 +52,8 @@ void main() {
     await sub.cancel();
   });
 
-  test('playerStateStream emits idle with zero position after stop()', () async {
+  test('playerStateStream emits idle with zero position after stop()',
+      () async {
     final emitted = <PlayerState>[];
     final sub = service.playerStateStream.listen(emitted.add);
 
@@ -69,7 +70,6 @@ void main() {
   test('seek works', () async {
     await service.seek(const Duration(seconds: 10));
   });
-
 
   test('playerStateStream is broadcast', () async {
     final emitted1 = <PlayerState>[];

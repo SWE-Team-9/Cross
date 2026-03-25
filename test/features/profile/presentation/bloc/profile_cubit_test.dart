@@ -81,8 +81,7 @@ void main() {
   blocTest<ProfileCubit, ProfileState>(
     'loadProfile emits [ProfileLoading, ProfileLoaded] on success',
     build: () {
-      when(() => mockGetProfileUseCase('ali'))
-          .thenAnswer((_) async => profile);
+      when(() => mockGetProfileUseCase('ali')).thenAnswer((_) async => profile);
       return buildCubit();
     },
     act: (cubit) => cubit.loadProfile('ali'),
@@ -168,16 +167,14 @@ void main() {
     ),
     expect: () => [
       isA<ProfileUpdating>(),
-      isA<ProfileUpdateError>()
-          .having((s) => s.message, 'message', 'invalid'),
+      isA<ProfileUpdateError>().having((s) => s.message, 'message', 'invalid'),
     ],
   );
 
   blocTest<ProfileCubit, ProfileState>(
     'updateProfile emits generic error on unexpected exception',
     build: () {
-      when(() => mockUpdateProfileUseCase(any()))
-          .thenThrow(Exception('boom'));
+      when(() => mockUpdateProfileUseCase(any())).thenThrow(Exception('boom'));
 
       final cubit = buildCubit();
       cubit.emit(ProfileLoaded(profile));
