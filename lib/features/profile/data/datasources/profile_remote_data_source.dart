@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../dto/profile_dto.dart';
+import '../../../../core/network/api_constants.dart';
 
 abstract class ProfileRemoteDataSource {
   Future<ProfileDto> getProfile(String handle);
@@ -25,7 +26,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     try {
       // استخدمنا .dio.get لضمان عمل الدالة
       final response = await _dioClient.dio.get(
-        '/api/v1/profiles/$handle',
+        ApiConstants.profileByHandlePath(handle),
       );
 
       // تأمين تحويل البيانات لو السيرفر رجعها كـ String
@@ -48,7 +49,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   Future<ProfileDto> updateProfile(Map<String, dynamic> body) async {
     try {
       final response = await _dioClient.dio.patch(
-        '/api/v1/profiles/me',
+        ApiConstants.myProfile,
         data: body,
       );
 
@@ -78,7 +79,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       });
 
       final response = await _dioClient.dio.post(
-        '/api/v1/profiles/me/images/$typeString',
+        ApiConstants.profileImages + '/$typeString',
         data: formData,
         options: Options(contentType: 'multipart/form-data'),
       );
@@ -113,7 +114,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   Future<bool> checkHandleAvailable(String handle) async {
     try {
       final response = await _dioClient.dio.get(
-        '/api/v1/profiles/check-handle',
+        ApiConstants.checkHandle,
         queryParameters: {'handle': handle},
       );
 

@@ -39,7 +39,10 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 // ── Route name constants ─────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
+  static const String feed = '/feed';
+  static const String search = '/search';
   static const String library = '/library';
+  static const String upgrade = '/upgrade';
   static const String uploadPicker = '/upload-picker';
   static const String editProfile = '/profile/edit';
   static const String profile = '/profile/:handle';
@@ -75,6 +78,29 @@ final GoRouter router = GoRouter(
       name: 'home',
       pageBuilder: (context, state) => const NoTransitionPage(
         child: MockHomePage(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.feed,
+      name: 'feed',
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: _PlaceholderPage(title: 'Feed'),
+      ),
+    ),
+
+    GoRoute(
+      path: AppRoutes.search,
+      name: 'search',
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: _PlaceholderPage(title: 'Search'),
+      ),
+    ),
+
+    GoRoute(
+      path: AppRoutes.upgrade,
+      name: 'upgrade',
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: _PlaceholderPage(title: 'Upgrade'),
       ),
     ),
 
@@ -205,3 +231,57 @@ final GoRouter router = GoRouter(
     ),
   ),
 );
+
+class _PlaceholderPage extends StatelessWidget {
+  const _PlaceholderPage({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.construction_outlined,
+                  size: 56, color: Colors.white54),
+              const SizedBox(height: 16),
+              Text(
+                '$title page is not implemented yet.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Temporary placeholder to keep navigation working on dev.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white54),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () => context.go(AppRoutes.home),
+                child: const Text(
+                  'Go Home',
+                  style: TextStyle(color: Color(0xFFFF5500)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

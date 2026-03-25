@@ -12,6 +12,7 @@ import '../routes/auth_routes.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_button.dart';
 import '../widgets/auth_screen_wrapper.dart';
+import '../../../../core/config/app_config.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -38,8 +39,8 @@ class _LoginPageState extends State<LoginPage> {
   void _initRecaptcha() async {
     if (Platform.isAndroid || Platform.isIOS) {
       try {
-        _recaptchaClient = await Recaptcha.fetchClient(
-            "6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5");
+        _recaptchaClient =
+            await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
       } catch (e) {
         print("Failed to initialize Recaptcha: $e");
       }
@@ -50,9 +51,8 @@ class _LoginPageState extends State<LoginPage> {
     final controller = WebviewController();
     await controller.initialize();
 
-    await controller.loadUrl(
-        'https://inquisitive-seahorse-5af208.netlify.app/?action=login');
-
+    await controller
+        .loadUrl('${AppConfig.recaptchaWindowsWebUrl}/?action=login');
     String fetchedToken = "";
 
     controller.webMessage.listen((message) {
@@ -102,8 +102,8 @@ class _LoginPageState extends State<LoginPage> {
 
       if (Platform.isAndroid || Platform.isIOS) {
         if (_recaptchaClient == null) {
-          _recaptchaClient = await Recaptcha.fetchClient(
-              "6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5");
+          _recaptchaClient =
+              await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
         }
         token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
         //token check
