@@ -12,6 +12,7 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponseDto> login({
     required String email,
     required String password,
+    required bool rememberMe,
     required String captchaToken,
   });
 
@@ -46,6 +47,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<AuthResponseDto> login({
     required String email,
     required String password,
+    required bool rememberMe,
     required String captchaToken,
   }) async {
     final response = await dioClient.dio.post(
@@ -53,7 +55,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {
         'email': email,
         'password': password,
-        'remember_me': true,
+        'remember_me': rememberMe,
+        'captcha_token': captchaToken,
       },
     );
 

@@ -47,7 +47,6 @@ void main() {
 
     test('should return user when login is successful (no token saving)',
         () async {
-      // Arrange
       final authResponse = AuthResponseDto(
         accessToken: '',
         refreshToken: '',
@@ -57,19 +56,19 @@ void main() {
       when(() => mockRemoteDataSource.login(
             email: tEmail,
             password: tPassword,
+            rememberMe: true,
             captchaToken: tCaptcha,
           )).thenAnswer((_) async => authResponse);
 
       when(() => mockUserDto.toEntity()).thenReturn(testUser);
 
-      // Act
       final result = await repository.login(
         email: tEmail,
         password: tPassword,
+        rememberMe: true,
         captchaToken: tCaptcha,
       );
 
-      // Assert
       expect(result, same(testUser));
       expect(result.id, '123');
       expect(result.email, 'test@example.com');
@@ -84,6 +83,7 @@ void main() {
       verify(() => mockRemoteDataSource.login(
             email: tEmail,
             password: tPassword,
+            rememberMe: true,
             captchaToken: tCaptcha,
           )).called(1);
     });
@@ -92,7 +92,6 @@ void main() {
   group('register', () {
     test('should return user when registration is successful (no token saving)',
         () async {
-      // Arrange
       final authResponse = AuthResponseDto(
         accessToken: '',
         refreshToken: '',
@@ -111,7 +110,6 @@ void main() {
 
       when(() => mockUserDto.toEntity()).thenReturn(testUser);
 
-      // Act
       final result = await repository.register(
         email: 'a@b.com',
         password: '123',
@@ -122,7 +120,6 @@ void main() {
         captchaToken: 'cap',
       );
 
-      // Assert
       expect(result, same(testUser));
       expect(result.id, '123');
       expect(result.email, 'test@example.com');
@@ -148,15 +145,12 @@ void main() {
   group('getCurrentUser', () {
     test('should return user entity when remote data source succeeds',
         () async {
-      // Arrange
       when(() => mockRemoteDataSource.getCurrentUser())
           .thenAnswer((_) async => mockUserDto);
       when(() => mockUserDto.toEntity()).thenReturn(testUser);
 
-      // Act
       final result = await repository.getCurrentUser();
 
-      // Assert
       expect(result, same(testUser));
       expect(result?.id, '123');
       expect(result?.email, 'test@example.com');
@@ -165,7 +159,6 @@ void main() {
     });
 
     test('should return null when remote data source fails', () async {
-      // Arrange
       when(() => mockRemoteDataSource.getCurrentUser()).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/me'),
@@ -173,32 +166,26 @@ void main() {
         ),
       );
 
-      // Act
       final result = await repository.getCurrentUser();
 
-      // Assert
       expect(result, isNull);
     });
   });
 
   group('logout', () {
     test('should call remote logout and clear local storage', () async {
-      // Arrange
       when(() => mockRemoteDataSource.logout())
           .thenAnswer((_) async => Future.value());
       when(() => mockLocalDataSource.clearAll())
           .thenAnswer((_) async => Future.value());
 
-      // Act
       await repository.logout();
 
-      // Assert
       verify(() => mockRemoteDataSource.logout()).called(1);
       verify(() => mockLocalDataSource.clearAll()).called(1);
     });
 
     test('should clear local storage even if remote logout fails', () async {
-      // Arrange
       when(() => mockRemoteDataSource.logout()).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/logout'),
@@ -210,10 +197,8 @@ void main() {
       when(() => mockLocalDataSource.clearAll())
           .thenAnswer((_) async => Future.value());
 
-      // Act
       await repository.logout();
 
-      // Assert
       verify(() => mockRemoteDataSource.logout()).called(1);
       verify(() => mockLocalDataSource.clearAll()).called(1);
     });
@@ -222,14 +207,11 @@ void main() {
   group('isLoggedIn', () {
     test('should return true when user is authenticated (cookie valid)',
         () async {
-      // Arrange
       when(() => mockRemoteDataSource.getCurrentUser())
           .thenAnswer((_) async => mockUserDto);
 
-      // Act
       final result = await repository.isLoggedIn();
 
-      // Assert
       expect(result, true);
       verify(() => mockRemoteDataSource.getCurrentUser()).called(1);
       verifyNever(() => mockLocalDataSource.getAccessToken());
@@ -237,7 +219,6 @@ void main() {
 
     test('should return false when user is not authenticated (401 error)',
         () async {
-      // Arrange
       when(() => mockRemoteDataSource.getCurrentUser()).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/me'),
@@ -250,16 +231,13 @@ void main() {
         ),
       );
 
-      // Act
       final result = await repository.isLoggedIn();
 
-      // Assert
       expect(result, false);
       verify(() => mockRemoteDataSource.getCurrentUser()).called(1);
     });
 
     test('should return false when network error occurs', () async {
-      // Arrange
       when(() => mockRemoteDataSource.getCurrentUser()).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/me'),
@@ -268,10 +246,8 @@ void main() {
         ),
       );
 
-      // Act
       final result = await repository.isLoggedIn();
 
-      // Assert
       expect(result, false);
       verify(() => mockRemoteDataSource.getCurrentUser()).called(1);
     });
