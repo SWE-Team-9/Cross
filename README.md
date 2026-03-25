@@ -34,12 +34,16 @@ These configurations already include the required `--dart-define` values, so you
 
 ## Running the app manually
 
+## Running the app manually
+
 ### PowerShell - Android emulator
 
 ```powershell
 flutter run --dart-define=APP_ENV=dev --dart-define=API_URL=http://10.0.2.2:3006 --dart-define=USE_MOCK_TRACK_MANAGEMENT=false --dart-define=MOCK_TRACK_MANAGEMENT_MODE=success
+```
 
 ### PowerShell - Windows desktop
 
 ```powershell
 flutter run -d windows --dart-define=APP_ENV=dev --dart-define=API_URL=http://localhost:3006 --dart-define=USE_MOCK_TRACK_MANAGEMENT=false --dart-define=MOCK_TRACK_MANAGEMENT_MODE=success
+```
