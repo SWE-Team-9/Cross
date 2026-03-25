@@ -221,7 +221,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
-
   Widget _circleIconBtn(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,

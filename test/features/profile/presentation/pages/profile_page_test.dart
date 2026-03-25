@@ -173,8 +173,7 @@ void main() {
 
   group('ProfilePage', () {
     testWidgets('shows loading state', (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
       profileCubit.setTestState(ProfileLoading());
 
@@ -184,8 +183,7 @@ void main() {
     });
 
     testWidgets('shows error state with message', (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
       profileCubit.setTestState(ProfileError('Failed to load profile'));
 
@@ -197,8 +195,7 @@ void main() {
     });
 
     testWidgets('renders loaded own profile basic info', (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithoutAvatar));
 
@@ -217,8 +214,7 @@ void main() {
     });
 
     testWidgets('renders follow button for non-own profile', (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(otherUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(otherUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithoutAvatar));
 
@@ -230,8 +226,7 @@ void main() {
     });
 
     testWidgets('toggles follow button text when tapped', (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(otherUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(otherUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithoutAvatar));
 
@@ -251,8 +246,7 @@ void main() {
 
     testWidgets('shows cover image section when coverPhotoUrl exists',
         (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithCover));
 
@@ -263,8 +257,7 @@ void main() {
     });
 
     testWidgets('does not render bio text when bio is null', (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithoutBio));
 
@@ -278,8 +271,7 @@ void main() {
 
     testWidgets('does not render location row when location is null',
         (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithoutLocation));
 
@@ -294,8 +286,7 @@ void main() {
 
     testWidgets('does not render favorite genres when genres are empty',
         (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithoutGenres));
 
@@ -322,8 +313,7 @@ void main() {
 
     testWidgets('tracks tab shows no tracks text for non-own profile',
         (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(otherUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(otherUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithoutAvatar));
 
@@ -337,8 +327,7 @@ void main() {
     });
 
     testWidgets('own profile tracks tab shows managed tracks', (tester) async {
-      when(() => mockAuthCubit.state)
-          .thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
       profileCubit.setTestState(ProfileLoaded(profileWithoutAvatar));
 

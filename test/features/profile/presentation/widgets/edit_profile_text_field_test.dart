@@ -52,36 +52,35 @@ void main() {
     expect(controller.text, 'New Name');
   });
 
-testWidgets('renders as multiline field when maxLines is greater than 1',
-    (tester) async {
-  final controller = TextEditingController();
+  testWidgets('renders as multiline field when maxLines is greater than 1',
+      (tester) async {
+    final controller = TextEditingController();
 
-  await pumpWidget(
-    tester,
-    controller: controller,
-    label: 'Bio',
-    maxLines: 4,
-  );
+    await pumpWidget(
+      tester,
+      controller: controller,
+      label: 'Bio',
+      maxLines: 4,
+    );
 
-  expect(find.byType(TextFormField), findsOneWidget);
-  expect(find.byType(EditableText), findsOneWidget);
-});
+    expect(find.byType(TextFormField), findsOneWidget);
+    expect(find.byType(EditableText), findsOneWidget);
+  });
 
-testWidgets('shows counter when maxLength is provided', (tester) async {
-  final controller = TextEditingController();
+  testWidgets('shows counter when maxLength is provided', (tester) async {
+    final controller = TextEditingController();
 
-  await pumpWidget(
-    tester,
-    controller: controller,
-    maxLength: 50,
-  );
+    await pumpWidget(
+      tester,
+      controller: controller,
+      maxLength: 50,
+    );
 
-  await tester.enterText(find.byType(TextFormField), 'hello');
-  await tester.pump();
+    await tester.enterText(find.byType(TextFormField), 'hello');
+    await tester.pump();
 
-  expect(find.text('5/50'), findsOneWidget);
-});
-
+    expect(find.text('5/50'), findsOneWidget);
+  });
 
   testWidgets('shows validation error when validator fails', (tester) async {
     final controller = TextEditingController();

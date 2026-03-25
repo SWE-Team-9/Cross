@@ -11,7 +11,9 @@ void main() {
       expect(PlatformUrlUtils.normalizeBackendUrl(''), isNull);
     });
 
-    test('returns same url for non-empty value on non-Windows-safe assertion path', () {
+    test(
+        'returns same url for non-empty value on non-Windows-safe assertion path',
+        () {
       const url = 'http://127.0.0.1:3006/uploads/avatar.png';
       final result = PlatformUrlUtils.normalizeBackendUrl(url);
 

@@ -10,6 +10,7 @@ import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_stat
 
 class MockProfileCubit extends MockCubit<ProfileState>
     implements ProfileCubit {}
+
 void main() {
   test('route constants remain correct', () {
     expect(ProfileRoutes.profile, '/profile/:handle');
@@ -120,49 +121,49 @@ void main() {
     expect(location, '/following/ali');
   });
 
-testWidgets('goToEditProfile pushes edit path with current cubit as extra',
-    (tester) async {
-  final mockCubit = MockProfileCubit();
-  Object? capturedExtra;
+  testWidgets('goToEditProfile pushes edit path with current cubit as extra',
+      (tester) async {
+    final mockCubit = MockProfileCubit();
+    Object? capturedExtra;
 
-  when(() => mockCubit.state).thenReturn(ProfileInitial());
-  whenListen(
-    mockCubit,
-    const Stream<ProfileState>.empty(),
-    initialState: ProfileInitial(),
-  );
+    when(() => mockCubit.state).thenReturn(ProfileInitial());
+    whenListen(
+      mockCubit,
+      const Stream<ProfileState>.empty(),
+      initialState: ProfileInitial(),
+    );
 
-  final router = GoRouter(
-    routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => BlocProvider<ProfileCubit>.value(
-          value: mockCubit,
-          child: Builder(
-            builder: (context) => Scaffold(
-              body: ElevatedButton(
-                onPressed: () => ProfileRoutes.goToEditProfile(context),
-                child: const Text('go'),
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => BlocProvider<ProfileCubit>.value(
+            value: mockCubit,
+            child: Builder(
+              builder: (context) => Scaffold(
+                body: ElevatedButton(
+                  onPressed: () => ProfileRoutes.goToEditProfile(context),
+                  child: const Text('go'),
+                ),
               ),
             ),
           ),
         ),
-      ),
-      GoRoute(
-        path: '/profile/edit',
-        builder: (context, state) {
-          capturedExtra = state.extra;
-          return const Scaffold(body: Text('edit'));
-        },
-      ),
-    ],
-  );
+        GoRoute(
+          path: '/profile/edit',
+          builder: (context, state) {
+            capturedExtra = state.extra;
+            return const Scaffold(body: Text('edit'));
+          },
+        ),
+      ],
+    );
 
-  await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
 
-  await tester.tap(find.text('go'));
-  await tester.pumpAndSettle();
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
 
-  expect(capturedExtra, same(mockCubit));
-});
+    expect(capturedExtra, same(mockCubit));
+  });
 }

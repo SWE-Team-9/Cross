@@ -24,8 +24,7 @@ class MockIsLoggedInUseCase extends Mock implements IsLoggedInUseCase {}
 
 class MockGetCurrentUserUseCase extends Mock implements GetCurrentUserUseCase {}
 
-class MockForgotPasswordUseCase extends Mock
-    implements ForgotPasswordUseCase {}
+class MockForgotPasswordUseCase extends Mock implements ForgotPasswordUseCase {}
 
 class MockResetPasswordUseCase extends Mock implements ResetPasswordUseCase {}
 
@@ -347,7 +346,8 @@ void main() {
     await cubit.sendEmailVerification(email: 'ali@test.com');
     await cubit.sendEmailVerification(email: 'ali@test.com');
 
-    expect(emittedStates.whereType<AuthVerificationEmailSent>().isNotEmpty, isTrue);
+    expect(emittedStates.whereType<AuthVerificationEmailSent>().isNotEmpty,
+        isTrue);
 
     await sub.cancel();
     await cubit.close();
@@ -512,38 +512,37 @@ void main() {
     expect(cubit.remainingResendSeconds, 0);
   });
 
-blocTest<AuthCubit, AuthState>(
-  'login emits AuthError on DioException',
-  build: () {
-    when(
-      () => mockLoginUseCase(
-        email: 'ali@test.com',
-        password: '123456',
-        rememberMe: true,
-        captchaToken: 'captcha',
-      ),
-    ).thenThrow(
-      DioException(
-        requestOptions: RequestOptions(path: '/login'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/login'),
-          statusCode: 400,
-          data: {'message': 'Bad request'},
+  blocTest<AuthCubit, AuthState>(
+    'login emits AuthError on DioException',
+    build: () {
+      when(
+        () => mockLoginUseCase(
+          email: 'ali@test.com',
+          password: '123456',
+          rememberMe: true,
+          captchaToken: 'captcha',
         ),
-      ),
-    );
-    return buildCubit();
-  },
-  act: (cubit) => cubit.login(
-    email: 'ali@test.com',
-    password: '123456',
-    rememberMe: true,
-    captchaToken: 'captcha',
-  ),
-  expect: () => [
-    isA<AuthLoading>(),
-    isA<AuthError>(),
-  ],
-);
-
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/login'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/login'),
+            statusCode: 400,
+            data: {'message': 'Bad request'},
+          ),
+        ),
+      );
+      return buildCubit();
+    },
+    act: (cubit) => cubit.login(
+      email: 'ali@test.com',
+      password: '123456',
+      rememberMe: true,
+      captchaToken: 'captcha',
+    ),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>(),
+    ],
+  );
 }
