@@ -4,6 +4,7 @@ abstract class AuthRepository {
   Future<User> login({
     required String email,
     required String password,
+    required bool rememberMe,
     required String captchaToken,
   });
 

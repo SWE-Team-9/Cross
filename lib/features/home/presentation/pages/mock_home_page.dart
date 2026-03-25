@@ -179,7 +179,7 @@ class _TopBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Log out of SoundCloud?',
+                'Log out of Iqa3?',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
