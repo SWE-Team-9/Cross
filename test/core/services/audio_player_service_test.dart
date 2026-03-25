@@ -1,9 +1,7 @@
-import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
-import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/implementations/just_audio_player_service.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
@@ -13,12 +11,6 @@ void main() {
   late JustAudioPlayerService service;
   late RecentlyPlayedCubit recentlyPlayedCubit;
 
-  const invalidTrack = Track(
-    id: 't1',
-    title: 'Broken Track',
-    artist: 'Ali',
-    audioUrl: 'not-a-valid-url',
-  );
 
   setUp(() {
     GetIt.I.reset();
