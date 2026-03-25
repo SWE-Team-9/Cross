@@ -106,8 +106,6 @@ class _LoginPageState extends State<LoginPage> {
               await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
         }
         token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
-        //token check
-        print('ANDROID TOKEN: $token ======');
       } else if (Platform.isWindows) {
         token = await _getWindowsCaptchaToken(context);
       }
