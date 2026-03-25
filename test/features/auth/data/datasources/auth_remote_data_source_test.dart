@@ -57,6 +57,7 @@ void main() {
         email: tEmail,
         password: tPassword,
         captchaToken: tCaptcha,
+        rememberMe: true,
       );
 
       // Assert
@@ -75,6 +76,7 @@ void main() {
               'email': tEmail,
               'password': tPassword,
               'remember_me': true,
+              'captcha_token': tCaptcha,
             },
           )).called(1);
     });

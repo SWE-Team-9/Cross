@@ -25,7 +25,6 @@ class AuthCubit extends Cubit<AuthState> {
   final SendEmailVerificationUseCase sendEmailVerificationUseCase;
   final VerifyEmailUseCase verifyEmailUseCase;
 
-  // Variables to track resend logic and persistence
   int _resendCount = 0;
   DateTime? _firstResendAttempt;
   DateTime? _lastResendDateTime;
@@ -42,7 +41,6 @@ class AuthCubit extends Cubit<AuthState> {
     required this.verifyEmailUseCase,
   }) : super(AuthInitial());
 
-  // Function to calculate remaining seconds for UI
   int get remainingResendSeconds {
     if (_lastResendDateTime == null) return 0;
     final difference =
@@ -73,6 +71,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> login({
     required String email,
     required String password,
+    required bool rememberMe,
     required String captchaToken,
   }) async {
     emit(AuthLoading());
@@ -80,6 +79,7 @@ class AuthCubit extends Cubit<AuthState> {
       final user = await loginUseCase(
         email: email,
         password: password,
+        rememberMe: rememberMe,
         captchaToken: captchaToken,
       );
       emit(AuthAuthenticated(user));
@@ -141,10 +141,8 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> sendEmailVerification({required String email}) async {
     final now = DateTime.now();
 
-    // Prevent call if cooldown is still active (Security check)
     if (remainingResendSeconds > 0) return;
 
-    // Constraints: Max 3 times per minute
     if (_firstResendAttempt != null) {
       final difference = now.difference(_firstResendAttempt!);
       if (difference.inMinutes < 1) {
@@ -165,7 +163,7 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await sendEmailVerificationUseCase(email: email);
       _resendCount++;
-      _lastResendDateTime = DateTime.now(); // Record successful attempt time
+      _lastResendDateTime = DateTime.now();
       emit(AuthVerificationEmailSent(email));
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
@@ -231,8 +229,6 @@ class AuthCubit extends Cubit<AuthState> {
       if (user != null) {
         emit(AuthAuthenticated(user));
       }
-    } catch (_) {
-      // Keep the current authenticated state unchanged on refresh failure.
-    }
+    } catch (_) {}
   }
 }

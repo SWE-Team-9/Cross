@@ -1,8 +1,11 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha_action.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha_client.dart';
+import 'package:webview_windows/webview_windows.dart';
+
 import '../routes/auth_routes.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_button.dart';
@@ -32,12 +35,50 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _initRecaptcha() async {
-    try {
-      _recaptchaClient = await Recaptcha.fetchClient(
-          "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
-    } catch (e) {
-      print("Failed to initialize Recaptcha: $e");
+    if (Platform.isAndroid || Platform.isIOS) {
+      try {
+        _recaptchaClient = await Recaptcha.fetchClient(
+            "6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5");
+      } catch (e) {
+        print("Failed to initialize Recaptcha: $e");
+      }
     }
+  }
+
+  Future<String> _getWindowsCaptchaToken(BuildContext context) async {
+    final controller = WebviewController();
+    await controller.initialize();
+
+    await controller.loadUrl('https://inquisitive-seahorse-5af208.netlify.app');
+
+    String fetchedToken = "";
+
+    controller.webMessage.listen((message) {
+      fetchedToken = message;
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+
+    if (context.mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          content: SizedBox(
+            width: 100,
+            height: 100,
+            child: Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return fetchedToken;
   }
 
   @override
@@ -56,15 +97,20 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      if (_recaptchaClient == null) {
-        _recaptchaClient = await Recaptcha.fetchClient(
-            "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
+      String token = "";
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        if (_recaptchaClient == null) {
+          _recaptchaClient = await Recaptcha.fetchClient(
+              "6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5");
+        }
+        token =
+            await _recaptchaClient!.execute(RecaptchaAction.custom('signup'));
+      } else if (Platform.isWindows) {
+        token = await _getWindowsCaptchaToken(context);
       }
 
-      String token =
-          await _recaptchaClient!.execute(RecaptchaAction.custom('signup'));
-
-      if (mounted) {
+      if (token.isNotEmpty && mounted) {
         context.push(
           AuthRoutes.completeProfile,
           extra: {
@@ -165,6 +211,11 @@ class _RegisterPageState extends State<RegisterPage> {
                       }
                       if (value.length < 8) {
                         return 'Password must be at least 8 characters';
+                      }
+                      if (!RegExp(
+                              r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$')
+                          .hasMatch(value)) {
+                        return 'Requires upper/lowercase, number & special char';
                       }
                       return null;
                     },

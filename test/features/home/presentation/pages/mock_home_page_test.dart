@@ -84,7 +84,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.logout_rounded));
       await tester.pumpAndSettle();
 
-      expect(find.text('Log out of SoundCloud?'), findsOneWidget);
+      expect(find.text('Log out of Iqa3?'), findsOneWidget); // التعديل هنا
       expect(find.text('Log out'), findsOneWidget);
 
       await tester.tap(find.text('Log out'));
@@ -114,7 +114,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.logout_rounded));
       await tester.pumpAndSettle();
 
-      expect(find.text('Log out of SoundCloud?'), findsOneWidget);
+      expect(find.text('Log out of Iqa3?'), findsOneWidget); // التعديل هنا
       expect(find.text('Log out'), findsOneWidget);
 
       await tester.tap(find.text('Log out'));
@@ -187,7 +187,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.logout_rounded));
       await tester.pumpAndSettle();
 
-      expect(find.text('Log out of SoundCloud?'), findsOneWidget);
+      expect(find.text('Log out of Iqa3?'), findsOneWidget); // التعديل هنا
       expect(find.text('Cancel'), findsOneWidget);
       expect(find.text('Log out'), findsOneWidget);
     });
