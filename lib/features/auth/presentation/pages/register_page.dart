@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha.dart';
@@ -48,37 +50,102 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<String> _getWindowsCaptchaToken(BuildContext context) async {
     final controller = WebviewController();
+    final tokenCompleter = Completer<String>();
+
     await controller.initialize();
 
-    await controller.loadUrl(AppConfig.recaptchaWindowsWebUrl);
-    String fetchedToken = "";
-
     controller.webMessage.listen((message) {
-      fetchedToken = message;
-      if (context.mounted) {
-        Navigator.of(context).pop();
+      final token = message.trim();
+
+      if (!tokenCompleter.isCompleted && token.isNotEmpty) {
+        tokenCompleter.complete(token);
       }
     });
 
-    if (context.mounted) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          content: SizedBox(
-            width: 100,
-            height: 100,
-            child: Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            ),
-          ),
-        ),
-      );
+    await controller.loadUrl(
+      '${AppConfig.recaptchaWindowsWebUrl}/?action=signup',
+    );
+
+    if (!context.mounted) {
+      throw Exception('Context is no longer mounted.');
     }
 
-    return fetchedToken;
+    bool dialogClosed = false;
+
+    Future<void> closeDialogIfNeeded() async {
+      if (dialogClosed || !context.mounted) return;
+      dialogClosed = true;
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+
+    final dialogFuture = showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF111111),
+          title: const Text(
+            'Security verification',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: SizedBox(
+            width: 500,
+            height: 650,
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Please complete the verification.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                const Divider(color: Color(0xFF2A2A2A), height: 1),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Webview(controller),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      if (!tokenCompleter.isCompleted) {
+                        tokenCompleter.completeError(
+                          Exception('Captcha verification was cancelled.'),
+                        );
+                      }
+                      Navigator.of(dialogContext).pop();
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      final token = await tokenCompleter.future.timeout(
+        const Duration(seconds: 90),
+        onTimeout: () {
+          throw TimeoutException('Captcha verification timed out.');
+        },
+      );
+
+      await closeDialogIfNeeded();
+      await dialogFuture;
+      return token;
+    } catch (e) {
+      await closeDialogIfNeeded();
+      await dialogFuture;
+      rethrow;
+    }
   }
 
   @override
