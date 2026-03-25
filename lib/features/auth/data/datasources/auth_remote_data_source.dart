@@ -7,6 +7,7 @@ import 'dart:convert';
 import '../../../../core/network/dio_client.dart';
 import '../dto/auth_response_dto.dart';
 import '../dto/user_dto.dart';
+import '../../../../core/network/api_constants.dart';
 
 abstract class AuthRemoteDataSource {
   Future<AuthResponseDto> login({
@@ -51,7 +52,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String captchaToken,
   }) async {
     final response = await dioClient.dio.post(
-      '/api/v1/auth/login',
+      ApiConstants.login,
       data: {
         'email': email,
         'password': password,
@@ -86,7 +87,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String captchaToken,
   }) async {
     final response = await dioClient.dio.post(
-      '/api/v1/auth/register',
+      ApiConstants.register,
       data: {
         'email': email,
         'password': password,
@@ -112,7 +113,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> forgotPassword({required String email}) async {
     await dioClient.dio.post(
-      '/api/v1/auth/forgot-password',
+      ApiConstants.forgotPassword,
       data: {'email': email},
     );
   }
@@ -124,7 +125,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String newPasswordConfirm,
   }) async {
     await dioClient.dio.post(
-      '/api/v1/auth/reset-password',
+      ApiConstants.resetPassword,
       data: {
         'token': code,
         'new_password': newPassword,
@@ -136,7 +137,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> sendEmailVerification({required String email}) async {
     await dioClient.dio.post(
-      '/api/v1/auth/resend-verification',
+      ApiConstants.resendVerification,
       data: {'email': email},
     );
   }
@@ -144,14 +145,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> verifyEmail({required String code}) async {
     await dioClient.dio.get(
-      '/api/v1/auth/verify-email',
+      ApiConstants.verifyEmail,
       queryParameters: {'token': code},
     );
   }
 
   @override
   Future<UserDto> getCurrentUser() async {
-    final response = await dioClient.dio.get('/api/v1/auth/me');
+    final response = await dioClient.dio.get(ApiConstants.currentUser);
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
     return UserDto.fromJson(responseData['user'] ?? responseData);
@@ -159,6 +160,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> logout() async {
-    await dioClient.dio.post('/api/v1/auth/logout');
+    await dioClient.dio.post(ApiConstants.logout);
   }
 }
