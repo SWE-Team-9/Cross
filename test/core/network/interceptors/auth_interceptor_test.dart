@@ -121,9 +121,9 @@ void main() {
 
       test('passes through 401 on refresh endpoint to avoid loop', () async {
         final err = DioException(
-          requestOptions: RequestOptions(path: '/auth/refresh'),
+          requestOptions: RequestOptions(path: '/api/v1/auth/refresh'),
           response: Response<dynamic>(
-            requestOptions: RequestOptions(path: '/auth/refresh'),
+            requestOptions: RequestOptions(path: '/api/v1/auth/refresh'),
             statusCode: 401,
           ),
         );
@@ -168,18 +168,19 @@ void main() {
         );
         final handler = _MockErrorInterceptorHandler();
 
-        when(() => mockDio.post('/auth/refresh')).thenAnswer(
+        when(() => mockDio.post('/api/v1/auth/refresh')).thenAnswer(
           (_) async => Response<dynamic>(
-            requestOptions: RequestOptions(path: '/auth/refresh'),
+            requestOptions: RequestOptions(path: '/api/v1/auth/refresh'),
             statusCode: 200,
           ),
         );
+
         when(() => mockDio.fetch<dynamic>(requestOptions))
             .thenAnswer((_) async => retryResponse);
 
         await interceptor.onError(err, handler);
 
-        verify(() => mockDio.post('/auth/refresh')).called(1);
+        verify(() => mockDio.post('/api/v1/auth/refresh')).called(1);
         verify(() => mockDio.fetch<dynamic>(requestOptions)).called(1);
         verify(() => handler.resolve(retryResponse)).called(1);
       });
@@ -197,11 +198,11 @@ void main() {
         );
         final handler = _MockErrorInterceptorHandler();
 
-        when(() => mockDio.post('/auth/refresh')).thenThrow(
+        when(() => mockDio.post('/api/v1/auth/refresh')).thenThrow(
           DioException(
-            requestOptions: RequestOptions(path: '/auth/refresh'),
+            requestOptions: RequestOptions(path: '/api/v1/auth/refresh'),
             response: Response<dynamic>(
-              requestOptions: RequestOptions(path: '/auth/refresh'),
+              requestOptions: RequestOptions(path: '/api/v1/auth/refresh'),
               statusCode: 401,
             ),
           ),
@@ -209,7 +210,7 @@ void main() {
 
         await interceptor.onError(err, handler);
 
-        verify(() => mockDio.post('/auth/refresh')).called(1);
+        verify(() => mockDio.post('/api/v1/auth/refresh')).called(1);
         verifyNever(() => mockDio.fetch<dynamic>(any()));
         verify(() => handler.next(err)).called(1);
       });

@@ -12,11 +12,30 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    final dynamic rawId =
+        json['id'] ?? json['_id'] ?? json['userId'] ?? json['user_id'];
+
+    final dynamic rawUsername = json['username'] ??
+        json['handle'] ??
+        json['display_name'] ??
+        json['displayName'] ??
+        '';
+
+    final dynamic rawIsFollowing =
+        json['isFollowing'] ?? json['is_following'] ?? false;
+
+    final dynamic rawFollowersCount =
+        json['followersCount'] ?? json['followers_count'] ?? 0;
+
     return User(
-      id: json['id'].toString(),
-      username: json['username'] ?? '',
-      isFollowing: json['isFollowing'] ?? false,
-      followersCount: json['followersCount'] ?? 0,
+      id: rawId?.toString() ?? '',
+      username: rawUsername?.toString() ?? '',
+      isFollowing: rawIsFollowing is bool
+          ? rawIsFollowing
+          : rawIsFollowing.toString().toLowerCase() == 'true',
+      followersCount: rawFollowersCount is int
+          ? rawFollowersCount
+          : int.tryParse(rawFollowersCount.toString()) ?? 0,
     );
   }
 
