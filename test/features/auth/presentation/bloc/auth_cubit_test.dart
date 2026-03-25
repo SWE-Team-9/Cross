@@ -166,6 +166,7 @@ void main() {
           () => mockLoginUseCase(
             email: 'ali@example.com',
             password: 'Pass@123',
+            rememberMe: true,
             captchaToken: 'captcha',
           ),
         ).thenAnswer((_) async => tUser);
@@ -174,6 +175,7 @@ void main() {
       act: (cubit) => cubit.login(
         email: 'ali@example.com',
         password: 'Pass@123',
+        rememberMe: true,
         captchaToken: 'captcha',
       ),
       expect: () => [
@@ -189,6 +191,7 @@ void main() {
           () => mockLoginUseCase(
             email: 'ali@example.com',
             password: 'Pass@123',
+            rememberMe: true,
             captchaToken: 'captcha',
           ),
         ).thenThrow(
@@ -203,6 +206,7 @@ void main() {
       act: (cubit) => cubit.login(
         email: 'ali@example.com',
         password: 'Pass@123',
+        rememberMe: true,
         captchaToken: 'captcha',
       ),
       expect: () => [
@@ -221,6 +225,7 @@ void main() {
           () => mockLoginUseCase(
             email: 'ali@example.com',
             password: 'wrong',
+            rememberMe: true,
             captchaToken: 'captcha',
           ),
         ).thenThrow(
@@ -235,6 +240,7 @@ void main() {
       act: (cubit) => cubit.login(
         email: 'ali@example.com',
         password: 'wrong',
+        rememberMe: true,
         captchaToken: 'captcha',
       ),
       expect: () => [
@@ -252,6 +258,7 @@ void main() {
           () => mockLoginUseCase(
             email: 'ali@example.com',
             password: 'Pass@123',
+            rememberMe: true,
             captchaToken: 'captcha',
           ),
         ).thenThrow(Exception('boom'));
@@ -260,6 +267,7 @@ void main() {
       act: (cubit) => cubit.login(
         email: 'ali@example.com',
         password: 'Pass@123',
+        rememberMe: true,
         captchaToken: 'captcha',
       ),
       expect: () => [

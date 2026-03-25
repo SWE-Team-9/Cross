@@ -49,6 +49,7 @@ dependencies:
   just_audio_windows: ^0.2.0
   image_cropper: ^11.0.0
   flutter_image_compress: ^2.4.0
+  webview_windows: ^0.4.0
 
 dev_dependencies:
   flutter_test:

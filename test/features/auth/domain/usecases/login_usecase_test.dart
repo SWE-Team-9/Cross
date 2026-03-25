@@ -25,10 +25,12 @@ void main() {
     const email = 'test@example.com';
     const password = '123456';
     const captchaToken = 'mock_captcha_token';
+    const rememberMe = true;
 
     when(() => repository.login(
           email: email,
           password: password,
+          rememberMe: rememberMe,
           captchaToken: captchaToken,
         )).thenAnswer((_) async => user);
 
@@ -36,6 +38,7 @@ void main() {
     final result = await useCase(
       email: email,
       password: password,
+      rememberMe: rememberMe,
       captchaToken: captchaToken,
     );
 
@@ -44,6 +47,7 @@ void main() {
     verify(() => repository.login(
           email: email,
           password: password,
+          rememberMe: rememberMe,
           captchaToken: captchaToken,
         )).called(1);
     verifyNoMoreInteractions(repository);

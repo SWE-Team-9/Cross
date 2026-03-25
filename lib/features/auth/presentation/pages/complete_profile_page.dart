@@ -44,7 +44,6 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'December'
   ];
 
-  // تم تعديل القائمة لتشمل Male و Female فقط
   final List<String> genders = const [
     'Male',
     'Female',
@@ -70,7 +69,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       case 'Female':
         return 'FEMALE';
       default:
-        return 'MALE'; // Default value as a fallback
+        return 'MALE';
     }
   }
 
@@ -88,8 +87,31 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       return;
     }
 
-    final monthIndex =
-        months.indexOf(selectedMonth!).toString().padLeft(2, '0');
+    final monthIndexNum = months.indexOf(selectedMonth!);
+    final dayNum = int.parse(selectedDay!);
+    final yearNum = int.parse(selectedYear!);
+
+    final birthDateObj = DateTime(yearNum, monthIndexNum, dayNum);
+    final currentDate = DateTime.now();
+
+    int age = currentDate.year - birthDateObj.year;
+    if (currentDate.month < birthDateObj.month ||
+        (currentDate.month == birthDateObj.month &&
+            currentDate.day < birthDateObj.day)) {
+      age--;
+    }
+
+    if (age < 13) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must be at least 13 years old to register.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    final monthIndex = monthIndexNum.toString().padLeft(2, '0');
     final dayStr = selectedDay!.padLeft(2, '0');
     final birthDate = "$selectedYear-$monthIndex-$dayStr";
 

@@ -1,9 +1,12 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha_action.dart';
 import 'package:recaptcha_enterprise_flutter/recaptcha_client.dart';
+import 'package:webview_windows/webview_windows.dart';
+
 import '../bloc/auth_cubit.dart';
 import '../routes/auth_routes.dart';
 import '../widgets/auth_back_button.dart';
@@ -23,6 +26,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordHidden = true;
   bool _isFetchingCaptcha = false;
+  bool _rememberMe = false;
   RecaptchaClient? _recaptchaClient;
 
   @override
@@ -32,12 +36,51 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _initRecaptcha() async {
-    try {
-      _recaptchaClient = await Recaptcha.fetchClient(
-          "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
-    } catch (e) {
-      print("Failed to initialize Recaptcha: $e");
+    if (Platform.isAndroid || Platform.isIOS) {
+      try {
+        _recaptchaClient = await Recaptcha.fetchClient(
+            "6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5");
+      } catch (e) {
+        print("Failed to initialize Recaptcha: $e");
+      }
     }
+  }
+
+  Future<String> _getWindowsCaptchaToken(BuildContext context) async {
+    final controller = WebviewController();
+    await controller.initialize();
+
+    await controller.loadUrl(
+        'https://inquisitive-seahorse-5af208.netlify.app/?action=login');
+
+    String fetchedToken = "";
+
+    controller.webMessage.listen((message) {
+      fetchedToken = message;
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+
+    if (context.mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          content: SizedBox(
+            width: 100,
+            height: 100,
+            child: Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return fetchedToken;
   }
 
   @override
@@ -55,16 +98,26 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      if (_recaptchaClient == null) {
-        _recaptchaClient = await Recaptcha.fetchClient(
-            "6LfFm5IsAAAAAA64uhxk_ee2zh7feA_H84M2gmps");
+      String token = "";
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        if (_recaptchaClient == null) {
+          _recaptchaClient = await Recaptcha.fetchClient(
+              "6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5");
+        }
+        token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
+        //token check
+        print('ANDROID TOKEN: $token ======');
+      } else if (Platform.isWindows) {
+        token = await _getWindowsCaptchaToken(context);
       }
-      String token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
-      if (mounted) {
+
+      if (token.isNotEmpty && mounted) {
         context.read<AuthCubit>().login(
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
               captchaToken: token,
+              rememberMe: _rememberMe,
             );
       }
     } catch (e) {
@@ -204,18 +257,51 @@ class _LoginPageState extends State<LoginPage> {
                             : null,
                       ),
                       const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            context.push(AuthRoutes.forgotPassword);
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFF6D8FFF),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Theme(
+                                data: Theme.of(context).copyWith(
+                                  unselectedWidgetColor:
+                                      const Color(0xFF555555),
+                                ),
+                                child: Checkbox(
+                                  value: _rememberMe,
+                                  activeColor: Colors.white,
+                                  checkColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _rememberMe = value ?? false;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const Text(
+                                'Remember me',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                          child: const Text('Forgot password?',
-                              style: TextStyle(fontSize: 16)),
-                        ),
+                          TextButton(
+                            onPressed: () {
+                              context.push(AuthRoutes.forgotPassword);
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF6D8FFF),
+                            ),
+                            child: const Text('Forgot password?',
+                                style: TextStyle(fontSize: 14)),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 32),
                       AuthButton(
