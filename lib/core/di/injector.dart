@@ -1,12 +1,11 @@
 import 'package:flutter/widgets.dart';
-
+import '../config/app_config.dart';
 // Third-party
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
-
 // Project
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
@@ -83,10 +82,7 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<DioClient>()) {
     getIt.registerLazySingleton<DioClient>(
       () => DioClient(
-        baseUrl: const String.fromEnvironment(
-          'API_URL',
-          defaultValue: ApiConstants.baseUrl,
-        ),
+        baseUrl: ApiConstants.baseUrl,
         secureStorage: getIt<SecureStorage>(),
         cookieJar: cookieJar,
       ),
@@ -135,15 +131,9 @@ Future<void> setupDependencies() async {
 
   // ── Upload Feature: Track Management Basics ────────────────────────────────
 
-  const bool useMockTrackManagement = bool.fromEnvironment(
-    'USE_MOCK_TRACK_MANAGEMENT',
-    defaultValue: false,
-  );
+  const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
 
-  const String mockTrackManagementModeValue = String.fromEnvironment(
-    'MOCK_TRACK_MANAGEMENT_MODE',
-    defaultValue: 'success',
-  );
+  const String mockTrackManagementModeValue = AppConfig.mockTrackManagementMode;
 
   final MockTrackManagementMode mockTrackManagementMode =
       _parseMockTrackManagementMode(mockTrackManagementModeValue);
