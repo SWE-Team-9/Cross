@@ -3,9 +3,10 @@
 // Flutter
 // Third-party
 // Project
+import '../config/app_config.dart';
 
 abstract class ApiConstants {
-  static const String baseUrl = 'http://10.0.2.2:3006';
+  static const String baseUrl = AppConfig.apiUrl;
 
   // ── Auth (not your task — keeping for reference) ───────────────────────
   static const String login = '/auth/login';
