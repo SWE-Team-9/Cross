@@ -7,6 +7,7 @@ import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
@@ -48,15 +49,18 @@ class LibraryPage extends StatelessWidget {
                       : '?';
                 }
 
+                final normalizedAvatarUrl =
+                    PlatformUrlUtils.normalizeBackendUrl(avatarUrl);
+
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: CircleAvatar(
                     radius: 14,
                     backgroundColor: const Color(0xFFFF5500),
-                    backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                        ? NetworkImage(avatarUrl)
+                    backgroundImage: normalizedAvatarUrl != null
+                        ? NetworkImage(normalizedAvatarUrl)
                         : null,
-                    child: avatarUrl == null || avatarUrl.isEmpty
+                    child: normalizedAvatarUrl == null
                         ? Text(
                             fallbackText,
                             style: const TextStyle(

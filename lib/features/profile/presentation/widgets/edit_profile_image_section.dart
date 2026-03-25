@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 
-// Third-party
-// Project
+import '../../../../core/utils/platform_url_utils.dart';
 import '../../domain/repositories/profile_repository.dart';
 
-/// Cover photo banner + overlapping avatar with upload overlays.
-/// Extracted from EditProfilePage to keep the page file small.
-/// Calls onPickImage when user taps avatar or cover camera button.
 class EditProfileImageSection extends StatelessWidget {
   final String? avatarUrl;
   final String? coverUrl;
@@ -25,12 +21,14 @@ class EditProfileImageSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final normalizedCoverUrl = PlatformUrlUtils.normalizeBackendUrl(coverUrl);
+    final normalizedAvatarUrl = PlatformUrlUtils.normalizeBackendUrl(avatarUrl);
+
     return SizedBox(
       height: 180,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Cover banner
           GestureDetector(
             onTap: isUploadingCover
                 ? null
@@ -39,8 +37,14 @@ class EditProfileImageSection extends StatelessWidget {
               width: double.infinity,
               height: 140,
               color: const Color(0xFFAAAAAA),
-              child: coverUrl != null
-                  ? Image.network(coverUrl!, fit: BoxFit.cover)
+              child: normalizedCoverUrl != null
+                  ? Image.network(
+                      normalizedCoverUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: const Color(0xFFAAAAAA),
+                      ),
+                    )
                   : null,
             ),
           ),
@@ -57,8 +61,11 @@ class EditProfileImageSection extends StatelessWidget {
                     color: Colors.black.withValues(alpha: 0.4),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.camera_alt_outlined,
-                      color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
@@ -75,7 +82,6 @@ class EditProfileImageSection extends StatelessWidget {
                 ),
               ),
             ),
-          // Avatar overlapping cover
           Positioned(
             bottom: 0,
             left: 16,
@@ -84,11 +90,15 @@ class EditProfileImageSection extends StatelessWidget {
                 CircleAvatar(
                   radius: 46,
                   backgroundColor: const Color(0xFFB8CDE8),
-                  backgroundImage:
-                      avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-                  child: avatarUrl == null
-                      ? const Icon(Icons.person,
-                          size: 52, color: Color(0xFF8AAECF))
+                  backgroundImage: normalizedAvatarUrl != null
+                      ? NetworkImage(normalizedAvatarUrl)
+                      : null,
+                  child: normalizedAvatarUrl == null
+                      ? const Icon(
+                          Icons.person,
+                          size: 52,
+                          color: Color(0xFF8AAECF),
+                        )
                       : null,
                 ),
                 if (isUploadingAvatar)
@@ -100,7 +110,9 @@ class EditProfileImageSection extends StatelessWidget {
                       ),
                       child: const Center(
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   )
@@ -114,8 +126,11 @@ class EditProfileImageSection extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: const Center(
-                          child: Icon(Icons.camera_alt,
-                              color: Colors.white, size: 22),
+                          child: Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ),

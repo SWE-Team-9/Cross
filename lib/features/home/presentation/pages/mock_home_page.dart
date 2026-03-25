@@ -10,6 +10,7 @@ import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.da
 import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
 import 'package:soundcloud_clone/features/upload/presentation/models/applyTrackManagementResult.dart';
 import 'package:soundcloud_clone/features/upload/presentation/models/trackManagementResult.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -284,13 +285,16 @@ class _TopBar extends StatelessWidget {
                       currentUserHandle.substring(0, 1).toUpperCase();
                 }
 
+                final normalizedAvatarUrl =
+                    PlatformUrlUtils.normalizeBackendUrl(avatarUrl);
+
                 return CircleAvatar(
                   radius: 14,
                   backgroundColor: const Color(0xFFFF5500),
-                  backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                      ? NetworkImage(avatarUrl)
+                  backgroundImage: normalizedAvatarUrl != null
+                      ? NetworkImage(normalizedAvatarUrl)
                       : null,
-                  child: avatarUrl == null || avatarUrl.isEmpty
+                  child: normalizedAvatarUrl == null
                       ? Text(
                           fallbackText,
                           style: const TextStyle(
