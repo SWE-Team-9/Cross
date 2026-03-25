@@ -1,8 +1,10 @@
-// Dart SDK
+import 'dart:io' show Platform;
+
 // Flutter
 import 'package:flutter/material.dart';
 
 // Third-party
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,6 +20,7 @@ import '../bloc/profile_state.dart';
 import '../widgets/edit_profile_country_picker.dart';
 import '../widgets/edit_profile_image_section.dart';
 import '../widgets/edit_profile_text_field.dart';
+import '../widgets/windows_image_crop_dialog.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -176,6 +179,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
     required String sourcePath,
     required ProfileImageType imageType,
   }) async {
+    if (Platform.isWindows) {
+      if (!mounted) return null;
+
+      return showDialog<String?>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => WindowsImageCropDialog(
+          sourcePath: sourcePath,
+          imageType: imageType,
+        ),
+      );
+    }
+
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: sourcePath,
       compressFormat: ImageCompressFormat.png,
@@ -207,34 +223,76 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return croppedFile?.path;
   }
 
+  Future<String?> _pickWindowsImagePath() async {
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowMultiple: false,
+      allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp'],
+    );
+
+    if (result == null || result.files.isEmpty) {
+      return null;
+    }
+
+    final String? path = result.files.single.path;
+
+    if (path == null || path.trim().isEmpty) {
+      throw Exception('Selected image path is invalid.');
+    }
+
+    return path;
+  }
+
   Future<void> _onPickImage(ProfileImageType imageType) async {
-    final ImagePicker picker = ImagePicker();
+    try {
+      String? selectedPath;
 
-    final XFile? picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 100,
-    );
+      if (Platform.isWindows) {
+        selectedPath = await _pickWindowsImagePath();
+      } else {
+        final ImagePicker picker = ImagePicker();
 
-    if (picked == null || !mounted) {
-      return;
-    }
-
-    final String? croppedPath = await _cropImage(
-      sourcePath: picked.path,
-      imageType: imageType,
-    );
-
-    if (croppedPath == null || !mounted) {
-      return;
-    }
-
-    await context.read<ProfileCubit>().uploadImage(
-          imageType: imageType,
-          filePath: croppedPath,
+        final XFile? picked = await picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 100,
         );
 
-    if (mounted) {
-      await context.read<AuthCubit>().refreshCurrentUserSilently();
+        selectedPath = picked?.path;
+      }
+
+      if (selectedPath == null || selectedPath.trim().isEmpty || !mounted) {
+        return;
+      }
+
+      final String? croppedPath = await _cropImage(
+        sourcePath: selectedPath,
+        imageType: imageType,
+      );
+
+      if (croppedPath == null || croppedPath.trim().isEmpty || !mounted) {
+        return;
+      }
+
+      await context.read<ProfileCubit>().uploadImage(
+            imageType: imageType,
+            filePath: croppedPath,
+          );
+
+      if (mounted) {
+        await context.read<AuthCubit>().refreshCurrentUserSilently();
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to select image. Please try again.',
+          ),
+          backgroundColor: Colors.red.shade800,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
