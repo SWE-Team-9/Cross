@@ -31,7 +31,8 @@ void main() {
     );
   }
 
-  testWidgets('shows first-load spinner before fetch completes', (tester) async {
+  testWidgets('shows first-load spinner before fetch completes',
+      (tester) async {
     final completer = Completer<List<String>>();
 
     await pumpList<String>(
@@ -70,7 +71,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Something went wrong. Please try again.'), findsOneWidget);
+    expect(
+        find.text('Something went wrong. Please try again.'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsOneWidget);
   });
@@ -155,7 +157,8 @@ void main() {
     expect(find.text('More 0'), findsOneWidget);
   });
 
-  testWidgets('does not load more when first page has fewer than pageSize items',
+  testWidgets(
+      'does not load more when first page has fewer than pageSize items',
       (tester) async {
     final requestedPages = <int>[];
 
@@ -181,37 +184,37 @@ void main() {
     expect(requestedPages, [1]);
   });
 
-testWidgets('load-more failure keeps previously loaded data state',
-    (tester) async {
-  final requestedPages = <int>[];
+  testWidgets('load-more failure keeps previously loaded data state',
+      (tester) async {
+    final requestedPages = <int>[];
 
-  await pumpList<String>(
-    tester,
-    fetcher: (page) async {
-      requestedPages.add(page);
-      if (page == 1) return List.generate(20, (i) => 'Item $i');
-      throw Exception('load more failed');
-    },
-    itemBuilder: (_, item) => SizedBox(
-      height: 60,
-      child: Text(item),
-    ),
-    pageSize: 20,
-  );
+    await pumpList<String>(
+      tester,
+      fetcher: (page) async {
+        requestedPages.add(page);
+        if (page == 1) return List.generate(20, (i) => 'Item $i');
+        throw Exception('load more failed');
+      },
+      itemBuilder: (_, item) => SizedBox(
+        height: 60,
+        child: Text(item),
+      ),
+      pageSize: 20,
+    );
 
-  await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-  expect(find.text('Item 0'), findsOneWidget);
+    expect(find.text('Item 0'), findsOneWidget);
 
-  await tester.drag(find.byType(Scrollable), const Offset(0, -2000));
-  await tester.pump();
-  await tester.pumpAndSettle();
+    await tester.drag(find.byType(Scrollable), const Offset(0, -2000));
+    await tester.pump();
+    await tester.pumpAndSettle();
 
-  expect(requestedPages, contains(2));
+    expect(requestedPages, contains(2));
 
-  // Existing loaded list should remain; widget should not switch to empty/error UI.
-  expect(find.text('Something went wrong. Please try again.'), findsNothing);
-  expect(find.text('Retry'), findsNothing);
-  expect(find.text('Nothing here yet'), findsNothing);
-});
+    // Existing loaded list should remain; widget should not switch to empty/error UI.
+    expect(find.text('Something went wrong. Please try again.'), findsNothing);
+    expect(find.text('Retry'), findsNothing);
+    expect(find.text('Nothing here yet'), findsNothing);
+  });
 }

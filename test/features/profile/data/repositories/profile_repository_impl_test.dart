@@ -13,29 +13,30 @@ void main() {
   late MockProfileRemoteDataSource mockRemoteDataSource;
   late ProfileRepositoryImpl repository;
 
-final dto = ProfileDto(
-  id: '1',
-  displayName: 'Ali',
-  handle: 'ali',
-  bio: 'bio',
-  location: 'Cairo, Egypt',
-  avatarUrl: 'avatar',
-  coverPhotoUrl: 'cover',
-  accountType: 'LISTENER',
-  favoriteGenres: const ['Rock'],
-  socialLinks: const {'x': 'y'},
-  visibility: 'PUBLIC',
-  trackCount: 0,
-  followersCount: 1,
-  followingCount: 2,
-);
+  final dto = ProfileDto(
+    id: '1',
+    displayName: 'Ali',
+    handle: 'ali',
+    bio: 'bio',
+    location: 'Cairo, Egypt',
+    avatarUrl: 'avatar',
+    coverPhotoUrl: 'cover',
+    accountType: 'LISTENER',
+    favoriteGenres: const ['Rock'],
+    socialLinks: const {'x': 'y'},
+    visibility: 'PUBLIC',
+    trackCount: 0,
+    followersCount: 1,
+    followingCount: 2,
+  );
 
   setUp(() {
     mockRemoteDataSource = MockProfileRemoteDataSource();
     repository = ProfileRepositoryImpl(mockRemoteDataSource);
   });
 
-  test('getProfile delegates to remote source and maps dto to entity', () async {
+  test('getProfile delegates to remote source and maps dto to entity',
+      () async {
     when(() => mockRemoteDataSource.getProfile('ali'))
         .thenAnswer((_) async => dto);
 

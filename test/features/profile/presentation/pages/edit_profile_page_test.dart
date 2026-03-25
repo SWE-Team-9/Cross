@@ -17,6 +17,7 @@ class MockProfileCubit extends MockCubit<ProfileState>
     implements ProfileCubit {}
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
+
 class FakeUpdateProfileParams extends Fake implements UpdateProfileParams {}
 
 void main() {
@@ -98,14 +99,15 @@ void main() {
 
     await tester.pump();
   }
-setUpAll(() {
-  registerFallbackValue(
-    const UpdateProfileParams(
-      displayName: 'fallback',
-    ),
-  );
-  registerFallbackValue(ProfileImageType.AVATAR);
-});
+
+  setUpAll(() {
+    registerFallbackValue(
+      const UpdateProfileParams(
+        displayName: 'fallback',
+      ),
+    );
+    registerFallbackValue(ProfileImageType.AVATAR);
+  });
 
   setUp(() {
     mockProfileCubit = MockProfileCubit();
@@ -122,7 +124,8 @@ setUpAll(() {
     ).thenAnswer((_) async {});
   });
 
-  testWidgets('renders initial profile data from ProfileLoaded', (tester) async {
+  testWidgets('renders initial profile data from ProfileLoaded',
+      (tester) async {
     await pumpPage(
       tester,
       profileState: ProfileLoaded(profile),
@@ -141,16 +144,20 @@ setUpAll(() {
     expect(find.text('bio text'), findsOneWidget);
   });
 
-  testWidgets('save triggers updateProfile with trimmed values', (tester) async {
+  testWidgets('save triggers updateProfile with trimmed values',
+      (tester) async {
     await pumpPage(
       tester,
       profileState: ProfileLoaded(profile),
       authState: AuthAuthenticated(authUser),
     );
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Ali'), '  Ali Updated  ');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Cairo'), '  Giza  ');
-    await tester.enterText(find.widgetWithText(TextFormField, 'bio text'), '  new bio  ');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Ali'), '  Ali Updated  ');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Cairo'), '  Giza  ');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'bio text'), '  new bio  ');
 
     await tester.tap(find.text('Save'));
     await tester.pump();
@@ -172,8 +179,10 @@ setUpAll(() {
     );
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Ali'), 'Ali');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Cairo'), 'Cairo');
-    await tester.enterText(find.widgetWithText(TextFormField, 'bio text'), '   ');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Cairo'), 'Cairo');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'bio text'), '   ');
 
     await tester.tap(find.text('Save'));
     await tester.pump();
@@ -202,28 +211,28 @@ setUpAll(() {
     verifyNever(() => mockProfileCubit.updateProfile(any()));
   });
 
-testWidgets('country picker selection updates selected country label',
-    (tester) async {
-  await pumpPage(
-    tester,
-    profileState: ProfileLoaded(profile),
-    authState: AuthAuthenticated(authUser),
-  );
+  testWidgets('country picker selection updates selected country label',
+      (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profile),
+      authState: AuthAuthenticated(authUser),
+    );
 
-  final countryPicker = find.byType(EditProfileCountryPicker);
-  expect(countryPicker, findsOneWidget);
+    final countryPicker = find.byType(EditProfileCountryPicker);
+    expect(countryPicker, findsOneWidget);
 
-  await tester.tap(countryPicker);
-  await tester.pumpAndSettle();
+    await tester.tap(countryPicker);
+    await tester.pumpAndSettle();
 
-  expect(find.text('Select Country'), findsOneWidget);
-  expect(find.text('Afghanistan'), findsOneWidget);
+    expect(find.text('Select Country'), findsOneWidget);
+    expect(find.text('Afghanistan'), findsOneWidget);
 
-  await tester.tap(find.text('Afghanistan'));
-  await tester.pumpAndSettle();
+    await tester.tap(find.text('Afghanistan'));
+    await tester.pumpAndSettle();
 
-  expect(find.text('Afghanistan'), findsOneWidget);
-});
+    expect(find.text('Afghanistan'), findsOneWidget);
+  });
 
   testWidgets('shows loading indicator in app bar while saving',
       (tester) async {
@@ -305,7 +314,8 @@ testWidgets('country picker selection updates selected country label',
     expect(find.text('Profile updated'), findsOneWidget);
   });
 
-  testWidgets('discard dialog appears when back is pressed with unsaved changes',
+  testWidgets(
+      'discard dialog appears when back is pressed with unsaved changes',
       (tester) async {
     await pumpPage(
       tester,
@@ -313,7 +323,8 @@ testWidgets('country picker selection updates selected country label',
       authState: AuthAuthenticated(authUser),
     );
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Ali'), 'Ali Changed');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Ali'), 'Ali Changed');
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
 

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:soundcloud_clone/features/auth/domain/entities/user.dart' as auth;
+import 'package:soundcloud_clone/features/auth/domain/entities/user.dart'
+    as auth;
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
@@ -162,7 +163,8 @@ void main() {
     verifyNever(() => mockSocialRepo.getFollowers(any(), any()));
   });
 
-  testWidgets('shows empty state when user id resolution fails', (tester) async {
+  testWidgets('shows empty state when user id resolution fails',
+      (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
     whenListen(
       mockAuthCubit,

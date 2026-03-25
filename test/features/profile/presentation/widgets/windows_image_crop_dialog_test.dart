@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 import 'package:soundcloud_clone/features/profile/presentation/widgets/windows_image_crop_dialog.dart';
 
-
 Future<File> createValidTestPng(String path) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -55,6 +54,7 @@ Future<void> pumpUntilVisible(
 
   throw TestFailure('Widget not found after waiting: $finder');
 }
+
 Future<void> waitForDialogDecode(WidgetTester tester) async {
   await tester.runAsync(() async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -74,17 +74,17 @@ void main() {
   late Directory tempDir;
   late File imageFile;
 
-setUp(() async {
-  tempDir = await Directory.systemTemp.createTemp(
-    'windows_image_crop_dialog_test',
-  );
+  setUp(() async {
+    tempDir = await Directory.systemTemp.createTemp(
+      'windows_image_crop_dialog_test',
+    );
 
-  imageFile = await createValidTestPng('${tempDir.path}/sample.png');
-});
-tearDown(() async {
-  // Intentionally do not delete temp files here.
-  // Windows can keep the image file locked briefly during widget tests.
-});
+    imageFile = await createValidTestPng('${tempDir.path}/sample.png');
+  });
+  tearDown(() async {
+    // Intentionally do not delete temp files here.
+    // Windows can keep the image file locked briefly during widget tests.
+  });
 
   Future<void> pumpDialog(
     WidgetTester tester, {
@@ -124,66 +124,66 @@ tearDown(() async {
     await tester.pump();
   }
 
-testWidgets('opens dialog successfully', (tester) async {
-  await pumpDialog(
-    tester,
-    sourcePath: imageFile.path,
-    imageType: ProfileImageType.AVATAR,
-  );
+  testWidgets('opens dialog successfully', (tester) async {
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.AVATAR,
+    );
 
-  expect(find.byType(AlertDialog), findsOneWidget);
-  expect(find.text('Crop avatar'), findsOneWidget);
-});
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Crop avatar'), findsOneWidget);
+  });
 
-testWidgets('shows avatar crop title after decode', (tester) async {
-  await pumpDialog(
-    tester,
-    sourcePath: imageFile.path,
-    imageType: ProfileImageType.AVATAR,
-  );
+  testWidgets('shows avatar crop title after decode', (tester) async {
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.AVATAR,
+    );
 
-  expect(find.text('Crop avatar'), findsOneWidget);
+    expect(find.text('Crop avatar'), findsOneWidget);
 
-  await waitForDialogDecode(tester);
+    await waitForDialogDecode(tester);
 
-  await pumpUntilVisible(
-    tester,
-    find.text('Drag to move the image. Use the slider to zoom.'),
-  );
-  await pumpUntilVisible(
-    tester,
-    find.byType(Slider),
-  );
+    await pumpUntilVisible(
+      tester,
+      find.text('Drag to move the image. Use the slider to zoom.'),
+    );
+    await pumpUntilVisible(
+      tester,
+      find.byType(Slider),
+    );
 
-  expect(
-    find.text('Drag to move the image. Use the slider to zoom.'),
-    findsOneWidget,
-  );
-  expect(find.text('Zoom'), findsOneWidget);
-  expect(find.byType(Slider), findsOneWidget);
-  expect(find.text('Cancel'), findsOneWidget);
-  expect(find.text('Crop'), findsOneWidget);
-});
-testWidgets('shows cover crop title after decode', (tester) async {
-  await pumpDialog(
-    tester,
-    sourcePath: imageFile.path,
-    imageType: ProfileImageType.COVER,
-  );
+    expect(
+      find.text('Drag to move the image. Use the slider to zoom.'),
+      findsOneWidget,
+    );
+    expect(find.text('Zoom'), findsOneWidget);
+    expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Crop'), findsOneWidget);
+  });
+  testWidgets('shows cover crop title after decode', (tester) async {
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.COVER,
+    );
 
-  expect(find.text('Crop cover'), findsOneWidget);
+    expect(find.text('Crop cover'), findsOneWidget);
 
-  await waitForDialogDecode(tester);
+    await waitForDialogDecode(tester);
 
-  await pumpUntilVisible(
-    tester,
-    find.byType(Slider),
-  );
+    await pumpUntilVisible(
+      tester,
+      find.byType(Slider),
+    );
 
-  expect(find.byType(Slider), findsOneWidget);
-  expect(find.text('Cancel'), findsOneWidget);
-  expect(find.text('Crop'), findsOneWidget);
-});
+    expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Crop'), findsOneWidget);
+  });
   testWidgets('cancel closes the dialog and returns null', (tester) async {
     String? result = 'not-null-yet';
 
@@ -194,68 +194,70 @@ testWidgets('shows cover crop title after decode', (tester) async {
       onResult: (value) => result = value,
     );
 
-await settleDialog(tester);
+    await settleDialog(tester);
 
     await tester.tap(find.text('Cancel'));
-await settleDialog(tester);
+    await settleDialog(tester);
 
     expect(find.text('Crop avatar'), findsNothing);
     expect(result, isNull);
   });
 
-testWidgets('slider can be changed without exceptions', (tester) async {
-  await pumpDialog(
-    tester,
-    sourcePath: imageFile.path,
-    imageType: ProfileImageType.AVATAR,
-  );
+  testWidgets('slider can be changed without exceptions', (tester) async {
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.AVATAR,
+    );
 
-  expect(find.text('Crop avatar'), findsOneWidget);
+    expect(find.text('Crop avatar'), findsOneWidget);
 
-  await waitForDialogDecode(tester);
-  await pumpUntilVisible(
-    tester,
-    find.byType(Slider),
-  );
+    await waitForDialogDecode(tester);
+    await pumpUntilVisible(
+      tester,
+      find.byType(Slider),
+    );
 
-  final sliderFinder = find.byType(Slider);
-  expect(sliderFinder, findsOneWidget);
+    final sliderFinder = find.byType(Slider);
+    expect(sliderFinder, findsOneWidget);
 
-await tester.drag(
-  sliderFinder,
-  const Offset(200, 0),
-  warnIfMissed: false,
-);
-  await tester.pump();
+    await tester.drag(
+      sliderFinder,
+      const Offset(200, 0),
+      warnIfMissed: false,
+    );
+    await tester.pump();
 
-  expect(find.byType(Slider), findsOneWidget);
-  expect(find.text('Crop avatar'), findsOneWidget);
-});
-testWidgets('dragging crop area does not throw', (tester) async {
-  await pumpDialog(
-    tester,
-    sourcePath: imageFile.path,
-    imageType: ProfileImageType.COVER,
-  );
+    expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('Crop avatar'), findsOneWidget);
+  });
+  testWidgets('dragging crop area does not throw', (tester) async {
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.COVER,
+    );
 
-  expect(find.text('Crop cover'), findsOneWidget);
+    expect(find.text('Crop cover'), findsOneWidget);
 
-  await waitForDialogDecode(tester);
-  await pumpUntilVisible(
-    tester,
-    find.byType(Slider),
-  );
+    await waitForDialogDecode(tester);
+    await pumpUntilVisible(
+      tester,
+      find.byType(Slider),
+    );
 
-  final cropArea = find.descendant(
-    of: find.byType(AlertDialog),
-    matching: find.byType(Listener),
-  ).last;
+    final cropArea = find
+        .descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(Listener),
+        )
+        .last;
 
-  expect(cropArea, findsOneWidget);
+    expect(cropArea, findsOneWidget);
 
-  await tester.drag(cropArea, const Offset(40, 20));
-  await tester.pump();
+    await tester.drag(cropArea, const Offset(40, 20));
+    await tester.pump();
 
-  expect(find.text('Crop cover'), findsOneWidget);
-});
+    expect(find.text('Crop cover'), findsOneWidget);
+  });
 }
