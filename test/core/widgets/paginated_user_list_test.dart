@@ -1,142 +1,220 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/core/widgets/paginated_user_list.dart';
 
 void main() {
-  Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
+  Future<void> pumpList<T>(
+    WidgetTester tester, {
+    required Future<List<T>> Function(int page) fetcher,
+    required Widget Function(BuildContext context, T item) itemBuilder,
+    String emptyMessage = 'Nothing here yet',
+    IconData emptyIcon = Icons.people_outline,
+    int pageSize = 20,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 600,
+            child: PaginatedUserList<T>(
+              fetcher: fetcher,
+              itemBuilder: itemBuilder,
+              emptyMessage: emptyMessage,
+              emptyIcon: emptyIcon,
+              pageSize: pageSize,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-  group('PaginatedUserList', () {
-    testWidgets('shows spinner on first load', (tester) async {
-      final widget = PaginatedUserList<String>(
-        fetcher: (_) async {
-          // Use a shorter delay that we can actually wait for
-          await Future.delayed(const Duration(milliseconds: 100));
-          return [];
-        },
-        itemBuilder: (_, item) => Text(item),
-      );
+  testWidgets('shows first-load spinner before fetch completes',
+      (tester) async {
+    final completer = Completer<List<String>>();
 
-      await tester.pumpWidget(wrap(widget));
+    await pumpList<String>(
+      tester,
+      fetcher: (_) => completer.future,
+      itemBuilder: (_, item) => ListTile(title: Text(item)),
+    );
 
-      // Verify spinner is shown immediately
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-      // Wait for the Future to complete
-      await tester.pump(const Duration(milliseconds: 100));
+    completer.complete(['A']);
+    await tester.pumpAndSettle();
+  });
 
-      // Allow the widget to rebuild after Future completes
-      await tester.pump();
+  testWidgets('shows empty state when first page returns no items',
+      (tester) async {
+    await pumpList<String>(
+      tester,
+      fetcher: (_) async => <String>[],
+      itemBuilder: (_, item) => ListTile(title: Text(item)),
+      emptyMessage: 'No followers yet',
+    );
 
-      // No more spinner
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-    });
+    await tester.pumpAndSettle();
 
-    testWidgets('renders items returned by fetcher', (tester) async {
-      final widget = PaginatedUserList<String>(
-        fetcher: (_) async => ['Alice', 'Bob', 'Charlie'],
-        itemBuilder: (_, item) => ListTile(title: Text(item)),
-      );
+    expect(find.text('No followers yet'), findsOneWidget);
+    expect(find.byIcon(Icons.people_outline), findsOneWidget);
+  });
 
-      await tester.pumpWidget(wrap(widget));
-      await tester.pumpAndSettle();
+  testWidgets('shows error state when first page throws', (tester) async {
+    await pumpList<String>(
+      tester,
+      fetcher: (_) async => throw Exception('boom'),
+      itemBuilder: (_, item) => ListTile(title: Text(item)),
+    );
 
-      expect(find.text('Alice'), findsOneWidget);
-      expect(find.text('Bob'), findsOneWidget);
-      expect(find.text('Charlie'), findsOneWidget);
-    });
+    await tester.pumpAndSettle();
 
-    testWidgets('shows empty state when fetcher returns empty list',
-        (tester) async {
-      const msg = 'No followers yet';
-      final widget = PaginatedUserList<String>(
-        fetcher: (_) async => [],
-        itemBuilder: (_, item) => Text(item),
-        emptyMessage: msg,
-      );
+    expect(
+        find.text('Something went wrong. Please try again.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.byIcon(Icons.error_outline), findsOneWidget);
+  });
 
-      await tester.pumpWidget(wrap(widget));
+  testWidgets('retry button triggers a new fetch after first-load error',
+      (tester) async {
+    var callCount = 0;
 
-      // Wait for the initial load to complete
-      await tester.pumpAndSettle();
+    await pumpList<String>(
+      tester,
+      fetcher: (_) async {
+        callCount++;
+        if (callCount == 1) {
+          throw Exception('boom');
+        }
+        return ['Recovered'];
+      },
+      itemBuilder: (_, item) => ListTile(title: Text(item)),
+    );
 
-      expect(find.text(msg), findsOneWidget);
-    });
+    await tester.pumpAndSettle();
 
-    testWidgets('shows error state with retry button on exception',
-        (tester) async {
-      final widget = PaginatedUserList<String>(
-        fetcher: (_) async => throw Exception('Network error'),
-        itemBuilder: (_, item) => Text(item),
-      );
+    expect(find.text('Retry'), findsOneWidget);
 
-      await tester.pumpWidget(wrap(widget));
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+    await tester.pumpAndSettle();
 
-      // Wait for the error to be processed
-      await tester.pumpAndSettle();
+    expect(find.text('Recovered'), findsOneWidget);
+    expect(callCount, 2);
+  });
 
-      expect(
-        find.text('Something went wrong. Please try again.'),
-        findsOneWidget,
-      );
-      expect(find.text('Retry'), findsOneWidget);
-    });
+  testWidgets('shows populated list items', (tester) async {
+    await pumpList<String>(
+      tester,
+      fetcher: (_) async => ['One', 'Two', 'Three'],
+      itemBuilder: (_, item) => ListTile(title: Text(item)),
+    );
 
-    testWidgets('retry button reloads the list', (tester) async {
-      int calls = 0;
-      final widget = PaginatedUserList<String>(
-        fetcher: (_) async {
-          calls++;
-          if (calls == 1) throw Exception('First call fails');
-          return ['Item after retry'];
-        },
-        itemBuilder: (_, item) => ListTile(title: Text(item)),
-      );
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(wrap(widget));
-      await tester.pumpAndSettle(); // Wait for error state
+    expect(find.text('One'), findsOneWidget);
+    expect(find.text('Two'), findsOneWidget);
+    expect(find.text('Three'), findsOneWidget);
+  });
 
-      // Error state is showing — tap retry
-      await tester.tap(find.text('Retry'));
-      await tester.pump(); // Start the retry
-      await tester.pumpAndSettle(); // Wait for completion
+  testWidgets('loads more when scrolled near bottom', (tester) async {
+    final requestedPages = <int>[];
 
-      expect(find.text('Item after retry'), findsOneWidget);
-    });
+    await pumpList<String>(
+      tester,
+      fetcher: (page) async {
+        requestedPages.add(page);
+        if (page == 1) return List.generate(20, (i) => 'Item $i');
+        if (page == 2) return List.generate(20, (i) => 'More $i');
+        return <String>[];
+      },
+      itemBuilder: (_, item) => SizedBox(
+        height: 60,
+        child: Text(item),
+      ),
+      pageSize: 20,
+    );
 
-    testWidgets('pull-to-refresh calls fetcher again', (tester) async {
-      int calls = 0;
-      final widget = PaginatedUserList<String>(
-        fetcher: (_) async {
-          calls++;
-          return ['Item $calls'];
-        },
-        itemBuilder: (_, item) => ListTile(title: Text(item)),
-      );
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(wrap(widget));
-      await tester.pumpAndSettle();
-      expect(calls, 1);
+    expect(requestedPages, [1]);
 
-      // Perform pull-to-refresh
-      await tester.drag(find.byType(ListView), const Offset(0, 300));
-      await tester.pump(); // Start refresh
-      await tester.pumpAndSettle(); // Wait for completion
+    await tester.drag(find.byType(Scrollable), const Offset(0, -2000));
+    await tester.pump();
+    await tester.pumpAndSettle();
 
-      expect(calls, 2);
-    });
+    expect(requestedPages, contains(2));
 
-    testWidgets('no load-more spinner when list is smaller than pageSize',
-        (tester) async {
-      final widget = PaginatedUserList<String>(
-        fetcher: (_) async => ['OnlyOne'],
-        itemBuilder: (_, item) => ListTile(title: Text(item)),
-        pageSize: 20,
-      );
+    await tester.scrollUntilVisible(
+      find.text('More 0'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(wrap(widget));
-      await tester.pumpAndSettle();
+    expect(find.text('More 0'), findsOneWidget);
+  });
 
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-    });
+  testWidgets(
+      'does not load more when first page has fewer than pageSize items',
+      (tester) async {
+    final requestedPages = <int>[];
+
+    await pumpList<String>(
+      tester,
+      fetcher: (page) async {
+        requestedPages.add(page);
+        return ['A', 'B'];
+      },
+      itemBuilder: (_, item) => SizedBox(
+        height: 60,
+        child: Text(item),
+      ),
+      pageSize: 20,
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(Scrollable), const Offset(0, -1500));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(requestedPages, [1]);
+  });
+
+  testWidgets('load-more failure keeps previously loaded data state',
+      (tester) async {
+    final requestedPages = <int>[];
+
+    await pumpList<String>(
+      tester,
+      fetcher: (page) async {
+        requestedPages.add(page);
+        if (page == 1) return List.generate(20, (i) => 'Item $i');
+        throw Exception('load more failed');
+      },
+      itemBuilder: (_, item) => SizedBox(
+        height: 60,
+        child: Text(item),
+      ),
+      pageSize: 20,
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Item 0'), findsOneWidget);
+
+    await tester.drag(find.byType(Scrollable), const Offset(0, -2000));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(requestedPages, contains(2));
+
+    // Existing loaded list should remain; widget should not switch to empty/error UI.
+    expect(find.text('Something went wrong. Please try again.'), findsNothing);
+    expect(find.text('Retry'), findsNothing);
+    expect(find.text('Nothing here yet'), findsNothing);
   });
 }
