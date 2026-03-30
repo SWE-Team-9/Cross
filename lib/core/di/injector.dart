@@ -1,22 +1,26 @@
 import 'package:flutter/widgets.dart';
 import '../config/app_config.dart';
+
 // Third-party
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+
 // Project
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/confirm_email_change_usecase.dart';
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
 import '../../features/auth/domain/usecases/is_logged_in_usecase.dart';
 import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
+import '../../features/auth/domain/usecases/request_email_change_usecase.dart';
 import '../../features/auth/domain/usecases/reset_password_usecase.dart';
 import '../../features/auth/domain/usecases/send_email_verification_usecase.dart';
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
@@ -132,7 +136,6 @@ Future<void> setupDependencies() async {
   // ── Upload Feature: Track Management Basics ────────────────────────────────
 
   const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
-
   const String mockTrackManagementModeValue = AppConfig.mockTrackManagementMode;
 
   final MockTrackManagementMode mockTrackManagementMode =
@@ -183,6 +186,7 @@ Future<void> setupDependencies() async {
       ),
     );
   }
+
   // ── Auth Feature ───────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
@@ -260,6 +264,18 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<RequestEmailChangeUseCase>()) {
+    getIt.registerLazySingleton<RequestEmailChangeUseCase>(
+      () => RequestEmailChangeUseCase(getIt<AuthRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ConfirmEmailChangeUseCase>()) {
+    getIt.registerLazySingleton<ConfirmEmailChangeUseCase>(
+      () => ConfirmEmailChangeUseCase(getIt<AuthRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<AuthCubit>()) {
     getIt.registerFactory<AuthCubit>(
       () => AuthCubit(
@@ -272,6 +288,8 @@ Future<void> setupDependencies() async {
         resetPasswordUseCase: getIt<ResetPasswordUseCase>(),
         sendEmailVerificationUseCase: getIt<SendEmailVerificationUseCase>(),
         verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
+        requestEmailChangeUseCase: getIt<RequestEmailChangeUseCase>(),
+        confirmEmailChangeUseCase: getIt<ConfirmEmailChangeUseCase>(),
       ),
     );
   }
