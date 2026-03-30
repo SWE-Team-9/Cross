@@ -24,8 +24,7 @@ abstract class ApiConstants {
   // ── Profiles ────────────────────────────────────────────────────────────
   static const String profilesBase = '/api/v1/profiles';
   static const String myProfile = '$profilesBase/me';
-  static const String profileImages =
-      '$profilesBase/me/images'; // append /avatar or /cover
+  static const String profileImages = '$profilesBase/me/images';
   static const String checkHandle = '$profilesBase/check-handle';
 
   static String profileByHandlePath(String handle) => '$profilesBase/$handle';
@@ -40,5 +39,10 @@ abstract class ApiConstants {
 
   // ── Tracks ──────────────────────────────────────────────────────────────
   static const String tracks = '/tracks';
-  static const String userTracks = '/users'; // append /:userId/tracks
+  static const String users = '/users';
+
+  static String trackByIdPath(String trackId) => '$tracks/$trackId';
+  static String trackStatusPath(String trackId) => '${trackByIdPath(trackId)}/status';
+  static String trackWaveformPath(String trackId) => '${trackByIdPath(trackId)}/waveform';
+  static String userTracksPath(String userId) => '$users/$userId/tracks';
 }

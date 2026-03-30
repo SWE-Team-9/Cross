@@ -107,7 +107,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Upload Feature: File Picker ────────────────────────────────────────────
+  // ── Upload Feature: File Picker + Upload Flow ─────────────────────────────
 
   if (!getIt.isRegistered<AudioFilePickerDataSource>()) {
     getIt.registerLazySingleton<AudioFilePickerDataSource>(
@@ -117,7 +117,10 @@ Future<void> setupDependencies() async {
 
   if (!getIt.isRegistered<UploadRepository>()) {
     getIt.registerLazySingleton<UploadRepository>(
-      () => UploadRepositoryImpl(getIt<AudioFilePickerDataSource>()),
+      () => UploadRepositoryImpl(
+        getIt<AudioFilePickerDataSource>(),
+        dioClient: getIt<DioClient>(),
+      ),
     );
   }
 
@@ -129,7 +132,10 @@ Future<void> setupDependencies() async {
 
   if (!getIt.isRegistered<UploadPickerCubit>()) {
     getIt.registerFactory<UploadPickerCubit>(
-      () => UploadPickerCubit(getIt<PickAudioFileUseCase>()),
+      () => UploadPickerCubit(
+        getIt<PickAudioFileUseCase>(),
+        getIt<UploadRepository>(),
+      ),
     );
   }
 
