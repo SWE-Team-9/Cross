@@ -10,6 +10,7 @@ class User {
   final DateTime? dateOfBirth;
   final bool isVerified;
   final bool isPro;
+  final String accountType;
 
   const User({
     required this.id,
@@ -23,5 +24,8 @@ class User {
     this.dateOfBirth,
     this.isVerified = false,
     this.isPro = false,
+    this.accountType = 'LISTENER',
   });
+
+  bool get isArtist => accountType.trim().toUpperCase() == 'ARTIST';
 }
