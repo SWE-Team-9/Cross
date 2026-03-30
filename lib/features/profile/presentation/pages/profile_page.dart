@@ -357,8 +357,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                   const SizedBox(width: 10),
                   Expanded(
                     child: _buildOwnerActionButton(
-                      icon: Icons.alternate_email,
-                      label: 'Email',
+                      icon: Icons.email,
+                      label: 'change Email',
                       onTap: _showChangeEmailDialog,
                     ),
                   ),
