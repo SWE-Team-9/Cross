@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/utils/platform_url_utils.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../../upload/domain/entities/ManagedTrack.dart';
 import '../../../upload/domain/entities/TrackManagementVisibility.dart';
@@ -13,7 +16,6 @@ import '../../domain/entities/profile_entity.dart';
 import '../bloc/profile_cubit.dart';
 import '../bloc/profile_state.dart';
 import '../routes/profile_routes.dart';
-import '../../../../core/utils/platform_url_utils.dart';
 
 class ProfilePage extends StatelessWidget {
   final String handle;
@@ -35,7 +37,19 @@ class ProfilePage extends StatelessWidget {
     }
 
     return BlocProvider<ProfileCubit>(
-      create: (_) => getIt<ProfileCubit>()..loadProfile(handle),
+      create: (context) {
+        final authState = context.read<AuthCubit>().state;
+        final profileCubit = getIt<ProfileCubit>();
+
+        if (authState is AuthAuthenticated &&
+            authState.user.handle == handle) {
+          profileCubit.loadOwnProfile();
+        } else {
+          profileCubit.loadProfile(handle);
+        }
+
+        return profileCubit;
+      },
       child: _ProfilePageBody(handle: handle),
     );
   }
@@ -158,13 +172,18 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               final email = value?.trim() ?? '';
               if (email.isEmpty) return 'Please enter a new email address.';
               final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-              if (!emailRegex.hasMatch(email)) return 'Please enter a valid email address.';
+              if (!emailRegex.hasMatch(email)) {
+                return 'Please enter a valid email address.';
+              }
               return null;
             }
 
             return AlertDialog(
               backgroundColor: const Color(0xFF121212),
-              title: const Text('Change email', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Change email',
+                style: TextStyle(color: Colors.white),
+              ),
               content: Form(
                 key: formKey,
                 child: Column(
@@ -180,7 +199,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                         labelStyle: const TextStyle(color: Colors.white70),
                         filled: true,
                         fillColor: const Color(0xFF1C1C1C),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       validator: validateEmail,
                     ),
@@ -195,58 +216,112 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                         labelStyle: const TextStyle(color: Colors.white70),
                         filled: true,
                         fillColor: const Color(0xFF1C1C1C),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         suffixIcon: IconButton(
-                          icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white70),
-                          onPressed: isSubmitting ? null : () => setDialogState(() => obscurePassword = !obscurePassword),
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.white70,
+                          ),
+                          onPressed: isSubmitting
+                              ? null
+                              : () => setDialogState(
+                                    () => obscurePassword = !obscurePassword,
+                                  ),
                         ),
                       ),
-                      validator: (v) => (v ?? '').trim().isEmpty ? 'Please enter your password.' : null,
+                      validator: (v) => (v ?? '').trim().isEmpty
+                          ? 'Please enter your password.'
+                          : null,
                     ),
                     if (localError != null) ...[
                       const SizedBox(height: 12),
-                      Text(localError!, style: const TextStyle(color: Colors.redAccent, fontSize: 12), textAlign: TextAlign.center),
+                      Text(
+                        localError!,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: isSubmitting ? null : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70),
+                  ),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5500)),
-                  onPressed: isSubmitting ? null : () async {
-                    if (!(formKey.currentState?.validate() ?? false)) return;
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF5500),
+                  ),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (!(formKey.currentState?.validate() ?? false)) {
+                            return;
+                          }
 
-                    final remaining = authCubit.emailChangeCooldownRemainingSeconds;
-                    if (remaining > 0) {
-                      setDialogState(() => localError = 'Wait $remaining seconds before resending.');
-                      return;
-                    }
+                          final remaining =
+                              authCubit.emailChangeCooldownRemainingSeconds;
+                          if (remaining > 0) {
+                            setDialogState(
+                              () => localError =
+                                  'Wait $remaining seconds before resending.',
+                            );
+                            return;
+                          }
 
-                    setDialogState(() { isSubmitting = true; localError = null; });
-                    await authCubit.requestEmailChange(
-                      newEmail: newEmailController.text.trim(),
-                      currentPassword: currentPasswordController.text,
-                    );
+                          setDialogState(() {
+                            isSubmitting = true;
+                            localError = null;
+                          });
 
-                    if (!mounted) return;
-                    final currentState = authCubit.state;
+                          await authCubit.requestEmailChange(
+                            newEmail: newEmailController.text.trim(),
+                            currentPassword: currentPasswordController.text,
+                          );
 
-                    if (currentState is AuthEmailChangeRequested) {
-                      Navigator.of(dialogContext).pop();
-                    } else {
-                      setDialogState(() {
-                        isSubmitting = false;
-                        localError = (currentState is AuthEmailChangeFailure) ? currentState.message : (currentState is AuthError ? currentState.message : 'Action failed.');
-                      });
-                    }
-                  },
+                          if (!mounted) return;
+                          final currentState = authCubit.state;
+
+                          if (currentState is AuthEmailChangeRequested) {
+                            Navigator.of(dialogContext).pop();
+                          } else {
+                            setDialogState(() {
+                              isSubmitting = false;
+                              localError =
+                                  (currentState is AuthEmailChangeFailure)
+                                      ? currentState.message
+                                      : (currentState is AuthError
+                                          ? currentState.message
+                                          : 'Action failed.');
+                            });
+                          }
+                        },
                   child: isSubmitting
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Send link', style: TextStyle(color: Colors.white)),
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Send link',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ],
             );
@@ -254,8 +329,65 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         );
       },
     );
+
     newEmailController.dispose();
     currentPasswordController.dispose();
+  }
+
+  Future<void> _openExternalLink(
+    BuildContext context,
+    String platform,
+    String rawUrl,
+  ) async {
+    try {
+      final normalized = _normalizeForLaunch(rawUrl);
+      final uri = Uri.tryParse(normalized);
+
+      if (uri == null || !(uri.isScheme('http') || uri.isScheme('https'))) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid link'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open ${_labelForPlatform(platform)}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to open link'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  String _normalizeForLaunch(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && uri.hasScheme) {
+      return trimmed;
+    }
+
+    return 'https://$trimmed';
   }
 
   @override
@@ -265,7 +397,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       child: BlocBuilder<ProfileCubit, ProfileState>(
         builder: (context, state) {
           if (state is ProfileLoading) {
-            return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              backgroundColor: Colors.black,
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
 
           if (state is ProfileError) {
@@ -275,10 +410,20 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.white54, size: 48),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.white54,
+                      size: 48,
+                    ),
                     const SizedBox(height: 12),
-                    Text(state.message, style: const TextStyle(color: Colors.white70)),
-                    TextButton(onPressed: () => context.pop(), child: const Text('Go back')),
+                    Text(
+                      state.message,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    TextButton(
+                      onPressed: () => context.pop(),
+                      child: const Text('Go back'),
+                    ),
                   ],
                 ),
               ),
@@ -294,7 +439,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             _ => null,
           };
 
-          if (profile == null) return const Scaffold(backgroundColor: Colors.black);
+          if (profile == null) {
+            return const Scaffold(backgroundColor: Colors.black);
+          }
+
           return _buildBody(context, profile);
         },
       ),
@@ -334,8 +482,14 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildTracksTab() {
-    if (!_isOwnProfile) return _buildEmptyTab(Icons.music_note_outlined, 'No tracks yet');
-    return _ManagedProfileTracksTab(tracks: _managedTracks, onManageTap: _openTrackManagement);
+    if (!_isOwnProfile) {
+      return _buildEmptyTab(Icons.music_note_outlined, 'No tracks yet');
+    }
+
+    return _ManagedProfileTracksTab(
+      tracks: _managedTracks,
+      onManageTap: _openTrackManagement,
+    );
   }
 
   Widget _buildActionRow(BuildContext context, ProfileEntity profile) {
@@ -372,12 +526,24 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   decoration: BoxDecoration(
-                    color: _isFollowing ? const Color(0xFFFF5500) : Colors.transparent,
+                    color: _isFollowing
+                        ? const Color(0xFFFF5500)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _isFollowing ? const Color(0xFFFF5500) : const Color(0xFF555555)),
+                    border: Border.all(
+                      color: _isFollowing
+                          ? const Color(0xFFFF5500)
+                          : const Color(0xFF555555),
+                    ),
                   ),
                   alignment: Alignment.center,
-                  child: Text(_isFollowing ? 'Following' : 'Follow', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    _isFollowing ? 'Following' : 'Follow',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -390,19 +556,35 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
-  Widget _buildOwnerActionButton({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildOwnerActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 40,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: const Color(0xFF555555))),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF555555)),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: Colors.white, size: 18),
             const SizedBox(width: 6),
-            Flexible(child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -411,6 +593,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildProfileHeader(BuildContext context, ProfileEntity profile) {
     final coverUrl = PlatformUrlUtils.normalizeBackendUrl(profile.coverPhotoUrl);
+
     return SizedBox(
       height: 230,
       child: Stack(
@@ -419,7 +602,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           SizedBox(
             width: double.infinity,
             height: 150,
-            child: coverUrl != null ? Image.network(coverUrl, fit: BoxFit.cover) : Container(color: Colors.grey[900]),
+            child: coverUrl != null
+                ? Image.network(coverUrl, fit: BoxFit.cover)
+                : Container(color: Colors.grey[900]),
           ),
           Positioned(
             top: 10,
@@ -433,7 +618,11 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               ],
             ),
           ),
-          Positioned(left: 14, bottom: 0, child: _buildAvatar(profile)),
+          Positioned(
+            left: 14,
+            bottom: 0,
+            child: _buildAvatar(profile),
+          ),
         ],
       ),
     );
@@ -441,42 +630,232 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildAvatar(ProfileEntity profile) {
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
+
     return Container(
-      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 4)),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black, width: 4),
+      ),
       child: CircleAvatar(
         radius: 50,
         backgroundColor: const Color(0xFF5B7BBB),
-        backgroundImage: avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null,
-        child: avatarUrl == null ? const Icon(Icons.person, size: 56, color: Colors.white54) : null,
+        backgroundImage:
+            avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null,
+        child: avatarUrl == null
+            ? const Icon(
+                Icons.person,
+                size: 56,
+                color: Colors.white54,
+              )
+            : null,
       ),
     );
   }
 
   Widget _buildUserInfo(BuildContext context, ProfileEntity profile) {
+    final mergedLinks = <String, String>{};
+
+    final website = (profile.website ?? '').trim();
+    if (website.isNotEmpty) {
+      mergedLinks['website'] = website;
+    }
+
+    for (final entry in profile.externalLinks.entries) {
+      if (entry.value.trim().isEmpty) continue;
+      mergedLinks[entry.key] = entry.value.trim();
+    }
+
+    final bio = (profile.bio ?? '').trim();
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(profile.displayName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
+          Text(
+            profile.displayName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildInfoChip(
+                profile.accountTier == AccountTier.ARTIST
+                    ? 'Artist'
+                    : 'Listener',
+                profile.accountTier == AccountTier.ARTIST
+                    ? Icons.mic
+                    : Icons.headphones,
+              ),
+              if (profile.isPrivate)
+                _buildInfoChip('Private', Icons.lock_outline),
+            ],
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               GestureDetector(
                 onTap: () => ProfileRoutes.goToFollowers(context, profile.handle),
-                child: const Text('0 Followers', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: Text(
+                  '${profile.followersCount} Followers',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
               ),
               const Text(' · ', style: TextStyle(color: Colors.grey)),
               GestureDetector(
                 onTap: () => ProfileRoutes.goToFollowing(context, profile.handle),
-                child: const Text('0 Following', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: Text(
+                  '${profile.followingCount} Following',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
               ),
             ],
           ),
-          if (profile.bio != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(profile.bio!, style: const TextStyle(color: Colors.white70))),
+          if (website.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              website,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+          ],
+          if (bio.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              bio,
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+          if (mergedLinks.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _buildExternalLinksRow(context, mergedLinks),
+          ],
         ],
       ),
     );
+  }
+
+  Widget _buildExternalLinksRow(
+    BuildContext context,
+    Map<String, String> links,
+  ) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: links.entries.map((entry) {
+        final platform = entry.key.trim().toLowerCase();
+        final url = entry.value.trim();
+
+        return Tooltip(
+          message: '${_labelForPlatform(platform)}\n$url',
+          child: InkWell(
+            onTap: () => _openExternalLink(context, platform, url),
+            onLongPress: () async {
+              await Clipboard.setData(ClipboardData(text: url));
+              if (!mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${_labelForPlatform(platform)} link copied'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(22),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFF141414),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF333333)),
+              ),
+              child: Icon(
+                _iconForPlatform(platform),
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInfoChip(String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF333333)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white70),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _iconForPlatform(String platform) {
+    switch (platform) {
+      case 'website':
+        return Icons.language;
+      case 'instagram':
+        return Icons.camera_alt_outlined;
+      case 'youtube':
+        return Icons.ondemand_video;
+      case 'soundcloud':
+        return Icons.music_note;
+      case 'tiktok':
+        return Icons.audiotrack;
+      case 'x':
+        return Icons.alternate_email;
+      case 'facebook':
+        return Icons.facebook;
+      default:
+        return Icons.link;
+    }
+  }
+
+  String _labelForPlatform(String platform) {
+    switch (platform) {
+      case 'website':
+        return 'Website';
+      case 'instagram':
+        return 'Instagram';
+      case 'youtube':
+        return 'YouTube';
+      case 'soundcloud':
+        return 'SoundCloud';
+      case 'tiktok':
+        return 'TikTok';
+      case 'x':
+        return 'X';
+      case 'facebook':
+        return 'Facebook';
+      default:
+        return platform;
+    }
   }
 
   Widget _buildTabBar() {
@@ -485,7 +864,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       indicatorColor: const Color(0xFFFF5500),
       labelColor: Colors.white,
       unselectedLabelColor: Colors.grey,
-      tabs: const [Tab(text: 'Likes'), Tab(text: 'Tracks'), Tab(text: 'Playlists'), Tab(text: 'Reposts')],
+      tabs: const [
+        Tab(text: 'Likes'),
+        Tab(text: 'Tracks'),
+        Tab(text: 'Playlists'),
+        Tab(text: 'Reposts'),
+      ],
     );
   }
 
@@ -496,7 +880,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         children: [
           Icon(icon, size: 48, color: Colors.white24),
           const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: Colors.white38)),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.white38),
+          ),
         ],
       ),
     );
@@ -514,7 +901,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return Container(
       width: 42,
       height: 42,
-      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+      ),
       child: const Icon(Icons.play_arrow, color: Colors.black),
     );
   }
@@ -524,19 +914,39 @@ class _ManagedProfileTracksTab extends StatelessWidget {
   final List<ManagedTrack> tracks;
   final ValueChanged<ManagedTrack> onManageTap;
 
-  const _ManagedProfileTracksTab({required this.tracks, required this.onManageTap});
+  const _ManagedProfileTracksTab({
+    required this.tracks,
+    required this.onManageTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (tracks.isEmpty) return const Center(child: Text('No tracks yet.', style: TextStyle(color: Colors.grey)));
+    if (tracks.isEmpty) {
+      return const Center(
+        child: Text(
+          'No tracks yet.',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
     return ListView.builder(
       itemCount: tracks.length,
       itemBuilder: (context, index) {
         final track = tracks[index];
         return ListTile(
-          title: Text(track.title, style: const TextStyle(color: Colors.white)),
-          subtitle: Text(track.visibility.displayLabel, style: const TextStyle(color: Colors.grey)),
-          trailing: OutlinedButton(onPressed: () => onManageTap(track), child: const Text('Manage')),
+          title: Text(
+            track.title,
+            style: const TextStyle(color: Colors.white),
+          ),
+          subtitle: Text(
+            track.visibility.displayLabel,
+            style: const TextStyle(color: Colors.grey),
+          ),
+          trailing: OutlinedButton(
+            onPressed: () => onManageTap(track),
+            child: const Text('Manage'),
+          ),
         );
       },
     );
