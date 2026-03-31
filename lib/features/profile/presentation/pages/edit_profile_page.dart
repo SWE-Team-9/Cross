@@ -1,15 +1,11 @@
 import 'dart:io' show Platform;
 
-// Flutter
-import 'package:flutter/material.dart';
-
-// Third-party
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
-// Project
 import '../../../../core/utils/location_utils.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../domain/entities/profile_entity.dart';
@@ -35,9 +31,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _displayNameController;
   late final TextEditingController _cityController;
   late final TextEditingController _bioController;
+  late final TextEditingController _websiteController;
 
   String _selectedCountry = '';
   late ProfileEntity _initialProfile;
+  late AccountTier _selectedAccountTier;
+  late bool _isPrivate;
+
+  final List<_EditableExternalLink> _externalLinks = [];
+
+  bool _isApplyingProfile = false;
 
   static const List<String> _countries = [
     'Afghanistan',
@@ -116,40 +119,131 @@ class _EditProfilePageState extends State<EditProfilePage> {
     'Yemen',
   ];
 
+  static const List<String> _supportedPlatforms = [
+    'instagram',
+    'youtube',
+    'soundcloud',
+    'tiktok',
+    'x',
+    'facebook',
+  ];
+
+  static const Map<String, String> _platformLabels = {
+    'instagram': 'Instagram',
+    'youtube': 'YouTube',
+    'soundcloud': 'SoundCloud',
+    'tiktok': 'TikTok',
+    'x': 'X',
+    'facebook': 'Facebook',
+  };
+
   bool get _hasUnsavedChanges {
     final currentLocation =
         LocationUtils.build(_cityController.text, _selectedCountry);
-    return _displayNameController.text != _initialProfile.displayName ||
-        _bioController.text != (_initialProfile.bio ?? '') ||
-        currentLocation != _initialProfile.location;
+    final currentBio = _bioController.text.trim();
+    final currentWebsite = _websiteController.text.trim();
+    final currentLinks = _buildExternalLinksMap();
+
+    return _displayNameController.text.trim() != _initialProfile.displayName ||
+        currentBio != (_initialProfile.bio ?? '') ||
+        currentLocation != _initialProfile.location ||
+        currentWebsite != (_initialProfile.website ?? '') ||
+        _selectedAccountTier != _initialProfile.accountTier ||
+        _isPrivate != _initialProfile.isPrivate ||
+        !_mapEquals(currentLinks, _initialProfile.externalLinks);
   }
 
   @override
   void initState() {
     super.initState();
 
-    final cubitState = context.read<ProfileCubit>().state;
-    _initialProfile = cubitState is ProfileLoaded
-        ? cubitState.profile
-        : ProfileEntity(
-            id: '',
-            displayName: '',
-            handle: '',
-            accountTier: AccountTier.LISTENER,
-            favoriteGenres: const [],
-            externalLinks: const {},
-            visibility: ProfileVisibility.PUBLIC,
-            followersCount: 0,
-            followingCount: 0,
-          );
+    _displayNameController = TextEditingController();
+    _bioController = TextEditingController();
+    _cityController = TextEditingController();
+    _websiteController = TextEditingController();
 
-    final parsed = LocationUtils.parse(_initialProfile.location, _countries);
+    _displayNameController.addListener(_triggerRebuild);
+    _bioController.addListener(_triggerRebuild);
+    _cityController.addListener(_triggerRebuild);
+    _websiteController.addListener(_triggerRebuild);
 
-    _displayNameController =
-        TextEditingController(text: _initialProfile.displayName);
-    _bioController = TextEditingController(text: _initialProfile.bio ?? '');
-    _cityController = TextEditingController(text: parsed.city);
+    _initialProfile = const ProfileEntity(
+      id: '',
+      displayName: '',
+      handle: '',
+      bio: null,
+      location: null,
+      website: null,
+      avatarUrl: null,
+      coverPhotoUrl: null,
+      accountTier: AccountTier.LISTENER,
+      favoriteGenres: [],
+      externalLinks: {},
+      visibility: ProfileVisibility.PUBLIC,
+      followersCount: 0,
+      followingCount: 0,
+    );
+    _selectedAccountTier = AccountTier.LISTENER;
+    _isPrivate = false;
+
+    final currentState = context.read<ProfileCubit>().state;
+    final currentProfile = _profileFromState(currentState);
+    if (currentProfile != null) {
+      _applyProfileToForm(currentProfile);
+    }
+  }
+
+  ProfileEntity? _profileFromState(ProfileState state) {
+    if (state is ProfileLoaded) return state.profile;
+    if (state is ProfileUpdating) return state.currentProfile;
+    if (state is ProfileUpdateError) return state.currentProfile;
+    if (state is ProfileImageUploading) return state.currentProfile;
+    if (state is ProfileUpdateSuccess) return state.updatedProfile;
+    return null;
+  }
+
+  void _applyProfileToForm(ProfileEntity profile) {
+    _isApplyingProfile = true;
+
+    final parsed = LocationUtils.parse(profile.location, _countries);
+
+    _initialProfile = profile;
+    _displayNameController.text = profile.displayName;
+    _bioController.text = profile.bio ?? '';
+    _cityController.text = parsed.city;
+    _websiteController.text = profile.website ?? '';
     _selectedCountry = parsed.country;
+    _selectedAccountTier = profile.accountTier;
+    _isPrivate = profile.isPrivate;
+
+    for (final item in _externalLinks) {
+      item.dispose();
+    }
+    _externalLinks.clear();
+
+    for (final entry in profile.externalLinks.entries) {
+      final normalizedPlatform = entry.key.trim().toLowerCase();
+      if (!_supportedPlatforms.contains(normalizedPlatform)) continue;
+
+      _externalLinks.add(
+        _EditableExternalLink(
+          platform: normalizedPlatform,
+          url: entry.value,
+          onChanged: _triggerRebuild,
+        ),
+      );
+    }
+
+    _isApplyingProfile = false;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _triggerRebuild() {
+    if (_isApplyingProfile) return;
+    if (mounted) setState(() {});
   }
 
   @override
@@ -157,22 +251,357 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _displayNameController.dispose();
     _bioController.dispose();
     _cityController.dispose();
+    _websiteController.dispose();
+    for (final link in _externalLinks) {
+      link.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _onSaveTapped() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_validateExternalLinks()) return;
+    if (!_hasUnsavedChanges) return;
+
+    final currentLocation =
+        LocationUtils.build(_cityController.text, _selectedCountry);
+    final normalizedLinks = _buildExternalLinksMap();
+
+    final String trimmedBio = _bioController.text.trim();
+    final String trimmedWebsite = _normalizeUrl(_websiteController.text.trim());
 
     context.read<ProfileCubit>().updateProfile(
           UpdateProfileParams(
-            displayName: _displayNameController.text.trim(),
-            bio: _bioController.text.trim().isEmpty
-                ? null
-                : _bioController.text.trim(),
-            location:
-                LocationUtils.build(_cityController.text, _selectedCountry),
+            displayName: _displayNameController.text.trim() !=
+                    _initialProfile.displayName
+                ? _displayNameController.text.trim()
+                : null,
+            bio: trimmedBio != (_initialProfile.bio ?? '') ? trimmedBio : null,
+            location: currentLocation != _initialProfile.location
+                ? currentLocation
+                : null,
+            website: trimmedWebsite != (_initialProfile.website ?? '')
+                ? trimmedWebsite
+                : null,
+            accountTier: _selectedAccountTier != _initialProfile.accountTier
+                ? _selectedAccountTier
+                : null,
+            visibility: _isPrivate != _initialProfile.isPrivate
+                ? (_isPrivate
+                    ? ProfileVisibility.PRIVATE
+                    : ProfileVisibility.PUBLIC)
+                : null,
+            externalLinks:
+                !_mapEquals(normalizedLinks, _initialProfile.externalLinks)
+                    ? normalizedLinks
+                    : null,
           ),
         );
+  }
+
+  bool _validateExternalLinks() {
+    final usedPlatforms = <String>{};
+
+    for (final link in _externalLinks) {
+      final platform = link.platform.trim().toLowerCase();
+      final rawUrl = link.urlController.text.trim();
+
+      if (rawUrl.isEmpty) continue;
+
+      if (usedPlatforms.contains(platform)) {
+        _showFloatingError('Each platform can only be added once.');
+        return false;
+      }
+      usedPlatforms.add(platform);
+
+      final error = _validatePlatformUrl(platform, rawUrl);
+      if (error != null) {
+        _showFloatingError(error);
+        return false;
+      }
+    }
+
+    final websiteRaw = _websiteController.text.trim();
+    if (websiteRaw.isNotEmpty) {
+      final normalized = _normalizeUrl(websiteRaw);
+      final uri = Uri.tryParse(normalized);
+      if (uri == null ||
+          !uri.hasScheme ||
+          !(uri.isScheme('http') || uri.isScheme('https'))) {
+        _showFloatingError('Please enter a valid website URL.');
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  String? _validatePlatformUrl(String platform, String rawUrl) {
+    final normalized = _normalizeUrl(rawUrl);
+    final uri = Uri.tryParse(normalized);
+
+    if (uri == null ||
+        !uri.hasScheme ||
+        !(uri.isScheme('http') || uri.isScheme('https'))) {
+      return 'Please enter a valid URL for ${_labelForPlatform(platform)}.';
+    }
+
+    final host = uri.host.toLowerCase();
+    final segments =
+        uri.pathSegments.where((segment) => segment.trim().isNotEmpty).toList();
+
+    switch (platform) {
+      case 'instagram':
+        if (!(host == 'instagram.com' || host == 'www.instagram.com')) {
+          return 'Instagram link must be from instagram.com.';
+        }
+        if (segments.length != 1) {
+          return 'Instagram link must point to a profile, not a post or reel.';
+        }
+        const blocked = {
+          'p',
+          'reel',
+          'reels',
+          'stories',
+          'explore',
+          'tv',
+          'accounts',
+          'direct',
+        };
+        if (blocked.contains(segments.first.toLowerCase())) {
+          return 'Instagram link must point to a profile.';
+        }
+        return null;
+
+      case 'facebook':
+        if (!(host == 'facebook.com' ||
+            host == 'www.facebook.com' ||
+            host == 'm.facebook.com')) {
+          return 'Facebook link must be from facebook.com.';
+        }
+        final isProfilePhp =
+            segments.length == 1 &&
+            segments.first.toLowerCase() == 'profile.php' &&
+            uri.queryParameters['id'] != null &&
+            uri.queryParameters['id']!.trim().isNotEmpty;
+
+        final isUsernameProfile =
+            segments.length == 1 &&
+            !{
+              'watch',
+              'share',
+              'reel',
+              'photo',
+              'photos',
+              'groups',
+              'events',
+              'marketplace',
+              'gaming',
+              'pages',
+            }.contains(segments.first.toLowerCase());
+
+        if (!isProfilePhp && !isUsernameProfile) {
+          return 'Facebook link must point to a profile.';
+        }
+        return null;
+
+      case 'youtube':
+        if (!(host == 'youtube.com' || host == 'www.youtube.com')) {
+          return 'YouTube link must be from youtube.com.';
+        }
+        final isAtHandle =
+            segments.length == 1 && segments.first.startsWith('@');
+        final isChannel =
+            segments.length == 2 &&
+            {'channel', 'c', 'user'}.contains(segments.first.toLowerCase()) &&
+            segments[1].trim().isNotEmpty;
+
+        if (!isAtHandle && !isChannel) {
+          return 'YouTube link must point to a channel/profile.';
+        }
+        return null;
+
+      case 'soundcloud':
+        if (!(host == 'soundcloud.com' || host == 'www.soundcloud.com')) {
+          return 'SoundCloud link must be from soundcloud.com.';
+        }
+        if (segments.length != 1) {
+          return 'SoundCloud link must point to a profile.';
+        }
+        const blocked = {
+          'discover',
+          'stream',
+          'you',
+          'upload',
+          'search',
+          'charts',
+        };
+        if (blocked.contains(segments.first.toLowerCase())) {
+          return 'SoundCloud link must point to a profile.';
+        }
+        return null;
+
+      case 'tiktok':
+        if (!(host == 'tiktok.com' ||
+            host == 'www.tiktok.com' ||
+            host == 'm.tiktok.com')) {
+          return 'TikTok link must be from tiktok.com.';
+        }
+        if (segments.length != 1 || !segments.first.startsWith('@')) {
+          return 'TikTok link must point to a profile.';
+        }
+        return null;
+
+      case 'x':
+        if (!(host == 'x.com' ||
+            host == 'www.x.com' ||
+            host == 'twitter.com' ||
+            host == 'www.twitter.com')) {
+          return 'X link must be from x.com or twitter.com.';
+        }
+        if (segments.length != 1) {
+          return 'X link must point to a profile.';
+        }
+        const blocked = {
+          'home',
+          'explore',
+          'search',
+          'messages',
+          'settings',
+          'i',
+          'share',
+          'compose',
+        };
+        if (blocked.contains(segments.first.toLowerCase())) {
+          return 'X link must point to a profile.';
+        }
+        return null;
+
+      default:
+        return null;
+    }
+  }
+
+  Map<String, String> _buildExternalLinksMap() {
+    final Map<String, String> links = {};
+    for (final item in _externalLinks) {
+      final url = item.urlController.text.trim();
+      if (url.isEmpty) continue;
+      links[item.platform] = _normalizeUrl(url);
+    }
+    return links;
+  }
+
+  String _normalizeUrl(String value) {
+    if (value.isEmpty) return '';
+    final trimmed = value.trim();
+    final uri = Uri.tryParse(trimmed);
+
+    if (uri != null && uri.hasScheme) {
+      return trimmed;
+    }
+
+    return 'https://$trimmed';
+  }
+
+  String _labelForPlatform(String platform) {
+    return _platformLabels[platform] ?? platform;
+  }
+
+  void _addExternalLink() {
+    setState(() {
+      _externalLinks.add(
+        _EditableExternalLink(
+          platform: _supportedPlatforms.first,
+          url: '',
+          onChanged: _triggerRebuild,
+        ),
+      );
+    });
+  }
+
+  Future<void> _removeExternalLink(_EditableExternalLink item) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text(
+          'Remove link?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Delete ${_labelForPlatform(item.platform)} link from your profile?',
+          style: const TextStyle(color: Color(0xFF999999)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFFAAAAAA)),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    setState(() {
+      item.dispose();
+      _externalLinks.remove(item);
+    });
+  }
+
+  Future<void> _clearAllExternalLinks() async {
+    if (_externalLinks.isEmpty) return;
+
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text(
+          'Clear all links?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'This will remove all external links from your profile.',
+          style: TextStyle(color: Color(0xFF999999)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFFAAAAAA)),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Clear all',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldClear != true) return;
+
+    setState(() {
+      for (final item in _externalLinks) {
+        item.dispose();
+      }
+      _externalLinks.clear();
+    });
   }
 
   Future<String?> _cropImage({
@@ -279,20 +708,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
           );
 
       if (mounted) {
-        await context.read<AuthCubit>().refreshCurrentUserSilently();
+        context.read<AuthCubit>().refreshCurrentUserSilently();
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Unable to select image. Please try again.',
-          ),
-          backgroundColor: Colors.red.shade800,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showFloatingError('Unable to select image. Please try again.');
     }
   }
 
@@ -333,6 +753,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return shouldDiscard ?? false;
   }
 
+  void _showFloatingError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade800,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  bool _mapEquals(Map<String, String> a, Map<String, String> b) {
+    if (a.length != b.length) return false;
+    for (final entry in a.entries) {
+      if (b[entry.key] != entry.value) return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -347,7 +785,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
       },
       child: BlocConsumer<ProfileCubit, ProfileState>(
         listener: (context, state) {
+          final profile = _profileFromState(state);
+          if (profile != null && !_hasUnsavedChanges) {
+            _applyProfileToForm(profile);
+          }
+
           if (state is ProfileUpdateSuccess) {
+            context.read<AuthCubit>().refreshCurrentUserSilently();
+
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Profile updated'),
@@ -393,9 +838,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
             _ => _initialProfile.coverPhotoUrl,
           };
 
+          final canSave = _hasUnsavedChanges && !isSaving;
+
           return Scaffold(
             backgroundColor: Colors.black,
-            appBar: _buildAppBar(isSaving),
+            appBar: _buildAppBar(
+              isSaving: isSaving,
+              canSave: canSave,
+            ),
             body: Form(
               key: _formKey,
               child: SingleChildScrollView(
@@ -436,12 +886,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     _divider(),
                     EditProfileTextField(
+                      label: 'Website',
+                      controller: _websiteController,
+                      maxLength: 120,
+                    ),
+                    _divider(),
+                    _buildAccountTypeSection(),
+                    _divider(),
+                    _buildPrivacySection(),
+                    _divider(),
+                    EditProfileTextField(
                       label: 'Bio',
                       controller: _bioController,
                       maxLength: 160,
                       maxLines: 4,
                     ),
                     _divider(),
+                    _buildExternalLinksSection(),
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -453,7 +914,207 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  AppBar _buildAppBar(bool isSaving) {
+  Widget _buildAccountTypeSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Account Type',
+            style: TextStyle(color: Color(0xFF888888), fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<AccountTier>(
+            value: _selectedAccountTier,
+            dropdownColor: const Color(0xFF1A1A1A),
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF333333)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF333333)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFFF5500)),
+              ),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: AccountTier.LISTENER,
+                child: Text('Listener'),
+              ),
+              DropdownMenuItem(
+                value: AccountTier.ARTIST,
+                child: Text('Artist'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _selectedAccountTier = value);
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _selectedAccountTier == AccountTier.ARTIST
+                ? 'Artists can access audio uploads.'
+                : 'Listener accounts cannot upload tracks.',
+            style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrivacySection() {
+    return SwitchListTile(
+      value: _isPrivate,
+      onChanged: (value) => setState(() => _isPrivate = value),
+      activeColor: const Color(0xFFFF5500),
+      title: const Text(
+        'Private account',
+        style: TextStyle(color: Colors.white, fontSize: 15),
+      ),
+      subtitle: Text(
+        _isPrivate ? 'Your profile is private.' : 'Your profile is public.',
+        style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+      ),
+    );
+  }
+
+  Widget _buildExternalLinksSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'External Links',
+                style: TextStyle(color: Color(0xFF888888), fontSize: 12),
+              ),
+              const Spacer(),
+              if (_externalLinks.isNotEmpty)
+                TextButton(
+                  onPressed: _clearAllExternalLinks,
+                  child: const Text(
+                    'Clear all',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_externalLinks.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'No external links added yet.',
+                style: TextStyle(
+                  color: Color(0xFF888888),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ..._externalLinks.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: item.platform,
+                          dropdownColor: const Color(0xFF1A1A1A),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Platform',
+                            labelStyle: TextStyle(color: Color(0xFF888888)),
+                            border: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Color(0xFF333333)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Color(0xFF333333)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Color(0xFFFF5500)),
+                            ),
+                          ),
+                          items: _supportedPlatforms
+                              .map(
+                                (platform) => DropdownMenuItem<String>(
+                                  value: platform,
+                                  child: Text(_labelForPlatform(platform)),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => item.platform = value);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => _removeExternalLink(item),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: item.urlController,
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    decoration: const InputDecoration(
+                      labelText: 'URL',
+                      labelStyle: TextStyle(color: Color(0xFF888888)),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF333333)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF333333)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFFFF5500)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: _addExternalLink,
+            icon: const Icon(Icons.add, color: Color(0xFFFF5500)),
+            label: const Text(
+              'Add link',
+              style: TextStyle(color: Color(0xFFFF5500)),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFFF5500)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  AppBar _buildAppBar({
+    required bool isSaving,
+    required bool canSave,
+  }) {
     return AppBar(
       backgroundColor: Colors.black,
       elevation: 0,
@@ -489,20 +1150,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                 )
               : GestureDetector(
-                  onTap: _onSaveTapped,
+                  onTap: canSave ? _onSaveTapped : null,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: canSave ? Colors.white : const Color(0xFF444444),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Save',
                       style: TextStyle(
-                        color: Colors.black,
+                        color: canSave ? Colors.black : Colors.white70,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -520,4 +1181,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
         indent: 16,
         endIndent: 16,
       );
+}
+
+class _EditableExternalLink {
+  _EditableExternalLink({
+    required this.platform,
+    required String url,
+    required VoidCallback onChanged,
+  }) : urlController = TextEditingController(text: url) {
+    urlController.addListener(onChanged);
+    _listener = onChanged;
+  }
+
+  String platform;
+  final TextEditingController urlController;
+  late final VoidCallback _listener;
+
+  void dispose() {
+    urlController.removeListener(_listener);
+    urlController.dispose();
+  }
 }

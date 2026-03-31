@@ -1,36 +1,17 @@
-// Dart SDK
-// Flutter
-// Third-party
-// Project
 import '../../domain/entities/profile_entity.dart';
 
-/// Maps raw JSON from GET /api/v1/profiles/:handle to ProfileEntity.
-///
-/// Actual API response shape:
-/// {
-///   "handle": "eyad",
-///   "display_name": "Eyad",
-///   "bio": null,
-///   "location": null,
-///   "avatar_url": null,
-///   "cover_photo_url": null,
-///   "account_type": "LISTENER",
-///   "visibility": "PUBLIC",
-///   "favorite_genres": [],
-///   "social_links": [],
-///   "track_count": 0
-/// }
 class ProfileDto {
-  final String? id; // Make nullable - API might not return it
+  final String? id;
   final String displayName;
   final String handle;
   final String? bio;
   final String? location;
+  final String? website;
   final String? avatarUrl;
   final String? coverPhotoUrl;
-  final String accountType; // Changed from accountTier to match API
+  final String accountType;
   final List<String> favoriteGenres;
-  final Map<String, String> socialLinks; // Changed from externalLinks
+  final Map<String, String> socialLinks;
   final String visibility;
   final int trackCount;
   final int? followersCount;
@@ -42,6 +23,7 @@ class ProfileDto {
     required this.handle,
     this.bio,
     this.location,
+    this.website,
     this.avatarUrl,
     this.coverPhotoUrl,
     required this.accountType,
@@ -54,18 +36,13 @@ class ProfileDto {
   });
 
   factory ProfileDto.fromJson(Map<String, dynamic> json) {
-    final rawLinks = json['social_links'] ?? json['socialLinks'];
-    Map<String, String> links = {};
-
-    if (rawLinks is Map<String, dynamic>) {
-      links = rawLinks.map((k, v) => MapEntry(k, v.toString()));
-    } else if (rawLinks is List) {
-      links = {};
-    }
+    final rawLinks =
+        json['social_links'] ?? json['socialLinks'] ?? json['links'];
+    final Map<String, String> links = _parseLinks(rawLinks);
 
     final rawGenres =
         (json['favorite_genres'] ?? json['favoriteGenres']) as List<dynamic>? ??
-            [];
+            <dynamic>[];
     final genres = rawGenres.map((e) {
       if (e is Map<String, dynamic>) {
         return (e['slug'] ?? e['name'] ?? e.toString()).toString();
@@ -73,13 +50,19 @@ class ProfileDto {
       return e.toString();
     }).toList();
 
+    final bool isPrivate = json['is_private'] == true;
+    final String visibility = isPrivate
+        ? 'PRIVATE'
+        : ((json['visibility']) as String? ?? 'PUBLIC');
+
     return ProfileDto(
-      id: (json['id'] ?? json['userId']) as String?,
+      id: (json['id'] ?? json['userId'])?.toString(),
       displayName:
           (json['display_name'] ?? json['displayName']) as String? ?? '',
       handle: (json['handle']) as String? ?? '',
       bio: (json['bio']) as String?,
       location: (json['location']) as String?,
+      website: (json['website']) as String?,
       avatarUrl: (json['avatar_url'] ?? json['avatarUrl']) as String?,
       coverPhotoUrl:
           (json['cover_photo_url'] ?? json['coverPhotoUrl']) as String?,
@@ -87,7 +70,7 @@ class ProfileDto {
           'LISTENER',
       favoriteGenres: genres,
       socialLinks: links,
-      visibility: (json['visibility']) as String? ?? 'PUBLIC',
+      visibility: visibility,
       trackCount: (json['track_count'] ?? json['trackCount']) as int? ?? 0,
       followersCount:
           (json['followers_count'] ?? json['followersCount']) as int?,
@@ -97,7 +80,6 @@ class ProfileDto {
   }
 
   ProfileEntity toEntity() {
-    // Generate a temporary ID if none exists
     final entityId = id ?? handle;
 
     return ProfileEntity(
@@ -106,17 +88,47 @@ class ProfileDto {
       handle: handle,
       bio: bio,
       location: location,
+      website: website,
       avatarUrl: avatarUrl,
       coverPhotoUrl: coverPhotoUrl,
-      accountTier:
-          accountType == 'ARTIST' ? AccountTier.ARTIST : AccountTier.LISTENER,
+      accountTier: accountType.toUpperCase() == 'ARTIST'
+          ? AccountTier.ARTIST
+          : AccountTier.LISTENER,
       favoriteGenres: favoriteGenres,
       externalLinks: socialLinks,
-      visibility: visibility == 'PRIVATE'
+      visibility: visibility.toUpperCase() == 'PRIVATE'
           ? ProfileVisibility.PRIVATE
           : ProfileVisibility.PUBLIC,
       followersCount: followersCount ?? 0,
       followingCount: followingCount ?? 0,
     );
+  }
+
+  static Map<String, String> _parseLinks(dynamic rawLinks) {
+    if (rawLinks is Map<String, dynamic>) {
+      return rawLinks.map(
+        (key, value) => MapEntry(
+          key.toString().trim().toLowerCase(),
+          value.toString(),
+        ),
+      );
+    }
+
+    if (rawLinks is List) {
+      final Map<String, String> parsed = {};
+      for (final item in rawLinks) {
+        if (item is Map<String, dynamic>) {
+          final platform =
+              (item['platform'] ?? '').toString().trim().toLowerCase();
+          final url = (item['url'] ?? '').toString().trim();
+          if (platform.isNotEmpty && url.isNotEmpty) {
+            parsed[platform] = url;
+          }
+        }
+      }
+      return parsed;
+    }
+
+    return {};
   }
 }

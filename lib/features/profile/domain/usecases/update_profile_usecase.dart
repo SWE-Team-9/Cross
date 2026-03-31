@@ -1,34 +1,39 @@
-// Dart SDK
-// Flutter
-// Third-party
-// Project
 import '../entities/profile_entity.dart';
 import '../repositories/profile_repository.dart';
 
-/// Parameters for UpdateProfileUseCase.
-/// All fields are optional — only changed fields are sent to the API.
-/// Style: PascalCase class, camelCase fields.
 class UpdateProfileParams {
   final String? displayName;
   final String? bio;
   final String? location;
+  final String? website;
+  final AccountTier? accountTier;
   final List<String>? favoriteGenres;
   final ProfileVisibility? visibility;
+  final Map<String, String>? externalLinks;
 
   const UpdateProfileParams({
     this.displayName,
     this.bio,
     this.location,
+    this.website,
+    this.accountTier,
     this.favoriteGenres,
     this.visibility,
+    this.externalLinks,
   });
+
+  bool get hasBaseProfileChanges =>
+      displayName != null ||
+      bio != null ||
+      location != null ||
+      website != null ||
+      accountTier != null ||
+      favoriteGenres != null ||
+      visibility != null;
+
+  bool get hasExternalLinksChanges => externalLinks != null;
 }
 
-/// Saves changes to the current user's profile.
-/// Used by EditProfilePage when the user taps Save.
-///
-/// On success: returns the updated ProfileEntity.
-/// On failure: throws a Failure (caught by ProfileCubit).
 class UpdateProfileUseCase {
   final ProfileRepository _repository;
 
@@ -39,6 +44,8 @@ class UpdateProfileUseCase {
       displayName: params.displayName,
       bio: params.bio,
       location: params.location,
+      website: params.website,
+      accountTier: params.accountTier,
       favoriteGenres: params.favoriteGenres,
       visibility: params.visibility,
     );
