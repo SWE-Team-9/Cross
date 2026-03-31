@@ -26,6 +26,7 @@ abstract class ApiConstants {
   static const String myProfile = '$profilesBase/me';
   static const String profileImages = '$profilesBase/me/images';
   static const String checkHandle = '$profilesBase/check-handle';
+  static const String profileLinks = '$profilesBase/me/links';
 
   static String profileByHandlePath(String handle) => '$profilesBase/$handle';
 
