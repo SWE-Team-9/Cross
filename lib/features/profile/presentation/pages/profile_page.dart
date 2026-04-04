@@ -1,9 +1,11 @@
+// lib/features/profile/presentation/pages/profile_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io' show Platform;
 
 import '../../../../core/di/injector.dart';
 import '../../../../core/utils/platform_url_utils.dart';
@@ -29,6 +31,8 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('🔍 DEBUG ProfilePage: Initialized with handle: $handle');
+    
     if (cubit != null) {
       return BlocProvider<ProfileCubit>.value(
         value: cubit!,
@@ -41,10 +45,14 @@ class ProfilePage extends StatelessWidget {
         final authState = context.read<AuthCubit>().state;
         final profileCubit = getIt<ProfileCubit>();
 
+        print('🔍 DEBUG ProfilePage: AuthState: $authState');
+        
         if (authState is AuthAuthenticated &&
             authState.user.handle == handle) {
+          print('🔍 DEBUG ProfilePage: Loading own profile');
           profileCubit.loadOwnProfile();
         } else {
+          print('🔍 DEBUG ProfilePage: Loading other profile: $handle');
           profileCubit.loadProfile(handle);
         }
 
@@ -396,7 +404,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       listener: _handleAuthStateChanges,
       child: BlocBuilder<ProfileCubit, ProfileState>(
         builder: (context, state) {
+          print('🔍 DEBUG ProfilePage Build - State: $state');
+          
           if (state is ProfileLoading) {
+            print('🔍 DEBUG ProfilePage: Loading state');
             return const Scaffold(
               backgroundColor: Colors.black,
               body: Center(child: CircularProgressIndicator()),
@@ -404,6 +415,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           }
 
           if (state is ProfileError) {
+            print('🔍 DEBUG ProfilePage: Error state - ${state.message}');
             return Scaffold(
               backgroundColor: Colors.black,
               body: Center(
@@ -440,8 +452,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           };
 
           if (profile == null) {
+            print('🔍 DEBUG ProfilePage: Profile is null');
             return const Scaffold(backgroundColor: Colors.black);
           }
+
+          print('🔍 DEBUG ProfilePage: Profile loaded - ID: ${profile.id}');
+          print('🔍 DEBUG ProfilePage: Raw avatarUrl: ${profile.avatarUrl}');
+          print('🔍 DEBUG ProfilePage: Raw coverPhotoUrl: ${profile.coverPhotoUrl}');
+          print('🔍 DEBUG ProfilePage: Display name: ${profile.displayName}');
+          print('🔍 DEBUG ProfilePage: Platform: ${Platform.operatingSystem}');
 
           return _buildBody(context, profile);
         },
@@ -593,6 +612,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildProfileHeader(BuildContext context, ProfileEntity profile) {
     final coverUrl = PlatformUrlUtils.normalizeBackendUrl(profile.coverPhotoUrl);
+    
+    print('🔍 DEBUG _buildProfileHeader: Original coverUrl: ${profile.coverPhotoUrl}');
+    print('🔍 DEBUG _buildProfileHeader: Normalized coverUrl: $coverUrl');
 
     return SizedBox(
       height: 230,
@@ -603,7 +625,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             width: double.infinity,
             height: 150,
             child: coverUrl != null
-                ? Image.network(coverUrl, fit: BoxFit.cover)
+                ? Image.network(
+                    coverUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      print('❌ ERROR loading cover image: $error');
+                      print('❌ ERROR cover URL: $coverUrl');
+                      return Container(color: Colors.grey[900]);
+                    },
+                  )
                 : Container(color: Colors.grey[900]),
           ),
           Positioned(
@@ -629,7 +659,18 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildAvatar(ProfileEntity profile) {
+    print('🔍 DEBUG _buildAvatar: Original avatarUrl: ${profile.avatarUrl}');
+    
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
+    
+    print('🔍 DEBUG _buildAvatar: Normalized avatarUrl: $avatarUrl');
+    print('🔍 DEBUG _buildAvatar: Platform: ${Platform.operatingSystem}');
+    
+    if (avatarUrl != null) {
+      print('🔍 DEBUG _buildAvatar: Will load image from: $avatarUrl');
+    } else {
+      print('🔍 DEBUG _buildAvatar: No avatar URL, showing default icon');
+    }
 
     return Container(
       decoration: BoxDecoration(
