@@ -1149,24 +1149,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                   ),
                 )
-              : GestureDetector(
-                  onTap: canSave ? _onSaveTapped : null,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: canSave ? Colors.white : const Color(0xFF444444),
+              : TextButton(
+                  onPressed: canSave ? _onSaveTapped : null,
+                  style: TextButton.styleFrom(
+                    backgroundColor:
+                        canSave ? Colors.white : const Color(0xFF444444),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
-                      'Save',
-                      style: TextStyle(
-                        color: canSave ? Colors.black : Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  ),
+                  child: Text(
+                    'Save',
+                    style: TextStyle(
+                      color: canSave ? Colors.black : Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

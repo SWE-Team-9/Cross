@@ -707,6 +707,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     }
 
     final bio = (profile.bio ?? '').trim();
+    final location = (profile.location ?? '').trim(); // Add this line
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
@@ -758,6 +759,23 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               ),
             ],
           ),
+          // ADD LOCATION HERE
+          if (location.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  location,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (website.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
@@ -915,18 +933,26 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildEmptyTab(IconData icon, String message) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 48, color: Colors.white24),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: const TextStyle(color: Colors.white38),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 48, color: Colors.white24),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: const TextStyle(color: Colors.white38),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
