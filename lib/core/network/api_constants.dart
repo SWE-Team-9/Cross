@@ -1,7 +1,7 @@
 import '../config/app_config.dart';
 
 abstract class ApiConstants {
-  static const String baseUrl = AppConfig.apiUrl;
+  static String get baseUrl => AppConfig.apiUrl;
 
   // ── Auth ────────────────────────────────────────────────────────────────
   static const String authBase = '/api/v1/auth';
