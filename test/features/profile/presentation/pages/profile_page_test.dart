@@ -45,6 +45,7 @@ void main() {
   late ProfileEntity profileWithoutBio;
   late ProfileEntity profileWithoutLocation;
   late ProfileEntity profileWithoutGenres;
+  late ProfileEntity profileForOwnUser; // Add this
 
   const ownUser = User(
     id: '1',
@@ -80,6 +81,23 @@ void main() {
       handle: tProfileEntity.handle,
       bio: tProfileEntity.bio,
       location: tProfileEntity.location,
+      avatarUrl: null,
+      coverPhotoUrl: null,
+      accountTier: tProfileEntity.accountTier,
+      favoriteGenres: tProfileEntity.favoriteGenres,
+      externalLinks: tProfileEntity.externalLinks,
+      visibility: tProfileEntity.visibility,
+      followersCount: tProfileEntity.followersCount,
+      followingCount: tProfileEntity.followingCount,
+    );
+
+    // Add profile for own user with matching handle
+    profileForOwnUser = ProfileEntity(
+      id: tProfileEntity.id,
+      displayName: 'Ahmed Hassan',
+      handle: 'ahmed-hassan-beats', // Matches ownUser.handle
+      bio: 'Music producer',
+      location: 'Cairo, Egypt',
       avatarUrl: null,
       coverPhotoUrl: null,
       accountTier: tProfileEntity.accountTier,
@@ -329,12 +347,21 @@ void main() {
     testWidgets('own profile tracks tab shows managed tracks', (tester) async {
       when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
-      profileCubit.setTestState(ProfileLoaded(profileWithoutAvatar));
+      profileCubit.setTestState(ProfileLoaded(profileForOwnUser));
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pump();
 
+      // Tap the Tracks tab
       await tester.tap(find.text('Tracks'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // NestedScrollView + TabBarView — scroll to make list items visible
+      await tester.drag(
+        find.byType(NestedScrollView),
+        const Offset(0, -200),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Midnight Echoes'), findsOneWidget);
