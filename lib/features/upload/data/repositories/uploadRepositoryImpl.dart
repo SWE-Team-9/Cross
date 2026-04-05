@@ -36,7 +36,8 @@ class UploadRepositoryImpl implements UploadRepository {
 
     final String? filePath = file.path;
     if (filePath == null || filePath.trim().isEmpty) {
-      throw Exception('Selected audio file path is unavailable on this platform.');
+      throw Exception(
+          'Selected audio file path is unavailable on this platform.');
     }
 
     final formData = FormData.fromMap({
@@ -56,11 +57,9 @@ class UploadRepositoryImpl implements UploadRepository {
 
     final payload = _extractPayloadMap(response);
 
-    final String trackId = (payload['trackId'] ??
-            payload['track_id'] ??
-            payload['id'] ??
-            '')
-        .toString();
+    final String trackId =
+        (payload['trackId'] ?? payload['track_id'] ?? payload['id'] ?? '')
+            .toString();
 
     if (trackId.isEmpty) {
       throw const FormatException('Upload response did not include a trackId.');
@@ -93,7 +92,8 @@ class UploadRepositoryImpl implements UploadRepository {
     final String status = (payload['status'] ?? '').toString();
 
     if (status.isEmpty) {
-      throw const FormatException('Track status response did not include status.');
+      throw const FormatException(
+          'Track status response did not include status.');
     }
 
     return status;
@@ -101,7 +101,8 @@ class UploadRepositoryImpl implements UploadRepository {
 }
 
 Map<String, dynamic> _extractPayloadMap(dynamic response) {
-  final dynamic data = response is Map<String, dynamic> ? response : response.data;
+  final dynamic data =
+      response is Map<String, dynamic> ? response : response.data;
 
   if (data is Map<String, dynamic>) {
     if (data['track'] is Map<String, dynamic>) {

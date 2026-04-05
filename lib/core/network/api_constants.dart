@@ -43,7 +43,9 @@ abstract class ApiConstants {
   static const String users = '/users';
 
   static String trackByIdPath(String trackId) => '$tracks/$trackId';
-  static String trackStatusPath(String trackId) => '${trackByIdPath(trackId)}/status';
-  static String trackWaveformPath(String trackId) => '${trackByIdPath(trackId)}/waveform';
+  static String trackStatusPath(String trackId) =>
+      '${trackByIdPath(trackId)}/status';
+  static String trackWaveformPath(String trackId) =>
+      '${trackByIdPath(trackId)}/waveform';
   static String userTracksPath(String userId) => '$users/$userId/tracks';
 }

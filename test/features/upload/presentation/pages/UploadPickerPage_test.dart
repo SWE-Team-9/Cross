@@ -43,10 +43,10 @@ void main() {
     // Authenticate the user once for all tests
     whenListen(
       mockAuthCubit,
-      Stream.fromIterable([ AuthAuthenticated(tUser)]),
-      initialState:  AuthAuthenticated(tUser),
+      Stream.fromIterable([AuthAuthenticated(tUser)]),
+      initialState: AuthAuthenticated(tUser),
     );
-    when(() => mockAuthCubit.state).thenReturn( AuthAuthenticated(tUser));
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(tUser));
   });
 
   Widget buildTestableWidget() {
@@ -72,7 +72,8 @@ void main() {
         initialState: initialState,
       );
 
-      when(() => mockUploadPickerCubit.pickAudioFile()).thenAnswer((_) async {});
+      when(() => mockUploadPickerCubit.pickAudioFile())
+          .thenAnswer((_) async {});
 
       await tester.pumpWidget(buildTestableWidget());
       await tester.pumpAndSettle();
@@ -101,7 +102,7 @@ void main() {
         status: UploadPickerStatus.ready,
         pickedAudioFile: tPickedAudioFile,
       );
-      
+
       when(() => mockUploadPickerCubit.state).thenReturn(readyState);
       whenListen(
         mockUploadPickerCubit,
