@@ -210,7 +210,8 @@ void main() {
     ).called(1);
   });
 
-  test('uploadProfileImage delegates to remote source for COVER image', () async {
+  test('uploadProfileImage delegates to remote source for COVER image',
+      () async {
     when(
       () => mockRemoteDataSource.uploadProfileImage(
         imageType: ProfileImageType.COVER,

@@ -379,14 +379,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
             host == 'm.facebook.com')) {
           return 'Facebook link must be from facebook.com.';
         }
-        final isProfilePhp =
-            segments.length == 1 &&
+        final isProfilePhp = segments.length == 1 &&
             segments.first.toLowerCase() == 'profile.php' &&
             uri.queryParameters['id'] != null &&
             uri.queryParameters['id']!.trim().isNotEmpty;
 
-        final isUsernameProfile =
-            segments.length == 1 &&
+        final isUsernameProfile = segments.length == 1 &&
             !{
               'watch',
               'share',
@@ -411,8 +409,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         }
         final isAtHandle =
             segments.length == 1 && segments.first.startsWith('@');
-        final isChannel =
-            segments.length == 2 &&
+        final isChannel = segments.length == 2 &&
             {'channel', 'c', 'user'}.contains(segments.first.toLowerCase()) &&
             segments[1].trim().isNotEmpty;
 
@@ -926,7 +923,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<AccountTier>(
-            value: _selectedAccountTier,
+            key: ValueKey(_selectedAccountTier),
+            initialValue: _selectedAccountTier,
             dropdownColor: const Color(0xFF1A1A1A),
             style: const TextStyle(color: Colors.white, fontSize: 15),
             decoration: const InputDecoration(
@@ -971,7 +969,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return SwitchListTile(
       value: _isPrivate,
       onChanged: (value) => setState(() => _isPrivate = value),
-      activeColor: const Color(0xFFFF5500),
+      activeThumbColor: const Color(0xFFFF5500),
       title: const Text(
         'Private account',
         style: TextStyle(color: Colors.white, fontSize: 15),
@@ -1027,7 +1025,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: item.platform,
+                          key: ObjectKey(item),
+                          initialValue: item.platform,
                           dropdownColor: const Color(0xFF1A1A1A),
                           style: const TextStyle(
                             color: Colors.white,
@@ -1037,16 +1036,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             labelText: 'Platform',
                             labelStyle: TextStyle(color: Color(0xFF888888)),
                             border: OutlineInputBorder(
-                              borderSide:
-                                  BorderSide(color: Color(0xFF333333)),
+                              borderSide: BorderSide(color: Color(0xFF333333)),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderSide:
-                                  BorderSide(color: Color(0xFF333333)),
+                              borderSide: BorderSide(color: Color(0xFF333333)),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderSide:
-                                  BorderSide(color: Color(0xFFFF5500)),
+                              borderSide: BorderSide(color: Color(0xFFFF5500)),
                             ),
                           ),
                           items: _supportedPlatforms

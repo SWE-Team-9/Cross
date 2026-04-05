@@ -17,16 +17,29 @@ import 'package:soundcloud_clone/features/auth/domain/usecases/confirm_email_cha
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 
 class MockLoginUseCase extends Mock implements LoginUseCase {}
+
 class MockRegisterUseCase extends Mock implements RegisterUseCase {}
+
 class MockLogoutUseCase extends Mock implements LogoutUseCase {}
+
 class MockIsLoggedInUseCase extends Mock implements IsLoggedInUseCase {}
+
 class MockGetCurrentUserUseCase extends Mock implements GetCurrentUserUseCase {}
+
 class MockForgotPasswordUseCase extends Mock implements ForgotPasswordUseCase {}
+
 class MockResetPasswordUseCase extends Mock implements ResetPasswordUseCase {}
-class MockSendEmailVerificationUseCase extends Mock implements SendEmailVerificationUseCase {}
+
+class MockSendEmailVerificationUseCase extends Mock
+    implements SendEmailVerificationUseCase {}
+
 class MockVerifyEmailUseCase extends Mock implements VerifyEmailUseCase {}
-class MockRequestEmailChangeUseCase extends Mock implements RequestEmailChangeUseCase {}
-class MockConfirmEmailChangeUseCase extends Mock implements ConfirmEmailChangeUseCase {}
+
+class MockRequestEmailChangeUseCase extends Mock
+    implements RequestEmailChangeUseCase {}
+
+class MockConfirmEmailChangeUseCase extends Mock
+    implements ConfirmEmailChangeUseCase {}
 
 void main() {
   late MockLoginUseCase mockLoginUseCase;
@@ -234,6 +247,47 @@ void main() {
   );
 
   blocTest<AuthCubit, AuthState>(
+    'login emits not-verified AuthError when backend asks for email verification',
+    build: () {
+      when(
+        () => mockLoginUseCase(
+          email: 'ali@test.com',
+          password: '123456',
+          rememberMe: true,
+          captchaToken: 'captcha',
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/login'),
+          type: DioExceptionType.badResponse,
+          response: Response(
+            requestOptions: RequestOptions(path: '/login'),
+            statusCode: 401,
+            data: {'message': 'Please verify your email before login.'},
+          ),
+        ),
+      );
+      return buildCubit();
+    },
+    act: (cubit) => cubit.login(
+      email: 'ali@test.com',
+      password: '123456',
+      rememberMe: true,
+      captchaToken: 'captcha',
+    ),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>()
+          .having((s) => s.isNotVerified, 'isNotVerified', true)
+          .having(
+            (s) => s.message,
+            'message',
+            'Please verify your email before logging in.',
+          ),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
     'register emits loading then AuthRegisterSuccess on success',
     build: () {
       when(
@@ -296,6 +350,46 @@ void main() {
   );
 
   blocTest<AuthCubit, AuthState>(
+    'register emits AuthError on DioException',
+    build: () {
+      when(
+        () => mockRegisterUseCase(
+          email: 'ali@test.com',
+          password: '123456',
+          passwordConfirm: '123456',
+          displayName: 'Ali',
+          dateOfBirth: '2000-01-01',
+          gender: 'male',
+          captchaToken: 'captcha',
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/register'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/register'),
+            statusCode: 400,
+            data: {'message': 'Email already in use'},
+          ),
+        ),
+      );
+      return buildCubit();
+    },
+    act: (cubit) => cubit.register(
+      email: 'ali@test.com',
+      password: '123456',
+      passwordConfirm: '123456',
+      displayName: 'Ali',
+      dateOfBirth: '2000-01-01',
+      gender: 'male',
+      captchaToken: 'captcha',
+    ),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>(),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
     'logout emits loading then unauthenticated on success',
     build: () {
       when(() => mockLogoutUseCase()).thenAnswer((_) async {});
@@ -322,6 +416,28 @@ void main() {
   );
 
   blocTest<AuthCubit, AuthState>(
+    'logout emits AuthError on DioException',
+    build: () {
+      when(() => mockLogoutUseCase()).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/logout'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/logout'),
+            statusCode: 500,
+            data: {'message': 'Server error'},
+          ),
+        ),
+      );
+      return buildCubit();
+    },
+    act: (cubit) => cubit.logout(),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>(),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
     'sendEmailVerification emits loading then verification sent on success',
     build: () {
       when(
@@ -337,6 +453,46 @@ void main() {
         'email',
         'ali@test.com',
       ),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'sendEmailVerification emits AuthError on DioException',
+    build: () {
+      when(
+        () => mockSendEmailVerificationUseCase(email: 'ali@test.com'),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/email/send-verification'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/email/send-verification'),
+            statusCode: 429,
+            data: {'message': 'Too many requests'},
+          ),
+        ),
+      );
+      return buildCubit();
+    },
+    act: (cubit) => cubit.sendEmailVerification(email: 'ali@test.com'),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>(),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'sendEmailVerification emits AuthError on unexpected exception',
+    build: () {
+      when(
+        () => mockSendEmailVerificationUseCase(email: 'ali@test.com'),
+      ).thenThrow(Exception('boom'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.sendEmailVerification(email: 'ali@test.com'),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>()
+          .having((s) => s.message, 'message', 'An unexpected error occurred.'),
     ],
   );
 
@@ -394,6 +550,28 @@ void main() {
   );
 
   blocTest<AuthCubit, AuthState>(
+    'verifyEmail emits AuthError on DioException',
+    build: () {
+      when(() => mockVerifyEmailUseCase(code: '123456')).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/email/verify'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/email/verify'),
+            statusCode: 400,
+            data: {'message': 'Invalid code'},
+          ),
+        ),
+      );
+      return buildCubit();
+    },
+    act: (cubit) => cubit.verifyEmail(code: '123456'),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>(),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
     'forgotPassword emits loading then success on success',
     build: () {
       when(() => mockForgotPasswordUseCase(email: 'ali@test.com'))
@@ -416,6 +594,28 @@ void main() {
     build: () {
       when(() => mockForgotPasswordUseCase(email: 'ali@test.com'))
           .thenThrow(Exception('boom'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.forgotPassword(email: 'ali@test.com'),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>(),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'forgotPassword emits AuthError on DioException',
+    build: () {
+      when(() => mockForgotPasswordUseCase(email: 'ali@test.com')).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/forgot-password'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/auth/forgot-password'),
+            statusCode: 404,
+            data: {'message': 'Email not found'},
+          ),
+        ),
+      );
       return buildCubit();
     },
     act: (cubit) => cubit.forgotPassword(email: 'ali@test.com'),
@@ -458,6 +658,38 @@ void main() {
           newPasswordConfirm: 'newpass',
         ),
       ).thenThrow(Exception('boom'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.resetPassword(
+      code: '123456',
+      newPassword: 'newpass',
+      newPasswordConfirm: 'newpass',
+    ),
+    expect: () => [
+      isA<AuthLoading>(),
+      isA<AuthError>(),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'resetPassword emits AuthError on DioException',
+    build: () {
+      when(
+        () => mockResetPasswordUseCase(
+          code: '123456',
+          newPassword: 'newpass',
+          newPasswordConfirm: 'newpass',
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/reset-password'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/auth/reset-password'),
+            statusCode: 400,
+            data: {'message': 'Invalid reset token'},
+          ),
+        ),
+      );
       return buildCubit();
     },
     act: (cubit) => cubit.resetPassword(
@@ -565,6 +797,216 @@ void main() {
   );
 
   blocTest<AuthCubit, AuthState>(
+    'requestEmailChange emits AuthEmailChangeRequested when unauthenticated but user refresh succeeds',
+    build: () {
+      when(
+        () => mockRequestEmailChangeUseCase(
+          newEmail: 'new@test.com',
+          currentPassword: 'password123',
+        ),
+      ).thenAnswer((_) async {});
+      when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => user);
+      return buildCubit();
+    },
+    act: (cubit) => cubit.requestEmailChange(
+      newEmail: 'new@test.com',
+      currentPassword: 'password123',
+    ),
+    expect: () => [
+      isA<AuthEmailChangeRequested>().having(
+        (s) => s.newEmail,
+        'newEmail',
+        'new@test.com',
+      ),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'requestEmailChange emits AuthError when unauthenticated and user refresh fails',
+    build: () {
+      when(
+        () => mockRequestEmailChangeUseCase(
+          newEmail: 'new@test.com',
+          currentPassword: 'password123',
+        ),
+      ).thenAnswer((_) async {});
+      when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => null);
+      return buildCubit();
+    },
+    act: (cubit) => cubit.requestEmailChange(
+      newEmail: 'new@test.com',
+      currentPassword: 'password123',
+    ),
+    expect: () => [
+      isA<AuthError>().having(
+        (s) => s.message,
+        'message',
+        'Email change request succeeded, but user refresh failed.',
+      ),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'requestEmailChange enforces cooldown with AuthError when unauthenticated',
+    build: () {
+      when(
+        () => mockRequestEmailChangeUseCase(
+          newEmail: 'new@test.com',
+          currentPassword: 'password123',
+        ),
+      ).thenAnswer((_) async {});
+      when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => null);
+      return buildCubit();
+    },
+    act: (cubit) async {
+      await cubit.requestEmailChange(
+        newEmail: 'new@test.com',
+        currentPassword: 'password123',
+      );
+      await cubit.requestEmailChange(
+        newEmail: 'new@test.com',
+        currentPassword: 'password123',
+      );
+    },
+    expect: () => [
+      isA<AuthError>().having(
+        (s) => s.message,
+        'message',
+        'Email change request succeeded, but user refresh failed.',
+      ),
+      isA<AuthError>().having(
+        (s) => s.message,
+        'messageContainsWait',
+        contains('Please wait'),
+      ),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'requestEmailChange emits AuthError on DioException when unauthenticated',
+    build: () {
+      when(
+        () => mockRequestEmailChangeUseCase(
+          newEmail: 'new@test.com',
+          currentPassword: 'password123',
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/email/change'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/email/change'),
+            statusCode: 400,
+            data: {'message': 'Bad request'},
+          ),
+        ),
+      );
+      return buildCubit();
+    },
+    act: (cubit) => cubit.requestEmailChange(
+      newEmail: 'new@test.com',
+      currentPassword: 'password123',
+    ),
+    expect: () => [
+      isA<AuthError>(),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'requestEmailChange emits AuthError on unexpected exception when unauthenticated',
+    build: () {
+      when(
+        () => mockRequestEmailChangeUseCase(
+          newEmail: 'new@test.com',
+          currentPassword: 'password123',
+        ),
+      ).thenThrow(Exception('boom'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.requestEmailChange(
+      newEmail: 'new@test.com',
+      currentPassword: 'password123',
+    ),
+    expect: () => [
+      isA<AuthError>().having(
+        (s) => s.message,
+        'message',
+        'An unexpected error occurred.',
+      ),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'requestEmailChange enforces cooldown after successful request',
+    build: () {
+      when(
+        () => mockRequestEmailChangeUseCase(
+          newEmail: 'new@test.com',
+          currentPassword: 'password123',
+        ),
+      ).thenAnswer((_) async {});
+      final cubit = buildCubit();
+      cubit.emit(AuthAuthenticated(user));
+      return cubit;
+    },
+    act: (cubit) async {
+      await cubit.requestEmailChange(
+        newEmail: 'new@test.com',
+        currentPassword: 'password123',
+      );
+      await cubit.requestEmailChange(
+        newEmail: 'new@test.com',
+        currentPassword: 'password123',
+      );
+    },
+    expect: () => [
+      isA<AuthEmailChangeRequested>(),
+      isA<AuthEmailChangeFailure>().having(
+        (s) => s.message,
+        'messageContainsWait',
+        contains('Please wait'),
+      ),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'confirmEmailChange emits AuthError on DioException when unauthenticated',
+    build: () {
+      when(() => mockConfirmEmailChangeUseCase(token: 'bad-token')).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/email/confirm-change'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/email/confirm-change'),
+            statusCode: 400,
+            data: {'message': 'Invalid token'},
+          ),
+        ),
+      );
+      return buildCubit();
+    },
+    act: (cubit) => cubit.confirmEmailChange(token: 'bad-token'),
+    expect: () => [
+      isA<AuthError>(),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
+    'confirmEmailChange emits AuthError on unexpected exception when unauthenticated',
+    build: () {
+      when(() => mockConfirmEmailChangeUseCase(token: 'bad-token'))
+          .thenThrow(Exception('boom'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.confirmEmailChange(token: 'bad-token'),
+    expect: () => [
+      isA<AuthError>().having(
+        (s) => s.message,
+        'message',
+        'An unexpected error occurred.',
+      ),
+    ],
+  );
+
+  blocTest<AuthCubit, AuthState>(
     'refreshCurrentUserSilently does nothing when not authenticated',
     build: buildCubit,
     act: (cubit) => cubit.refreshCurrentUserSilently(),
@@ -617,7 +1059,36 @@ void main() {
     expect(cubit.remainingResendSeconds, 0);
   });
 
+  test('remainingResendSeconds is greater than zero after a successful resend',
+      () async {
+    when(
+      () => mockSendEmailVerificationUseCase(email: 'ali@test.com'),
+    ).thenAnswer((_) async {});
+
+    await cubit.sendEmailVerification(email: 'ali@test.com');
+
+    expect(cubit.remainingResendSeconds, greaterThan(0));
+  });
+
   test('emailChangeCooldownRemainingSeconds is zero initially', () {
     expect(cubit.emailChangeCooldownRemainingSeconds, 0);
+  });
+
+  test('emailChangeCooldownRemainingSeconds is greater than zero after success',
+      () async {
+    when(
+      () => mockRequestEmailChangeUseCase(
+        newEmail: 'new@test.com',
+        currentPassword: 'password123',
+      ),
+    ).thenAnswer((_) async {});
+    cubit.emit(AuthAuthenticated(user));
+
+    await cubit.requestEmailChange(
+      newEmail: 'new@test.com',
+      currentPassword: 'password123',
+    );
+
+    expect(cubit.emailChangeCooldownRemainingSeconds, greaterThan(0));
   });
 }

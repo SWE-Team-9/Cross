@@ -51,9 +51,8 @@ class ProfileDto {
     }).toList();
 
     final bool isPrivate = json['is_private'] == true;
-    final String visibility = isPrivate
-        ? 'PRIVATE'
-        : ((json['visibility']) as String? ?? 'PUBLIC');
+    final String visibility =
+        isPrivate ? 'PRIVATE' : ((json['visibility']) as String? ?? 'PUBLIC');
 
     return ProfileDto(
       id: (json['id'] ?? json['userId'])?.toString(),

@@ -116,7 +116,13 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       if (responseData is List) {
         rawLinks = responseData;
       } else if (responseData is Map<String, dynamic>) {
-        rawLinks = responseData['links'] ?? responseData['data'] ?? responseData;
+        if (responseData.containsKey('links')) {
+          rawLinks = responseData['links'];
+        } else if (responseData.containsKey('data')) {
+          rawLinks = responseData['data'];
+        } else {
+          rawLinks = responseData;
+        }
       } else {
         rawLinks = null;
       }

@@ -336,10 +336,8 @@ class _UploadStatusCard extends StatelessWidget {
                 ],
               ),
             ),
-
-              const SizedBox(width: 12),
-              trailing,
-            
+            const SizedBox(width: 12),
+            trailing,
           ],
         ),
       ),
