@@ -55,7 +55,8 @@ class AuthCubit extends Cubit<AuthState> {
   // Getter for general email verification resend
   int get remainingResendSeconds {
     if (_lastResendDateTime == null) return 0;
-    final difference = DateTime.now().difference(_lastResendDateTime!).inSeconds;
+    final difference =
+        DateTime.now().difference(_lastResendDateTime!).inSeconds;
     final remaining = 60 - difference;
     return remaining > 0 ? remaining : 0;
   }
@@ -63,7 +64,8 @@ class AuthCubit extends Cubit<AuthState> {
   // Getter for email change request cooldown
   int get emailChangeCooldownRemainingSeconds {
     if (_lastEmailChangeRequestAt == null) return 0;
-    final elapsed = DateTime.now().difference(_lastEmailChangeRequestAt!).inSeconds;
+    final elapsed =
+        DateTime.now().difference(_lastEmailChangeRequestAt!).inSeconds;
     final remaining = 60 - elapsed;
     return remaining > 0 ? remaining : 0;
   }
@@ -115,7 +117,8 @@ class AuthCubit extends Cubit<AuthState> {
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       if (failure.message.toLowerCase().contains("verify your email")) {
-        emit(AuthError("Please verify your email before logging in.", isNotVerified: true));
+        emit(AuthError("Please verify your email before logging in.",
+            isNotVerified: true));
       } else {
         emit(AuthError(failure.message));
       }
@@ -175,7 +178,8 @@ class AuthCubit extends Cubit<AuthState> {
       final difference = now.difference(_firstResendAttempt!);
       if (difference.inMinutes < 1) {
         if (_resendCount >= 3) {
-          emit(AuthError("Too many requests. Please wait a minute before trying again."));
+          emit(AuthError(
+              "Too many requests. Please wait a minute before trying again."));
           return;
         }
       } else {
@@ -259,7 +263,8 @@ class AuthCubit extends Cubit<AuthState> {
 
     final remaining = emailChangeCooldownRemainingSeconds;
     if (remaining > 0) {
-      final message = 'Please wait $remaining seconds before sending another link.';
+      final message =
+          'Please wait $remaining seconds before sending another link.';
       if (currentUser != null) {
         emit(AuthEmailChangeFailure(user: currentUser, message: message));
       } else {
@@ -280,26 +285,31 @@ class AuthCubit extends Cubit<AuthState> {
       _lastEmailChangeRequestAt = DateTime.now();
 
       if (currentUser != null) {
-        emit(AuthEmailChangeRequested(user: currentUser, newEmail: normalizedEmail));
+        emit(AuthEmailChangeRequested(
+            user: currentUser, newEmail: normalizedEmail));
         return;
       }
 
       final refreshedUser = await getCurrentUserUseCase();
       if (refreshedUser != null) {
-        emit(AuthEmailChangeRequested(user: refreshedUser, newEmail: normalizedEmail));
+        emit(AuthEmailChangeRequested(
+            user: refreshedUser, newEmail: normalizedEmail));
       } else {
-        emit(AuthError('Email change request succeeded, but user refresh failed.'));
+        emit(AuthError(
+            'Email change request succeeded, but user refresh failed.'));
       }
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       if (currentUser != null) {
-        emit(AuthEmailChangeFailure(user: currentUser, message: failure.message));
+        emit(AuthEmailChangeFailure(
+            user: currentUser, message: failure.message));
       } else {
         emit(AuthError(failure.message));
       }
     } catch (e) {
       if (currentUser != null) {
-        emit(AuthEmailChangeFailure(user: currentUser, message: 'An unexpected error occurred.'));
+        emit(AuthEmailChangeFailure(
+            user: currentUser, message: 'An unexpected error occurred.'));
       } else {
         emit(AuthError('An unexpected error occurred.'));
       }
@@ -317,13 +327,15 @@ class AuthCubit extends Cubit<AuthState> {
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       if (currentUser != null) {
-        emit(AuthEmailChangeFailure(user: currentUser, message: failure.message));
+        emit(AuthEmailChangeFailure(
+            user: currentUser, message: failure.message));
       } else {
         emit(AuthError(failure.message));
       }
     } catch (e) {
       if (currentUser != null) {
-        emit(AuthEmailChangeFailure(user: currentUser, message: 'An unexpected error occurred.'));
+        emit(AuthEmailChangeFailure(
+            user: currentUser, message: 'An unexpected error occurred.'));
       } else {
         emit(AuthError('An unexpected error occurred.'));
       }

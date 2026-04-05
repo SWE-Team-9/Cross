@@ -171,6 +171,14 @@ void main() {
       followersCount: tProfileEntity.followersCount,
       followingCount: tProfileEntity.followingCount,
     );
+
+    when(() => mockAuthCubit.emailChangeCooldownRemainingSeconds).thenReturn(0);
+    when(
+      () => mockAuthCubit.requestEmailChange(
+        newEmail: any(named: 'newEmail'),
+        currentPassword: any(named: 'currentPassword'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   tearDown(() async {
@@ -367,6 +375,126 @@ void main() {
       expect(find.text('Midnight Echoes'), findsOneWidget);
       expect(find.text('City Lights'), findsOneWidget);
       expect(find.text('Manage'), findsNWidgets(2));
+    });
+  });
+
+  group('Profile state switching coverage', () {
+    final statesToTest = <ProfileState>[
+      ProfileUpdating(tProfileEntity),
+      ProfileUpdateSuccess(tProfileEntity),
+      ProfileUpdateError(tProfileEntity, 'Error'),
+      ProfileImageUploading(tProfileEntity, ProfileImageType.AVATAR),
+    ];
+
+    for (final state in statesToTest) {
+      testWidgets('renders body correctly for state: ${state.runtimeType}',
+          (tester) async {
+        when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+        profileCubit.setTestState(state);
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pump();
+
+        expect(find.byType(NestedScrollView), findsOneWidget);
+      });
+    }
+  });
+
+  group('External links and auth listener coverage', () {
+    testWidgets('shows snackbar for invalid non-http external link',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+      profileCubit.setTestState(
+        ProfileLoaded(
+          tProfileEntity.copyWith(
+            externalLinks: const {'x': 'mailto:user@example.com'},
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.alternate_email));
+      await tester.pump();
+
+      expect(find.text('Invalid link'), findsOneWidget);
+    });
+
+    testWidgets('long press external link does not crash', (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+      profileCubit.setTestState(
+        ProfileLoaded(
+          tProfileEntity.copyWith(
+            externalLinks: const {'website': 'https://example.com'},
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.byTooltip('Website\nhttps://example.com'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProfilePage), findsOneWidget);
+    });
+
+    testWidgets('shows snackbar on AuthEmailChangeRequested', (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+      whenListen(
+        mockAuthCubit,
+        Stream<AuthState>.fromIterable([
+          AuthAuthenticated(ownUser),
+          AuthEmailChangeRequested(user: ownUser, newEmail: 'new@test.com'),
+        ]),
+        initialState: AuthAuthenticated(ownUser),
+      );
+
+      profileCubit.setTestState(ProfileLoaded(tProfileEntity));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.textContaining('new@test.com'), findsOneWidget);
+    });
+
+    testWidgets('shows snackbar on AuthEmailChangeConfirmed', (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+      whenListen(
+        mockAuthCubit,
+        Stream<AuthState>.fromIterable([
+          AuthAuthenticated(ownUser),
+          AuthEmailChangeConfirmed(),
+        ]),
+        initialState: AuthAuthenticated(ownUser),
+      );
+
+      profileCubit.setTestState(ProfileLoaded(tProfileEntity));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.textContaining('Email updated successfully'), findsOneWidget);
+    });
+
+    testWidgets('change email dialog validates empty fields', (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+      profileCubit.setTestState(ProfileLoaded(tProfileEntity));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('change Email'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Send link'));
+      await tester.pump();
+
+      expect(find.text('Please enter a new email address.'), findsOneWidget);
+      expect(find.text('Please enter your password.'), findsOneWidget);
     });
   });
 }

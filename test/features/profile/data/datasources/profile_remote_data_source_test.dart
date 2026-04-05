@@ -240,4 +240,157 @@ void main() {
           )).called(1);
     });
   });
+
+  group('getMyProfile', () {
+    test('parses my profile from direct response body', () async {
+      when(() => mockDio.get(any())).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/profiles/me'),
+          data: <String, dynamic>{
+            'handle': 'me',
+            'display_name': 'Me',
+            'account_type': 'ARTIST',
+            'favorite_genres': <String>[],
+            'social_links': <String, dynamic>{},
+            'visibility': 'PUBLIC',
+            'track_count': 10,
+          },
+        ),
+      );
+
+      final dto = await dataSource.getMyProfile();
+
+      expect(dto.handle, 'me');
+      verify(() => mockDio.get(any())).called(1);
+    });
+
+    test('rethrows and prints error on failure', () async {
+      when(() => mockDio.get(any())).thenThrow(DioException(
+        requestOptions: RequestOptions(path: '/api/v1/profiles/me'),
+      ));
+
+      expect(() => dataSource.getMyProfile(), throwsA(isA<DioException>()));
+    });
+  });
+
+  group('updateExternalLinks', () {
+    final Map<String, String> linksInput = {
+      'twitter': 'https://twitter.com/user',
+      'instagram': 'https://instagr.am/user',
+    };
+
+    test('updates links and parses list response from server', () async {
+      when(() => mockDio.put(any(), data: any(named: 'data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/profiles/me/links'),
+          data: {
+            'links': [
+              {'platform': 'twitter', 'url': 'https://twitter.com/user'},
+              {'platform': 'instagram', 'url': 'https://instagr.am/user'},
+            ]
+          },
+        ),
+      );
+
+      final result = await dataSource.updateExternalLinks(linksInput);
+
+      expect(result['twitter'], 'https://twitter.com/user');
+      expect(result.length, 2);
+    });
+
+    test('returns original map if server response is empty/null', () async {
+      when(() => mockDio.put(any(), data: any(named: 'data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/profiles/me/links'),
+          data: <String, dynamic>{'links': null}, // Explicitly null
+        ),
+      );
+
+      final result = await dataSource.updateExternalLinks(linksInput);
+
+      // Implementation returns externalLinks if parsed result is empty
+      expect(result, equals(linksInput));
+    });
+
+    test('parses rawLinks when responseData is a direct List', () async {
+      when(() => mockDio.put(any(), data: any(named: 'data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/profiles/me/links'),
+          data: [
+            {'platform': 'facebook', 'url': 'https://fb.com'},
+          ],
+        ),
+      );
+
+      final result = await dataSource.updateExternalLinks(linksInput);
+
+      expect(result['facebook'], 'https://fb.com');
+    });
+
+    test('parses rawLinks when responseData is a Map (not nested)', () async {
+      when(() => mockDio.put(any(), data: any(named: 'data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/profiles/me/links'),
+          data: {'youtube': 'https://youtube.com'},
+        ),
+      );
+
+      final result = await dataSource.updateExternalLinks(linksInput);
+
+      expect(result['youtube'], 'https://youtube.com');
+    });
+  });
+
+  group('_parseLinksMap logic (Internal branching)', () {
+    test('handles list with empty or invalid items silently', () async {
+      when(() => mockDio.put(any(), data: any(named: 'data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/profiles/me/links'),
+          data: [
+            {'platform': ' ', 'url': ' '}, // Empty strings should be filtered
+            {'platform': 'Spotify', 'url': 'https://spotify.com/user'},
+            'not_a_map', // Should be ignored
+          ],
+        ),
+      );
+
+      final result = await dataSource.updateExternalLinks({});
+
+      expect(result.containsKey('spotify'), isTrue);
+      expect(result['spotify'], 'https://spotify.com/user');
+      expect(result.length, 1);
+    });
+
+    test('returns empty map for totally invalid data types', () async {
+      when(() => mockDio.put(any(), data: any(named: 'data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/profiles/me/links'),
+          data: 12345, // Int triggers the "else { rawLinks = null; }" branch
+        ),
+      );
+
+      final result = await dataSource.updateExternalLinks({});
+      expect(result, isEmpty);
+    });
+  });
+
+  group('General Error Handling Coverage', () {
+    test('getProfile rethrows on exception', () async {
+      when(() => mockDio.get(any())).thenThrow(Exception('Network Error'));
+      expect(() => dataSource.getProfile('ali'), throwsException);
+    });
+
+    test('updateProfile rethrows on exception', () async {
+      when(() => mockDio.patch(any(), data: any(named: 'data')))
+          .thenThrow(Exception());
+      expect(() => dataSource.updateProfile({}), throwsException);
+    });
+
+    test('checkHandleAvailable rethrows on exception', () async {
+      when(() => mockDio.get(any(),
+              queryParameters: any(named: 'queryParameters')))
+          .thenThrow(Exception());
+      expect(() => dataSource.checkHandleAvailable('ali'), throwsException);
+    });
+  });
 }

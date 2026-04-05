@@ -32,7 +32,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     print('🔍 DEBUG ProfilePage: Initialized with handle: $handle');
-    
+
     if (cubit != null) {
       return BlocProvider<ProfileCubit>.value(
         value: cubit!,
@@ -46,9 +46,8 @@ class ProfilePage extends StatelessWidget {
         final profileCubit = getIt<ProfileCubit>();
 
         print('🔍 DEBUG ProfilePage: AuthState: $authState');
-        
-        if (authState is AuthAuthenticated &&
-            authState.user.handle == handle) {
+
+        if (authState is AuthAuthenticated && authState.user.handle == handle) {
           print('🔍 DEBUG ProfilePage: Loading own profile');
           profileCubit.loadOwnProfile();
         } else {
@@ -405,7 +404,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       child: BlocBuilder<ProfileCubit, ProfileState>(
         builder: (context, state) {
           print('🔍 DEBUG ProfilePage Build - State: $state');
-          
+
           if (state is ProfileLoading) {
             print('🔍 DEBUG ProfilePage: Loading state');
             return const Scaffold(
@@ -458,7 +457,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
           print('🔍 DEBUG ProfilePage: Profile loaded - ID: ${profile.id}');
           print('🔍 DEBUG ProfilePage: Raw avatarUrl: ${profile.avatarUrl}');
-          print('🔍 DEBUG ProfilePage: Raw coverPhotoUrl: ${profile.coverPhotoUrl}');
+          print(
+              '🔍 DEBUG ProfilePage: Raw coverPhotoUrl: ${profile.coverPhotoUrl}');
           print('🔍 DEBUG ProfilePage: Display name: ${profile.displayName}');
           print('🔍 DEBUG ProfilePage: Platform: ${Platform.operatingSystem}');
 
@@ -611,9 +611,11 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildProfileHeader(BuildContext context, ProfileEntity profile) {
-    final coverUrl = PlatformUrlUtils.normalizeBackendUrl(profile.coverPhotoUrl);
-    
-    print('🔍 DEBUG _buildProfileHeader: Original coverUrl: ${profile.coverPhotoUrl}');
+    final coverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(profile.coverPhotoUrl);
+
+    print(
+        '🔍 DEBUG _buildProfileHeader: Original coverUrl: ${profile.coverPhotoUrl}');
     print('🔍 DEBUG _buildProfileHeader: Normalized coverUrl: $coverUrl');
 
     return SizedBox(
@@ -660,12 +662,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildAvatar(ProfileEntity profile) {
     print('🔍 DEBUG _buildAvatar: Original avatarUrl: ${profile.avatarUrl}');
-    
+
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
-    
+
     print('🔍 DEBUG _buildAvatar: Normalized avatarUrl: $avatarUrl');
     print('🔍 DEBUG _buildAvatar: Platform: ${Platform.operatingSystem}');
-    
+
     if (avatarUrl != null) {
       print('🔍 DEBUG _buildAvatar: Will load image from: $avatarUrl');
     } else {
@@ -743,7 +745,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           Row(
             children: [
               GestureDetector(
-                onTap: () => ProfileRoutes.goToFollowers(context, profile.handle),
+                onTap: () =>
+                    ProfileRoutes.goToFollowers(context, profile.handle),
                 child: Text(
                   '${profile.followersCount} Followers',
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
@@ -751,7 +754,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               ),
               const Text(' · ', style: TextStyle(color: Colors.grey)),
               GestureDetector(
-                onTap: () => ProfileRoutes.goToFollowing(context, profile.handle),
+                onTap: () =>
+                    ProfileRoutes.goToFollowing(context, profile.handle),
                 child: Text(
                   '${profile.followingCount} Following',
                   style: const TextStyle(color: Colors.grey, fontSize: 13),

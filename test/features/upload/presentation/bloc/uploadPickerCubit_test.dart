@@ -8,6 +8,7 @@ import 'package:soundcloud_clone/features/upload/presentation/bloc/uploadPickerC
 import 'package:soundcloud_clone/features/upload/presentation/bloc/uploadPickerState.dart';
 
 class MockPickAudioFileUseCase extends Mock implements PickAudioFileUseCase {}
+
 class MockUploadRepository extends Mock implements UploadRepository {}
 
 void main() {

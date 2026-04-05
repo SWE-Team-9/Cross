@@ -124,6 +124,53 @@ void main() {
   );
 
   blocTest<ProfileCubit, ProfileState>(
+    'loadOwnProfile emits [ProfileLoading, ProfileLoaded] on success',
+    build: () {
+      when(() => mockProfileRepository.getMyProfile())
+          .thenAnswer((_) async => profile);
+      return buildCubit();
+    },
+    act: (cubit) => cubit.loadOwnProfile(),
+    expect: () => [
+      isA<ProfileLoading>(),
+      isA<ProfileLoaded>().having((s) => s.profile.handle, 'handle', 'ali'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'loadOwnProfile emits [ProfileLoading, ProfileError] on Failure',
+    build: () {
+      when(() => mockProfileRepository.getMyProfile())
+          .thenThrow(const ServerFailure('my profile failed'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.loadOwnProfile(),
+    expect: () => [
+      isA<ProfileLoading>(),
+      isA<ProfileError>()
+          .having((s) => s.message, 'message', 'my profile failed'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'loadOwnProfile emits generic error on unexpected exception',
+    build: () {
+      when(() => mockProfileRepository.getMyProfile())
+          .thenThrow(Exception('boom'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.loadOwnProfile(),
+    expect: () => [
+      isA<ProfileLoading>(),
+      isA<ProfileError>().having(
+        (s) => s.message,
+        'message',
+        'Something went wrong. Please try again.',
+      ),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
     'updateProfile emits updating then success then loaded',
     build: () {
       when(() => mockUpdateProfileUseCase(any()))
@@ -190,6 +237,165 @@ void main() {
         'message',
         'Unable to update profile. Please try again.',
       ),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile emits ProfileLoaded(current) when no changes are provided',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileLoaded(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>()
+          .having((s) => s.profile.displayName, 'displayName', 'Ali'),
+    ],
+    verify: (_) {
+      verifyNever(() => mockUpdateProfileUseCase(any()));
+      verifyNever(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: any(named: 'externalLinks'),
+        ),
+      );
+    },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile with only external links skips base update and emits success',
+    build: () {
+      when(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: {'instagram': 'https://instagram.com/user'},
+        ),
+      ).thenAnswer((_) async => {'instagram': 'https://instagram.com/user'});
+
+      final cubit = buildCubit();
+      cubit.emit(ProfileLoaded(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(
+      const UpdateProfileParams(
+        externalLinks: {'instagram': 'https://instagram.com/user'},
+      ),
+    ),
+    expect: () => [
+      isA<ProfileUpdating>(),
+      isA<ProfileUpdateSuccess>().having(
+        (s) => s.updatedProfile.externalLinks['instagram'],
+        'instagram',
+        'https://instagram.com/user',
+      ),
+      isA<ProfileLoaded>().having(
+        (s) => s.profile.externalLinks['instagram'],
+        'instagramLoaded',
+        'https://instagram.com/user',
+      ),
+    ],
+    verify: (_) {
+      verifyNever(() => mockUpdateProfileUseCase(any()));
+      verify(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: {'instagram': 'https://instagram.com/user'},
+        ),
+      ).called(1);
+    },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile with base and external changes calls both update paths',
+    build: () {
+      when(() => mockUpdateProfileUseCase(any()))
+          .thenAnswer((_) async => updatedProfile);
+      when(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: {'x': 'https://x.com/new'},
+        ),
+      ).thenAnswer((_) async => {'x': 'https://x.com/new'});
+
+      final cubit = buildCubit();
+      cubit.emit(ProfileLoaded(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(
+      const UpdateProfileParams(
+        displayName: 'Ali Updated',
+        externalLinks: {'x': 'https://x.com/new'},
+      ),
+    ),
+    expect: () => [
+      isA<ProfileUpdating>(),
+      isA<ProfileUpdateSuccess>().having(
+        (s) => s.updatedProfile.externalLinks['x'],
+        'x',
+        'https://x.com/new',
+      ),
+      isA<ProfileLoaded>().having(
+        (s) => s.profile.externalLinks['x'],
+        'xLoaded',
+        'https://x.com/new',
+      ),
+    ],
+    verify: (_) {
+      verify(() => mockUpdateProfileUseCase(any())).called(1);
+      verify(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: {'x': 'https://x.com/new'},
+        ),
+      ).called(1);
+    },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile resolves current profile from ProfileUpdating state',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileUpdating(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>().having((s) => s.profile.id, 'id', '1'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile resolves current profile from ProfileUpdateError state',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileUpdateError(profile, 'err'));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>().having((s) => s.profile.id, 'id', '1'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile resolves current profile from ProfileImageUploading state',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileImageUploading(profile, ProfileImageType.AVATAR));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>().having((s) => s.profile.id, 'id', '1'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile resolves current profile from ProfileUpdateSuccess state',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileUpdateSuccess(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>().having((s) => s.profile.id, 'id', '1'),
     ],
   );
 
