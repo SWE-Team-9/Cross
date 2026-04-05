@@ -37,6 +37,15 @@ abstract class AuthRepository {
     required String code,
   });
 
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  });
+
+  Future<void> confirmEmailChange({
+    required String token,
+  });
+
   Future<User?> getCurrentUser();
 
   Future<void> logout();

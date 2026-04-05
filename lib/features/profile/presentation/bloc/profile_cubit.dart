@@ -42,16 +42,54 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
+  Future<void> loadOwnProfile() async {
+    emit(ProfileLoading());
+
+    try {
+      final profile = await _profileRepository.getMyProfile().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw const ServerFailure(
+            'Request timed out. Please check your connection.',
+          );
+        },
+      );
+
+      emit(ProfileLoaded(profile));
+    } on Failure catch (failure) {
+      emit(ProfileError(failure.message));
+    } catch (_) {
+      emit(ProfileError('Something went wrong. Please try again.'));
+    }
+  }
+
   Future<void> updateProfile(UpdateProfileParams params) async {
     final ProfileEntity? currentProfile = _currentProfileFromState();
     if (currentProfile == null) return;
 
+    if (!params.hasBaseProfileChanges && !params.hasExternalLinksChanges) {
+      emit(ProfileLoaded(currentProfile));
+      return;
+    }
+
     emit(ProfileUpdating(currentProfile));
 
     try {
-      final updatedProfile = await _updateProfileUseCase(params);
-      emit(ProfileUpdateSuccess(updatedProfile));
-      emit(ProfileLoaded(updatedProfile));
+      ProfileEntity workingProfile = currentProfile;
+
+      if (params.hasBaseProfileChanges) {
+        workingProfile = await _updateProfileUseCase(params);
+      }
+
+      if (params.hasExternalLinksChanges) {
+        final updatedLinks = await _profileRepository.updateExternalLinks(
+          externalLinks: params.externalLinks ?? {},
+        );
+        workingProfile = workingProfile.copyWith(externalLinks: updatedLinks);
+      }
+
+      emit(ProfileUpdateSuccess(workingProfile));
+      emit(ProfileLoaded(workingProfile));
     } on Failure catch (failure) {
       emit(ProfileUpdateError(currentProfile, failure.message));
     } catch (_) {
