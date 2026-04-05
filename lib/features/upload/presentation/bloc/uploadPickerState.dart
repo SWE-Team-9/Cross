@@ -4,7 +4,10 @@ import '../../domain/entities/PickedAudioFile.dart';
 
 enum UploadPickerStatus {
   initial,
-  loading,
+  picking,
+  ready,
+  uploading,
+  processing,
   success,
   cancelled,
   failure,
@@ -15,18 +18,33 @@ class UploadPickerState extends Equatable {
     this.status = UploadPickerStatus.initial,
     this.pickedAudioFile,
     this.errorMessage,
+    this.uploadedTrackId,
+    this.processingStatus,
   });
 
   final UploadPickerStatus status;
   final PickedAudioFile? pickedAudioFile;
   final String? errorMessage;
+  final String? uploadedTrackId;
+  final String? processingStatus;
+
+  bool get isBusy =>
+      status == UploadPickerStatus.picking ||
+      status == UploadPickerStatus.uploading ||
+      status == UploadPickerStatus.processing;
+
+  bool get hasSelection => pickedAudioFile != null;
 
   UploadPickerState copyWith({
     UploadPickerStatus? status,
     PickedAudioFile? pickedAudioFile,
     String? errorMessage,
+    String? uploadedTrackId,
+    String? processingStatus,
     bool clearPickedAudioFile = false,
     bool clearErrorMessage = false,
+    bool clearUploadedTrackId = false,
+    bool clearProcessingStatus = false,
   }) {
     return UploadPickerState(
       status: status ?? this.status,
@@ -35,6 +53,12 @@ class UploadPickerState extends Equatable {
           : (pickedAudioFile ?? this.pickedAudioFile),
       errorMessage:
           clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      uploadedTrackId: clearUploadedTrackId
+          ? null
+          : (uploadedTrackId ?? this.uploadedTrackId),
+      processingStatus: clearProcessingStatus
+          ? null
+          : (processingStatus ?? this.processingStatus),
     );
   }
 
@@ -43,5 +67,7 @@ class UploadPickerState extends Equatable {
         status,
         pickedAudioFile,
         errorMessage,
+        uploadedTrackId,
+        processingStatus,
       ];
 }

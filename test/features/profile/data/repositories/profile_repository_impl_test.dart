@@ -90,7 +90,9 @@ void main() {
       () => mockRemoteDataSource.updateProfile(captureAny()),
     ).captured.single as Map<String, dynamic>;
 
-    expect(captured['visibility'], 'PUBLIC');
+    // Your implementation converts PUBLIC to is_private: false
+    expect(captured['is_private'], false);
+    expect(captured.length, 1);
   });
 
   test('updateProfile maps PRIVATE visibility correctly', () async {
@@ -105,7 +107,9 @@ void main() {
       () => mockRemoteDataSource.updateProfile(captureAny()),
     ).captured.single as Map<String, dynamic>;
 
-    expect(captured['visibility'], 'PRIVATE');
+    // Your implementation converts PRIVATE to is_private: true
+    expect(captured['is_private'], true);
+    expect(captured.length, 1);
   });
 
   test('updateProfile sends favoriteGenres when provided', () async {
@@ -121,6 +125,51 @@ void main() {
     ).captured.single as Map<String, dynamic>;
 
     expect(captured['favorite_genres'], ['Rock', 'Jazz']);
+  });
+
+  test('updateProfile sends website when provided', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile(
+      website: 'https://example.com',
+    );
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['website'], 'https://example.com');
+  });
+
+  test('updateProfile maps ARTIST account tier correctly', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile(
+      accountTier: AccountTier.ARTIST,
+    );
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['account_type'], 'ARTIST');
+  });
+
+  test('updateProfile maps LISTENER account tier correctly', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile(
+      accountTier: AccountTier.LISTENER,
+    );
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['account_type'], 'LISTENER');
   });
 
   test('updateProfile returns mapped entity from remote dto', () async {
@@ -161,6 +210,29 @@ void main() {
     ).called(1);
   });
 
+  test('uploadProfileImage delegates to remote source for COVER image',
+      () async {
+    when(
+      () => mockRemoteDataSource.uploadProfileImage(
+        imageType: ProfileImageType.COVER,
+        filePath: '/tmp/cover.png',
+      ),
+    ).thenAnswer((_) async => 'uploaded-cover-url');
+
+    final result = await repository.uploadProfileImage(
+      imageType: ProfileImageType.COVER,
+      filePath: '/tmp/cover.png',
+    );
+
+    expect(result, 'uploaded-cover-url');
+    verify(
+      () => mockRemoteDataSource.uploadProfileImage(
+        imageType: ProfileImageType.COVER,
+        filePath: '/tmp/cover.png',
+      ),
+    ).called(1);
+  });
+
   test('checkHandleAvailable delegates to remote source', () async {
     when(() => mockRemoteDataSource.checkHandleAvailable('ali'))
         .thenAnswer((_) async => true);
@@ -169,5 +241,33 @@ void main() {
 
     expect(result, true);
     verify(() => mockRemoteDataSource.checkHandleAvailable('ali')).called(1);
+  });
+
+  test('updateProfile sends multiple fields combined', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile(
+      displayName: 'New Name',
+      bio: 'New bio',
+      location: 'New Location',
+      website: 'https://newwebsite.com',
+      favoriteGenres: const ['Pop', 'Rock'],
+      visibility: ProfileVisibility.PRIVATE,
+      accountTier: AccountTier.ARTIST,
+    );
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['display_name'], 'New Name');
+    expect(captured['bio'], 'New bio');
+    expect(captured['location'], 'New Location');
+    expect(captured['website'], 'https://newwebsite.com');
+    expect(captured['favorite_genres'], ['Pop', 'Rock']);
+    expect(captured['is_private'], true);
+    expect(captured['account_type'], 'ARTIST');
+    expect(captured.length, 7);
   });
 }

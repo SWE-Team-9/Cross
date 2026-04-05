@@ -33,9 +33,6 @@ import '../features/library/presentation/pages/library_page.dart';
 // Mock home page (temporary — replace with real home page in Sprint 4)
 import '../features/home/presentation/pages/mock_home_page.dart';
 
-// ── Navigator Keys ───────────────────────────────────────────────────────────
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
-
 // ── Route name constants ─────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
@@ -64,174 +61,188 @@ ManagedTrack _fallbackTrackManagementSeed() {
   );
 }
 
-// ── Router ───────────────────────────────────────────────────────────────────
-final GoRouter router = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  initialLocation: AuthRoutes.splash,
-  routes: [
-    // ── Auth (Sprint 1) ───────────────────────────────────────────
-    ...AuthRoutes.routes,
+// ── Router Configuration ─────────────────────────────────────────────────────
+GoRouter _createRouter() {
+  // ✅ FIX: Create a unique Navigator key for every router instance.
+  // This prevents "Duplicate GlobalKey" errors during widget testing.
+  final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-    // ── Home ──────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.home,
-      name: 'home',
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: MockHomePage(),
-      ),
-    ),
-    GoRoute(
-      path: AppRoutes.feed,
-      name: 'feed',
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: _PlaceholderPage(title: 'Feed'),
-      ),
-    ),
+  return GoRouter(
+    navigatorKey: rootNavigatorKey,
+    initialLocation: AuthRoutes.splash,
+    routes: [
+      // ── Auth (Sprint 1) ───────────────────────────────────────────
+      ...AuthRoutes.routes,
 
-    GoRoute(
-      path: AppRoutes.search,
-      name: 'search',
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: _PlaceholderPage(title: 'Search'),
+      // ── Home ──────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.home,
+        name: 'home',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: MockHomePage(),
+        ),
       ),
-    ),
-
-    GoRoute(
-      path: AppRoutes.upgrade,
-      name: 'upgrade',
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: _PlaceholderPage(title: 'Upgrade'),
+      GoRoute(
+        path: AppRoutes.feed,
+        name: 'feed',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: _PlaceholderPage(title: 'Feed'),
+        ),
       ),
-    ),
 
-    // ── Library ───────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.library,
-      name: 'library',
-      pageBuilder: (context, state) => NoTransitionPage(
-        child: BlocProvider(
-          create: (_) => RecentlyPlayedCubit(),
-          child: const LibraryPage(),
+      GoRoute(
+        path: AppRoutes.search,
+        name: 'search',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: _PlaceholderPage(title: 'Search'),
+        ),
+      ),
+
+      GoRoute(
+        path: AppRoutes.upgrade,
+        name: 'upgrade',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: _PlaceholderPage(title: 'Upgrade'),
+        ),
+      ),
+
+      // ── Library ───────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.library,
+        name: 'library',
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: BlocProvider(
+            create: (_) => RecentlyPlayedCubit(),
+            child: const LibraryPage(),
+          ),
+        ),
+      ),
+
+      // ── Upload picker (Sprint 1) ──────────────────────────────────
+      GoRoute(
+        path: AppRoutes.uploadPicker,
+        name: 'upload-picker',
+        pageBuilder: (context, state) => MaterialPage(
+          child: BlocProvider<UploadPickerCubit>(
+            create: (_) => getIt<UploadPickerCubit>(),
+            child: const UploadPickerPage(),
+          ),
+        ),
+      ),
+
+      // ── Profile (Sprint 2 — T2.1) ────────────────────────────────
+      GoRoute(
+        path: AppRoutes.editProfile,
+        name: 'edit-profile',
+        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        pageBuilder: (context, state) {
+          final cubit = state.extra as ProfileCubit;
+          return MaterialPage(
+            child: BlocProvider.value(
+              value: cubit,
+              child: const EditProfilePage(),
+            ),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: AppRoutes.profile,
+        name: 'profile',
+        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        pageBuilder: (context, state) {
+          final handle = state.pathParameters['handle'] ?? '';
+          return MaterialPage(
+            child: ProfilePage(handle: handle),
+          );
+        },
+      ),
+
+      // ── Social (Followers/Following) ──────────────────────────────
+      GoRoute(
+        path: AppRoutes.followers,
+        name: 'followers',
+        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        pageBuilder: (context, state) {
+          final handle = state.pathParameters['handle'] ?? '';
+          return MaterialPage(
+            child: FollowersPage(handle: handle),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: AppRoutes.following,
+        name: 'following',
+        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        pageBuilder: (context, state) {
+          final handle = state.pathParameters['handle'] ?? '';
+          return MaterialPage(
+            child: FollowingPage(handle: handle),
+          );
+        },
+      ),
+
+      // ── Track management demo (Sprint 2) ─────────────────────────
+      GoRoute(
+        path: AppRoutes.trackManagementDemo,
+        name: 'track-management',
+        pageBuilder: (context, state) {
+          final ManagedTrack initialTrack = state.extra is ManagedTrack
+              ? state.extra as ManagedTrack
+              : _fallbackTrackManagementSeed();
+
+          return MaterialPage(
+            child: BlocProvider<TrackManagementCubit>(
+              create: (_) => getIt<TrackManagementCubit>(),
+              child: TrackManagementPage(
+                initialTrack: initialTrack,
+              ),
+            ),
+          );
+        },
+      ),
+    ],
+
+    // ── 404 fallback ───────────────────────────────────────────────
+    errorBuilder: (context, state) => Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.link_off, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'Page not found',
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => context.go(AppRoutes.home),
+              child: const Text(
+                'Go Home',
+                style: TextStyle(color: Color(0xFFFF5500)),
+              ),
+            ),
+          ],
         ),
       ),
     ),
+  );
+}
 
-    // ── Upload picker (Sprint 1) ──────────────────────────────────
-    GoRoute(
-      path: AppRoutes.uploadPicker,
-      name: 'upload-picker',
-      pageBuilder: (context, state) => MaterialPage(
-        child: BlocProvider<UploadPickerCubit>(
-          create: (_) => getIt<UploadPickerCubit>(),
-          child: const UploadPickerPage(),
-        ),
-      ),
-    ),
+// ── Router instance (for app use) ──────────────────────────────────────────
+// This is used by the main application entry point.
+final router = _createRouter();
 
-    // ── Profile (Sprint 2 — T2.1) ────────────────────────────────
-    GoRoute(
-      path: AppRoutes.editProfile,
-      name: 'edit-profile',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) {
-        final cubit = state.extra as ProfileCubit;
-        return MaterialPage(
-          child: BlocProvider.value(
-            value: cubit,
-            child: const EditProfilePage(),
-          ),
-        );
-      },
-    ),
+// ── Factory method for testing (creates fresh router instance) ─────────────
+// This is used by your router_test.dart to get an isolated router.
+GoRouter createRouter() {
+  return _createRouter();
+}
 
-    GoRoute(
-      path: AppRoutes.profile,
-      name: 'profile',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) {
-        final handle = state.pathParameters['handle'] ?? '';
-        return MaterialPage(
-          child: ProfilePage(handle: handle),
-        );
-      },
-    ),
-
-    // Note: This must come BEFORE or be distinct from /profile/:handle
-    // to avoid being captured by the dynamic parameter if paths overlap.
-
-    // ── Social (Followers/Following) ──────────────────────────────
-    GoRoute(
-      path: AppRoutes.followers,
-      name: 'followers',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) {
-        final handle = state.pathParameters['handle'] ?? '';
-        return MaterialPage(
-          child: FollowersPage(handle: handle),
-        );
-      },
-    ),
-
-    GoRoute(
-      path: AppRoutes.following,
-      name: 'following',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) {
-        final handle = state.pathParameters['handle'] ?? '';
-        return MaterialPage(
-          child: FollowingPage(handle: handle),
-        );
-      },
-    ),
-
-    // ── Track management demo (Sprint 2) ─────────────────────────
-    GoRoute(
-      path: AppRoutes.trackManagementDemo,
-      name: 'track-management',
-      pageBuilder: (context, state) {
-        final ManagedTrack initialTrack = state.extra is ManagedTrack
-            ? state.extra as ManagedTrack
-            : _fallbackTrackManagementSeed();
-
-        return MaterialPage(
-          child: BlocProvider<TrackManagementCubit>(
-            create: (_) => getIt<TrackManagementCubit>(),
-            child: TrackManagementPage(
-              initialTrack: initialTrack,
-            ),
-          ),
-        );
-      },
-    ),
-  ],
-
-  // ── 404 fallback ───────────────────────────────────────────────
-  errorBuilder: (context, state) => Scaffold(
-    backgroundColor: Colors.black,
-    body: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.link_off, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
-            'Page not found',
-            style: TextStyle(color: Colors.white, fontSize: 20),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => context.go(AppRoutes.home),
-            child: const Text(
-              'Go Home',
-              style: TextStyle(color: Color(0xFFFF5500)),
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-);
-
+// ── Placeholder Page ───────────────────────────────────────────────────────
 class _PlaceholderPage extends StatelessWidget {
   const _PlaceholderPage({required this.title});
 

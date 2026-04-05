@@ -17,14 +17,15 @@ class ProfileEntity {
   final String handle;
   final String? bio;
   final String? location;
+  final String? website;
   final String? avatarUrl;
   final String? coverPhotoUrl;
   final AccountTier accountTier;
   final List<String> favoriteGenres;
   final Map<String, String> externalLinks;
   final ProfileVisibility visibility;
-  final int followersCount; // Add this
-  final int followingCount; // Add this
+  final int followersCount;
+  final int followingCount;
 
   const ProfileEntity({
     required this.id,
@@ -32,28 +33,32 @@ class ProfileEntity {
     required this.handle,
     this.bio,
     this.location,
+    this.website,
     this.avatarUrl,
     this.coverPhotoUrl,
     required this.accountTier,
     required this.favoriteGenres,
     required this.externalLinks,
     required this.visibility,
-    required this.followersCount, // Add this
-    required this.followingCount, // Add this
+    required this.followersCount,
+    required this.followingCount,
   });
 
-  /// Creates a copy of this entity with certain fields replaced.
+  bool get isPrivate => visibility == ProfileVisibility.PRIVATE;
+
   ProfileEntity copyWith({
     String? displayName,
     String? bio,
     String? location,
+    String? website,
     String? avatarUrl,
     String? coverPhotoUrl,
+    AccountTier? accountTier,
     List<String>? favoriteGenres,
     Map<String, String>? externalLinks,
     ProfileVisibility? visibility,
-    int? followersCount, // Add this
-    int? followingCount, // Add this
+    int? followersCount,
+    int? followingCount,
   }) {
     return ProfileEntity(
       id: id,
@@ -61,14 +66,15 @@ class ProfileEntity {
       handle: handle,
       bio: bio ?? this.bio,
       location: location ?? this.location,
+      website: website ?? this.website,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
-      accountTier: accountTier,
+      accountTier: accountTier ?? this.accountTier,
       favoriteGenres: favoriteGenres ?? this.favoriteGenres,
       externalLinks: externalLinks ?? this.externalLinks,
       visibility: visibility ?? this.visibility,
-      followersCount: followersCount ?? this.followersCount, // Add this
-      followingCount: followingCount ?? this.followingCount, // Add this
+      followersCount: followersCount ?? this.followersCount,
+      followingCount: followingCount ?? this.followingCount,
     );
   }
 }
