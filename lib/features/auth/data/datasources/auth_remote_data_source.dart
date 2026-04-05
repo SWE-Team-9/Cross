@@ -1,9 +1,5 @@
-// Dart SDK
 import 'dart:convert';
 
-// Flutter
-// Third-party
-// Project
 import '../../../../core/network/dio_client.dart';
 import '../dto/auth_response_dto.dart';
 import '../dto/user_dto.dart';
@@ -28,14 +24,28 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<void> forgotPassword({required String email});
+
   Future<void> resetPassword({
     required String code,
     required String newPassword,
     required String newPasswordConfirm,
   });
+
   Future<void> sendEmailVerification({required String email});
+
   Future<void> verifyEmail({required String code});
+
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  });
+
+  Future<void> confirmEmailChange({
+    required String token,
+  });
+
   Future<UserDto> getCurrentUser();
+
   Future<void> logout();
 }
 
@@ -64,14 +74,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
-    // CookieManager automatically stores the httpOnly access_token and
-    // refresh_token cookies from the Set-Cookie header.
-    // We must NOT extract them manually here — doing so would save them
-    // to SecureStorage, which causes AuthInterceptor to add them as a
-    // Bearer header on every subsequent request, resulting in double auth.
     return AuthResponseDto(
-      accessToken: '', // intentionally empty — managed by CookieManager
-      refreshToken: '', // intentionally empty — managed by CookieManager
+      accessToken: '',
+      refreshToken: '',
       user: UserDto.fromJson(responseData['user']),
     );
   }
@@ -102,7 +107,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
-    // Same as login — no manual cookie extraction.
     return AuthResponseDto(
       accessToken: '',
       refreshToken: '',
@@ -147,6 +151,32 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     await dioClient.dio.get(
       ApiConstants.verifyEmail,
       queryParameters: {'token': code},
+    );
+  }
+
+  @override
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  }) async {
+    await dioClient.dio.post(
+      ApiConstants.emailChange,
+      data: {
+        'new_email': newEmail,
+        'current_password': currentPassword,
+      },
+    );
+  }
+
+  @override
+  Future<void> confirmEmailChange({
+    required String token,
+  }) async {
+    await dioClient.dio.post(
+      ApiConstants.confirmEmailChange,
+      data: {
+        'token': token,
+      },
     );
   }
 
