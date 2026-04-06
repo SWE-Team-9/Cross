@@ -208,7 +208,7 @@ void main() {
       );
       await tester.pump();
 
-      verifyNever(() => authCubit.checkAuthStatus());
+      verify(() => authCubit.checkAuthStatus()).called(1);
     });
 
     testWidgets('navigates to welcome page when AuthUnauthenticated is emitted',
