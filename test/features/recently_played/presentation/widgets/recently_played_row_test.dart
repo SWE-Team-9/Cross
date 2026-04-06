@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_card.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
   @override
-  Stream<PlayerState> get playerStateStream => const Stream.empty();
+  Stream<PlayerState> get playerStateStream =>
+      const Stream<PlayerState>.empty();
 
   @override
-  Future<void> play(track) async {}
+  Future<void> play(Track track) async {}
 
   @override
   Future<void> pause() async {}
+
+  @override
+  Future<void> resume() async {}
 
   @override
   Future<void> stop() async {}
@@ -49,9 +56,12 @@ void main() {
 
   Widget wrap(Widget child) {
     return MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.black,
-        body: child,
+      home: BlocProvider(
+        create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: child,
+        ),
       ),
     );
   }

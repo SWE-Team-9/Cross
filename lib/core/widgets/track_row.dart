@@ -13,104 +13,114 @@ class TrackRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PlayerCubit, PlayerUIState>(
-      builder: (context, state) {
-        final isPlaying = state.currentTrack?.id == track.id && state.isPlaying;
+    // 🔥 FIX: wrap with Builder to ensure proper context for Bloc
+    return Builder(
+      builder: (context) {
+        return BlocBuilder<PlayerCubit, PlayerUIState>(
+          builder: (context, state) {
+            final isPlaying =
+                state.currentTrack?.id == track.id && state.isPlaying;
 
-        return InkWell(
-          onTap: () async {
-            final cubit = context.read<PlayerCubit>();
+            return InkWell(
+              onTap: () async {
+                final cubit = context.read<PlayerCubit>();
 
-            await cubit.play(track);
+                await cubit.play(track);
 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const FullPlayerPage(),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FullPlayerPage(),
+                  ),
+                );
+              },
+              splashColor: Colors.white10,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Row(
+                  children: [
+                    // Artwork
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.grey[800],
+                        image: track.artworkUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(track.artworkUrl!),
+                                fit: BoxFit.cover,
+                                onError: (_, __) {},
+                              )
+                            : null,
+                      ),
+                      child: track.artworkUrl == null
+                          ? const Icon(Icons.music_note, color: Colors.white)
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Track info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            track.title,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          if (isPlaying)
+                            Row(
+                              children: const [
+                                Icon(
+                                  Icons.equalizer,
+                                  color: Color(0xFFFF5500),
+                                  size: 16,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Now Playing',
+                                  style: TextStyle(
+                                    color: Color(0xFFFF5500),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              track.artist,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF999999),
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // More options button
+                    IconButton(
+                      onPressed: () => _openMenu(context),
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
-          splashColor: Colors.white10,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              children: [
-                // Artwork
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    color: Colors.grey[800],
-                    image: track.artworkUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(track.artworkUrl!),
-                            fit: BoxFit.cover,
-                            onError: (_, __) {},
-                          )
-                        : null,
-                  ),
-                  child: track.artworkUrl == null
-                      ? const Icon(Icons.music_note, color: Colors.white)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-
-                // Track info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        track.title,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      if (isPlaying)
-                        Row(
-                          children: const [
-                            Icon(
-                              Icons.equalizer,
-                              color: Color(0xFFFF5500),
-                              size: 16,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Now Playing',
-                              style: TextStyle(
-                                color: Color(0xFFFF5500),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        Text(
-                          track.artist,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF999999),
-                            fontSize: 12,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                // More options button
-                IconButton(
-                  onPressed: () => _openMenu(context),
-                  icon: const Icon(Icons.more_vert, color: Color(0xFF666666)),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
@@ -129,13 +139,17 @@ class TrackRow extends StatelessWidget {
           ),
           const ListTile(
             leading: Icon(Icons.playlist_add, color: Colors.white),
-            title:
-                Text('Add to playlist', style: TextStyle(color: Colors.white)),
+            title: Text(
+              'Add to playlist',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.person, color: Colors.white),
-            title: const Text('Go to artist',
-                style: TextStyle(color: Colors.white)),
+            title: const Text(
+              'Go to artist',
+              style: TextStyle(color: Colors.white),
+            ),
             onTap: () {
               if (track.handle != null && track.handle!.isNotEmpty) {
                 ProfileRoutes.goToProfile(context, track.handle!);
@@ -153,7 +167,10 @@ class TrackRow extends StatelessWidget {
           const Divider(color: Color(0xFF1F1F1F), height: 1),
           ListTile(
             leading: const Icon(Icons.report, color: Colors.red),
-            title: const Text('Report', style: TextStyle(color: Colors.red)),
+            title: const Text(
+              'Report',
+              style: TextStyle(color: Colors.red),
+            ),
             onTap: () {
               Navigator.pop(context);
             },
