@@ -27,7 +27,7 @@ class App extends StatelessWidget {
           ),
 
           BlocProvider(
-            create: (_) => PlayerCubit(getIt()),
+            create: (_) => getIt<PlayerCubit>(),
           ),
         ],
         child: MaterialApp.router(

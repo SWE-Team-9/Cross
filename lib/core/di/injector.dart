@@ -26,6 +26,9 @@ import '../../features/auth/domain/usecases/send_email_verification_usecase.dart
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_cubit.dart';
 
+//PlayBack
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+
 // Upload
 import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
 import '../../features/upload/data/datasources/trackManagementRemoteDataSource.dart';
@@ -104,6 +107,12 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
       () => JustAudioPlayerService(),
+    );
+  }
+
+  if (!getIt.isRegistered<PlayerCubit>()) {
+    getIt.registerFactory<PlayerCubit>(
+      () => PlayerCubit(getIt<AudioPlayerService>()),
     );
   }
 
