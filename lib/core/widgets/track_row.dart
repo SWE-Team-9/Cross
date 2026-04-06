@@ -1,38 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:soundcloud_clone/core/models/player_state.dart';
-import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart'; // ✅ ADD THIS
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
+import 'package:soundcloud_clone/features/playback/presentation/pages/full_player_page.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
-import '../models/track.dart';
-import '../services/audio_player_service.dart';
 
-class TrackRow extends StatefulWidget {
+class TrackRow extends StatelessWidget {
   final Track track;
 
   const TrackRow({super.key, required this.track});
 
   @override
-  State<TrackRow> createState() => _TrackRowState();
-}
-
-class _TrackRowState extends State<TrackRow> {
-  @override
   Widget build(BuildContext context) {
-    final player = GetIt.I<AudioPlayerService>();
-
-    return StreamBuilder<PlayerState>(
-      stream: player.playerStateStream,
-      builder: (context, snapshot) {
-        final state = snapshot.data;
-
-        final isPlaying = state?.currentTrackId == widget.track.id;
+    return BlocBuilder<PlayerCubit, PlayerUIState>(
+      builder: (context, state) {
+        final isPlaying = state.currentTrack?.id == track.id && state.isPlaying;
 
         return InkWell(
           onTap: () async {
-            await player.play(widget.track);
+            final cubit = context.read<PlayerCubit>();
 
-            final recentlyPlayedCubit = GetIt.I<RecentlyPlayedCubit>();
-            recentlyPlayedCubit.addTrack(widget.track);
+            await cubit.play(track);
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const FullPlayerPage(),
+              ),
+            );
           },
           splashColor: Colors.white10,
           child: Padding(
@@ -46,15 +42,15 @@ class _TrackRowState extends State<TrackRow> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(4),
                     color: Colors.grey[800],
-                    image: widget.track.artworkUrl != null
+                    image: track.artworkUrl != null
                         ? DecorationImage(
-                            image: NetworkImage(widget.track.artworkUrl!),
+                            image: NetworkImage(track.artworkUrl!),
                             fit: BoxFit.cover,
                             onError: (_, __) {},
                           )
                         : null,
                   ),
-                  child: widget.track.artworkUrl == null
+                  child: track.artworkUrl == null
                       ? const Icon(Icons.music_note, color: Colors.white)
                       : null,
                 ),
@@ -66,7 +62,7 @@ class _TrackRowState extends State<TrackRow> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.track.title,
+                        track.title,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
@@ -96,7 +92,7 @@ class _TrackRowState extends State<TrackRow> {
                         )
                       else
                         Text(
-                          widget.track.artist,
+                          track.artist,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFF999999),
@@ -141,11 +137,9 @@ class _TrackRowState extends State<TrackRow> {
             title: const Text('Go to artist',
                 style: TextStyle(color: Colors.white)),
             onTap: () {
-              if (widget.track.handle != null &&
-                  widget.track.handle!.isNotEmpty) {
-                ProfileRoutes.goToProfile(context, widget.track.handle!);
+              if (track.handle != null && track.handle!.isNotEmpty) {
+                ProfileRoutes.goToProfile(context, track.handle!);
               } else {
-                // Fallback: show snackbar if no handle available
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Artist profile not available'),
@@ -162,7 +156,6 @@ class _TrackRowState extends State<TrackRow> {
             title: const Text('Report', style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Show report dialog
             },
           ),
         ],

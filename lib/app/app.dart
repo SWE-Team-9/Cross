@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/di/injector.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
+import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/social/data/repositories/social_repo.dart';
+
 import 'router.dart';
 
 class App extends StatelessWidget {
@@ -17,8 +19,17 @@ class App extends StatelessWidget {
           value: getIt<SocialRepo>(),
         ),
       ],
-      child: BlocProvider(
-        create: (_) => getIt<AuthCubit>(),
+      child: MultiBlocProvider(
+        providers: [
+          // Auth (existing)
+          BlocProvider(
+            create: (_) => getIt<AuthCubit>(),
+          ),
+
+          BlocProvider(
+            create: (_) => PlayerCubit(getIt()),
+          ),
+        ],
         child: MaterialApp.router(
           title: 'SoundCloud Clone',
           debugShowCheckedModeBanner: false,
