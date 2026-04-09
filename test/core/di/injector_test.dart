@@ -3,16 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
-import 'package:soundcloud_clone/features/upload/data/datasources/audioFilePickerDataSource.dart';
-import 'package:soundcloud_clone/features/upload/data/datasources/trackManagementRemoteDataSource.dart';
-import 'package:soundcloud_clone/features/upload/domain/repositories/trackManagementRepository.dart';
-import 'package:soundcloud_clone/features/upload/domain/repositories/uploadRepository.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/deleteTrackUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/pickAudioFileUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/updateTrackMetadataUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/updateTrackVisibilityUseCase.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/trackManagementCubit.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/uploadPickerCubit.dart';
+import 'package:soundcloud_clone/features/upload/data/datasources/audio_file_picker_data_source.dart';
+import 'package:soundcloud_clone/features/upload/data/datasources/track_management_remote_data_source.dart';
+import 'package:soundcloud_clone/features/upload/domain/repositories/track_management_repository.dart';
+import 'package:soundcloud_clone/features/upload/domain/repositories/upload_repository.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/delete_track_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/pick_audi_file_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_metadata_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_visibility_usecase.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_cubit.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

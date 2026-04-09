@@ -2,9 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
-import 'package:soundcloud_clone/features/upload/data/datasources/trackManagementRemoteDataSource.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementForm.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
+import 'package:soundcloud_clone/features/upload/data/datasources/track_management_remote_data_source.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_form.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 
 class MockDioClient extends Mock implements DioClient {}
 
