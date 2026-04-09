@@ -11,6 +11,8 @@ abstract class AudioPlayerService {
   /// Pause playback
   Future<void> pause();
 
+  Future<void> resume();
+
   /// Stop playback
   Future<void> stop();
 
