@@ -17,10 +17,10 @@ class AppConfig {
 
     if (isProduction) return 'https://iqa3.tech';
 
-    // local
-    if (Platform.isAndroid) return 'http://10.0.2.2:3006';
+    // dev
+    if (Platform.isAndroid) return 'https://iqa3.tech';
     if (Platform.isIOS) return 'http://localhost:3006';
-    return 'http://127.0.0.1:3006';
+    return 'http://127.0.0.1:3006/api/v1';
   }
 
   static const bool useMockTrackManagement = bool.fromEnvironment(
@@ -35,9 +35,9 @@ class AppConfig {
 
   static String get recaptchaAndroidSiteKey {
     if (isProduction) {
-      return '6LcSaaUsAAAAAGyGyUpMDucYoF7GOTpENPLhzuaj'; // devops production key
+      return '6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7';
     }
-    return '6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5'; // your local key
+    return '6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7';
   }
 
   static const String recaptchaWindowsWebUrl = String.fromEnvironment(
