@@ -30,19 +30,19 @@ import '../../features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 
 // Upload
-import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
-import '../../features/upload/data/datasources/trackManagementRemoteDataSource.dart';
-import '../../features/upload/data/repositories/trackManagementRepositoryFake.dart';
-import '../../features/upload/data/repositories/trackManagementRepositoryImpl.dart';
-import '../../features/upload/data/repositories/uploadRepositoryImpl.dart';
-import '../../features/upload/domain/repositories/trackManagementRepository.dart';
-import '../../features/upload/domain/repositories/uploadRepository.dart';
-import '../../features/upload/domain/usecases/deleteTrackUseCase.dart';
-import '../../features/upload/domain/usecases/pickAudioFileUseCase.dart';
-import '../../features/upload/domain/usecases/updateTrackMetadataUseCase.dart';
-import '../../features/upload/domain/usecases/updateTrackVisibilityUseCase.dart';
-import '../../features/upload/presentation/bloc/trackManagementCubit.dart';
-import '../../features/upload/presentation/bloc/uploadPickerCubit.dart';
+import '../../features/upload/data/datasources/audio_file_picker_data_source.dart';
+import '../../features/upload/data/datasources/track_management_remote_data_source.dart';
+import '../../features/upload/data/repositories/track_management_repository_fake.dart';
+import '../../features/upload/data/repositories/track_management_repository_impl.dart';
+import '../../features/upload/data/repositories/upload_repository_impl.dart';
+import '../../features/upload/domain/repositories/track_management_repository.dart';
+import '../../features/upload/domain/repositories/upload_repository.dart';
+import '../../features/upload/domain/usecases/delete_track_usecase.dart';
+import '../../features/upload/domain/usecases/pick_audi_file_usecase.dart';
+import '../../features/upload/domain/usecases/update_track_metadata_usecase.dart';
+import '../../features/upload/domain/usecases/update_track_visibility_usecase.dart';
+import '../../features/upload/presentation/bloc/track_management_cubit.dart';
+import '../../features/upload/presentation/bloc/upload_picker_cubit.dart';
 
 // Profile feature from dev
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'

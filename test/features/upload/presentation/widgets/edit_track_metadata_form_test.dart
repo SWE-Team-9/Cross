@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementForm.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/trackManagementState.dart';
-import 'package:soundcloud_clone/features/upload/presentation/widgets/EditTrackMetadataForm.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_form.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_state.dart';
+import 'package:soundcloud_clone/features/upload/presentation/widgets/edit_track_metadata_form.dart';
 
 void main() {
   group('EditTrackMetadataForm', () {

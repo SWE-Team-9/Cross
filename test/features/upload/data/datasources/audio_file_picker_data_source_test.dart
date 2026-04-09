@@ -2,7 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:soundcloud_clone/features/upload/data/datasources/audioFilePickerDataSource.dart';
+import 'package:soundcloud_clone/features/upload/data/datasources/audio_file_picker_data_source.dart';
 
 class MockFilePicker extends Mock
     with MockPlatformInterfaceMixin

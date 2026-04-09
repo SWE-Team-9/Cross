@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/presentation/widgets/DeleteTrackConfirmationDialog.dart';
+import 'package:soundcloud_clone/features/upload/presentation/widgets/delete_track_confirmation_dialog.dart';
 
 void main() {
   Widget buildApp() {

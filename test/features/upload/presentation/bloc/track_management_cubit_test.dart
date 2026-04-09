@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/data/repositories/trackManagementRepositoryFake.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/deleteTrackUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/updateTrackMetadataUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/updateTrackVisibilityUseCase.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/trackManagementCubit.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/trackManagementState.dart';
+import 'package:soundcloud_clone/features/upload/data/repositories/track_management_repository_fake.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/delete_track_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_metadata_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_visibility_usecase.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_cubit.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_state.dart';
 
 class TestTrackManagementCubit extends TrackManagementCubit {
   TestTrackManagementCubit(
