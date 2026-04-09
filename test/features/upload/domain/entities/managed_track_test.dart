@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 
 void main() {
   const baseTrack = ManagedTrack(
