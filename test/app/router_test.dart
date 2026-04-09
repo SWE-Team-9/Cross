@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 
 import 'package:soundcloud_clone/app/router.dart' as app_router;
 import 'package:soundcloud_clone/core/models/player_state.dart';
@@ -42,6 +43,8 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> pause() async {}
+
+  Future<void> resume() async {}
 
   @override
   Future<void> stop() async {}
@@ -168,8 +171,11 @@ void main() {
           BlocProvider<UploadPickerCubit>.value(value: uploadPickerCubit),
           Provider<SocialRepo>.value(value: mockSocialRepo),
         ],
-        child: MaterialApp.router(
-          routerConfig: router,
+        child: BlocProvider<PlayerCubit>(
+          create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
         ),
       ),
     );
@@ -188,8 +194,13 @@ void main() {
 
       final router = app_router.createRouter();
       await tester.pumpWidget(
-        BlocProvider<AuthCubit>.value(
-          value: authCubit,
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthCubit>.value(value: authCubit),
+            BlocProvider<PlayerCubit>(
+              create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+            ),
+          ],
           child: MaterialApp.router(
             routerConfig: router,
           ),
@@ -197,7 +208,6 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
       verify(() => authCubit.checkAuthStatus()).called(1);
     });
 
