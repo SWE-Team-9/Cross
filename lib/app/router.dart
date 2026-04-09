@@ -8,12 +8,12 @@ import '../core/di/injector.dart';
 import '../features/profile/presentation/bloc/profile_cubit.dart';
 
 // Upload (existing — Sprint 1)
-import '../features/upload/domain/entities/ManagedTrack.dart';
-import '../features/upload/domain/entities/TrackManagementVisibility.dart';
-import '../features/upload/presentation/bloc/trackManagementCubit.dart';
-import '../features/upload/presentation/bloc/uploadPickerCubit.dart';
-import '../features/upload/presentation/pages/TrackManagementPage.dart';
-import '../features/upload/presentation/pages/UploadPickerPage.dart';
+import '../features/upload/domain/entities/managed_track.dart';
+import '../features/upload/domain/entities/track_management_visibility.dart';
+import '../features/upload/presentation/bloc/track_management_cubit.dart';
+import '../features/upload/presentation/bloc/upload_picker_cubit.dart';
+import '../features/upload/presentation/pages/track_management_page.dart';
+import '../features/upload/presentation/pages/upload_picker_page.dart';
 
 // Auth (existing — Sprint 1)
 import '../features/auth/presentation/routes/auth_routes.dart';

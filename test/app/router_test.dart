@@ -27,12 +27,12 @@ import 'package:soundcloud_clone/features/profile/presentation/pages/profile_pag
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/followers_page.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/following_page.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/uploadPickerCubit.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/uploadPickerState.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/trackManagementCubit.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/trackManagementState.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_cubit.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_state.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
-import 'package:soundcloud_clone/features/upload/presentation/pages/UploadPickerPage.dart';
+import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
   @override
