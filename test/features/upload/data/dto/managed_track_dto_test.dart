@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/data/dto/ManagedTrackDto.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
+import 'package:soundcloud_clone/features/upload/data/dto/managed_track_dto.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 
 void main() {
   group('ManagedTrackDto', () {

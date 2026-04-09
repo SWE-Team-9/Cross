@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
-import 'package:soundcloud_clone/features/upload/presentation/widgets/TrackVisibilitySelector.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
+import 'package:soundcloud_clone/features/upload/presentation/widgets/track_visibility_selector.dart';
 
 void main() {
   group('TrackVisibilitySelector', () {
