@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
-import 'package:soundcloud_clone/features/upload/presentation/models/applyTrackManagementResult.dart';
-import 'package:soundcloud_clone/features/upload/presentation/models/trackManagementResult.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
+import 'package:soundcloud_clone/features/upload/presentation/models/apply_track_management_result.dart';
+import 'package:soundcloud_clone/features/upload/presentation/models/track_management_result.dart';
 
 void main() {
   group('applyTrackManagementResult', () {
