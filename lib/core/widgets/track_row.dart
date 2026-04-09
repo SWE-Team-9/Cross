@@ -1,120 +1,126 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:soundcloud_clone/core/models/player_state.dart';
-import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart'; // ✅ ADD THIS
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
+import 'package:soundcloud_clone/features/playback/presentation/pages/full_player_page.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
-import '../models/track.dart';
-import '../services/audio_player_service.dart';
 
-class TrackRow extends StatefulWidget {
+class TrackRow extends StatelessWidget {
   final Track track;
 
   const TrackRow({super.key, required this.track});
 
   @override
-  State<TrackRow> createState() => _TrackRowState();
-}
-
-class _TrackRowState extends State<TrackRow> {
-  @override
   Widget build(BuildContext context) {
-    final player = GetIt.I<AudioPlayerService>();
+    // 🔥 FIX: wrap with Builder to ensure proper context for Bloc
+    return Builder(
+      builder: (context) {
+        return BlocBuilder<PlayerCubit, PlayerUIState>(
+          builder: (context, state) {
+            final isPlaying =
+                state.currentTrack?.id == track.id && state.isPlaying;
 
-    return StreamBuilder<PlayerState>(
-      stream: player.playerStateStream,
-      builder: (context, snapshot) {
-        final state = snapshot.data;
+            return InkWell(
+              onTap: () async {
+                final cubit = context.read<PlayerCubit>();
 
-        final isPlaying = state?.currentTrackId == widget.track.id;
+                await cubit.play(track);
 
-        return InkWell(
-          onTap: () async {
-            await player.play(widget.track);
-
-            final recentlyPlayedCubit = GetIt.I<RecentlyPlayedCubit>();
-            recentlyPlayedCubit.addTrack(widget.track);
-          },
-          splashColor: Colors.white10,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              children: [
-                // Artwork
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    color: Colors.grey[800],
-                    image: widget.track.artworkUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(widget.track.artworkUrl!),
-                            fit: BoxFit.cover,
-                            onError: (_, __) {},
-                          )
-                        : null,
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FullPlayerPage(),
                   ),
-                  child: widget.track.artworkUrl == null
-                      ? const Icon(Icons.music_note, color: Colors.white)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-
-                // Track info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.track.title,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                );
+              },
+              splashColor: Colors.white10,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Row(
+                  children: [
+                    // Artwork
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.grey[800],
+                        image: track.artworkUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(track.artworkUrl!),
+                                fit: BoxFit.cover,
+                                onError: (_, __) {},
+                              )
+                            : null,
                       ),
-                      const SizedBox(height: 3),
-                      if (isPlaying)
-                        Row(
-                          children: const [
-                            Icon(
-                              Icons.equalizer,
-                              color: Color(0xFFFF5500),
-                              size: 16,
+                      child: track.artworkUrl == null
+                          ? const Icon(Icons.music_note, color: Colors.white)
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Track info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            track.title,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
-                            SizedBox(width: 6),
+                          ),
+                          const SizedBox(height: 3),
+                          if (isPlaying)
+                            Row(
+                              children: const [
+                                Icon(
+                                  Icons.equalizer,
+                                  color: Color(0xFFFF5500),
+                                  size: 16,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Now Playing',
+                                  style: TextStyle(
+                                    color: Color(0xFFFF5500),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
                             Text(
-                              'Now Playing',
-                              style: TextStyle(
-                                color: Color(0xFFFF5500),
+                              track.artist,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF999999),
                                 fontSize: 12,
-                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        )
-                      else
-                        Text(
-                          widget.track.artist,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF999999),
-                            fontSize: 12,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                        ],
+                      ),
+                    ),
 
-                // More options button
-                IconButton(
-                  onPressed: () => _openMenu(context),
-                  icon: const Icon(Icons.more_vert, color: Color(0xFF666666)),
+                    // More options button
+                    IconButton(
+                      onPressed: () => _openMenu(context),
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -133,19 +139,21 @@ class _TrackRowState extends State<TrackRow> {
           ),
           const ListTile(
             leading: Icon(Icons.playlist_add, color: Colors.white),
-            title:
-                Text('Add to playlist', style: TextStyle(color: Colors.white)),
+            title: Text(
+              'Add to playlist',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.person, color: Colors.white),
-            title: const Text('Go to artist',
-                style: TextStyle(color: Colors.white)),
+            title: const Text(
+              'Go to artist',
+              style: TextStyle(color: Colors.white),
+            ),
             onTap: () {
-              if (widget.track.handle != null &&
-                  widget.track.handle!.isNotEmpty) {
-                ProfileRoutes.goToProfile(context, widget.track.handle!);
+              if (track.handle != null && track.handle!.isNotEmpty) {
+                ProfileRoutes.goToProfile(context, track.handle!);
               } else {
-                // Fallback: show snackbar if no handle available
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Artist profile not available'),
@@ -159,10 +167,12 @@ class _TrackRowState extends State<TrackRow> {
           const Divider(color: Color(0xFF1F1F1F), height: 1),
           ListTile(
             leading: const Icon(Icons.report, color: Colors.red),
-            title: const Text('Report', style: TextStyle(color: Colors.red)),
+            title: const Text(
+              'Report',
+              style: TextStyle(color: Colors.red),
+            ),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Show report dialog
             },
           ),
         ],
