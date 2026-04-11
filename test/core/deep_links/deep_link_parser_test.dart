@@ -6,7 +6,6 @@ import 'package:soundcloud_clone/core/deep_links/deep_link_parser.dart';
 
 void main() {
   group('DeepLinkParser', () {
-
     group('track links', () {
       test('parses valid track link', () {
         final uri = Uri.parse('soundclone://track/abc-123-uuid');
@@ -24,7 +23,8 @@ void main() {
 
     group('secret track links', () {
       test('parses valid secret track link', () {
-        final uri = Uri.parse('soundclone://track/secret/V1StGXR8_Z5jdHi6B-myT-RQ');
+        final uri =
+            Uri.parse('soundclone://track/secret/V1StGXR8_Z5jdHi6B-myT-RQ');
         final result = DeepLinkParser.parse(uri);
         expect(result, isA<SecretTrackDeepLink>());
         expect(

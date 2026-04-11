@@ -50,31 +50,31 @@ import '../features/home/presentation/pages/mock_home_page.dart';
 // ── Route name constants ──────────────────────────────────────────────────────
 class AppRoutes {
   // Existing routes
-  static const String home              = '/home';
-  static const String feed              = '/feed';
-  static const String search            = '/search';
-  static const String library           = '/library';
-  static const String upgrade           = '/upgrade';
-  static const String uploadPicker      = '/upload-picker';
-  static const String editProfile       = '/profile/edit';
-  static const String profile           = '/profile/:handle';
-  static const String followers         = '/followers/:handle';
-  static const String following         = '/following/:handle';
+  static const String home = '/home';
+  static const String feed = '/feed';
+  static const String search = '/search';
+  static const String library = '/library';
+  static const String upgrade = '/upgrade';
+  static const String uploadPicker = '/upload-picker';
+  static const String editProfile = '/profile/edit';
+  static const String profile = '/profile/:handle';
+  static const String followers = '/followers/:handle';
+  static const String following = '/following/:handle';
   static const String trackManagementDemo = '/track-management-demo';
 
   // Deep link destinations — Sprint 4 T4.1
-  static const String trackDetail       = '/track/:trackId';
-  static const String secretTrack       = '/track/secret/:token';
-  static const String playlist          = '/playlist/:playlistId';
+  static const String trackDetail = '/track/:trackId';
+  static const String secretTrack = '/track/secret/:token';
+  static const String playlist = '/playlist/:playlistId';
   // search already handles ?q= param — no new constant needed
 }
 
 // ── Path builders — used by deep link listener ────────────────────────────────
-String _trackPath(String trackId)    => '/track/$trackId';
-String _secretPath(String token)     => '/track/secret/$token';
-String _profilePath(String handle)   => '/profile/$handle';
-String _playlistPath(String id)      => '/playlist/$id';
-String _searchPath(String query)     => '/search?q=$query';
+String _trackPath(String trackId) => '/track/$trackId';
+String _secretPath(String token) => '/track/secret/$token';
+String _profilePath(String handle) => '/profile/$handle';
+String _playlistPath(String id) => '/playlist/$id';
+String _searchPath(String query) => '/search?q=$query';
 
 // ── Fallback seed for track management demo ───────────────────────────────────
 ManagedTrack _fallbackTrackManagementSeed() {
@@ -98,7 +98,6 @@ GoRouter _createRouter() {
     navigatorKey: rootNavigatorKey,
     initialLocation: AuthRoutes.splash,
     routes: [
-
       // ── Auth (Sprint 1) ─────────────────────────────────────────────────
       ...AuthRoutes.routes,
 

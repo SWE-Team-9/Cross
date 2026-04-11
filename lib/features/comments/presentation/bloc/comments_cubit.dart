@@ -159,23 +159,20 @@ class CommentsCubit extends Cubit<CommentsState> {
     required List<CommentEntity> comments,
     required String commentId,
   }) {
-    return comments
-        .where((comment) => comment.id != commentId)
-        .map((comment) {
-          return CommentEntity(
-            id: comment.id,
-            content: comment.content,
-            userId: comment.userId,
-            userDisplayName: comment.userDisplayName,
-            userAvatarUrl: comment.userAvatarUrl,
-            parentCommentId: comment.parentCommentId,
-            timestampSeconds: comment.timestampSeconds,
-            createdAt: comment.createdAt,
-            replies: comment.replies
-                .where((reply) => reply.id != commentId)
-                .toList(growable: false),
-          );
-        })
-        .toList(growable: false);
+    return comments.where((comment) => comment.id != commentId).map((comment) {
+      return CommentEntity(
+        id: comment.id,
+        content: comment.content,
+        userId: comment.userId,
+        userDisplayName: comment.userDisplayName,
+        userAvatarUrl: comment.userAvatarUrl,
+        parentCommentId: comment.parentCommentId,
+        timestampSeconds: comment.timestampSeconds,
+        createdAt: comment.createdAt,
+        replies: comment.replies
+            .where((reply) => reply.id != commentId)
+            .toList(growable: false),
+      );
+    }).toList(growable: false);
   }
 }
