@@ -34,7 +34,8 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
       if (!sourceDto.isPlayable) {
         return (
           detail: null,
-          failure: ForbiddenFailure('This track is not available for playback.'),
+          failure:
+              ForbiddenFailure('This track is not available for playback.'),
         );
       }
 
@@ -76,7 +77,8 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
       if (!sourceDto.isPlayable) {
         return (
           detail: null,
-          failure: ForbiddenFailure('This track is not available for playback.'),
+          failure:
+              ForbiddenFailure('This track is not available for playback.'),
         );
       }
 

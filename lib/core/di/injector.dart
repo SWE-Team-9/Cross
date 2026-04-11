@@ -136,7 +136,7 @@ Future<void> setupDependencies() async {
   }
 
   // ── Core Services ────────────────────────────────────────────────────────
-    if (!getIt.isRegistered<DeepLinkService>()) {
+  if (!getIt.isRegistered<DeepLinkService>()) {
     getIt.registerLazySingleton<DeepLinkService>(
       () => DeepLinkService(),
     );

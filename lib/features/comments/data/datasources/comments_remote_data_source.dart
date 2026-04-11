@@ -22,15 +22,16 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
 
   @override
   Future<List<CommentDto>> getTrackComments(String trackId) async {
-    final response = await dioClient.get(ApiConstants.trackCommentsPath(trackId));
+    final response =
+        await dioClient.get(ApiConstants.trackCommentsPath(trackId));
 
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
     final rawList = (responseData['comments'] ??
-            responseData['data'] ??
-            responseData['items'] ??
-            responseData) as List<dynamic>;
+        responseData['data'] ??
+        responseData['items'] ??
+        responseData) as List<dynamic>;
 
     return rawList
         .map((item) => CommentDto.fromJson(Map<String, dynamic>.from(item)))
@@ -57,7 +58,8 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
         response.data is String ? jsonDecode(response.data) : response.data;
 
     return CommentDto.fromJson(
-      Map<String, dynamic>.from(responseData['comment'] ?? responseData['data'] ?? responseData),
+      Map<String, dynamic>.from(
+          responseData['comment'] ?? responseData['data'] ?? responseData),
     );
   }
 

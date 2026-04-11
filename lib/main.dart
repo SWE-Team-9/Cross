@@ -6,7 +6,8 @@ import 'core/deep_links/deep_link_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setupDependencies();
-  await getIt<DeepLinkService>().init(); // ADD — boots cold + warm link listener
+  await getIt<DeepLinkService>()
+      .init(); // ADD — boots cold + warm link listener
 
   runApp(const App());
 }

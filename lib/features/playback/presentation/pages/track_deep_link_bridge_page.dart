@@ -40,8 +40,7 @@ class TrackDeepLinkBridgePage extends StatefulWidget {
       _TrackDeepLinkBridgePageState();
 }
 
-class _TrackDeepLinkBridgePageState
-    extends State<TrackDeepLinkBridgePage> {
+class _TrackDeepLinkBridgePageState extends State<TrackDeepLinkBridgePage> {
   @override
   void initState() {
     super.initState();

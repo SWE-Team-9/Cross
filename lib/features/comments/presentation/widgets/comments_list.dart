@@ -23,7 +23,8 @@ class CommentsList extends StatelessWidget {
           children: [
             CommentTile(
               comment: comment,
-              onDelete: () => context.read<CommentsCubit>().deleteComment(comment.id),
+              onDelete: () =>
+                  context.read<CommentsCubit>().deleteComment(comment.id),
               onReplySubmitted: (text) {
                 context.read<CommentsCubit>().replyToComment(
                       trackId: trackId,
@@ -35,7 +36,8 @@ class CommentsList extends StatelessWidget {
             ...comment.replies.map(
               (reply) => CommentTile(
                 comment: reply,
-                onDelete: () => context.read<CommentsCubit>().deleteComment(reply.id),
+                onDelete: () =>
+                    context.read<CommentsCubit>().deleteComment(reply.id),
               ),
             ),
           ],
