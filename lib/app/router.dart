@@ -4,10 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../core/di/injector.dart';
 
-// Profile
 import '../features/profile/presentation/bloc/profile_cubit.dart';
 
-// Upload (existing — Sprint 1)
 import '../features/upload/domain/entities/managed_track.dart';
 import '../features/upload/domain/entities/track_management_visibility.dart';
 import '../features/upload/presentation/bloc/track_management_cubit.dart';
@@ -15,25 +13,23 @@ import '../features/upload/presentation/bloc/upload_picker_cubit.dart';
 import '../features/upload/presentation/pages/track_management_page.dart';
 import '../features/upload/presentation/pages/upload_picker_page.dart';
 
-// Auth (existing — Sprint 1)
 import '../features/auth/presentation/routes/auth_routes.dart';
 
-// Profile (Sprint 2 — T2.1)
 import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/social/presentation/pages/followers_page.dart';
 import '../features/social/presentation/pages/following_page.dart';
 
-// Recently Played
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
-// Library
 import '../features/library/presentation/pages/library_page.dart';
 
-// Mock home page (temporary — replace with real home page in Sprint 4)
 import '../features/home/presentation/pages/mock_home_page.dart';
+import '../features/playback/presentation/pages/full_player_page.dart';
 
-// ── Route name constants ─────────────────────────────────────────────────────
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
+
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
@@ -61,20 +57,15 @@ ManagedTrack _fallbackTrackManagementSeed() {
   );
 }
 
-// ── Router Configuration ─────────────────────────────────────────────────────
 GoRouter _createRouter() {
-  // ✅ FIX: Create a unique Navigator key for every router instance.
-  // This prevents "Duplicate GlobalKey" errors during widget testing.
   final rootNavigatorKey = GlobalKey<NavigatorState>();
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AuthRoutes.splash,
     routes: [
-      // ── Auth (Sprint 1) ───────────────────────────────────────────
       ...AuthRoutes.routes,
 
-      // ── Home ──────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.home,
         name: 'home',
@@ -82,6 +73,7 @@ GoRouter _createRouter() {
           child: MockHomePage(),
         ),
       ),
+
       GoRoute(
         path: AppRoutes.feed,
         name: 'feed',
@@ -106,7 +98,6 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Library ───────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.library,
         name: 'library',
@@ -118,7 +109,6 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Upload picker (Sprint 1) ──────────────────────────────────
       GoRoute(
         path: AppRoutes.uploadPicker,
         name: 'upload-picker',
@@ -130,11 +120,10 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Profile (Sprint 2 — T2.1) ────────────────────────────────
       GoRoute(
         path: AppRoutes.editProfile,
         name: 'edit-profile',
-        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final cubit = state.extra as ProfileCubit;
           return MaterialPage(
@@ -149,7 +138,7 @@ GoRouter _createRouter() {
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
-        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final handle = state.pathParameters['handle'] ?? '';
           return MaterialPage(
@@ -158,11 +147,10 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Social (Followers/Following) ──────────────────────────────
       GoRoute(
         path: AppRoutes.followers,
         name: 'followers',
-        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final handle = state.pathParameters['handle'] ?? '';
           return MaterialPage(
@@ -174,7 +162,7 @@ GoRouter _createRouter() {
       GoRoute(
         path: AppRoutes.following,
         name: 'following',
-        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final handle = state.pathParameters['handle'] ?? '';
           return MaterialPage(
@@ -183,7 +171,6 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track management demo (Sprint 2) ─────────────────────────
       GoRoute(
         path: AppRoutes.trackManagementDemo,
         name: 'track-management',
@@ -202,9 +189,28 @@ GoRouter _createRouter() {
           );
         },
       ),
+
+      // ✅ الـ player بيجيب الـ cubits من الـ context مش من getIt
+      GoRoute(
+        path: '/player',
+        name: 'player',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => MaterialPage(
+          child: MultiBlocProvider(
+            providers: [
+              BlocProvider.value(
+                value: context.read<PlaybackCubit>(),
+              ),
+              BlocProvider.value(
+                value: context.read<PlayerCubit>(),
+              ),
+            ],
+            child: const FullPlayerPage(),
+          ),
+        ),
+      ),
     ],
 
-    // ── 404 fallback ───────────────────────────────────────────────
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: Colors.black,
       body: Center(
@@ -232,17 +238,12 @@ GoRouter _createRouter() {
   );
 }
 
-// ── Router instance (for app use) ──────────────────────────────────────────
-// This is used by the main application entry point.
 final router = _createRouter();
 
-// ── Factory method for testing (creates fresh router instance) ─────────────
-// This is used by your router_test.dart to get an isolated router.
 GoRouter createRouter() {
   return _createRouter();
 }
 
-// ── Placeholder Page ───────────────────────────────────────────────────────
 class _PlaceholderPage extends StatelessWidget {
   const _PlaceholderPage({required this.title});
 

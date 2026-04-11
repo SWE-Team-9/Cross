@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/di/injector.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
+import '../features/playback/presentation/bloc/player_ui_state.dart';
+import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/social/data/repositories/social_repo.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
 
@@ -22,13 +24,15 @@ class App extends StatelessWidget {
       ],
       child: MultiBlocProvider(
         providers: [
-          // Auth (existing)
           BlocProvider(
             create: (_) => getIt<AuthCubit>(),
           ),
-
           BlocProvider(
             create: (_) => getIt<PlayerCubit>(),
+          ),
+          // ✅ أضفنا PlaybackCubit هنا في الـ root
+          BlocProvider(
+            create: (_) => getIt<PlaybackCubit>(),
           ),
         ],
         child: MaterialApp.router(
@@ -39,13 +43,13 @@ class App extends StatelessWidget {
             useMaterial3: true,
           ),
           builder: (context, child) {
-            return AnimatedBuilder(
-              animation: router.routerDelegate,
-              builder: (context, _) {
-                final isPlayerOpen =
-                    context.watch<PlayerCubit>().state.isFullScreen;
+            // ✅ استبدلنا AnimatedBuilder بـ BlocBuilder
+            return BlocBuilder<PlayerCubit, PlayerUIState>(
+              builder: (context, playerState) {
+                final isPlayerOpen = playerState.isFullScreen;
 
                 return Scaffold(
+                  backgroundColor: Colors.black,
                   body: Stack(
                     children: [
                       child!,
