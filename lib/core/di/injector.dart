@@ -85,6 +85,16 @@ import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
 
+// ── Deep Links (Sprint 4 — T4.1) ─────────────────────────────────────────
+
+import '../../features/playback/data/datasources/track_detail_remote_data_source.dart';
+import '../../features/playback/data/repositories/track_detail_repository_impl.dart';
+import '../../features/playback/domain/repositories/i_track_detail_repository.dart';
+import '../../features/playback/domain/usecases/get_track_detail_use_case.dart';
+import '../../features/playback/domain/usecases/get_track_by_secret_use_case.dart';
+import '../../features/playback/presentation/bloc/track_loader_cubit.dart';
+import '../deep_links/deep_link_service.dart';
+
 final getIt = GetIt.instance;
 
 Future<void> setupDependencies() async {
@@ -126,6 +136,46 @@ Future<void> setupDependencies() async {
   }
 
   // ── Core Services ────────────────────────────────────────────────────────
+    if (!getIt.isRegistered<DeepLinkService>()) {
+    getIt.registerLazySingleton<DeepLinkService>(
+      () => DeepLinkService(),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackDetailRemoteDataSource>()) {
+    getIt.registerLazySingleton<TrackDetailRemoteDataSource>(
+      () => TrackDetailRemoteDataSource(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ITrackDetailRepository>()) {
+    getIt.registerLazySingleton<ITrackDetailRepository>(
+      () => TrackDetailRepositoryImpl(getIt<TrackDetailRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
+    getIt.registerLazySingleton<GetTrackDetailUseCase>(
+      () => GetTrackDetailUseCase(getIt<ITrackDetailRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackBySecretUseCase>()) {
+    getIt.registerLazySingleton<GetTrackBySecretUseCase>(
+      () => GetTrackBySecretUseCase(getIt<ITrackDetailRepository>()),
+    );
+  }
+
+  // Factory — fresh instance per bridge page, not a singleton
+  if (!getIt.isRegistered<TrackLoaderCubit>()) {
+    getIt.registerFactory<TrackLoaderCubit>(
+      () => TrackLoaderCubit(
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
+        playerCubit: getIt<PlayerCubit>(),
+      ),
+    );
+  }
 
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
@@ -134,7 +184,7 @@ Future<void> setupDependencies() async {
   }
 
   if (!getIt.isRegistered<PlayerCubit>()) {
-    getIt.registerFactory<PlayerCubit>(
+    getIt.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(getIt<AudioPlayerService>()),
     );
   }
