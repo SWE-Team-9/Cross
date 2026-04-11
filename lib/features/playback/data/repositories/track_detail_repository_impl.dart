@@ -1,7 +1,6 @@
 // playback/data/repositories/track_detail_repository_impl.dart
 
 // Third-party
-import 'package:injectable/injectable.dart';
 
 // Project
 import '../../../../core/errors/failure.dart';
@@ -9,7 +8,6 @@ import '../../domain/entities/track_details.dart';
 import '../../domain/repositories/i_track_detail_repository.dart';
 import '../datasources/track_detail_remote_data_source.dart';
 
-@LazySingleton(as: ITrackDetailRepository)
 class TrackDetailRepositoryImpl implements ITrackDetailRepository {
   const TrackDetailRepositoryImpl(this._dataSource);
 
