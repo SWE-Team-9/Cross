@@ -23,7 +23,8 @@ class TrackInteractionBar extends StatelessWidget {
             IconButton(
               onPressed: state.isSubmittingLike
                   ? null
-                  : () => context.read<TrackInteractionCubit>().toggleLike(trackId),
+                  : () =>
+                      context.read<TrackInteractionCubit>().toggleLike(trackId),
               icon: Icon(
                 state.isLiked ? Icons.favorite : Icons.favorite_border,
               ),
@@ -33,7 +34,9 @@ class TrackInteractionBar extends StatelessWidget {
             IconButton(
               onPressed: state.isSubmittingRepost
                   ? null
-                  : () => context.read<TrackInteractionCubit>().toggleRepost(trackId),
+                  : () => context
+                      .read<TrackInteractionCubit>()
+                      .toggleRepost(trackId),
               icon: Icon(
                 state.isReposted ? Icons.repeat_one : Icons.repeat,
               ),

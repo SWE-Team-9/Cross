@@ -3,7 +3,7 @@
 import 'package:equatable/equatable.dart';
 
 import '/core/models/track.dart';
-import '../entities/waveform_data.dart';       // already exists from Sprint 3
+import '../entities/waveform_data.dart'; // already exists from Sprint 3
 
 /// Full track detail as returned by the API.
 ///

@@ -63,8 +63,8 @@ class CommentTile extends StatelessWidget {
                                 child: const Text('Cancel'),
                               ),
                               ElevatedButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, replyController.text.trim()),
+                                onPressed: () => Navigator.pop(
+                                    context, replyController.text.trim()),
                                 child: const Text('Send'),
                               ),
                             ],
