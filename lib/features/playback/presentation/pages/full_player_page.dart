@@ -8,8 +8,27 @@ import '../widgets/player_controls.dart';
 import '../widgets/player_seekbar.dart';
 import '../widgets/player_actions.dart';
 
-class FullPlayerPage extends StatelessWidget {
+class FullPlayerPage extends StatefulWidget {
   const FullPlayerPage({super.key});
+
+  @override
+  State<FullPlayerPage> createState() => _FullPlayerPageState();
+}
+
+class _FullPlayerPageState extends State<FullPlayerPage> {
+  late PlayerCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = context.read<PlayerCubit>();
+  }
+
+  @override
+  void dispose() {
+    _cubit.closeFullPlayer();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +70,12 @@ class FullPlayerPage extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () {
+                              // 🔥 Close full player properly
+                              context.read<PlayerCubit>().closeFullPlayer();
+
+                              Navigator.pop(context);
+                            },
                             icon: const Icon(
                               Icons.keyboard_arrow_down,
                               color: Colors.white,
