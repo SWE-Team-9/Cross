@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
-import 'package:soundcloud_clone/features/playback/presentation/pages/full_player_page.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
 class TrackRow extends StatelessWidget {
@@ -24,15 +23,7 @@ class TrackRow extends StatelessWidget {
             return InkWell(
               onTap: () async {
                 final cubit = context.read<PlayerCubit>();
-
                 await cubit.play(track);
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const FullPlayerPage(),
-                  ),
-                );
               },
               splashColor: Colors.white10,
               child: Padding(
