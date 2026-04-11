@@ -1,8 +1,5 @@
 // playback/data/datasources/track_detail_remote_data_source.dart
 
-// Third-party
-import 'package:injectable/injectable.dart';
-
 // Project
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/dio_client.dart';
@@ -13,7 +10,6 @@ import '../dto/track_source_dto.dart';
 ///
 /// Uses [DioClient] — all interceptors (auth, refresh, logging) run
 /// automatically. Never use raw Dio directly.
-@lazySingleton
 class TrackDetailRemoteDataSource {
   const TrackDetailRemoteDataSource(this._client);
 

@@ -3,8 +3,6 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:injectable/injectable.dart';
-
 import 'deep_link_destination.dart';
 import 'deep_link_parser.dart';
 
@@ -16,7 +14,6 @@ import 'deep_link_parser.dart';
 /// - Exposes [stream] for the router to listen to.
 ///
 /// Register as @lazySingleton so only one OS listener is ever active.
-@lazySingleton
 class DeepLinkService {
   DeepLinkService() : _appLinks = AppLinks();
 
