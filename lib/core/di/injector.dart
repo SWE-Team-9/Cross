@@ -26,7 +26,7 @@ import '../../features/auth/domain/usecases/send_email_verification_usecase.dart
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_cubit.dart';
 
-//PlayBack
+// Playback
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 
 // Upload
@@ -44,7 +44,7 @@ import '../../features/upload/domain/usecases/update_track_visibility_usecase.da
 import '../../features/upload/presentation/bloc/track_management_cubit.dart';
 import '../../features/upload/presentation/bloc/upload_picker_cubit.dart';
 
-// Profile feature from dev
+// Profile feature
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
 import '../../features/profile/data/repositories/profile_repository_impl.dart'
@@ -55,12 +55,35 @@ import '../../features/profile/domain/usecases/get_profile_usecase.dart';
 import '../../features/profile/domain/usecases/update_profile_usecase.dart';
 import '../../features/profile/presentation/bloc/profile_cubit.dart';
 
+// Social existing
+import '../../features/social/data/repositories/social_repo.dart';
+
+// Interactions
+import '../../features/interactions/data/datasources/interactions_remote_data_source.dart';
+import '../../features/interactions/data/repositories/interactions_repository_impl.dart';
+import '../../features/interactions/domain/repositories/interactions_repository.dart';
+import '../../features/interactions/domain/usecases/get_track_interaction_status_usecase.dart';
+import '../../features/interactions/domain/usecases/like_track_usecase.dart';
+import '../../features/interactions/domain/usecases/repost_track_usecase.dart';
+import '../../features/interactions/domain/usecases/unlike_track_usecase.dart';
+import '../../features/interactions/domain/usecases/unrepost_track_usecase.dart';
+import '../../features/interactions/presentation/bloc/track_interaction_cubit.dart';
+
+// Comments
+import '../../features/comments/data/datasources/comments_remote_data_source.dart';
+import '../../features/comments/data/repositories/comments_repository_impl.dart';
+import '../../features/comments/domain/repositories/comments_repository.dart';
+import '../../features/comments/domain/usecases/create_comment_usecase.dart';
+import '../../features/comments/domain/usecases/delete_comment_usecase.dart';
+import '../../features/comments/domain/usecases/get_track_comments_usecase.dart';
+import '../../features/comments/domain/usecases/reply_to_comment_usecase.dart';
+import '../../features/comments/presentation/bloc/comments_cubit.dart';
+
 import '../network/api_constants.dart';
 import '../network/dio_client.dart';
 import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
-import '../../features/social/data/repositories/social_repo.dart';
 
 final getIt = GetIt.instance;
 
@@ -72,7 +95,7 @@ Future<void> setupDependencies() async {
     storage: FileStorage('${appDocDir.path}/.cookies/'),
   );
 
-  // ── Core ───────────────────────────────────────────────────────────────────
+  // ── Core ─────────────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
     getIt.registerLazySingleton<FlutterSecureStorage>(
@@ -102,7 +125,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Core Services ──────────────────────────────────────────────────────────
+  // ── Core Services ────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
@@ -116,7 +139,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Upload Feature: File Picker + Upload Flow ─────────────────────────────
+  // ── Upload Feature: File Picker + Upload Flow ───────────────────────────
 
   if (!getIt.isRegistered<AudioFilePickerDataSource>()) {
     getIt.registerLazySingleton<AudioFilePickerDataSource>(
@@ -148,7 +171,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Upload Feature: Track Management Basics ────────────────────────────────
+  // ── Upload Feature: Track Management Basics ─────────────────────────────
 
   const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
   const String mockTrackManagementModeValue = AppConfig.mockTrackManagementMode;
@@ -202,7 +225,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Auth Feature ───────────────────────────────────────────────────────────
+  // ── Auth Feature ─────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
     getIt.registerLazySingleton<AuthRemoteDataSource>(
@@ -315,7 +338,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Profile Feature from dev ───────────────────────────────────────────────
+  // ── Profile Feature ──────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<profile_data.ProfileRemoteDataSource>()) {
     getIt.registerLazySingleton<profile_data.ProfileRemoteDataSource>(
@@ -349,6 +372,112 @@ Future<void> setupDependencies() async {
         getProfileUseCase: getIt<GetProfileUseCase>(),
         updateProfileUseCase: getIt<UpdateProfileUseCase>(),
         profileRepository: getIt<profile_domain.ProfileRepository>(),
+      ),
+    );
+  }
+
+  // ── Interactions Feature ─────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<InteractionsRemoteDataSource>()) {
+    getIt.registerLazySingleton<InteractionsRemoteDataSource>(
+      () => InteractionsRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<InteractionsRepository>()) {
+    getIt.registerLazySingleton<InteractionsRepository>(
+      () => InteractionsRepositoryImpl(getIt<InteractionsRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackInteractionStatusUseCase>()) {
+    getIt.registerLazySingleton<GetTrackInteractionStatusUseCase>(
+      () => GetTrackInteractionStatusUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<LikeTrackUseCase>()) {
+    getIt.registerLazySingleton<LikeTrackUseCase>(
+      () => LikeTrackUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnlikeTrackUseCase>()) {
+    getIt.registerLazySingleton<UnlikeTrackUseCase>(
+      () => UnlikeTrackUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<RepostTrackUseCase>()) {
+    getIt.registerLazySingleton<RepostTrackUseCase>(
+      () => RepostTrackUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnrepostTrackUseCase>()) {
+    getIt.registerLazySingleton<UnrepostTrackUseCase>(
+      () => UnrepostTrackUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackInteractionCubit>()) {
+    getIt.registerFactory<TrackInteractionCubit>(
+      () => TrackInteractionCubit(
+        getTrackInteractionStatusUseCase:
+            getIt<GetTrackInteractionStatusUseCase>(),
+        likeTrackUseCase: getIt<LikeTrackUseCase>(),
+        unlikeTrackUseCase: getIt<UnlikeTrackUseCase>(),
+        repostTrackUseCase: getIt<RepostTrackUseCase>(),
+        unrepostTrackUseCase: getIt<UnrepostTrackUseCase>(),
+      ),
+    );
+  }
+
+  // ── Comments Feature ─────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<CommentsRemoteDataSource>()) {
+    getIt.registerLazySingleton<CommentsRemoteDataSource>(
+      () => CommentsRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CommentsRepository>()) {
+    getIt.registerLazySingleton<CommentsRepository>(
+      () => CommentsRepositoryImpl(getIt<CommentsRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackCommentsUseCase>()) {
+    getIt.registerLazySingleton<GetTrackCommentsUseCase>(
+      () => GetTrackCommentsUseCase(getIt<CommentsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CreateCommentUseCase>()) {
+    getIt.registerLazySingleton<CreateCommentUseCase>(
+      () => CreateCommentUseCase(getIt<CommentsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DeleteCommentUseCase>()) {
+    getIt.registerLazySingleton<DeleteCommentUseCase>(
+      () => DeleteCommentUseCase(getIt<CommentsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ReplyToCommentUseCase>()) {
+    getIt.registerLazySingleton<ReplyToCommentUseCase>(
+      () => ReplyToCommentUseCase(getIt<CommentsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CommentsCubit>()) {
+    getIt.registerFactory<CommentsCubit>(
+      () => CommentsCubit(
+        getTrackCommentsUseCase: getIt<GetTrackCommentsUseCase>(),
+        createCommentUseCase: getIt<CreateCommentUseCase>(),
+        deleteCommentUseCase: getIt<DeleteCommentUseCase>(),
+        replyToCommentUseCase: getIt<ReplyToCommentUseCase>(),
       ),
     );
   }
