@@ -5,7 +5,7 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubi
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 
-import '../widgets/player_controls.dart';
+
 import '../widgets/player_actions.dart';
 import '../widgets/player_waveform.dart';
 
