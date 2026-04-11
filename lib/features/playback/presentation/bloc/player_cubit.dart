@@ -73,4 +73,12 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     _subscription?.cancel();
     return super.close();
   }
+
+  void openFullPlayer() {
+    emit(state.copyWith(isFullScreen: true));
+  }
+
+  void closeFullPlayer() {
+    emit(state.copyWith(isFullScreen: false));
+  }
 }
