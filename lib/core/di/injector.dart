@@ -26,8 +26,9 @@ import '../../features/auth/domain/usecases/send_email_verification_usecase.dart
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_cubit.dart';
 
-//PlayBack
+// PlayBack
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 
 // Upload
 import '../../features/upload/data/datasources/audio_file_picker_data_source.dart';
@@ -44,7 +45,7 @@ import '../../features/upload/domain/usecases/update_track_visibility_usecase.da
 import '../../features/upload/presentation/bloc/track_management_cubit.dart';
 import '../../features/upload/presentation/bloc/upload_picker_cubit.dart';
 
-// Profile feature from dev
+// Profile
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
 import '../../features/profile/data/repositories/profile_repository_impl.dart'
@@ -111,8 +112,15 @@ Future<void> setupDependencies() async {
   }
 
   if (!getIt.isRegistered<PlayerCubit>()) {
-    getIt.registerFactory<PlayerCubit>(
+    getIt.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(getIt<AudioPlayerService>()),
+    );
+  }
+
+  // ✅ أضفنا PlaybackCubit هنا
+  if (!getIt.isRegistered<PlaybackCubit>()) {
+    getIt.registerLazySingleton<PlaybackCubit>(
+      () => PlaybackCubit(getIt<AudioPlayerService>()),
     );
   }
 
@@ -148,7 +156,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Upload Feature: Track Management Basics ────────────────────────────────
+  // ── Upload Feature: Track Management ──────────────────────────────────────
 
   const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
   const String mockTrackManagementModeValue = AppConfig.mockTrackManagementMode;
@@ -315,7 +323,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Profile Feature from dev ───────────────────────────────────────────────
+  // ── Profile Feature ────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<profile_data.ProfileRemoteDataSource>()) {
     getIt.registerLazySingleton<profile_data.ProfileRemoteDataSource>(
