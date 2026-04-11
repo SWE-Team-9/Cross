@@ -81,9 +81,7 @@ class JustAudioPlayerService implements AudioPlayerService {
     try {
       // ✅ REAL APP: play actual audio
       if (_handler is AppAudioHandler) {
-        final realHandler = _handler as AppAudioHandler;
-
-        await realHandler.playTrack(
+        await _handler.playTrack(
           url: track.audioUrl,
           title: track.title,
           artist: track.artist,
