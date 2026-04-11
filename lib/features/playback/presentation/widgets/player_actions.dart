@@ -70,15 +70,14 @@ class _PlayerActionsState extends State<PlayerActions> {
           // Queue
           GestureDetector(
             onTap: widget.onQueueTap,
-            child: const Icon(Icons.queue_music,
-                color: Colors.white70, size: 22),
+            child:
+                const Icon(Icons.queue_music, color: Colors.white70, size: 22),
           ),
 
           // More
           GestureDetector(
             onTap: () {},
-            child: const Icon(Icons.more_vert,
-                color: Colors.white70, size: 22),
+            child: const Icon(Icons.more_vert, color: Colors.white70, size: 22),
           ),
         ],
       ),

@@ -39,7 +39,6 @@ abstract class ApiConstants {
   static String blockUserPath(String userId) => '$socialBase/block/$userId';
   static const String blockedUsersPath = '$socialBase/blocked-users';
 
-
   // ── Tracks ──────────────────────────────────────────────────────────────
   static const String tracks = '/tracks';
   static const String users = '/users';

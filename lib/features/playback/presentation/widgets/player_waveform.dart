@@ -34,8 +34,7 @@ class PlayerWaveform extends StatelessWidget {
         final localX = details.localPosition.dx;
         final width = box.size.width;
         final ratio = (localX / width).clamp(0.0, 1.0);
-        final newPosition =
-            Duration(milliseconds: (ratio * total).toInt());
+        final newPosition = Duration(milliseconds: (ratio * total).toInt());
         onSeek(newPosition);
       },
       onHorizontalDragUpdate: (details) {
@@ -43,8 +42,7 @@ class PlayerWaveform extends StatelessWidget {
         final localX = details.localPosition.dx;
         final width = box.size.width;
         final ratio = (localX / width).clamp(0.0, 1.0);
-        final newPosition =
-            Duration(milliseconds: (ratio * total).toInt());
+        final newPosition = Duration(milliseconds: (ratio * total).toInt());
         onSeek(newPosition);
       },
       child: SizedBox(
@@ -66,9 +64,8 @@ class PlayerWaveform extends StatelessWidget {
                     Container(
                       height: barHeight * 0.65,
                       decoration: BoxDecoration(
-                        color: isPlayed
-                            ? const Color(0xFFFF5500)
-                            : Colors.white24,
+                        color:
+                            isPlayed ? const Color(0xFFFF5500) : Colors.white24,
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(1),
                         ),

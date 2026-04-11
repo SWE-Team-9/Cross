@@ -5,7 +5,6 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubi
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 
-
 import '../widgets/player_actions.dart';
 import '../widgets/player_waveform.dart';
 
@@ -44,8 +43,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
       builder: (_) {
         if (queue.isEmpty) {
           return const Center(
-            child: Text("Queue is empty",
-                style: TextStyle(color: Colors.white70)),
+            child:
+                Text("Queue is empty", style: TextStyle(color: Colors.white70)),
           );
         }
         return Column(
@@ -91,8 +90,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                           : null,
                     ),
                     title: Text(track.title,
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 14),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
                         overflow: TextOverflow.ellipsis),
                     subtitle: Text(track.artist,
                         style: const TextStyle(
@@ -138,8 +137,9 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
                         Container(color: Colors.black),
-                    loadingBuilder: (_, child, loading) =>
-                        loading == null ? child : Container(color: Colors.black),
+                    loadingBuilder: (_, child, loading) => loading == null
+                        ? child
+                        : Container(color: Colors.black),
                   ),
                 ),
 
@@ -186,8 +186,7 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                     fontWeight: FontWeight.bold,
                                     shadows: [
                                       Shadow(
-                                          color: Colors.black54,
-                                          blurRadius: 8),
+                                          color: Colors.black54, blurRadius: 8),
                                     ],
                                   ),
                                   maxLines: 2,
@@ -233,9 +232,7 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                               _CircleBtn(
                                 icon: Icons.keyboard_arrow_down,
                                 onTap: () {
-                                  context
-                                      .read<PlayerCubit>()
-                                      .closeFullPlayer();
+                                  context.read<PlayerCubit>().closeFullPlayer();
                                   Navigator.pop(context);
                                 },
                               ),
@@ -263,8 +260,7 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                       child: PlayerWaveform(
                         position: state.position,
                         duration: state.duration,
-                        onSeek: (pos) =>
-                            context.read<PlayerCubit>().seek(pos),
+                        onSeek: (pos) => context.read<PlayerCubit>().seek(pos),
                       ),
                     ),
 
@@ -332,9 +328,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
 
                         // Play/Pause
                         GestureDetector(
-                          onTap: () => context
-                              .read<PlayerCubit>()
-                              .togglePlayPause(),
+                          onTap: () =>
+                              context.read<PlayerCubit>().togglePlayPause(),
                           child: Container(
                             width: 64,
                             height: 64,
@@ -343,9 +338,7 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              state.isPlaying
-                                  ? Icons.pause
-                                  : Icons.play_arrow,
+                              state.isPlaying ? Icons.pause : Icons.play_arrow,
                               size: 34,
                               color: Colors.white,
                             ),

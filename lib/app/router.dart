@@ -210,7 +210,6 @@ GoRouter _createRouter() {
         ),
       ),
     ],
-
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: Colors.black,
       body: Center(
