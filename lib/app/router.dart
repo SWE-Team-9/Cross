@@ -32,6 +32,7 @@ import '../features/library/presentation/pages/library_page.dart';
 
 // Mock home page (temporary — replace with real home page in Sprint 4)
 import '../features/home/presentation/pages/mock_home_page.dart';
+import '../features/playback/presentation/pages/full_player_page.dart';
 
 // ── Route name constants ─────────────────────────────────────────────────────
 class AppRoutes {
@@ -201,6 +202,15 @@ GoRouter _createRouter() {
             ),
           );
         },
+      ),
+
+      GoRoute(
+        path: '/player',
+        name: 'player',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: FullPlayerPage(),
+        ),
       ),
     ],
 
