@@ -184,6 +184,9 @@ class TrackRow extends StatelessWidget {
               'Report',
               style: TextStyle(color: Colors.red),
             ),
+
+
+            
             onTap: () => Navigator.pop(context),
           ),
         ],
