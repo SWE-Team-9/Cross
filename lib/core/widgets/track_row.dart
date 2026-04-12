@@ -119,7 +119,7 @@ class TrackRow extends StatelessWidget {
     );
   }
 
-  void _openMenu(BuildContext context) {
+  void openMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
