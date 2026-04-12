@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
@@ -99,9 +100,10 @@ class TrackRow extends StatelessWidget {
                       ),
                     ),
 
-                    // More options button
+                    // More options button — opens full TrackOptionsSheet
                     IconButton(
-                      onPressed: () => _openMenu(context),
+                      onPressed: () =>
+                          TrackOptionsSheet.show(context, track: track),
                       icon: const Icon(
                         Icons.more_vert,
                         color: Color(0xFF666666),
