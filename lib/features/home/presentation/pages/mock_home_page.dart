@@ -875,5 +875,8 @@ class _NavItem {
     required this.icon,
     required this.activeIcon,
     required this.label,
+
+
+    
   });
 }
