@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/picked_audio_file.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
@@ -96,6 +97,8 @@ void main() {
     );
   }
 
+  Finder textFieldAt(int index) => find.byType(TextField).at(index);
+
   setUp(() {
     mockUploadPickerCubit = MockUploadPickerCubit();
     mockAuthCubit = MockAuthCubit();
@@ -177,6 +180,7 @@ void main() {
 
       await pumpPage(tester);
       await tester.pump();
+
       final ElevatedButton selectButton = tester.widget(
         find.widgetWithText(ElevatedButton, 'Selecting...'),
       );
@@ -226,14 +230,10 @@ void main() {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Track title'),
-        'My Track',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Genre (optional)'),
-        'Pop',
-      );
+      await tester.enterText(textFieldAt(0), 'My Track');
+      await tester.enterText(textFieldAt(1), 'Pop');
+      await tester.enterText(textFieldAt(2), 'lofi, chill');
+      await tester.enterText(textFieldAt(3), 'Description');
       await tester.pump();
 
       await tester.tap(find.text('Clear'));
@@ -241,17 +241,18 @@ void main() {
 
       verify(() => mockUploadPickerCubit.clearSelection()).called(1);
 
-      final TextField titleField =
-          tester.widget(find.widgetWithText(TextField, 'Track title'));
-      final TextField genreField =
-          tester.widget(find.widgetWithText(TextField, 'Genre (optional)'));
+      final TextField titleField = tester.widget(textFieldAt(0));
+      final TextField genreField = tester.widget(textFieldAt(1));
+      final TextField tagsField = tester.widget(textFieldAt(2));
+      final TextField descriptionField = tester.widget(textFieldAt(3));
 
       expect(titleField.controller!.text, isEmpty);
       expect(genreField.controller!.text, isEmpty);
+      expect(tagsField.controller!.text, isEmpty);
+      expect(descriptionField.controller!.text, isEmpty);
     });
 
-    testWidgets('upload button passes title and genre to cubit',
-        (tester) async {
+    testWidgets('upload button passes full metadata to cubit', (tester) async {
       stubAuthState(AuthAuthenticated(artistUser));
       stubUploadState(
         const UploadPickerState(
@@ -264,20 +265,22 @@ void main() {
         () => mockUploadPickerCubit.uploadSelectedFile(
           title: 'My Track',
           genre: 'Pop',
+          tagsInput: 'lofi, chill',
+          description: 'Nice description',
+          visibility: TrackManagementVisibility.publicTrack,
         ),
       ).thenAnswer((_) async {});
 
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Track title'),
-        'My Track',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Genre (optional)'),
-        'Pop',
-      );
+      await tester.enterText(textFieldAt(0), 'My Track');
+      await tester.enterText(textFieldAt(1), 'Pop');
+      await tester.enterText(textFieldAt(2), 'lofi, chill');
+      await tester.enterText(textFieldAt(3), 'Nice description');
+      await tester.pump();
+
+      await tester.tap(find.text('Public'));
       await tester.pump();
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Upload Track'));
@@ -287,6 +290,9 @@ void main() {
         () => mockUploadPickerCubit.uploadSelectedFile(
           title: 'My Track',
           genre: 'Pop',
+          tagsInput: 'lofi, chill',
+          description: 'Nice description',
+          visibility: TrackManagementVisibility.publicTrack,
         ),
       ).called(1);
     });
@@ -298,15 +304,17 @@ void main() {
         const UploadPickerState(
           status: UploadPickerStatus.uploading,
           pickedAudioFile: pickedAudioFile,
+          uploadProgress: 0.4,
         ),
       );
 
       await pumpPage(tester);
       await tester.pump();
-      final TextField titleField =
-          tester.widget(find.widgetWithText(TextField, 'Track title'));
-      final TextField genreField =
-          tester.widget(find.widgetWithText(TextField, 'Genre (optional)'));
+
+      final TextField titleField = tester.widget(textFieldAt(0));
+      final TextField genreField = tester.widget(textFieldAt(1));
+      final TextField tagsField = tester.widget(textFieldAt(2));
+      final TextField descriptionField = tester.widget(textFieldAt(3));
 
       final OutlinedButton clearButton =
           tester.widget(find.widgetWithText(OutlinedButton, 'Clear'));
@@ -315,6 +323,8 @@ void main() {
 
       expect(titleField.enabled, isFalse);
       expect(genreField.enabled, isFalse);
+      expect(tagsField.enabled, isFalse);
+      expect(descriptionField.enabled, isFalse);
       expect(clearButton.onPressed, isNull);
       expect(uploadButton.onPressed, isNull);
 
@@ -323,6 +333,8 @@ void main() {
         find.text('Your file is being sent to the server.'),
         findsOneWidget,
       );
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.text('40% uploaded'), findsOneWidget);
     });
 
     testWidgets('shows processing state with track id and processing status',
@@ -371,6 +383,48 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Network Error'), findsNWidgets(2));
+      expect(find.text('Upload failed'), findsOneWidget);
+
+      await controller.close();
+    });
+
+    testWidgets(
+        'shows permission settings dialog when permission is permanently denied',
+        (tester) async {
+      stubAuthState(AuthAuthenticated(artistUser));
+
+      final controller = StreamController<UploadPickerState>();
+      const initialState = UploadPickerState();
+
+      when(() => mockUploadPickerCubit.state).thenReturn(initialState);
+      whenListen(
+        mockUploadPickerCubit,
+        controller.stream,
+        initialState: initialState,
+      );
+
+      await pumpPage(tester);
+
+      controller.add(
+        const UploadPickerState(
+          status: UploadPickerStatus.failure,
+          errorMessage:
+              'Audio file permission is permanently denied. Please enable it from system settings.',
+          failureType: UploadPickerFailureType.permissionPermanentlyDenied,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Permission required'), findsOneWidget);
+      expect(
+        find.text(
+          'Audio file access is permanently denied. Please enable it from system settings to continue.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Open Settings'), findsOneWidget);
       expect(find.text('Upload failed'), findsOneWidget);
 
       await controller.close();
