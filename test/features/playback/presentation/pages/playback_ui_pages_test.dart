@@ -12,6 +12,7 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/track_loade
 import 'package:soundcloud_clone/features/playback/presentation/bloc/track_loader_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/pages/full_player_page.dart';
 import 'package:soundcloud_clone/features/playback/presentation/pages/track_deep_link_bridge_page.dart';
+import 'package:soundcloud_clone/features/playback/presentation/widgets/mini_player.dart';
 import 'package:soundcloud_clone/features/playback/presentation/widgets/player_controls.dart';
 import 'package:soundcloud_clone/features/playback/presentation/widgets/player_seekbar.dart';
 
@@ -44,6 +45,10 @@ void main() {
     artistHandle: 'artist1',
     streamUrl: 'https://cdn/t1.mp3',
   );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Player Widgets
+  // ═══════════════════════════════════════════════════════════════════════════
 
   group('Player widgets', () {
     testWidgets('PlayerSeekBar renders times and emits seek callback',
@@ -104,11 +109,177 @@ void main() {
     });
   });
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MiniPlayer
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  group('MiniPlayer', () {
+    late MockPlayerCubit playerCubit;
+
+    setUp(() {
+      playerCubit = MockPlayerCubit();
+      when(() => playerCubit.openFullPlayer()).thenReturn(null);
+      when(() => playerCubit.closeFullPlayer()).thenReturn(null);
+      when(() => playerCubit.pause()).thenAnswer((_) async {});
+      when(() => playerCubit.resume()).thenAnswer((_) async {});
+    });
+
+    Widget buildMiniPlayer() => MaterialApp(
+          home: Scaffold(
+            body: BlocProvider<PlayerCubit>.value(
+              value: playerCubit,
+              child: const MiniPlayer(),
+            ),
+          ),
+        );
+
+    // Lines 28-29 — track null → SizedBox.shrink, no GestureDetector
+    testWidgets('renders nothing when no track loaded', (tester) async {
+      when(() => playerCubit.state).thenReturn(
+        const PlayerUIState(
+          playerState: PlayerState(
+            status: PlayerStatus.idle,
+            position: Duration.zero,
+          ),
+          currentTrack: null,
+        ),
+      );
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+      await tester.pumpWidget(buildMiniPlayer());
+
+      expect(find.byType(GestureDetector), findsNothing);
+    });
+
+    // Lines 34-35 — track exists → title + artist visible
+    testWidgets('displays track title and artist', (tester) async {
+      when(() => playerCubit.state).thenReturn(
+        PlayerUIState(
+          playerState: const PlayerState(
+            status: PlayerStatus.idle,
+            position: Duration.zero,
+          ),
+          currentTrack: track,
+        ),
+      );
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+      await tester.pumpWidget(buildMiniPlayer());
+
+      expect(find.text('Song 1'), findsOneWidget);
+      expect(find.text('Artist 1'), findsOneWidget);
+    });
+
+    // Line 91 — isPlaying = true → cubit.pause()
+    testWidgets('tapping play button calls pause when playing', (tester) async {
+      when(() => playerCubit.state).thenReturn(
+        PlayerUIState(
+          playerState: const PlayerState(
+            status: PlayerStatus.playing,
+            position: Duration(seconds: 30),
+            duration: Duration(seconds: 120),
+          ),
+          currentTrack: track,
+        ),
+      );
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+      await tester.pumpWidget(buildMiniPlayer());
+
+      // _PlayButton shows pause icon when playing — tap it directly
+      await tester.tap(find.byIcon(Icons.pause));
+      await tester.pump();
+
+      verify(() => playerCubit.pause()).called(1);
+    });
+
+    // Line 98 — isPlaying = false → cubit.resume()
+    testWidgets('tapping play button calls resume when paused', (tester) async {
+      when(() => playerCubit.state).thenReturn(
+        PlayerUIState(
+          playerState: const PlayerState(
+            status: PlayerStatus.paused,
+            position: Duration(seconds: 30),
+            duration: Duration(seconds: 120),
+          ),
+          currentTrack: track,
+        ),
+      );
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+      await tester.pumpWidget(buildMiniPlayer());
+
+      // _PlayButton shows play_arrow icon when paused — tap it directly
+      await tester.tap(find.byIcon(Icons.play_arrow));
+      await tester.pump();
+
+      verify(() => playerCubit.resume()).called(1);
+    });
+
+    // Line 130 — pause icon visible when playing
+    testWidgets('shows pause icon and correct progress when playing',
+        (tester) async {
+      when(() => playerCubit.state).thenReturn(
+        PlayerUIState(
+          playerState: const PlayerState(
+            status: PlayerStatus.playing,
+            position: Duration(seconds: 60),
+            duration: Duration(seconds: 120),
+          ),
+          currentTrack: track,
+        ),
+      );
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+      await tester.pumpWidget(buildMiniPlayer());
+
+      expect(find.byIcon(Icons.pause), findsOneWidget);
+
+      // Line 136 — progress = 60/120 = 0.5
+      final indicator = tester.widget<CircularProgressIndicator>(
+        find.byType(CircularProgressIndicator),
+      );
+      expect(indicator.value, closeTo(0.5, 0.001));
+    });
+
+    // Line 136 — progress = 0.0 when duration is null
+    testWidgets('shows zero progress when duration is null', (tester) async {
+      when(() => playerCubit.state).thenReturn(
+        PlayerUIState(
+          playerState: const PlayerState(
+            status: PlayerStatus.idle,
+            position: Duration.zero,
+          ),
+          currentTrack: track,
+        ),
+      );
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+      await tester.pumpWidget(buildMiniPlayer());
+
+      final indicator = tester.widget<CircularProgressIndicator>(
+        find.byType(CircularProgressIndicator),
+      );
+      expect(indicator.value, 0.0);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FullPlayerPage
+  // ═══════════════════════════════════════════════════════════════════════════
+
   group('FullPlayerPage', () {
     late MockPlayerCubit playerCubit;
 
     setUp(() {
       playerCubit = MockPlayerCubit();
+      when(() => playerCubit.openFullPlayer()).thenReturn(null);
       when(() => playerCubit.closeFullPlayer()).thenReturn(null);
       when(() => playerCubit.togglePlayPause()).thenAnswer((_) async {});
       when(() => playerCubit.seek(any())).thenAnswer((_) async {});
@@ -181,6 +352,10 @@ void main() {
     });
   });
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TrackDeepLinkBridgePage
+  // ═══════════════════════════════════════════════════════════════════════════
+
   group('TrackDeepLinkBridgePage', () {
     late MockTrackLoaderCubit loaderCubit;
     late MockPlayerCubit playerCubit;
@@ -202,6 +377,7 @@ void main() {
       );
       when(() => playerCubit.stream)
           .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.openFullPlayer()).thenReturn(null);
       when(() => playerCubit.closeFullPlayer()).thenReturn(null);
     });
 
