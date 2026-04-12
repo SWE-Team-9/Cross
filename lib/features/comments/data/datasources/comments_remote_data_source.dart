@@ -37,7 +37,7 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
         .toList(growable: false);
   }
 
-  @override
+ @override
   Future<CommentDto> createComment({
     required String trackId,
     required String content,
@@ -48,8 +48,8 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
       ApiConstants.trackCommentsPath(trackId),
       data: {
         'content': content,
-        if (parentCommentId != null) 'parent_comment_id': parentCommentId,
-        if (timestampSeconds != null) 'timestamp_seconds': timestampSeconds,
+        'timestampAt': timestampSeconds ?? 0,
+        if (parentCommentId != null) 'parentCommentId': parentCommentId,
       },
     );
 
@@ -57,7 +57,9 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
         response.data is String ? jsonDecode(response.data) : response.data;
 
     return CommentDto.fromJson(
-      Map<String, dynamic>.from(responseData['comment'] ?? responseData['data'] ?? responseData),
+      Map<String, dynamic>.from(
+        responseData['comment'] ?? responseData['data'] ?? responseData,
+      ),
     );
   }
 
