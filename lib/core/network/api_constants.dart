@@ -17,6 +17,13 @@ abstract class ApiConstants {
   static const String resendVerification = '$authBase/resend-verification';
   static const String emailChange = '$authBase/email/change';
   static const String confirmEmailChange = '$authBase/email/confirm-change';
+  static const String sessions = '$authBase/sessions';
+
+  // ── OAuth ───────────────────────────────────────────────────────────────
+  static const String oauthBase = '/api/v1/oauth';
+  static const String oauthAuthorize = '$oauthBase/authorize';
+  static const String oauthToken = '$oauthBase/token';
+  static const String oauthRevoke = '$oauthBase/revoke';
 
   static const Duration connectTimeout = Duration(seconds: 10);
   static const Duration receiveTimeout = Duration(seconds: 10);
@@ -39,7 +46,7 @@ abstract class ApiConstants {
   static String blockUserPath(String userId) => '$socialBase/block/$userId';
   static const String blockedUsersPath = '$socialBase/blocked-users';
 
-// ── Tracks ──────────────────────────────────────────────────────────────
+  // ── Tracks ──────────────────────────────────────────────────────────────
   static const String tracks = '/api/v1/tracks';
   static const String users = '/api/v1/users';
 
@@ -49,6 +56,7 @@ abstract class ApiConstants {
   static String trackWaveformPath(String trackId) =>
       '${trackByIdPath(trackId)}/waveform';
   static String userTracksPath(String userId) => '$users/$userId/tracks';
+
   // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';
   static const String commentsBase = '/api/v1/interactions/comments';
