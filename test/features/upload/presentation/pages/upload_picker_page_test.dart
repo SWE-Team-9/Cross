@@ -177,6 +177,7 @@ void main() {
 
       await pumpPage(tester);
       await tester.pump();
+
       final ElevatedButton selectButton = tester.widget(
         find.widgetWithText(ElevatedButton, 'Selecting...'),
       );
@@ -303,6 +304,7 @@ void main() {
 
       await pumpPage(tester);
       await tester.pump();
+
       final TextField titleField =
           tester.widget(find.widgetWithText(TextField, 'Track title'));
       final TextField genreField =
@@ -371,6 +373,48 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Network Error'), findsNWidgets(2));
+      expect(find.text('Upload failed'), findsOneWidget);
+
+      await controller.close();
+    });
+
+    testWidgets(
+        'shows permission settings dialog when permission is permanently denied',
+        (tester) async {
+      stubAuthState(AuthAuthenticated(artistUser));
+
+      final controller = StreamController<UploadPickerState>();
+      const initialState = UploadPickerState();
+
+      when(() => mockUploadPickerCubit.state).thenReturn(initialState);
+      whenListen(
+        mockUploadPickerCubit,
+        controller.stream,
+        initialState: initialState,
+      );
+
+      await pumpPage(tester);
+
+      controller.add(
+        const UploadPickerState(
+          status: UploadPickerStatus.failure,
+          errorMessage:
+              'Audio file permission is permanently denied. Please enable it from system settings.',
+          failureType: UploadPickerFailureType.permissionPermanentlyDenied,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Permission required'), findsOneWidget);
+      expect(
+        find.text(
+          'Audio file access is permanently denied. Please enable it from system settings to continue.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Open Settings'), findsOneWidget);
       expect(find.text('Upload failed'), findsOneWidget);
 
       await controller.close();
