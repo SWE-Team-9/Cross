@@ -30,6 +30,7 @@ import '../features/upload/presentation/pages/upload_picker_page.dart';
 
 // Project — playback
 import '../features/playback/presentation/bloc/player_cubit.dart';
+import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../features/playback/presentation/pages/full_player_page.dart';
 import '../features/playback/presentation/pages/track_deep_link_bridge_page.dart';
@@ -43,7 +44,6 @@ import '../features/library/presentation/pages/library_page.dart';
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
 
-// ── Route name constants ──────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
@@ -58,8 +58,7 @@ class AppRoutes {
   static const String trackManagementDemo = '/track-management-demo';
   static const String player = '/player';
 
-  // Deep link destinations — Sprint 4 T4.1
-  // secretTrack MUST be declared before trackDetail — more specific path first
+  // secretTrack MUST be before trackDetail — more specific path first
   static const String secretTrack = '/track/secret/:token';
   static const String trackDetail = '/track/:trackId';
   static const String playlist = '/playlist/:playlistId';
@@ -112,12 +111,8 @@ void _handleDeepLinkDestination(
 }
 
 // ── Pending deep link ─────────────────────────────────────────────────────────
-// Stores a deep link that arrived while the user was on an auth screen.
-// Consumed once after successful login via getPendingDeepLink().
 String? _pendingDeepLink;
 
-/// Call this after successful login/splash to resume a pending deep link.
-/// Returns the path and clears it — can only be consumed once.
 String? getPendingDeepLink() {
   final String? path = _pendingDeepLink;
   _pendingDeepLink = null;
@@ -138,7 +133,6 @@ ManagedTrack _fallbackTrackManagementSeed() {
   );
 }
 
-// ── Router factory ────────────────────────────────────────────────────────────
 GoRouter _createRouter() {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -146,10 +140,10 @@ GoRouter _createRouter() {
     navigatorKey: rootNavigatorKey,
     initialLocation: AuthRoutes.splash,
     routes: [
-      // ── Auth (Sprint 1) ─────────────────────────────────────────────────
+      // ── Auth ────────────────────────────────────────────────────────────────
       ...AuthRoutes.routes,
 
-      // ── Home ────────────────────────────────────────────────────────────
+      // ── Home ────────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.home,
         name: 'home',
@@ -158,7 +152,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Feed ────────────────────────────────────────────────────────────
+      // ── Feed ────────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.feed,
         name: 'feed',
@@ -167,7 +161,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Search (supports ?q= param from deep links) ──────────────────────
+      // ── Search ──────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.search,
         name: 'search',
@@ -181,7 +175,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Upgrade ─────────────────────────────────────────────────────────
+      // ── Upgrade ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.upgrade,
         name: 'upgrade',
@@ -190,7 +184,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Library ─────────────────────────────────────────────────────────
+      // ── Library ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.library,
         name: 'library',
@@ -202,7 +196,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Upload picker (Sprint 1) ─────────────────────────────────────────
+      // ── Upload picker ────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.uploadPicker,
         name: 'upload-picker',
@@ -214,7 +208,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Edit profile (Sprint 2) ──────────────────────────────────────────
+      // ── Edit profile ─────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.editProfile,
         name: 'edit-profile',
@@ -230,7 +224,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Profile (Sprint 2) ───────────────────────────────────────────────
+      // ── Profile ──────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
@@ -243,7 +237,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Followers (Sprint 2) ─────────────────────────────────────────────
+      // ── Followers ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.followers,
         name: 'followers',
@@ -254,7 +248,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Following (Sprint 2) ─────────────────────────────────────────────
+      // ── Following ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.following,
         name: 'following',
@@ -265,7 +259,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track management demo (Sprint 2) ─────────────────────────────────
+      // ── Track management ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.trackManagementDemo,
         name: 'track-management',
@@ -282,7 +276,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Full player (Sprint 3 — used by mini player tap) ─────────────────
+      // ── Full player ──────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.player,
         name: 'player',
@@ -292,14 +286,23 @@ GoRouter _createRouter() {
           transitionDuration: const Duration(milliseconds: 180),
           reverseTransitionDuration: const Duration(milliseconds: 140),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return child;
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              )),
+              child: child,
+            );
           },
         ),
       ),
 
-      // ── Secret track — MUST be before trackDetail (more specific path) ───
+      // ── Secret track — MUST be before trackDetail ────────────────────────────
       GoRoute(
-        path: AppRoutes.secretTrack, // '/track/secret/:token'
+        path: AppRoutes.secretTrack,
         name: 'secret-track',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
@@ -316,9 +319,9 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track detail — after secretTrack (less specific path) ────────────
+      // ── Track detail ─────────────────────────────────────────────────────────
       GoRoute(
-        path: AppRoutes.trackDetail, // '/track/:trackId'
+        path: AppRoutes.trackDetail,
         name: 'track-detail',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
@@ -335,7 +338,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Playlist — stub until Module 7 (Sprint 4 T4.1) ──────────────────
+      // ── Playlist ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlist,
         name: 'playlist',
@@ -349,7 +352,7 @@ GoRouter _createRouter() {
       ),
     ],
 
-    // ── 404 fallback ─────────────────────────────────────────────────────────
+    // ── 404 fallback ──────────────────────────────────────────────────────────
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: Colors.black,
       body: Center(
@@ -379,8 +382,6 @@ GoRouter _createRouter() {
   // ── Deep link listener ────────────────────────────────────────────────────
   final DeepLinkService deepLinkService = getIt<DeepLinkService>();
 
-  // Handle link that arrived before listener subscribed (cold start).
-  // consumeLastDestination() ensures it's only processed once.
   final DeepLinkDestination? pending = deepLinkService.consumeLastDestination();
   if (pending != null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -388,7 +389,6 @@ GoRouter _createRouter() {
     });
   }
 
-  // Handle future warm-start links.
   deepLinkService.stream.listen((DeepLinkDestination destination) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _handleDeepLinkDestination(destination, router);
@@ -398,11 +398,9 @@ GoRouter _createRouter() {
   return router;
 }
 
-// ── Router instances ──────────────────────────────────────────────────────────
 final router = _createRouter();
 GoRouter createRouter() => _createRouter();
 
-// ── Placeholder page ──────────────────────────────────────────────────────────
 class _PlaceholderPage extends StatelessWidget {
   const _PlaceholderPage({required this.title});
 
