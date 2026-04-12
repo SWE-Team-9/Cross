@@ -1,16 +1,21 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/network/api_constants.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 import 'package:soundcloud_clone/features/upload/presentation/models/apply_track_management_result.dart';
 import 'package:soundcloud_clone/features/upload/presentation/models/track_management_result.dart';
-import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -85,8 +90,11 @@ class _MockHomePageState extends State<MockHomePage> {
       },
       builder: (context, state) {
         String currentHandle = '';
+        String currentUserId = '';
+
         if (state is AuthAuthenticated) {
           currentHandle = state.user.handle;
+          currentUserId = state.user.id;
         }
 
         return Scaffold(
@@ -108,7 +116,8 @@ class _MockHomePageState extends State<MockHomePage> {
                         const _SectionHeader(title: 'Mixed for you'),
                         _MixesRow(userHandle: currentHandle),
                         const _SectionHeader(
-                            title: 'Your Tracks (Sprint 2 Test)'),
+                          title: 'Your Tracks (Sprint 2 Test)',
+                        ),
                         _ManagedTracksSection(
                           tracks: _managedTracks,
                           onManageTap: _openTrackManagement,
@@ -119,7 +128,7 @@ class _MockHomePageState extends State<MockHomePage> {
                           selected: _selectedGenre,
                           onSelect: (g) => setState(() => _selectedGenre = g),
                         ),
-                        const _TrendingTracks(),
+                        _TrendingTracks(userId: currentUserId),
                         const SizedBox(height: 16),
                       ],
                     ),
@@ -698,57 +707,147 @@ class _GenreChips extends StatelessWidget {
   }
 }
 
-class _TrendingTracks extends StatelessWidget {
-  const _TrendingTracks();
+class _TrendingTracks extends StatefulWidget {
+  final String userId;
+
+  const _TrendingTracks({
+    required this.userId,
+  });
+
+  @override
+  State<_TrendingTracks> createState() => _TrendingTracksState();
+}
+
+class _TrendingTracksState extends State<_TrendingTracks> {
+  late Future<List<Track>> _futureTracks;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureTracks = _getTracks();
+  }
+
+  Future<List<Track>> _getTracks() async {
+    if (widget.userId.isEmpty) {
+      return const [];
+    }
+
+    final dioClient = getIt<DioClient>();
+
+    final response = await dioClient.get(
+      ApiConstants.userTracksPath(widget.userId),
+      queryParameters: const {
+        'page': 1,
+        'limit': 20,
+      },
+    );
+
+    final data = response.data is String
+        ? jsonDecode(response.data)
+        : response.data;
+
+    final rawTracks = (data['tracks'] ?? const []) as List<dynamic>;
+
+    return rawTracks
+        .map((item) => _mapTrack(Map<String, dynamic>.from(item as Map)))
+        .toList(growable: false);
+  }
+
+  Track _mapTrack(Map<String, dynamic> json) {
+    final artist =
+        (json['artists'] ?? json['artist'] ?? const <String, dynamic>{})
+            as Map<String, dynamic>;
+
+    final title = (json['title'] ?? 'Untitled').toString();
+    final coverArtUrl = json['coverArtUrl']?.toString();
+    final normalizedCoverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(coverArtUrl) ?? coverArtUrl;
+
+    return Track(
+      id: (json['trackId'] ?? json['id'] ?? json['_id'] ?? '').toString(),
+      title: title,
+      artist: (artist['displayName'] ??
+              artist['username'] ??
+              artist['handle'] ??
+              'Unknown artist')
+          .toString(),
+      audioUrl:
+          'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+      artworkUrl: normalizedCoverUrl,
+      handle: artist['handle']?.toString(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _TrendingTracks oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _futureTracks = _getTracks();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tracks = [
-      Track(
-        id: '1',
-        title: 'Bunker - Balthazar',
-        artist: 'Balthazar',
-        audioUrl:
-            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        artworkUrl: 'https://picsum.photos/200?1',
-        handle: 'balthazar',
-      ),
-      Track(
-        id: '2',
-        title: 'Take It or Leave It',
-        artist: 'Cage the Elephant',
-        audioUrl:
-            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        artworkUrl: 'https://picsum.photos/200?2',
-        handle: 'cagetheelephant',
-      ),
-      Track(
-        id: '3',
-        title: 'Take Me Out',
-        artist: 'Franz Ferdinand',
-        audioUrl:
-            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-        artworkUrl: 'https://picsum.photos/200?3',
-        handle: 'franzferdinand',
-      ),
-    ];
+    return FutureBuilder<List<Track>>(
+      future: _futureTracks,
+      builder: (context, snapshot) {
+        if (widget.userId.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Log in to load your tracks.',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        }
 
-    return Column(
-      children: List.generate(
-        tracks.length,
-        (i) => Column(
-          children: [
-            TrackRow(track: tracks[i]),
-            if (i < tracks.length - 1)
-              const Divider(
-                color: Color(0xFF1A1A1A),
-                height: 1,
-                indent: 14,
-                endIndent: 14,
-              ),
-          ],
-        ),
-      ),
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              snapshot.error.toString(),
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        final tracks = snapshot.data ?? [];
+
+        if (tracks.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'No tracks found',
+              style: TextStyle(color: Colors.white),
+            ),
+          );
+        }
+
+        return Column(
+          children: List.generate(
+            tracks.length,
+            (i) => Column(
+              children: [
+                TrackRow(track: tracks[i]),
+                if (i < tracks.length - 1)
+                  const Divider(
+                    color: Color(0xFF1A1A1A),
+                    height: 1,
+                    indent: 14,
+                    endIndent: 14,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
