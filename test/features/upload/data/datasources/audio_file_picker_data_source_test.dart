@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:soundcloud_clone/features/upload/data/datasources/audio_file_picker_data_source.dart';
 import 'package:soundcloud_clone/features/upload/data/services/audio_picker_permission_service.dart';
+import 'package:soundcloud_clone/core/errors/upload_picker_exceptions.dart';
 
 class MockFilePicker extends Mock
     with MockPlatformInterfaceMixin
@@ -260,6 +261,30 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.extension, 'mp3');
+    });
+    test('rethrows permanently denied permission exception', () async {
+      when(() => mockPermissionService.ensurePermissionGranted()).thenThrow(
+        const UploadPickerPermissionPermanentlyDeniedException(
+          'Audio file permission is permanently denied. Please enable it from system settings.',
+        ),
+      );
+
+      expect(
+        () => dataSource.pickAudioFile(),
+        throwsA(
+          isA<UploadPickerPermissionPermanentlyDeniedException>().having(
+            (e) => e.message,
+            'message',
+            contains('Audio file permission is permanently denied'),
+          ),
+        ),
+      );
+
+      verifyNever(() => mockFilePicker.pickFiles(
+            type: FileType.custom,
+            allowedExtensions: const ['mp3', 'wav'],
+            allowMultiple: false,
+          ));
     });
   });
 }
