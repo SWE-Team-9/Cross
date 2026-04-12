@@ -15,7 +15,7 @@ void main() {
   const form = TrackManagementForm(
     title: 'City Lights',
     description: 'Updated description',
-    genreId: 2,
+    genreName: 'Electronic',
     tags: <String>['night', 'synth'],
     visibility: TrackManagementVisibility.privateTrack,
   );
@@ -131,12 +131,12 @@ void main() {
   group('updateTrackVisibility', () {
     test('updateTrackVisibility sends visibility api value and parses entity',
         () async {
-      when(() => mockDioClient.put(
-            '/tracks/track-1',
+      when(() => mockDioClient.patch(
+            '/tracks/track-1/visibility',
             data: <String, dynamic>{'visibility': 'PUBLIC'},
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/tracks/track-1/visibility'),
           data: <String, dynamic>{
             'track': trackJson(visibility: 'PUBLIC'),
           },
@@ -150,8 +150,8 @@ void main() {
 
       expect(result.visibility, TrackManagementVisibility.publicTrack);
 
-      verify(() => mockDioClient.put(
-            '/tracks/track-1',
+      verify(() => mockDioClient.patch(
+            '/tracks/track-1/visibility',
             data: <String, dynamic>{'visibility': 'PUBLIC'},
           )).called(1);
     });
