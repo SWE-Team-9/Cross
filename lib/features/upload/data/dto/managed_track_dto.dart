@@ -17,6 +17,7 @@ class ManagedTrackDto {
     this.tags = const <String>[],
     this.artworkUrl,
     this.durationInSeconds,
+    this.secretToken,
     this.deletedAt,
   });
 
@@ -43,6 +44,8 @@ class ManagedTrackDto {
                 ? ((json['durationMs'] as num) / 1000).round()
                 : null),
       ),
+      secretToken:
+          json['secretToken']?.toString() ?? json['secret_token']?.toString(),
       deletedAt: json['deletedAt']?.toString(),
       status: TrackStatus.fromString(json['status']?.toString()),
       waveformData: WaveformParser.fromTrackJson(json),
@@ -58,6 +61,7 @@ class ManagedTrackDto {
   final TrackManagementVisibility visibility;
   final String? artworkUrl;
   final int? durationInSeconds;
+  final String? secretToken;
   final String? deletedAt;
   final TrackStatus status;
   final WaveformData waveformData;
@@ -73,6 +77,7 @@ class ManagedTrackDto {
       visibility: visibility,
       artworkUrl: artworkUrl,
       durationInSeconds: durationInSeconds,
+      secretToken: secretToken,
       isDeleted: deletedAt != null,
       status: status,
       waveformData: waveformData,

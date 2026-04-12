@@ -17,6 +17,7 @@ class ManagedTrack extends Equatable {
     this.tags = const <String>[],
     this.artworkUrl,
     this.durationInSeconds,
+    this.secretToken,
     this.isDeleted = false,
   });
 
@@ -29,15 +30,11 @@ class ManagedTrack extends Equatable {
   final TrackManagementVisibility visibility;
   final String? artworkUrl;
   final int? durationInSeconds;
+  final String? secretToken;
   final bool isDeleted;
 
-  // ── Sprint 3 additions ─────────────────────────────────────────────────────
-  /// Backend processing state — PROCESSING until transcoding completes.
   final TrackStatus status;
-
-  /// Waveform peaks — [WaveformData.empty()] until track is FINISHED.
   final WaveformData waveformData;
-  // ──────────────────────────────────────────────────────────────────────────
 
   ManagedTrack copyWith({
     String? id,
@@ -54,6 +51,8 @@ class ManagedTrack extends Equatable {
     bool clearArtworkUrl = false,
     int? durationInSeconds,
     bool clearDurationInSeconds = false,
+    String? secretToken,
+    bool clearSecretToken = false,
     bool? isDeleted,
     TrackStatus? status,
     WaveformData? waveformData,
@@ -70,6 +69,7 @@ class ManagedTrack extends Equatable {
       durationInSeconds: clearDurationInSeconds
           ? null
           : (durationInSeconds ?? this.durationInSeconds),
+      secretToken: clearSecretToken ? null : (secretToken ?? this.secretToken),
       isDeleted: isDeleted ?? this.isDeleted,
       status: status ?? this.status,
       waveformData: waveformData ?? this.waveformData,
@@ -87,6 +87,7 @@ class ManagedTrack extends Equatable {
         visibility,
         artworkUrl,
         durationInSeconds,
+        secretToken,
         isDeleted,
         status,
         waveformData,
