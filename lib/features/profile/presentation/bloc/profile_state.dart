@@ -2,6 +2,7 @@
 // Flutter
 // Third-party
 // Project
+import '../../../upload/domain/entities/managed_track.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 
@@ -16,7 +17,12 @@ class ProfileLoading extends ProfileState {}
 /// T2.3: Profile loaded — ProfilePage renders all profile data.
 class ProfileLoaded extends ProfileState {
   final ProfileEntity profile;
-  ProfileLoaded(this.profile);
+  final List<ManagedTrack> tracks;
+
+  ProfileLoaded(
+    this.profile, {
+    this.tracks = const <ManagedTrack>[],
+  });
 }
 
 /// Failed to load the profile.

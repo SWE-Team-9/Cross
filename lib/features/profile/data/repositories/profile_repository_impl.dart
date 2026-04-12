@@ -1,3 +1,4 @@
+import '../../../upload/domain/entities/managed_track.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../datasources/profile_remote_data_source.dart';
@@ -17,6 +18,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<ProfileEntity> getMyProfile() async {
     final dto = await _remoteDataSource.getMyProfile();
     return dto.toEntity();
+  }
+
+  @override
+  Future<List<ManagedTrack>> getUserTracks(String userId) async {
+    final dtos = await _remoteDataSource.getUserTracks(userId);
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
   }
 
   @override
