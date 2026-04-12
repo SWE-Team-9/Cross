@@ -46,8 +46,8 @@ class TrackManagementRemoteDataSourceImpl
     required String trackId,
     required TrackManagementVisibility visibility,
   }) async {
-    final dynamic response = await _dioClient.put(
-      '/tracks/$trackId',
+    final dynamic response = await _dioClient.patch(
+      '/tracks/$trackId/visibility',
       data: <String, dynamic>{
         'visibility': visibility.apiValue,
       },

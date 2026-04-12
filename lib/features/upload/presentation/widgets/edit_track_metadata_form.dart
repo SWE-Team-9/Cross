@@ -4,11 +4,9 @@ import '../bloc/track_management_state.dart';
 
 class TrackGenreOption {
   const TrackGenreOption({
-    required this.id,
     required this.name,
   });
 
-  final int id;
   final String name;
 }
 
@@ -36,7 +34,7 @@ class EditTrackMetadataForm extends StatelessWidget {
   final ValueChanged<String> onTitleChanged;
   final ValueChanged<String> onDescriptionChanged;
   final ValueChanged<String> onTagsChanged;
-  final ValueChanged<TrackGenreOption> onGenreChanged;
+  final ValueChanged<String> onGenreChanged;
   final VoidCallback onSave;
   final VoidCallback onReset;
 
@@ -83,31 +81,27 @@ class EditTrackMetadataForm extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              key: ValueKey(form.genreId),
-              initialValue: form.genreId,
+            DropdownButtonFormField<String>(
+              key: ValueKey(form.genreName),
+              initialValue: form.genreName,
               decoration: InputDecoration(
                 labelText: 'Genre',
                 errorText: form.genreValidationError,
                 border: const OutlineInputBorder(),
               ),
               items: genreOptions.map((genre) {
-                return DropdownMenuItem<int>(
-                  value: genre.id,
+                return DropdownMenuItem<String>(
+                  value: genre.name,
                   child: Text(genre.name),
                 );
               }).toList(),
               onChanged: (!state.isBusy && !state.isDeleted)
-                  ? (genreId) {
-                      if (genreId == null) {
+                  ? (genreName) {
+                      if (genreName == null || genreName.trim().isEmpty) {
                         return;
                       }
 
-                      final selectedGenre = genreOptions.firstWhere(
-                        (genre) => genre.id == genreId,
-                      );
-
-                      onGenreChanged(selectedGenre);
+                      onGenreChanged(genreName);
                     }
                   : null,
             ),

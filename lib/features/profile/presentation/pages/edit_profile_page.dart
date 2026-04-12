@@ -198,6 +198,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (state is ProfileUpdating) return state.currentProfile;
     if (state is ProfileUpdateError) return state.currentProfile;
     if (state is ProfileImageUploading) return state.currentProfile;
+    if (state is ProfileImageUploadError) return state.currentProfile;
     if (state is ProfileUpdateSuccess) return state.updatedProfile;
     return null;
   }
@@ -800,6 +801,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
             Navigator.of(context).pop();
           }
 
+          if (state is ProfileImageUploadError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red.shade800,
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    context.read<ProfileCubit>().uploadImage(
+                          imageType: state.imageType,
+                          filePath: state.filePath,
+                        );
+                  },
+                ),
+              ),
+            );
+          }
+
           if (state is ProfileUpdateError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -823,6 +844,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ProfileUpdateError s => s.currentProfile.avatarUrl,
             ProfileImageUploading s => s.currentProfile.avatarUrl,
             ProfileUpdateSuccess s => s.updatedProfile.avatarUrl,
+            ProfileImageUploadError s => s.currentProfile.avatarUrl,
             _ => _initialProfile.avatarUrl,
           };
 
@@ -832,6 +854,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ProfileUpdateError s => s.currentProfile.coverPhotoUrl,
             ProfileImageUploading s => s.currentProfile.coverPhotoUrl,
             ProfileUpdateSuccess s => s.updatedProfile.coverPhotoUrl,
+            ProfileImageUploadError s => s.currentProfile.coverPhotoUrl,
             _ => _initialProfile.coverPhotoUrl,
           };
 
