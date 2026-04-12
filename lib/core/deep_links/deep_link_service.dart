@@ -1,15 +1,8 @@
-// deep_link_service.dart
-
-// Dart SDK
 import 'dart:async';
 
-// Flutter
+import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 
-// Third-party
-import 'package:app_links/app_links.dart';
-
-// Project
 import 'deep_link_destination.dart';
 import 'deep_link_parser.dart';
 
@@ -18,12 +11,9 @@ class DeepLinkService {
 
   final AppLinks _appLinks;
 
-  // Use a broadcast stream with a stored last event
-  // so the router listener gets it even if it subscribes late.
   final StreamController<DeepLinkDestination> _controller =
       StreamController<DeepLinkDestination>.broadcast();
 
-  // Store last emitted destination so late subscribers can get it.
   DeepLinkDestination? _lastDestination;
   bool _lastDestinationConsumed = false;
   String? _lastEmittedUri;
@@ -37,8 +27,13 @@ class DeepLinkService {
     return _lastDestination;
   }
 
+  DeepLinkDestination? peekLastDestination() => _lastDestination;
+
+  void markLastDestinationConsumed() {
+    _lastDestinationConsumed = true;
+  }
+
   Future<void> init() async {
-    // ── Cold start ──────────────────────────────────────────────────────────
     try {
       final Uri? initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
@@ -46,7 +41,6 @@ class DeepLinkService {
       }
     } catch (_) {}
 
-    // ── Warm start ──────────────────────────────────────────────────────────
     _appLinks.uriLinkStream.listen(
       (uri) {
         _lastDestinationConsumed = false;
@@ -76,7 +70,7 @@ class DeepLinkService {
 
   void _emit(Uri uri) {
     final DeepLinkDestination destination = DeepLinkParser.parse(uri);
-    _lastDestination = destination; // store for late subscribers
+    _lastDestination = destination;
     _controller.add(destination);
     debugPrint('[DeepLinkService] Emitted: $destination');
   }
