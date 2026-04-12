@@ -36,6 +36,7 @@ import '../features/upload/presentation/pages/upload_picker_page.dart';
 // Project — playback
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/track_loader_cubit.dart';
+import '../features/playback/presentation/pages/full_player_page.dart';
 import '../features/playback/presentation/pages/track_deep_link_bridge_page.dart';
 
 // Project — recently played
@@ -61,6 +62,7 @@ class AppRoutes {
   static const String followers = '/followers/:handle';
   static const String following = '/following/:handle';
   static const String trackManagementDemo = '/track-management-demo';
+  static const String player = '/player';
 
   // Deep link destinations — Sprint 4 T4.1
   static const String trackDetail = '/track/:trackId';
@@ -232,6 +234,16 @@ GoRouter _createRouter() {
             ),
           );
         },
+      ),
+
+      // ── Full player route (used by mini player tap) ─────────────────────
+      GoRoute(
+        path: AppRoutes.player,
+        name: 'player',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: FullPlayerPage(),
+        ),
       ),
 
       // ── Track detail — public deep link (Sprint 4 T4.1) ─────────────────

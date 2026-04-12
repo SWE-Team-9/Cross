@@ -124,6 +124,52 @@ void main() {
     );
 
     blocTest<PlayerCubit, dynamic>(
+      'stop() calls audio service stop',
+      build: () {
+        when(() => mockService.stop()).thenAnswer((_) async {});
+        return PlayerCubit(mockService);
+      },
+      act: (cubit) => cubit.stop(),
+      verify: (_) {
+        verify(() => mockService.stop()).called(1);
+      },
+    );
+
+    blocTest<PlayerCubit, dynamic>(
+      'togglePlayPause() resumes when not playing',
+      build: () {
+        when(() => mockService.resume()).thenAnswer((_) async {});
+        return PlayerCubit(mockService);
+      },
+      act: (cubit) => cubit.togglePlayPause(),
+      verify: (_) {
+        verify(() => mockService.resume()).called(1);
+      },
+    );
+
+    blocTest<PlayerCubit, dynamic>(
+      'openFullPlayer() sets full screen to true',
+      build: () => PlayerCubit(mockService),
+      act: (cubit) => cubit.openFullPlayer(),
+      expect: () => [
+        isA().having((state) => state.isFullScreen, 'isFullScreen', isTrue),
+      ],
+    );
+
+    blocTest<PlayerCubit, dynamic>(
+      'closeFullPlayer() sets full screen to false',
+      build: () => PlayerCubit(mockService),
+      act: (cubit) {
+        cubit.openFullPlayer();
+        cubit.closeFullPlayer();
+      },
+      expect: () => [
+        isA().having((state) => state.isFullScreen, 'isFullScreen', isTrue),
+        isA().having((state) => state.isFullScreen, 'isFullScreen', isFalse),
+      ],
+    );
+
+    blocTest<PlayerCubit, dynamic>(
       'updates state when stream emits new player state',
       build: () {
         when(() => mockService.playerStateStream).thenAnswer(
