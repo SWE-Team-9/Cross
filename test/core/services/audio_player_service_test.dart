@@ -26,8 +26,12 @@ void main() {
   test('playbackState updates', () {
     handler.playbackState.add(
       PlaybackState(
-        playing: true,
+        controls: const [],
+        systemActions: const {},
+        androidCompactActionIndices: const [],
         processingState: AudioProcessingState.ready,
+        playing: true,
+        updatePosition: Duration.zero,
       ),
     );
 

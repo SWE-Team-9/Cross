@@ -38,9 +38,9 @@ abstract class ApiConstants {
   static String followUserPath(String userId) => '$socialBase/follow/$userId';
   static String blockUserPath(String userId) => '$socialBase/block/$userId';
 
-  // ── Tracks ──────────────────────────────────────────────────────────────
-  static const String tracks = '/tracks';
-  static const String users = '/users';
+// ── Tracks ──────────────────────────────────────────────────────────────
+  static const String tracks = '/api/v1/tracks';
+  static const String users = '/api/v1/users';
 
   static String trackByIdPath(String trackId) => '$tracks/$trackId';
   static String trackStatusPath(String trackId) =>
@@ -48,4 +48,21 @@ abstract class ApiConstants {
   static String trackWaveformPath(String trackId) =>
       '${trackByIdPath(trackId)}/waveform';
   static String userTracksPath(String userId) => '$users/$userId/tracks';
+  // ── Interactions ────────────────────────────────────────────────────────
+  static const String interactionsBase = '/api/v1/interactions';
+  static const String commentsBase = '/api/v1/interactions/comments';
+
+  static String likeTrackPath(String trackId) =>
+      '$interactionsBase/tracks/$trackId/like';
+
+  static String repostTrackPath(String trackId) =>
+      '$interactionsBase/tracks/$trackId/repost';
+
+  static String trackInteractionStatusPath(String trackId) =>
+      '$interactionsBase/tracks/$trackId/status';
+
+  static String trackCommentsPath(String trackId) =>
+      '$interactionsBase/tracks/$trackId/comments';
+
+  static String commentByIdPath(String commentId) => '$commentsBase/$commentId';
 }

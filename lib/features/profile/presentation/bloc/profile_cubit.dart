@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
+import '../../../upload/domain/entities/managed_track.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../domain/usecases/get_profile_usecase.dart';
@@ -55,7 +56,21 @@ class ProfileCubit extends Cubit<ProfileState> {
         },
       );
 
-      emit(ProfileLoaded(profile));
+      List<ManagedTrack> tracks = const <ManagedTrack>[];
+      try {
+        tracks = await _profileRepository.getUserTracks(profile.id).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Request timed out. Please check your connection.',
+            );
+          },
+        );
+      } catch (_) {
+        tracks = const <ManagedTrack>[];
+      }
+
+      emit(ProfileLoaded(profile, tracks: tracks));
     } on Failure catch (failure) {
       emit(ProfileError(failure.message));
     } catch (_) {
@@ -67,8 +82,10 @@ class ProfileCubit extends Cubit<ProfileState> {
     final ProfileEntity? currentProfile = _currentProfileFromState();
     if (currentProfile == null) return;
 
+    final List<ManagedTrack> currentTracks = _tracksFromState();
+
     if (!params.hasBaseProfileChanges && !params.hasExternalLinksChanges) {
-      emit(ProfileLoaded(currentProfile));
+      emit(ProfileLoaded(currentProfile, tracks: currentTracks));
       return;
     }
 
@@ -89,7 +106,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       }
 
       emit(ProfileUpdateSuccess(workingProfile));
-      emit(ProfileLoaded(workingProfile));
+      emit(ProfileLoaded(workingProfile, tracks: currentTracks));
     } on Failure catch (failure) {
       emit(ProfileUpdateError(currentProfile, failure.message));
     } catch (_) {
@@ -109,6 +126,8 @@ class ProfileCubit extends Cubit<ProfileState> {
     final ProfileEntity? currentProfile = _currentProfileFromState();
     if (currentProfile == null) return;
 
+    final List<ManagedTrack> currentTracks = _tracksFromState();
+
     emit(ProfileImageUploading(currentProfile, imageType));
 
     try {
@@ -121,7 +140,7 @@ class ProfileCubit extends Cubit<ProfileState> {
           ? currentProfile.copyWith(avatarUrl: newUrl)
           : currentProfile.copyWith(coverPhotoUrl: newUrl);
 
-      emit(ProfileLoaded(updatedProfile));
+      emit(ProfileLoaded(updatedProfile, tracks: currentTracks));
     } on Failure catch (failure) {
       emit(ProfileUpdateError(currentProfile, failure.message));
     } catch (_) {
@@ -154,5 +173,15 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
 
     return null;
+  }
+
+  List<ManagedTrack> _tracksFromState() {
+    final currentState = state;
+
+    if (currentState is ProfileLoaded) {
+      return currentState.tracks;
+    }
+
+    return const <ManagedTrack>[];
   }
 }
