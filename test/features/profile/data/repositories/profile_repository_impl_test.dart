@@ -5,6 +5,8 @@ import 'package:soundcloud_clone/features/profile/data/dto/profile_dto.dart';
 import 'package:soundcloud_clone/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
+import 'package:soundcloud_clone/features/upload/data/dto/managed_track_dto.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 
 class MockProfileRemoteDataSource extends Mock
     implements ProfileRemoteDataSource {}
@@ -45,6 +47,25 @@ void main() {
     expect(result, isA<ProfileEntity>());
     expect(result.displayName, 'Ali');
     verify(() => mockRemoteDataSource.getProfile('ali')).called(1);
+  });
+
+  test('getUserTracks delegates to remote source and maps dto to entities',
+      () async {
+    when(() => mockRemoteDataSource.getUserTracks('user-1')).thenAnswer(
+      (_) async => [
+        const ManagedTrackDto(
+          id: 'track-1',
+          title: 'Midnight Echoes',
+          visibility: TrackManagementVisibility.publicTrack,
+        ),
+      ],
+    );
+
+    final result = await repository.getUserTracks('user-1');
+
+    expect(result, hasLength(1));
+    expect(result.single.id, 'track-1');
+    verify(() => mockRemoteDataSource.getUserTracks('user-1')).called(1);
   });
 
   test('updateProfile sends only provided displayName', () async {
