@@ -3,26 +3,33 @@ import 'package:soundcloud_clone/features/upload/domain/entities/track_managemen
 
 void main() {
   group('TrackManagementVisibility', () {
-    test('creates visibility with valid value', () {
-      final visibility = TrackManagementVisibility(isPublic: true);
-      expect(visibility.isPublic, isTrue);
+    test('publicTrack apiValue and displayLabel', () {
+      final visibility = TrackManagementVisibility.publicTrack;
+
+      expect(visibility.apiValue, 'PUBLIC');
+      expect(visibility.displayLabel, 'Public');
     });
 
-    test('visibility can be private', () {
-      final visibility = TrackManagementVisibility(isPublic: false);
-      expect(visibility.isPublic, isFalse);
+    test('privateTrack apiValue and displayLabel', () {
+      final visibility = TrackManagementVisibility.privateTrack;
+
+      expect(visibility.apiValue, 'PRIVATE');
+      expect(visibility.displayLabel, 'Private');
     });
 
-    test('equality works for same values', () {
-      final v1 = TrackManagementVisibility(isPublic: true);
-      final v2 = TrackManagementVisibility(isPublic: true);
-      expect(v1, v2);
+    test('fromApiValue returns publicTrack for PUBLIC', () {
+      final result = trackManagementVisibilityFromApiValue('PUBLIC');
+      expect(result, TrackManagementVisibility.publicTrack);
     });
 
-    test('inequality works for different values', () {
-      final v1 = TrackManagementVisibility(isPublic: true);
-      final v2 = TrackManagementVisibility(isPublic: false);
-      expect(v1 != v2, isTrue);
+    test('fromApiValue returns privateTrack for PRIVATE', () {
+      final result = trackManagementVisibilityFromApiValue('PRIVATE');
+      expect(result, TrackManagementVisibility.privateTrack);
+    });
+
+    test('fromApiValue defaults to publicTrack', () {
+      final result = trackManagementVisibilityFromApiValue(null);
+      expect(result, TrackManagementVisibility.publicTrack);
     });
   });
 }
