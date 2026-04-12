@@ -85,10 +85,7 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         title: title,
         artist: artist,
         duration: _player.duration ?? Duration.zero,
-        artUri: artUri ??
-            Uri.parse(
-              'https://picsum.photos/200', // 🔥 fallback image
-            ),
+        artUri: artUri,
       ),
     );
 

@@ -2,6 +2,8 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/errors/failure.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
@@ -50,6 +52,12 @@ void main() {
     visibility: ProfileVisibility.PUBLIC,
     followersCount: 10,
     followingCount: 20,
+  );
+
+  const ownTrack = ManagedTrack(
+    id: 'track-1',
+    title: 'Midnight Echoes',
+    visibility: TrackManagementVisibility.publicTrack,
   );
 
   setUpAll(() {
@@ -128,12 +136,16 @@ void main() {
     build: () {
       when(() => mockProfileRepository.getMyProfile())
           .thenAnswer((_) async => profile);
+      when(() => mockProfileRepository.getUserTracks('1'))
+          .thenAnswer((_) async => [ownTrack]);
       return buildCubit();
     },
     act: (cubit) => cubit.loadOwnProfile(),
     expect: () => [
       isA<ProfileLoading>(),
-      isA<ProfileLoaded>().having((s) => s.profile.handle, 'handle', 'ali'),
+      isA<ProfileLoaded>()
+          .having((s) => s.profile.handle, 'handle', 'ali')
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
     ],
   );
 
