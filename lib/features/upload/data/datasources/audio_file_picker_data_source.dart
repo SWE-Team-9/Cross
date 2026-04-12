@@ -1,16 +1,22 @@
 import 'package:file_picker/file_picker.dart';
+
 import '../dto/picked_audio_file_dto.dart';
+import '../services/audio_picker_permission_service.dart';
 
 abstract class AudioFilePickerDataSource {
   Future<PickedAudioFileDto?> pickAudioFile();
 }
 
 class AudioFilePickerDataSourceImpl implements AudioFilePickerDataSource {
-  const AudioFilePickerDataSourceImpl();
+  AudioFilePickerDataSourceImpl(this._permissionService);
+
+  final AudioPickerPermissionService _permissionService;
 
   @override
   Future<PickedAudioFileDto?> pickAudioFile() async {
     try {
+      await _permissionService.ensurePermissionGranted();
+
       final FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['mp3', 'wav'],
@@ -39,7 +45,9 @@ class AudioFilePickerDataSourceImpl implements AudioFilePickerDataSource {
         path: file.path,
       );
     } catch (error) {
-      throw Exception('Failed to pick audio file: $error');
+      final String message = error.toString().replaceFirst('Exception: ', '');
+
+      throw Exception('Failed to pick audio file: $message');
     }
   }
 
