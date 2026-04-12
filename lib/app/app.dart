@@ -8,6 +8,7 @@ import '../core/deep_links/deep_link_service.dart';
 import '../core/di/injector.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
+import '../features/playback/presentation/widgets/mini_player.dart';
 import '../features/social/data/repositories/social_repo.dart';
 import 'router.dart';
 
@@ -40,8 +41,37 @@ class App extends StatelessWidget {
           ),
           routerConfig: router,
           builder: (context, child) {
+            final isPlayerOpen =
+                context.watch<PlayerCubit>().state.isFullScreen;
+
             return _DeepLinkBridge(
-              child: child ?? const SizedBox.shrink(),
+              child: Scaffold(
+                body: Stack(
+                  children: [
+                    child ?? const SizedBox.shrink(),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 70,
+                      child: IgnorePointer(
+                        ignoring: isPlayerOpen,
+                        child: AnimatedSlide(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          offset:
+                              isPlayerOpen ? const Offset(0, 1.2) : Offset.zero,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOut,
+                            opacity: isPlayerOpen ? 0 : 1,
+                            child: const MiniPlayer(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -71,8 +101,9 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
 
       final deepLinkService = getIt<DeepLinkService>();
 
-      final pending = deepLinkService.consumeLastDestination();
-      if (pending != null) {
+      final pending = deepLinkService.peekLastDestination();
+      if (pending is OAuthCallbackDeepLink) {
+        deepLinkService.markLastDestinationConsumed();
         _handleDestination(pending);
       }
 
