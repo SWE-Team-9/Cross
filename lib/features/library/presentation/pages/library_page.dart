@@ -8,6 +8,7 @@ import 'package:soundcloud_clone/features/recently_played/presentation/bloc/rece
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
+import 'package:soundcloud_clone/features/settings/presentation/page/settings_page.dart';
 
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
@@ -33,9 +34,20 @@ class LibraryPage extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Icon(Icons.cast, color: Colors.white70),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(Icons.settings, color: Colors.white70),
+            // ✅ زرار settings بيفتح الـ SettingsPage
+            IconButton(
+              icon: const Icon(Icons.settings, color: Colors.white70),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: context.read<AuthCubit>(),
+                      child: const SettingsPage(),
+                    ),
+                  ),
+                );
+              },
             ),
             BlocBuilder<AuthCubit, AuthState>(
               builder: (context, state) {
@@ -81,13 +93,25 @@ class LibraryPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
-              _LibraryItem(title: 'Your likes'),
-              _LibraryItem(title: 'Playlists'),
-              _LibraryItem(title: 'Albums'),
-              _LibraryItem(title: 'Following'),
-              _LibraryItem(title: 'Stations'),
-              _LibraryItem(title: 'Your insights'),
-              _LibraryItem(title: 'Your uploads'),
+              _LibraryItem(title: 'Your likes', onTap: () {}),
+              _LibraryItem(title: 'Playlists', onTap: () {}),
+              _LibraryItem(title: 'Albums', onTap: () {}),
+              // ✅ Following بيفتح الـ FollowingPage بتاع اليوزر الحالي
+              BlocBuilder<AuthCubit, AuthState>(
+                builder: (context, state) {
+                  return _LibraryItem(
+                    title: 'Following',
+                    onTap: () {
+                      if (state is AuthAuthenticated) {
+                        context.push('/following/${state.user.handle}');
+                      }
+                    },
+                  );
+                },
+              ),
+              _LibraryItem(title: 'Stations', onTap: () {}),
+              _LibraryItem(title: 'Your insights', onTap: () {}),
+              _LibraryItem(title: 'Your uploads', onTap: () {}),
               const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -121,7 +145,6 @@ class LibraryPage extends StatelessWidget {
                       ),
                     );
                   }
-
                   return RecentlyPlayedRow(tracks: tracks);
                 },
               ),
@@ -149,8 +172,9 @@ class LibraryPage extends StatelessWidget {
 
 class _LibraryItem extends StatelessWidget {
   final String title;
+  final VoidCallback onTap;
 
-  const _LibraryItem({required this.title});
+  const _LibraryItem({required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -160,11 +184,8 @@ class _LibraryItem extends StatelessWidget {
         title,
         style: const TextStyle(color: Colors.white),
       ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: Colors.white54,
-      ),
-      onTap: () {},
+      trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+      onTap: onTap,
     );
   }
 }
@@ -214,6 +235,14 @@ class _BottomNav extends StatelessWidget {
             index: 3,
             selected: selected,
             onTap: () => context.go('/library'),
+          ),
+          _NavItem(
+            icon: Icons.bar_chart_outlined,
+            activeIcon: Icons.bar_chart,
+            label: 'Upgrade',
+            index: 4,
+            selected: selected,
+            onTap: () => context.go('/upgrade'),
           ),
         ],
       ),
