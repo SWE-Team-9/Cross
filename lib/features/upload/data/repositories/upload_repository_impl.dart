@@ -26,6 +26,9 @@ class UploadRepositoryImpl implements UploadRepository {
     required PickedAudioFile file,
     required String title,
     String? genre,
+    String? description,
+    List<String> tags = const <String>[],
+    UploadProgressCallback? onProgress,
   }) async {
     final DioClient? dioClient = _dioClient;
     if (dioClient == null) {
@@ -37,23 +40,48 @@ class UploadRepositoryImpl implements UploadRepository {
     final String? filePath = file.path;
     if (filePath == null || filePath.trim().isEmpty) {
       throw Exception(
-          'Selected audio file path is unavailable on this platform.');
+        'Selected audio file path is unavailable on this platform.',
+      );
     }
 
+    final String normalizedTitle = title.trim();
+    final String? normalizedGenre = _normalizeOptional(genre);
+    final String? normalizedDescription = _normalizeOptional(description);
+    final List<String> sanitizedTags = _sanitizeTags(tags);
+
     final formData = FormData.fromMap({
-      'title': title.trim(),
-      if (genre != null && genre.trim().isNotEmpty) 'genre': genre.trim(),
+      'title': normalizedTitle,
+      if (normalizedGenre != null) 'genre': normalizedGenre,
+      if (normalizedDescription != null) 'description': normalizedDescription,
+      if (sanitizedTags.isNotEmpty) 'tags': sanitizedTags,
       'audioFile': await MultipartFile.fromFile(
         filePath,
         filename: file.name,
       ),
     });
 
-    final response = await dioClient.post(
-      ApiConstants.tracks,
-      data: formData,
-      options: Options(contentType: 'multipart/form-data'),
-    );
+    final response = onProgress == null
+        ? await dioClient.post(
+            ApiConstants.tracks,
+            data: formData,
+            options: Options(contentType: 'multipart/form-data'),
+          )
+        : await dioClient.post(
+            ApiConstants.tracks,
+            data: formData,
+            options: Options(contentType: 'multipart/form-data'),
+            onSendProgress: (sent, total) {
+              if (total <= 0) {
+                onProgress(0);
+                return;
+              }
+
+              final double progress = sent / total;
+              onProgress(
+                progress < 0 ? 0 : (progress > 1 ? 1 : progress),
+              );
+            },
+          );
 
     final payload = _extractPayloadMap(response);
 
@@ -66,10 +94,13 @@ class UploadRepositoryImpl implements UploadRepository {
     }
 
     final String status = (payload['status'] ?? 'PROCESSING').toString();
+    final String? secretToken = payload['secretToken']?.toString() ??
+        payload['secret_token']?.toString();
 
     return UploadTrackResult(
       trackId: trackId,
       status: status,
+      secretToken: secretToken,
     );
   }
 
@@ -93,7 +124,8 @@ class UploadRepositoryImpl implements UploadRepository {
 
     if (status.isEmpty) {
       throw const FormatException(
-          'Track status response did not include status.');
+        'Track status response did not include status.',
+      );
     }
 
     return status;
@@ -117,4 +149,32 @@ Map<String, dynamic> _extractPayloadMap(dynamic response) {
   }
 
   throw const FormatException('Unexpected upload response format.');
+}
+
+String? _normalizeOptional(String? value) {
+  final String normalized = (value ?? '').trim();
+  return normalized.isEmpty ? null : normalized;
+}
+
+List<String> _sanitizeTags(List<String> tags) {
+  final List<String> result = <String>[];
+  final Set<String> seen = <String>{};
+
+  for (final rawTag in tags) {
+    final String trimmed = rawTag.trim();
+    final String normalized = trimmed.toLowerCase();
+
+    if (trimmed.isEmpty || seen.contains(normalized)) {
+      continue;
+    }
+
+    if (result.length >= 10) {
+      break;
+    }
+
+    result.add(trimmed);
+    seen.add(normalized);
+  }
+
+  return result;
 }
