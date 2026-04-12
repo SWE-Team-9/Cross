@@ -8,13 +8,17 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cu
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_state.dart';
 
 class MockAudioPlayerService extends Mock implements AudioPlayerService {}
+
 class FakeTrack extends Fake implements Track {}
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const _t1 = Track(id: 't1', title: 'Track 1', artist: 'Artist 1', audioUrl: 'url1');
-const _t2 = Track(id: 't2', title: 'Track 2', artist: 'Artist 2', audioUrl: 'url2');
-const _t3 = Track(id: 't3', title: 'Track 3', artist: 'Artist 3', audioUrl: 'url3');
+const _t1 =
+    Track(id: 't1', title: 'Track 1', artist: 'Artist 1', audioUrl: 'url1');
+const _t2 =
+    Track(id: 't2', title: 'Track 2', artist: 'Artist 2', audioUrl: 'url2');
+const _t3 =
+    Track(id: 't3', title: 'Track 3', artist: 'Artist 3', audioUrl: 'url3');
 const _queue = [_t1, _t2, _t3];
 
 void main() {
@@ -205,7 +209,6 @@ void main() {
       expect: () => [
         isA<PlaybackState>()
             .having((s) => s.isPlaying, 'isPlaying', isFalse)
-
             .having((s) => s.queue, 'queue', isEmpty),
       ],
       verify: (_) => verify(() => audioService.stop()).called(1),
@@ -222,7 +225,7 @@ void main() {
       build: makeCubit,
       act: (c) async {
         await c.playTrack(_t1, _queue); // index=0
-        await c.playNext();             // index=1 → _t2
+        await c.playNext(); // index=1 → _t2
       },
       skip: 1, // skip the playTrack emit
       expect: () => [
@@ -262,7 +265,7 @@ void main() {
       build: makeCubit,
       act: (c) async {
         await c.playTrack(_t2, _queue); // index=1
-        await c.playPrevious();         // index=0 → _t1
+        await c.playPrevious(); // index=0 → _t1
       },
       skip: 1,
       expect: () => [
@@ -270,7 +273,8 @@ void main() {
             .having((s) => s.currentTrack, 'currentTrack', _t1)
             .having((s) => s.isPlaying, 'isPlaying', isTrue),
       ],
-      verify: (_) => verify(() => audioService.play(_t1)).called(greaterThanOrEqualTo(1)),
+      verify: (_) =>
+          verify(() => audioService.play(_t1)).called(greaterThanOrEqualTo(1)),
     );
 
     blocTest<PlaybackCubit, PlaybackState>(
@@ -303,7 +307,8 @@ void main() {
       act: (c) => c.seek(const Duration(seconds: 30)),
       expect: () => [],
       verify: (_) =>
-          verify(() => audioService.seek(const Duration(seconds: 30))).called(1),
+          verify(() => audioService.seek(const Duration(seconds: 30)))
+              .called(1),
     );
   });
 
