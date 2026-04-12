@@ -44,7 +44,7 @@ import '../../features/upload/domain/usecases/update_track_metadata_usecase.dart
 import '../../features/upload/domain/usecases/update_track_visibility_usecase.dart';
 import '../../features/upload/presentation/bloc/track_management_cubit.dart';
 import '../../features/upload/presentation/bloc/upload_picker_cubit.dart';
-
+import '../../features/upload/data/services/audio_picker_permission_service.dart';
 // Profile feature
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
@@ -199,9 +199,17 @@ Future<void> setupDependencies() async {
 
   // ── Upload Feature: File Picker + Upload Flow ───────────────────────────
 
+  if (!getIt.isRegistered<AudioPickerPermissionService>()) {
+    getIt.registerLazySingleton<AudioPickerPermissionService>(
+      () => AudioPickerPermissionServiceImpl(),
+    );
+  }
+
   if (!getIt.isRegistered<AudioFilePickerDataSource>()) {
     getIt.registerLazySingleton<AudioFilePickerDataSource>(
-      () => const AudioFilePickerDataSourceImpl(),
+      () => AudioFilePickerDataSourceImpl(
+        getIt<AudioPickerPermissionService>(),
+      ),
     );
   }
 
@@ -228,7 +236,6 @@ Future<void> setupDependencies() async {
       ),
     );
   }
-
   // ── Upload Feature: Track Management Basics ─────────────────────────────
 
   const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
