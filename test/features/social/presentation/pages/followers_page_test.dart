@@ -66,11 +66,8 @@ void main() {
 
   testWidgets('uses explicit userId when provided', (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
     stubGetFollowers('explicit-id', followers);
 
@@ -85,8 +82,6 @@ void main() {
     expect(find.text('mona'), findsOneWidget);
     expect(find.text('12 followers'), findsOneWidget);
     expect(find.text('20 followers'), findsOneWidget);
-    // omar: isFollowing=false → 'Follow'
-    // mona: isFollowing=true  → 'Following'
     expect(find.text('Follow'), findsOneWidget);
     expect(find.text('Following'), findsOneWidget);
   });
@@ -94,11 +89,8 @@ void main() {
   testWidgets('uses authenticated user id when handle matches own profile',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
     stubGetFollowers('auth-1', followers);
 
@@ -111,11 +103,8 @@ void main() {
   testWidgets('resolves user id by handle when viewing another profile',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
     when(() => mockSocialRepo.getUserIdByHandle('other-handle'))
         .thenAnswer((_) async => 'resolved-id');
@@ -128,14 +117,11 @@ void main() {
         .called(1);
   });
 
-  testWidgets('shows empty state when handle is missing and no userId provided',
+  testWidgets('shows User not found when handle is missing and no userId',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
     await pumpPage(tester, handle: '');
 
@@ -143,14 +129,11 @@ void main() {
     verifyNever(() => mockSocialRepo.getFollowers(any(), any()));
   });
 
-  testWidgets('shows empty state when user id resolution fails',
+  testWidgets('shows User not found when user id resolution fails',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
     when(() => mockSocialRepo.getUserIdByHandle('broken'))
         .thenThrow(Exception('fail'));
@@ -159,5 +142,53 @@ void main() {
 
     expect(find.text('User not found'), findsOneWidget);
     verifyNever(() => mockSocialRepo.getFollowers(any(), any()));
+  });
+
+  testWidgets('shows empty state when API returns empty list', (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
+
+    stubGetFollowers('auth-1', []);
+
+    await pumpPage(tester, handle: 'ali');
+
+    expect(find.text('No followers yet'), findsOneWidget);
+    expect(find.byIcon(Icons.people_outline), findsOneWidget);
+  });
+
+  testWidgets('shows error state when API throws', (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
+
+    when(() => mockSocialRepo.getFollowers('auth-1', 1, limit: 20))
+        .thenThrow(Exception('network error'));
+
+    await pumpPage(tester, handle: 'ali');
+
+    expect(find.text('Something went wrong'), findsOneWidget);
+    expect(find.byIcon(Icons.wifi_off), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets('tapping Follow button triggers toggleFollow', (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
+
+    stubGetFollowers('auth-1', followers);
+
+    // stub toggleFollow → followUser
+    when(() => mockSocialRepo.followUser('u1')).thenAnswer(
+      (_) async => (isFollowing: true, followersCount: 13),
+    );
+
+    await pumpPage(tester, handle: 'ali');
+
+    await tester.tap(find.text('Follow'));
+    await tester.pumpAndSettle();
+
+    verify(() => mockSocialRepo.followUser('u1')).called(1);
   });
 }
