@@ -43,7 +43,6 @@ import '../features/library/presentation/pages/library_page.dart';
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
 
-// ── Route name constants ──────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
@@ -58,7 +57,7 @@ class AppRoutes {
   static const String trackManagementDemo = '/track-management-demo';
   static const String player = '/player';
 
-  // Deep link destinations — Sprint 4 T4.1
+  // secretTrack MUST be before trackDetail — more specific path first
   static const String secretTrack = '/track/secret/:token';
   static const String trackDetail = '/track/:trackId';
   static const String playlist = '/playlist/:playlistId';
@@ -135,7 +134,6 @@ ManagedTrack _fallbackTrackManagementSeed() {
   );
 }
 
-// ── Router factory ────────────────────────────────────────────────────────────
 GoRouter _createRouter() {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -143,8 +141,10 @@ GoRouter _createRouter() {
     navigatorKey: rootNavigatorKey,
     initialLocation: AuthRoutes.splash,
     routes: [
+      // ── Auth ────────────────────────────────────────────────────────────────
       ...AuthRoutes.routes,
 
+      // ── Home ────────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.home,
         name: 'home',
@@ -153,6 +153,7 @@ GoRouter _createRouter() {
         ),
       ),
 
+      // ── Feed ────────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.feed,
         name: 'feed',
@@ -161,6 +162,7 @@ GoRouter _createRouter() {
         ),
       ),
 
+      // ── Search ──────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.search,
         name: 'search',
@@ -174,6 +176,7 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Upgrade ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.upgrade,
         name: 'upgrade',
@@ -182,6 +185,7 @@ GoRouter _createRouter() {
         ),
       ),
 
+      // ── Library ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.library,
         name: 'library',
@@ -193,6 +197,7 @@ GoRouter _createRouter() {
         ),
       ),
 
+      // ── Upload picker ────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.uploadPicker,
         name: 'upload-picker',
@@ -204,6 +209,7 @@ GoRouter _createRouter() {
         ),
       ),
 
+      // ── Edit profile ─────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.editProfile,
         name: 'edit-profile',
@@ -219,6 +225,7 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Profile ──────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
@@ -231,6 +238,7 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Followers ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.followers,
         name: 'followers',
@@ -241,6 +249,7 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Following ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.following,
         name: 'following',
@@ -251,6 +260,7 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Track management ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.trackManagementDemo,
         name: 'track-management',
@@ -267,6 +277,7 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Full player ──────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.player,
         name: 'player',
@@ -276,11 +287,21 @@ GoRouter _createRouter() {
           transitionDuration: const Duration(milliseconds: 180),
           reverseTransitionDuration: const Duration(milliseconds: 140),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return child;
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              )),
+              child: child,
+            );
           },
         ),
       ),
 
+      // ── Secret track — MUST be before trackDetail ────────────────────────────
       GoRoute(
         path: AppRoutes.secretTrack,
         name: 'secret-track',
@@ -299,6 +320,7 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Track detail ─────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.trackDetail,
         name: 'track-detail',
@@ -317,6 +339,7 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Playlist ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlist,
         name: 'playlist',
@@ -329,6 +352,8 @@ GoRouter _createRouter() {
         },
       ),
     ],
+
+    // ── 404 fallback ──────────────────────────────────────────────────────────
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: Colors.black,
       body: Center(
