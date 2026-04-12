@@ -77,7 +77,7 @@ class PlayerWaveform extends StatelessWidget {
                       height: barHeight * 0.25,
                       decoration: BoxDecoration(
                         color: isPlayed
-                            ? const Color(0xFFFF5500).withOpacity(0.3)
+                            ? const Color(0xFFFF5500).withValues(alpha: 0.3)
                             : Colors.white12,
                         borderRadius: const BorderRadius.vertical(
                           bottom: Radius.circular(1),
