@@ -24,6 +24,5 @@ void main() async {
   await getIt<DeepLinkService>()
       .init(); // ADD — boots cold + warm link listener
 
-
   runApp(const App());
 }
