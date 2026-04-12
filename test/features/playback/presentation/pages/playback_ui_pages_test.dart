@@ -19,14 +19,20 @@ import 'package:soundcloud_clone/features/playback/presentation/widgets/player_c
 import 'package:soundcloud_clone/features/playback/presentation/widgets/player_seekbar.dart';
 
 class MockPlayerCubit extends MockCubit<PlayerUIState> implements PlayerCubit {}
-class MockPlaybackCubit extends MockCubit<PlaybackState> implements PlaybackCubit {}
-class MockTrackLoaderCubit extends MockCubit<TrackLoaderState> implements TrackLoaderCubit {}
+
+class MockPlaybackCubit extends MockCubit<PlaybackState>
+    implements PlaybackCubit {}
+
+class MockTrackLoaderCubit extends MockCubit<TrackLoaderState>
+    implements TrackLoaderCubit {}
+
 class FakeDuration extends Fake implements Duration {}
 
 void main() {
   setUpAll(() {
     registerFallbackValue(FakeDuration());
-    registerFallbackValue(const Track(id: '', title: '', artist: '', audioUrl: ''));
+    registerFallbackValue(
+        const Track(id: '', title: '', artist: '', audioUrl: ''));
   });
 
   final track = const Track(
@@ -128,10 +134,12 @@ void main() {
 
     testWidgets('renders nothing when no track loaded', (tester) async {
       when(() => playerCubit.state).thenReturn(const PlayerUIState(
-        playerState: PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        playerState:
+            PlayerState(status: PlayerStatus.idle, position: Duration.zero),
         currentTrack: null,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
       expect(find.byType(GestureDetector), findsNothing);
@@ -139,10 +147,12 @@ void main() {
 
     testWidgets('displays track title and artist', (tester) async {
       when(() => playerCubit.state).thenReturn(PlayerUIState(
-        playerState: const PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        playerState: const PlayerState(
+            status: PlayerStatus.idle, position: Duration.zero),
         currentTrack: track,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
       expect(find.text('Song 1'), findsOneWidget);
@@ -158,7 +168,8 @@ void main() {
         ),
         currentTrack: track,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
       await tester.tap(find.byIcon(Icons.pause));
@@ -176,7 +187,8 @@ void main() {
         ),
         currentTrack: track,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
       await tester.tap(find.byIcon(Icons.play_arrow));
@@ -195,7 +207,8 @@ void main() {
         ),
         currentTrack: track,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
 
@@ -214,7 +227,8 @@ void main() {
         ),
         currentTrack: track,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
 
@@ -243,7 +257,8 @@ void main() {
       when(() => playerCubit.seek(any())).thenAnswer((_) async {});
 
       when(() => playbackCubit.state).thenReturn(emptyPlaybackState);
-      when(() => playbackCubit.stream).thenAnswer((_) => const Stream<PlaybackState>.empty());
+      when(() => playbackCubit.stream)
+          .thenAnswer((_) => const Stream<PlaybackState>.empty());
       when(() => playbackCubit.playNext()).thenAnswer((_) async {});
       when(() => playbackCubit.playPrevious()).thenAnswer((_) async {});
     });
@@ -261,10 +276,12 @@ void main() {
     testWidgets('shows no-track placeholder when currentTrack is null',
         (tester) async {
       when(() => playerCubit.state).thenReturn(const PlayerUIState(
-        playerState: PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        playerState:
+            PlayerState(status: PlayerStatus.idle, position: Duration.zero),
         currentTrack: null,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildFullPlayer());
       expect(find.text('No track selected'), findsOneWidget);
@@ -279,7 +296,8 @@ void main() {
         ),
         currentTrack: track,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildFullPlayer());
 
@@ -312,17 +330,20 @@ void main() {
       when(() => loaderCubit.loadBySecretToken(any())).thenAnswer((_) async {});
 
       when(() => playerCubit.state).thenReturn(const PlayerUIState(
-        playerState: PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        playerState:
+            PlayerState(status: PlayerStatus.idle, position: Duration.zero),
         currentTrack: null,
       ));
-      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
       when(() => playerCubit.openFullPlayer()).thenReturn(null);
       when(() => playerCubit.closeFullPlayer()).thenReturn(null);
       when(() => playerCubit.togglePlayPause()).thenAnswer((_) async {});
       when(() => playerCubit.seek(any())).thenAnswer((_) async {});
 
       when(() => playbackCubit.state).thenReturn(emptyPlaybackState);
-      when(() => playbackCubit.stream).thenAnswer((_) => const Stream<PlaybackState>.empty());
+      when(() => playbackCubit.stream)
+          .thenAnswer((_) => const Stream<PlaybackState>.empty());
       when(() => playbackCubit.playNext()).thenAnswer((_) async {});
       when(() => playbackCubit.playPrevious()).thenAnswer((_) async {});
     });
@@ -332,7 +353,8 @@ void main() {
       when(() => loaderCubit.state).thenReturn(const TrackLoaderIdle());
       whenListen(
         loaderCubit,
-        Stream<TrackLoaderState>.fromIterable([TrackLoaderReady(detail: detail)]),
+        Stream<TrackLoaderState>.fromIterable(
+            [TrackLoaderReady(detail: detail)]),
         initialState: const TrackLoaderIdle(),
       );
 
