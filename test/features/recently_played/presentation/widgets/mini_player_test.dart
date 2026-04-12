@@ -26,6 +26,9 @@ void main() {
   setUp(() {
     cubit = MockPlayerCubit();
     when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+    // MiniPlayer calls togglePlayPause() — stub it in setUp for all tests
+    when(() => cubit.togglePlayPause()).thenAnswer((_) async {});
+    when(() => cubit.openFullPlayer()).thenReturn(null);
   });
 
   testWidgets('MiniPlayer is hidden when no track', (tester) async {
@@ -42,7 +45,7 @@ void main() {
     await tester.pumpWidget(buildTestWidget(const MiniPlayer()));
 
     expect(find.byType(MiniPlayer), findsOneWidget);
-    expect(find.byType(SizedBox), findsOneWidget); // shrink widget
+    expect(find.byType(SizedBox), findsOneWidget);
   });
 
   testWidgets('MiniPlayer shows track info when track exists', (tester) async {
@@ -87,14 +90,12 @@ void main() {
       ),
     );
 
-    when(() => cubit.resume()).thenAnswer((_) async {});
-    when(() => cubit.pause()).thenAnswer((_) async {});
-
     await tester.pumpWidget(buildTestWidget(const MiniPlayer()));
 
     await tester.tap(find.byIcon(Icons.play_arrow));
     await tester.pump();
 
-    verify(() => cubit.resume()).called(1);
+    // MiniPlayer calls togglePlayPause() for both play and pause actions
+    verify(() => cubit.togglePlayPause()).called(1);
   });
 }
