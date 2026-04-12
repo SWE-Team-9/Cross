@@ -9,6 +9,8 @@ import 'dart:io' show Platform;
 
 import '../../../../core/di/injector.dart';
 import '../../../../core/utils/platform_url_utils.dart';
+import '../../../playback/presentation/bloc/player_cubit.dart';
+import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../../upload/domain/entities/managed_track.dart';
 import '../../../upload/domain/entities/track_management_visibility.dart';
@@ -135,6 +137,33 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           result: result,
         );
       });
+    }
+  }
+
+  Future<void> _playTrack(ManagedTrack managedTrack) async {
+    try {
+      final getTrackDetailUseCase = getIt<GetTrackDetailUseCase>();
+      final result = await getTrackDetailUseCase(managedTrack.id);
+
+      if (result.failure != null || result.detail == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to play track: ${result.failure?.message ?? 'Unknown error'}',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final detail = result.detail!;
+      await getIt<PlayerCubit>().play(detail.toPlaybackTrack());
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error playing track: $e')),
+      );
     }
   }
 
@@ -515,6 +544,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return _ManagedProfileTracksTab(
       tracks: _managedTracks,
       onManageTap: _openTrackManagement,
+      onPlayTap: _playTrack,
     );
   }
 
@@ -991,10 +1021,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 class _ManagedProfileTracksTab extends StatelessWidget {
   final List<ManagedTrack> tracks;
   final ValueChanged<ManagedTrack> onManageTap;
+  final ValueChanged<ManagedTrack> onPlayTap;
 
   const _ManagedProfileTracksTab({
     required this.tracks,
     required this.onManageTap,
+    required this.onPlayTap,
   });
 
   @override
@@ -1012,18 +1044,21 @@ class _ManagedProfileTracksTab extends StatelessWidget {
       itemCount: tracks.length,
       itemBuilder: (context, index) {
         final track = tracks[index];
-        return ListTile(
-          title: Text(
-            track.title,
-            style: const TextStyle(color: Colors.white),
-          ),
-          subtitle: Text(
-            track.visibility.displayLabel,
-            style: const TextStyle(color: Colors.grey),
-          ),
-          trailing: OutlinedButton(
-            onPressed: () => onManageTap(track),
-            child: const Text('Manage'),
+        return GestureDetector(
+          onTap: () => onPlayTap(track),
+          child: ListTile(
+            title: Text(
+              track.title,
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              track.visibility.displayLabel,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            trailing: OutlinedButton(
+              onPressed: () => onManageTap(track),
+              child: const Text('Manage'),
+            ),
           ),
         );
       },
