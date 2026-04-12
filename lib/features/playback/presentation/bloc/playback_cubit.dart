@@ -124,8 +124,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     // (only matters if the removed track was before current)
     // We re-find current track by id to be safe
     if (state.currentTrack != null) {
-      final newIndex =
-          queue.indexWhere((t) => t.id == state.currentTrack!.id);
+      final newIndex = queue.indexWhere((t) => t.id == state.currentTrack!.id);
       if (newIndex >= 0) _currentIndex = newIndex;
     }
 

@@ -113,13 +113,10 @@ class TrackOptionsSheet extends StatelessWidget {
               children: [
                 _ShareItem(icon: Icons.send_outlined, label: 'Message'),
                 _ShareItem(icon: Icons.copy_outlined, label: 'Copy Link'),
+                _ShareItem(icon: Icons.share_outlined, label: 'WhatsApp'),
+                _ShareItem(icon: Icons.camera_alt_outlined, label: 'Status'),
                 _ShareItem(
-                    icon: Icons.share_outlined, label: 'WhatsApp'),
-                _ShareItem(
-                    icon: Icons.camera_alt_outlined, label: 'Status'),
-                _ShareItem(
-                    icon: Icons.headphones_outlined,
-                    label: 'Audio\nStories'),
+                    icon: Icons.headphones_outlined, label: 'Audio\nStories'),
               ],
             ),
           ),
