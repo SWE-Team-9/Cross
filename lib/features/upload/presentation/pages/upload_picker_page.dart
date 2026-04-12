@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../auth/presentation/bloc/auth_cubit.dart';
+import '../../domain/entities/track_management_visibility.dart';
 import '../bloc/upload_picker_cubit.dart';
 import '../bloc/upload_picker_state.dart';
 import '../widgets/selected_audio_file_card.dart';
+import 'package:flutter/services.dart';
 
 class UploadPickerPage extends StatefulWidget {
   const UploadPickerPage({super.key});
@@ -17,19 +19,41 @@ class UploadPickerPage extends StatefulWidget {
 class _UploadPickerPageState extends State<UploadPickerPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _genreController;
+  late final TextEditingController _tagsController;
+  late final TextEditingController _descriptionController;
+
+  TrackManagementVisibility _selectedVisibility =
+      TrackManagementVisibility.privateTrack;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController();
     _genreController = TextEditingController();
+    _tagsController = TextEditingController();
+    _descriptionController = TextEditingController();
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _genreController.dispose();
+    _tagsController.dispose();
+    _descriptionController.dispose();
     super.dispose();
+  }
+
+  void _resetForm(UploadPickerCubit cubit) {
+    _titleController.clear();
+    _genreController.clear();
+    _tagsController.clear();
+    _descriptionController.clear();
+
+    setState(() {
+      _selectedVisibility = TrackManagementVisibility.privateTrack;
+    });
+
+    cubit.clearSelection();
   }
 
   Future<void> _showPermissionSettingsDialog(BuildContext context) {
@@ -128,40 +152,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
             padding: const EdgeInsets.all(16),
             child: ListView(
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          child: Icon(Icons.person),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.displayName?.trim().isNotEmpty == true
-                                    ? user.displayName!
-                                    : user.email,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Account type: ${user.accountType}',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Chip(
-                          label: Text(user.accountType),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _UserAccountCard(user: user),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: state.isBusy ? null : cubit.pickAudioFile,
@@ -177,35 +168,30 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                     pickedAudioFile: state.pickedAudioFile!,
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: _titleController,
-                    enabled: !state.isBusy,
-                    decoration: const InputDecoration(
-                      labelText: 'Track title',
-                      border: OutlineInputBorder(),
-                    ),
+                  _UploadMetadataCard(
+                    titleController: _titleController,
+                    genreController: _genreController,
+                    tagsController: _tagsController,
+                    descriptionController: _descriptionController,
+                    isEnabled: !state.isBusy,
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _genreController,
-                    enabled: !state.isBusy,
-                    decoration: const InputDecoration(
-                      labelText: 'Genre (optional)',
-                      border: OutlineInputBorder(),
-                    ),
+                  const SizedBox(height: 16),
+                  _UploadVisibilityCard(
+                    selectedVisibility: _selectedVisibility,
+                    isEnabled: !state.isBusy,
+                    onChanged: (visibility) {
+                      setState(() {
+                        _selectedVisibility = visibility;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: state.isBusy
-                              ? null
-                              : () {
-                                  _titleController.clear();
-                                  _genreController.clear();
-                                  cubit.clearSelection();
-                                },
+                          onPressed:
+                              state.isBusy ? null : () => _resetForm(cubit),
                           child: const Text('Clear'),
                         ),
                       ),
@@ -217,6 +203,9 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                               : () => cubit.uploadSelectedFile(
                                     title: _titleController.text,
                                     genre: _genreController.text,
+                                    tagsInput: _tagsController.text,
+                                    description: _descriptionController.text,
+                                    visibility: _selectedVisibility,
                                   ),
                           child: Text(
                             state.status == UploadPickerStatus.uploading
@@ -229,11 +218,195 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                   ),
                 ],
                 const SizedBox(height: 20),
-                _UploadStatusCard(state: state),
+                _UploadStatusCard(
+                  state: state,
+                  onCopyPrivateLink: state.privateShareToken == null
+                      ? null
+                      : () => _copyPrivateTrackLink(state.privateShareToken!),
+                ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _copyPrivateTrackLink(String secretToken) async {
+    final String deepLink = 'soundclone://track/secret/$secretToken';
+
+    await Clipboard.setData(ClipboardData(text: deepLink));
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Private track link copied'),
+      ),
+    );
+  }
+}
+
+class _UserAccountCard extends StatelessWidget {
+  const _UserAccountCard({
+    required this.user,
+  });
+
+  final dynamic user;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              child: Icon(Icons.person),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.displayName?.trim().isNotEmpty == true
+                        ? user.displayName!
+                        : user.email,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Account type: ${user.accountType}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            Chip(
+              label: Text(user.accountType),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UploadMetadataCard extends StatelessWidget {
+  const _UploadMetadataCard({
+    required this.titleController,
+    required this.genreController,
+    required this.tagsController,
+    required this.descriptionController,
+    required this.isEnabled,
+  });
+
+  final TextEditingController titleController;
+  final TextEditingController genreController;
+  final TextEditingController tagsController;
+  final TextEditingController descriptionController;
+  final bool isEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Track metadata',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: titleController,
+              enabled: isEnabled,
+              decoration: const InputDecoration(
+                labelText: 'Track title',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: genreController,
+              enabled: isEnabled,
+              decoration: const InputDecoration(
+                labelText: 'Genre',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: tagsController,
+              enabled: isEnabled,
+              decoration: const InputDecoration(
+                labelText: 'Tags',
+                hintText: 'lofi, chill, arabic',
+                helperText: 'Comma separated. Up to 10 tags.',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descriptionController,
+              enabled: isEnabled,
+              minLines: 4,
+              maxLines: 6,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                helperText: 'Maximum 5000 characters.',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UploadVisibilityCard extends StatelessWidget {
+  const _UploadVisibilityCard({
+    required this.selectedVisibility,
+    required this.isEnabled,
+    required this.onChanged,
+  });
+
+  final TrackManagementVisibility selectedVisibility;
+  final bool isEnabled;
+  final ValueChanged<TrackManagementVisibility> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Visibility',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Choose whether this track should stay private after upload or be published publicly.',
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              children: TrackManagementVisibility.values.map((visibility) {
+                return ChoiceChip(
+                  label: Text(visibility.displayLabel),
+                  selected: selectedVisibility == visibility,
+                  onSelected: isEnabled ? (_) => onChanged(visibility) : null,
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -286,9 +459,11 @@ class _AccessInfoCard extends StatelessWidget {
 class _UploadStatusCard extends StatelessWidget {
   const _UploadStatusCard({
     required this.state,
+    required this.onCopyPrivateLink,
   });
 
   final UploadPickerState state;
+  final VoidCallback? onCopyPrivateLink;
 
   @override
   Widget build(BuildContext context) {
@@ -300,6 +475,8 @@ class _UploadStatusCard extends StatelessWidget {
     String title;
     String subtitle;
     Widget? trailing;
+    Widget? progressBar;
+    String? progressLabel;
 
     switch (state.status) {
       case UploadPickerStatus.picking:
@@ -313,17 +490,18 @@ class _UploadStatusCard extends StatelessWidget {
         break;
       case UploadPickerStatus.ready:
         title = 'Ready to upload';
-        subtitle = 'Review the file, add a title, then upload.';
+        subtitle =
+            'Review the file, fill the metadata, choose visibility, then upload.';
         trailing = const Icon(Icons.check_circle_outline);
         break;
       case UploadPickerStatus.uploading:
         title = 'Uploading';
         subtitle = 'Your file is being sent to the server.';
-        trailing = const SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        );
+        trailing = const Icon(Icons.cloud_upload_outlined);
+        progressBar = LinearProgressIndicator(value: state.uploadProgress);
+        if (state.uploadProgress != null) {
+          progressLabel = '${(state.uploadProgress! * 100).round()}% uploaded';
+        }
         break;
       case UploadPickerStatus.processing:
         title = 'Processing';
@@ -334,6 +512,7 @@ class _UploadStatusCard extends StatelessWidget {
           height: 22,
           child: CircularProgressIndicator(strokeWidth: 2),
         );
+        progressBar = const LinearProgressIndicator();
         break;
       case UploadPickerStatus.success:
         title = 'Upload complete';
@@ -351,27 +530,74 @@ class _UploadStatusCard extends StatelessWidget {
         return const SizedBox.shrink();
     }
 
+    final visibility = state.uploadedVisibility;
+    final bool hasPrivateLink =
+        visibility == TrackManagementVisibility.privateTrack &&
+            state.privateShareToken != null;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(subtitle),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(subtitle),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                trailing,
+              ],
             ),
-            const SizedBox(width: 12),
-            trailing,
+            if (visibility != null) ...[
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Chip(
+                      avatar: Icon(
+                        visibility == TrackManagementVisibility.privateTrack
+                            ? Icons.lock_outline
+                            : Icons.public,
+                        size: 18,
+                      ),
+                      label: Text(visibility.displayLabel),
+                    ),
+                    if (hasPrivateLink)
+                      OutlinedButton.icon(
+                        onPressed: onCopyPrivateLink,
+                        icon: const Icon(Icons.link),
+                        label: const Text('Copy private link'),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            if (progressBar != null) ...[
+              const SizedBox(height: 16),
+              progressBar,
+            ],
+            if (progressLabel != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(progressLabel),
+              ),
+            ],
           ],
         ),
       ),

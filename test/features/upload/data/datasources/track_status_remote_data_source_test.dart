@@ -1,25 +1,30 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:soundcloud_clone/core/network/api_constants.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/upload/data/datasources/track_status_remote_data_source.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/track_status.dart';
 
-class MockDio extends Mock implements Dio {}
+class MockDioClient extends Mock implements DioClient {}
 
 void main() {
   group('TrackStatusRemoteDataSourceImpl', () {
-    late MockDio mockDio;
+    late MockDioClient mockDioClient;
     late TrackStatusRemoteDataSourceImpl dataSource;
 
     setUp(() {
-      mockDio = MockDio();
-      dataSource = TrackStatusRemoteDataSourceImpl(mockDio);
+      mockDioClient = MockDioClient();
+      dataSource = TrackStatusRemoteDataSourceImpl(mockDioClient);
     });
 
-    test('calls dio and maps response to dto', () async {
-      when(() => mockDio.get('/api/v1/tracks/t1/status')).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(path: '/api/v1/tracks/t1/status'),
+    test('calls dio client and maps response to dto', () async {
+      when(() => mockDioClient.get(ApiConstants.trackStatusPath('t1')))
+          .thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(
+            path: ApiConstants.trackStatusPath('t1'),
+          ),
           data: {'trackId': 't1', 'status': 'FAILED'},
         ),
       );
@@ -28,7 +33,8 @@ void main() {
 
       expect(dto.trackId, 't1');
       expect(dto.status, TrackStatus.FAILED);
-      verify(() => mockDio.get('/api/v1/tracks/t1/status')).called(1);
+      verify(() => mockDioClient.get(ApiConstants.trackStatusPath('t1')))
+          .called(1);
     });
   });
 }
