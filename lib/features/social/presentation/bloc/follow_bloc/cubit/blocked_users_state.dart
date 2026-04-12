@@ -1,13 +1,13 @@
-part of 'follow_cubit.dart';
+part of 'blocked_users_cubit.dart';
 
-class FollowState {
+class BlockedUsersState {
   final List<User> users;
   final bool loading;
   final bool hasMore;
   final int currentPage;
   final String? error;
 
-  const FollowState({
+  const BlockedUsersState({
     required this.users,
     this.loading = false,
     this.hasMore = true,
@@ -15,14 +15,14 @@ class FollowState {
     this.error,
   });
 
-  FollowState copyWith({
+  BlockedUsersState copyWith({
     List<User>? users,
     bool? loading,
     bool? hasMore,
     int? currentPage,
     String? error,
   }) {
-    return FollowState(
+    return BlockedUsersState(
       users: users ?? this.users,
       loading: loading ?? this.loading,
       hasMore: hasMore ?? this.hasMore,

@@ -26,19 +26,15 @@ void main() {
   );
 
   final followers = [
-    User(
-      id: 'u1',
-      username: 'omar',
-      isFollowing: false,
-      followersCount: 12,
-    ),
-    User(
-      id: 'u2',
-      username: 'mona',
-      isFollowing: true,
-      followersCount: 20,
-    ),
+    User(id: 'u1', username: 'omar', isFollowing: false, followersCount: 12),
+    User(id: 'u2', username: 'mona', isFollowing: true, followersCount: 20),
   ];
+
+  void stubGetFollowers(String userId, List<User> result) {
+    when(
+      () => mockSocialRepo.getFollowers(userId, 1, limit: 20),
+    ).thenAnswer((_) async => result);
+  }
 
   Future<void> pumpPage(
     WidgetTester tester, {
@@ -53,14 +49,14 @@ void main() {
         child: BlocProvider<AuthCubit>.value(
           value: mockAuthCubit,
           child: MaterialApp(
-            home: FollowersPage(
-              userId: userId,
-              handle: handle,
-            ),
+            home: FollowersPage(userId: userId, handle: handle),
           ),
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
   }
 
   setUp(() {
@@ -70,24 +66,16 @@ void main() {
 
   testWidgets('uses explicit userId when provided', (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
-    when(() => mockSocialRepo.getFollowers('explicit-id', 1))
-        .thenAnswer((_) async => followers);
+    stubGetFollowers('explicit-id', followers);
 
-    await pumpPage(
-      tester,
-      userId: 'explicit-id',
-      handle: 'someone',
-    );
-    await tester.pumpAndSettle();
+    await pumpPage(tester, userId: 'explicit-id', handle: 'someone');
 
     verifyNever(() => mockSocialRepo.getUserIdByHandle(any()));
-    verify(() => mockSocialRepo.getFollowers('explicit-id', 1)).called(1);
+    verify(() => mockSocialRepo.getFollowers('explicit-id', 1, limit: 20))
+        .called(1);
 
     expect(find.text('Followers'), findsOneWidget);
     expect(find.text('omar'), findsOneWidget);
@@ -95,93 +83,112 @@ void main() {
     expect(find.text('12 followers'), findsOneWidget);
     expect(find.text('20 followers'), findsOneWidget);
     expect(find.text('Follow'), findsOneWidget);
-    expect(find.text('Unfollow'), findsOneWidget);
+    expect(find.text('Following'), findsOneWidget);
   });
 
   testWidgets('uses authenticated user id when handle matches own profile',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
-    when(() => mockSocialRepo.getFollowers('auth-1', 1))
-        .thenAnswer((_) async => followers);
+    stubGetFollowers('auth-1', followers);
 
-    await pumpPage(
-      tester,
-      handle: 'ali',
-    );
-    await tester.pumpAndSettle();
+    await pumpPage(tester, handle: 'ali');
 
     verifyNever(() => mockSocialRepo.getUserIdByHandle(any()));
-    verify(() => mockSocialRepo.getFollowers('auth-1', 1)).called(1);
+    verify(() => mockSocialRepo.getFollowers('auth-1', 1, limit: 20)).called(1);
   });
 
   testWidgets('resolves user id by handle when viewing another profile',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
     when(() => mockSocialRepo.getUserIdByHandle('other-handle'))
         .thenAnswer((_) async => 'resolved-id');
-    when(() => mockSocialRepo.getFollowers('resolved-id', 1))
-        .thenAnswer((_) async => followers);
+    stubGetFollowers('resolved-id', followers);
 
-    await pumpPage(
-      tester,
-      handle: 'other-handle',
-    );
-    await tester.pumpAndSettle();
+    await pumpPage(tester, handle: 'other-handle');
 
     verify(() => mockSocialRepo.getUserIdByHandle('other-handle')).called(1);
-    verify(() => mockSocialRepo.getFollowers('resolved-id', 1)).called(1);
+    verify(() => mockSocialRepo.getFollowers('resolved-id', 1, limit: 20))
+        .called(1);
   });
 
-  testWidgets('shows empty state when handle is missing and no userId provided',
+  testWidgets('shows User not found when handle is missing and no userId',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
-    await pumpPage(
-      tester,
-      handle: '',
-    );
-    await tester.pumpAndSettle();
+    await pumpPage(tester, handle: '');
 
-    expect(find.text('No followers yet'), findsOneWidget);
+    expect(find.text('User not found'), findsOneWidget);
     verifyNever(() => mockSocialRepo.getFollowers(any(), any()));
   });
 
-  testWidgets('shows empty state when user id resolution fails',
+  testWidgets('shows User not found when user id resolution fails',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
-    whenListen(
-      mockAuthCubit,
-      const Stream<AuthState>.empty(),
-      initialState: AuthAuthenticated(authUser),
-    );
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
 
     when(() => mockSocialRepo.getUserIdByHandle('broken'))
         .thenThrow(Exception('fail'));
 
-    await pumpPage(
-      tester,
-      handle: 'broken',
-    );
-    await tester.pumpAndSettle();
+    await pumpPage(tester, handle: 'broken');
+
+    expect(find.text('User not found'), findsOneWidget);
+    verifyNever(() => mockSocialRepo.getFollowers(any(), any()));
+  });
+
+  testWidgets('shows empty state when API returns empty list', (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
+
+    stubGetFollowers('auth-1', []);
+
+    await pumpPage(tester, handle: 'ali');
 
     expect(find.text('No followers yet'), findsOneWidget);
-    verifyNever(() => mockSocialRepo.getFollowers(any(), any()));
+    expect(find.byIcon(Icons.people_outline), findsOneWidget);
+  });
+
+  testWidgets('shows error state when API throws', (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
+
+    when(() => mockSocialRepo.getFollowers('auth-1', 1, limit: 20))
+        .thenThrow(Exception('network error'));
+
+    await pumpPage(tester, handle: 'ali');
+
+    expect(find.text('Something went wrong'), findsOneWidget);
+    expect(find.byIcon(Icons.wifi_off), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets('tapping Follow button triggers toggleFollow', (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(mockAuthCubit, const Stream<AuthState>.empty(),
+        initialState: AuthAuthenticated(authUser));
+
+    stubGetFollowers('auth-1', followers);
+
+    // stub toggleFollow → followUser
+    when(() => mockSocialRepo.followUser('u1')).thenAnswer(
+      (_) async => (isFollowing: true, followersCount: 13),
+    );
+
+    await pumpPage(tester, handle: 'ali');
+
+    await tester.tap(find.text('Follow'));
+    await tester.pumpAndSettle();
+
+    verify(() => mockSocialRepo.followUser('u1')).called(1);
   });
 }
