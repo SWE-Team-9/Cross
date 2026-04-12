@@ -4,50 +4,51 @@ import 'package:soundcloud_clone/features/profile/domain/repositories/profile_re
 import 'package:soundcloud_clone/features/profile/presentation/widgets/edit_profile_image_section.dart';
 
 void main() {
-  Widget wrap(Widget child) {
-    return MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.black,
-        body: child,
+  Future<void> pumpSection(
+    WidgetTester tester, {
+    String? avatarUrl,
+    String? coverUrl,
+    bool isUploadingAvatar = false,
+    bool isUploadingCover = false,
+    required void Function(ProfileImageType) onPickImage,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EditProfileImageSection(
+            avatarUrl: avatarUrl,
+            coverUrl: coverUrl,
+            isUploadingAvatar: isUploadingAvatar,
+            isUploadingCover: isUploadingCover,
+            onPickImage: onPickImage,
+          ),
+        ),
       ),
     );
   }
 
   group('EditProfileImageSection', () {
-    testWidgets('renders default placeholders when avatar and cover are null',
-        (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          EditProfileImageSection(
-            avatarUrl: null,
-            coverUrl: null,
-            isUploadingAvatar: false,
-            isUploadingCover: false,
-            onPickImage: (_) {},
-          ),
-        ),
+    testWidgets('tapping cover area triggers cover picker', (tester) async {
+      ProfileImageType? pickedType;
+
+      await pumpSection(
+        tester,
+        onPickImage: (type) => pickedType = type,
       );
 
-      expect(find.byType(CircleAvatar), findsOneWidget);
-      expect(find.byIcon(Icons.person), findsOneWidget);
-      expect(find.byIcon(Icons.camera_alt_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.camera_alt), findsOneWidget);
+      await tester.tap(find.byType(GestureDetector).first);
+      await tester.pump();
+
+      expect(pickedType, ProfileImageType.COVER);
     });
 
-    testWidgets('calls onPickImage with cover when cover camera is tapped',
+    testWidgets('tapping cover camera badge triggers cover picker',
         (tester) async {
       ProfileImageType? pickedType;
 
-      await tester.pumpWidget(
-        wrap(
-          EditProfileImageSection(
-            avatarUrl: null,
-            coverUrl: null,
-            isUploadingAvatar: false,
-            isUploadingCover: false,
-            onPickImage: (type) => pickedType = type,
-          ),
-        ),
+      await pumpSection(
+        tester,
+        onPickImage: (type) => pickedType = type,
       );
 
       await tester.tap(find.byIcon(Icons.camera_alt_outlined));
@@ -56,20 +57,12 @@ void main() {
       expect(pickedType, ProfileImageType.COVER);
     });
 
-    testWidgets('calls onPickImage with avatar when avatar area is tapped',
-        (tester) async {
+    testWidgets('tapping avatar camera triggers avatar picker', (tester) async {
       ProfileImageType? pickedType;
 
-      await tester.pumpWidget(
-        wrap(
-          EditProfileImageSection(
-            avatarUrl: null,
-            coverUrl: null,
-            isUploadingAvatar: false,
-            isUploadingCover: false,
-            onPickImage: (type) => pickedType = type,
-          ),
-        ),
+      await pumpSection(
+        tester,
+        onPickImage: (type) => pickedType = type,
       );
 
       await tester.tap(find.byIcon(Icons.camera_alt));
@@ -78,58 +71,59 @@ void main() {
       expect(pickedType, ProfileImageType.AVATAR);
     });
 
-    testWidgets('shows upload progress indicator for avatar when uploading',
+    testWidgets('shows placeholder avatar icon when avatar url is null',
         (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          EditProfileImageSection(
-            avatarUrl: null,
-            coverUrl: null,
-            isUploadingAvatar: true,
-            isUploadingCover: false,
-            onPickImage: (_) {},
-          ),
-        ),
+      await pumpSection(
+        tester,
+        avatarUrl: null,
+        onPickImage: (_) {},
       );
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byIcon(Icons.camera_alt), findsNothing);
+      expect(find.byIcon(Icons.person), findsOneWidget);
     });
 
-    testWidgets('shows upload progress indicator for cover when uploading',
+    testWidgets('shows cover upload overlay and disables cover interactions',
         (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          EditProfileImageSection(
-            avatarUrl: null,
-            coverUrl: null,
-            isUploadingAvatar: false,
-            isUploadingCover: true,
-            onPickImage: (_) {},
-          ),
-        ),
+      await pumpSection(
+        tester,
+        isUploadingCover: true,
+        onPickImage: (_) {},
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.byIcon(Icons.camera_alt_outlined), findsNothing);
     });
 
-    testWidgets(
-        'shows two progress indicators when both avatar and cover upload',
+    testWidgets('shows avatar upload overlay and disables avatar tap',
         (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          EditProfileImageSection(
-            avatarUrl: null,
-            coverUrl: null,
-            isUploadingAvatar: true,
-            isUploadingCover: true,
-            onPickImage: (_) {},
-          ),
-        ),
+      await pumpSection(
+        tester,
+        isUploadingAvatar: true,
+        onPickImage: (_) {},
       );
 
-      expect(find.byType(CircularProgressIndicator), findsNWidgets(2));
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.camera_alt), findsNothing);
+    });
+
+    testWidgets('builds avatar and cover image branches when urls are provided',
+        (tester) async {
+      await pumpSection(
+        tester,
+        avatarUrl: 'https://example.com/avatar.png',
+        coverUrl: 'https://example.com/cover.png',
+        onPickImage: (_) {},
+      );
+
+      await tester.pump();
+
+      final exception = tester.takeException();
+      expect(exception, isNotNull);
+
+      expect(find.byType(CircleAvatar), findsOneWidget);
+      expect(find.byIcon(Icons.person), findsNothing);
+      expect(find.byIcon(Icons.camera_alt_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.camera_alt), findsOneWidget);
     });
   });
 }

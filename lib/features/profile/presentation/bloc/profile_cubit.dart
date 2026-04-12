@@ -128,7 +128,13 @@ class ProfileCubit extends Cubit<ProfileState> {
 
     final List<ManagedTrack> currentTracks = _tracksFromState();
 
-    emit(ProfileImageUploading(currentProfile, imageType));
+    emit(
+      ProfileImageUploading(
+        currentProfile,
+        imageType,
+        tracks: currentTracks,
+      ),
+    );
 
     try {
       final String newUrl = await _profileRepository.uploadProfileImage(
@@ -142,12 +148,23 @@ class ProfileCubit extends Cubit<ProfileState> {
 
       emit(ProfileLoaded(updatedProfile, tracks: currentTracks));
     } on Failure catch (failure) {
-      emit(ProfileUpdateError(currentProfile, failure.message));
+      emit(
+        ProfileImageUploadError(
+          currentProfile,
+          imageType: imageType,
+          filePath: filePath,
+          message: failure.message,
+          tracks: currentTracks,
+        ),
+      );
     } catch (_) {
       emit(
-        ProfileUpdateError(
+        ProfileImageUploadError(
           currentProfile,
-          'Unable to upload image. Please try again.',
+          imageType: imageType,
+          filePath: filePath,
+          message: 'Unable to upload image. Please try again.',
+          tracks: currentTracks,
         ),
       );
     }
@@ -168,6 +185,9 @@ class ProfileCubit extends Cubit<ProfileState> {
     if (currentState is ProfileImageUploading) {
       return currentState.currentProfile;
     }
+    if (currentState is ProfileImageUploadError) {
+      return currentState.currentProfile;
+    }
     if (currentState is ProfileUpdateSuccess) {
       return currentState.updatedProfile;
     }
@@ -179,6 +199,12 @@ class ProfileCubit extends Cubit<ProfileState> {
     final currentState = state;
 
     if (currentState is ProfileLoaded) {
+      return currentState.tracks;
+    }
+    if (currentState is ProfileImageUploading) {
+      return currentState.tracks;
+    }
+    if (currentState is ProfileImageUploadError) {
       return currentState.tracks;
     }
 

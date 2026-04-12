@@ -1,19 +1,16 @@
-// lib/features/profile/presentation/pages/profile_page.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:io' show Platform;
-
+import '../../../upload/domain/entities/track_management_visibility.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/utils/platform_url_utils.dart';
-import '../../../playback/presentation/bloc/player_cubit.dart';
-import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
+import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
+import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../../upload/domain/entities/managed_track.dart';
-import '../../../upload/domain/entities/track_management_visibility.dart';
 import '../../../upload/presentation/models/apply_track_management_result.dart';
 import '../../../upload/presentation/models/track_management_result.dart';
 import '../../domain/entities/profile_entity.dart';
@@ -33,8 +30,6 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('🔍 DEBUG ProfilePage: Initialized with handle: $handle');
-
     if (cubit != null) {
       return BlocProvider<ProfileCubit>.value(
         value: cubit!,
@@ -47,13 +42,9 @@ class ProfilePage extends StatelessWidget {
         final authState = context.read<AuthCubit>().state;
         final profileCubit = getIt<ProfileCubit>();
 
-        print('🔍 DEBUG ProfilePage: AuthState: $authState');
-
         if (authState is AuthAuthenticated && authState.user.handle == handle) {
-          print('🔍 DEBUG ProfilePage: Loading own profile');
           profileCubit.loadOwnProfile();
         } else {
-          print('🔍 DEBUG ProfilePage: Loading other profile: $handle');
           profileCubit.loadProfile(handle);
         }
 
@@ -437,10 +428,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         listener: (context, state) => _syncManagedTracks(state),
         child: BlocBuilder<ProfileCubit, ProfileState>(
           builder: (context, state) {
-            print('🔍 DEBUG ProfilePage Build - State: $state');
-
             if (state is ProfileLoading) {
-              print('🔍 DEBUG ProfilePage: Loading state');
               return const Scaffold(
                 backgroundColor: Colors.black,
                 body: Center(child: CircularProgressIndicator()),
@@ -448,7 +436,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             }
 
             if (state is ProfileError) {
-              print('🔍 DEBUG ProfilePage: Error state - ${state.message}');
               return Scaffold(
                 backgroundColor: Colors.black,
                 body: Center(
@@ -481,21 +468,13 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               ProfileUpdateSuccess s => s.updatedProfile,
               ProfileUpdateError s => s.currentProfile,
               ProfileImageUploading s => s.currentProfile,
+              ProfileImageUploadError s => s.currentProfile,
               _ => null,
             };
 
             if (profile == null) {
-              print('🔍 DEBUG ProfilePage: Profile is null');
               return const Scaffold(backgroundColor: Colors.black);
             }
-
-            print('🔍 DEBUG ProfilePage: Profile loaded - ID: ${profile.id}');
-            print('🔍 DEBUG ProfilePage: Raw avatarUrl: ${profile.avatarUrl}');
-            print(
-                '🔍 DEBUG ProfilePage: Raw coverPhotoUrl: ${profile.coverPhotoUrl}');
-            print('🔍 DEBUG ProfilePage: Display name: ${profile.displayName}');
-            print(
-                '🔍 DEBUG ProfilePage: Platform: ${Platform.operatingSystem}');
 
             return _buildBody(context, profile);
           },
@@ -651,10 +630,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     final coverUrl =
         PlatformUrlUtils.normalizeBackendUrl(profile.coverPhotoUrl);
 
-    print(
-        '🔍 DEBUG _buildProfileHeader: Original coverUrl: ${profile.coverPhotoUrl}');
-    print('🔍 DEBUG _buildProfileHeader: Normalized coverUrl: $coverUrl');
-
     return SizedBox(
       height: 230,
       child: Stack(
@@ -667,11 +642,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                 ? Image.network(
                     coverUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      print('❌ ERROR loading cover image: $error');
-                      print('❌ ERROR cover URL: $coverUrl');
-                      return Container(color: Colors.grey[900]);
-                    },
+                    errorBuilder: (_, __, ___) => Container(
+                      color: Colors.grey[900],
+                    ),
                   )
                 : Container(color: Colors.grey[900]),
           ),
@@ -698,18 +671,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildAvatar(ProfileEntity profile) {
-    print('🔍 DEBUG _buildAvatar: Original avatarUrl: ${profile.avatarUrl}');
-
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
-
-    print('🔍 DEBUG _buildAvatar: Normalized avatarUrl: $avatarUrl');
-    print('🔍 DEBUG _buildAvatar: Platform: ${Platform.operatingSystem}');
-
-    if (avatarUrl != null) {
-      print('🔍 DEBUG _buildAvatar: Will load image from: $avatarUrl');
-    } else {
-      print('🔍 DEBUG _buildAvatar: No avatar URL, showing default icon');
-    }
 
     return Container(
       decoration: BoxDecoration(
@@ -746,7 +708,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     }
 
     final bio = (profile.bio ?? '').trim();
-    final location = (profile.location ?? '').trim(); // Add this line
+    final location = (profile.location ?? '').trim();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
@@ -800,12 +762,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               ),
             ],
           ),
-          // ADD LOCATION HERE
           if (location.isNotEmpty) ...[
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+                const Icon(Icons.location_on_outlined,
+                    size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
                 Text(
                   location,
