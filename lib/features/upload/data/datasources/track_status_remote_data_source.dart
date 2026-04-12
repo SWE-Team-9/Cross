@@ -1,6 +1,7 @@
-import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../../core/network/api_constants.dart';
+import '../../../../core/network/dio_client.dart';
 import '../dto/track_status_dto.dart';
 
 abstract class TrackStatusRemoteDataSource {
@@ -9,13 +10,16 @@ abstract class TrackStatusRemoteDataSource {
 
 @LazySingleton(as: TrackStatusRemoteDataSource)
 class TrackStatusRemoteDataSourceImpl implements TrackStatusRemoteDataSource {
-  const TrackStatusRemoteDataSourceImpl(this._dio);
+  const TrackStatusRemoteDataSourceImpl(this._dioClient);
 
-  final Dio _dio;
+  final DioClient _dioClient;
 
   @override
   Future<TrackStatusDto> getTrackStatus(String trackId) async {
-    final response = await _dio.get('/api/v1/tracks/$trackId/status');
+    final response = await _dioClient.get(
+      ApiConstants.trackStatusPath(trackId),
+    );
+
     return TrackStatusDto.fromJson(response.data as Map<String, dynamic>);
   }
 }
