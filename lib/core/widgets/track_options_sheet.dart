@@ -291,6 +291,8 @@ class _ShareItem extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
+
+            
             label,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70, fontSize: 11),
