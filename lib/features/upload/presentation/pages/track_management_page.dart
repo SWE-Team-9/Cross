@@ -31,11 +31,11 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
   late final TextEditingController _tagsController;
 
   final List<TrackGenreOption> _genreOptions = const [
-    TrackGenreOption(id: 1, name: 'Ambient'),
-    TrackGenreOption(id: 2, name: 'Electronic'),
-    TrackGenreOption(id: 3, name: 'Hip-Hop'),
-    TrackGenreOption(id: 4, name: 'Rock'),
-    TrackGenreOption(id: 5, name: 'Pop'),
+    TrackGenreOption(name: 'Ambient'),
+    TrackGenreOption(name: 'Electronic'),
+    TrackGenreOption(name: 'Hip-Hop'),
+    TrackGenreOption(name: 'Rock'),
+    TrackGenreOption(name: 'Pop'),
   ];
 
   @override
@@ -171,12 +171,9 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                             onTagsChanged: context
                                 .read<TrackManagementCubit>()
                                 .updateTagsFromInput,
-                            onGenreChanged: (genre) {
-                              context.read<TrackManagementCubit>().updateGenre(
-                                    genreId: genre.id,
-                                    genreName: genre.name,
-                                  );
-                            },
+                            onGenreChanged: context
+                                .read<TrackManagementCubit>()
+                                .updateGenre,
                             onSave: context
                                 .read<TrackManagementCubit>()
                                 .saveMetadata,

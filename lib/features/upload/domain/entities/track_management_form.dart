@@ -38,6 +38,11 @@ class TrackManagementForm extends Equatable {
     return value.isEmpty ? null : value;
   }
 
+  String? get normalizedGenreName {
+    final value = (genreName ?? '').trim();
+    return value.isEmpty ? null : value;
+  }
+
   List<String> get sanitizedTags {
     final List<String> result = <String>[];
     final Set<String> seen = <String>{};
@@ -83,7 +88,7 @@ class TrackManagementForm extends Equatable {
   }
 
   String? get genreValidationError {
-    if (genreId == null) {
+    if (normalizedGenreName == null) {
       return 'Please choose a genre.';
     }
 
@@ -115,7 +120,7 @@ class TrackManagementForm extends Equatable {
   bool hasMetadataChangesComparedTo(ManagedTrack track) {
     return normalizedTitle != track.title.trim() ||
         normalizedDescription != _normalizeNullable(track.description) ||
-        genreId != track.genreId ||
+        normalizedGenreName != _normalizeNullable(track.genreName) ||
         !_sameTags(sanitizedTags, track.tags);
   }
 
@@ -124,12 +129,17 @@ class TrackManagementForm extends Equatable {
   }
 
   Map<String, dynamic> toMetadataRequestBody() {
-    return <String, dynamic>{
+    final Map<String, dynamic> body = <String, dynamic>{
       'title': normalizedTitle,
-      'description': normalizedDescription,
-      'genreId': genreId,
+      'genre': normalizedGenreName,
       'tags': sanitizedTags,
     };
+
+    if (normalizedDescription != null) {
+      body['description'] = normalizedDescription;
+    }
+
+    return body;
   }
 
   Map<String, dynamic> toVisibilityRequestBody() {

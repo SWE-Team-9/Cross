@@ -48,8 +48,8 @@ void main() {
               descriptionController: descriptionController,
               tagsController: tagsController,
               genreOptions: const [
-                TrackGenreOption(id: 1, name: 'Ambient'),
-                TrackGenreOption(id: 2, name: 'Electronic'),
+                TrackGenreOption(name: 'Ambient'),
+                TrackGenreOption(name: 'Electronic'),
               ],
               onTitleChanged: (_) {},
               onDescriptionChanged: (_) {},
