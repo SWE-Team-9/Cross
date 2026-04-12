@@ -151,7 +151,6 @@ class TrackOptionsSheet extends StatelessWidget {
                   // TODO: wire to InteractionsCubit.likeTrack(track.id)
                 },
               ),
-
               _OptionTile(
                 icon: Icons.playlist_play,
                 label: 'Play Next',
@@ -163,7 +162,6 @@ class TrackOptionsSheet extends StatelessWidget {
                   );
                 },
               ),
-
               _OptionTile(
                 icon: Icons.queue_music,
                 label: 'Play Last',
@@ -175,7 +173,6 @@ class TrackOptionsSheet extends StatelessWidget {
                   );
                 },
               ),
-
               _OptionTile(
                 icon: Icons.playlist_add,
                 label: 'Add to playlist',
@@ -184,41 +181,33 @@ class TrackOptionsSheet extends StatelessWidget {
                   AddToPlaylistSheet.show(context, track: track);
                 },
               ),
-
               _OptionTile(
                 icon: Icons.radio,
                 label: 'Start station',
                 onTap: () => Navigator.pop(context),
               ),
-
               const Divider(color: Colors.white12, height: 1),
-
               _OptionTile(
                 icon: Icons.person_outline,
                 label: 'Go to artist profile',
                 onTap: () => Navigator.pop(context),
               ),
-
               _OptionTile(
                 icon: Icons.comment_outlined,
                 label: 'View comments',
                 onTap: () => Navigator.pop(context),
               ),
-
               _OptionTile(
                 icon: Icons.repeat,
                 label: 'Repost on SoundCloud',
                 onTap: () => Navigator.pop(context),
               ),
-
               const Divider(color: Colors.white12, height: 1),
-
               _OptionTile(
                 icon: Icons.flag_outlined,
                 label: 'Report',
                 onTap: () => Navigator.pop(context),
               ),
-
               SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
             ],
           ),
@@ -291,8 +280,6 @@ class _ShareItem extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-
-            
             label,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70, fontSize: 11),

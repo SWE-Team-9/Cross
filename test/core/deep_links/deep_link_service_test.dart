@@ -17,7 +17,7 @@ void main() {
       final service = DeepLinkService();
       final result1 = service.consumeLastDestination();
       final result2 = service.consumeLastDestination();
-      
+
       expect(result1, isNull);
       expect(result2, isNull);
     });
@@ -25,14 +25,14 @@ void main() {
     test('dispose closes the stream controller', () async {
       final service = DeepLinkService();
       await service.dispose();
-      
+
       // Stream should be broadcast
       expect(service.stream.isBroadcast, isTrue);
     });
 
     test('stream emits destinations correctly', () async {
       final service = DeepLinkService();
-      
+
       // Test that stream can be listened to
       expect(service.stream, isNotNull);
       expect(service.stream.isBroadcast, isTrue);

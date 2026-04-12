@@ -68,9 +68,8 @@ class App extends StatelessWidget {
                               child: AnimatedSlide(
                                 duration: const Duration(milliseconds: 220),
                                 curve: Curves.easeOutCubic,
-                                offset: hide
-                                    ? const Offset(0, 1.2)
-                                    : Offset.zero,
+                                offset:
+                                    hide ? const Offset(0, 1.2) : Offset.zero,
                                 child: AnimatedOpacity(
                                   duration: const Duration(milliseconds: 180),
                                   curve: Curves.easeOut,
@@ -93,6 +92,4 @@ class App extends StatelessWidget {
       ),
     );
   }
-
-  
 }

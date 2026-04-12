@@ -117,8 +117,7 @@ class _MockHomePageState extends State<MockHomePage> {
                         _GenreChips(
                           genres: _genres,
                           selected: _selectedGenre,
-                          onSelect: (g) =>
-                              setState(() => _selectedGenre = g),
+                          onSelect: (g) => setState(() => _selectedGenre = g),
                         ),
                         const _TrendingTracks(),
                         const SizedBox(height: 100), // ← مسافة للـ mini player
@@ -418,8 +417,7 @@ class _RelatedTracksRow extends StatelessWidget {
                     height: 148,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
-                      gradient:
-                          LinearGradient(colors: [c.color1, c.color2]),
+                      gradient: LinearGradient(colors: [c.color1, c.color2]),
                     ),
                     alignment: Alignment.center,
                     child: Text(
@@ -598,8 +596,7 @@ class _ManagedTracksSection extends StatelessWidget {
         return Column(
           children: [
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
                 children: [
                   Expanded(
@@ -687,8 +684,7 @@ class _GenreChips extends StatelessWidget {
               child: Text(
                 g,
                 style: TextStyle(
-                  color:
-                      active ? const Color(0xFFFF5500) : Colors.white70,
+                  color: active ? const Color(0xFFFF5500) : Colors.white70,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -875,8 +871,5 @@ class _NavItem {
     required this.icon,
     required this.activeIcon,
     required this.label,
-
-
-    
   });
 }
