@@ -181,6 +181,8 @@ void main() {
         currentPassword: any(named: 'currentPassword'),
       ),
     ).thenAnswer((_) async {});
+    when(() => mockAuthCubit.refreshCurrentUserSilently())
+        .thenAnswer((_) async {});
   });
 
   tearDown(() async {
@@ -513,6 +515,158 @@ void main() {
 
       expect(find.text('Please enter a new email address.'), findsOneWidget);
       expect(find.text('Please enter your password.'), findsOneWidget);
+    });
+
+    testWidgets('renders private chip and website text when present',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+
+      final privateProfile = profileForOwnUser.copyWith(
+        visibility: ProfileVisibility.PRIVATE,
+        website: 'https://example.com',
+      );
+
+      profileCubit.setTestState(ProfileLoaded(privateProfile));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      expect(find.text('Private'), findsOneWidget);
+      expect(find.text('https://example.com'), findsOneWidget);
+    });
+
+    testWidgets('own profile tracks tab shows empty state when no tracks',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+
+      profileCubit
+          .setTestState(ProfileLoaded(profileForOwnUser, tracks: const []));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      await tester.tap(find.text('Tracks'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No tracks yet.'), findsOneWidget);
+    });
+
+    testWidgets('renders body correctly for ProfileImageUploadError state',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+
+      profileCubit.setTestState(
+        ProfileImageUploadError(
+          profileForOwnUser,
+          imageType: ProfileImageType.AVATAR,
+          filePath: '/tmp/avatar.png',
+          message: 'upload failed',
+        ),
+      );
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      expect(find.byType(NestedScrollView), findsOneWidget);
+      expect(find.text(profileForOwnUser.displayName), findsOneWidget);
+    });
+
+    testWidgets('change email dialog validates invalid email format',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+      profileCubit.setTestState(ProfileLoaded(tProfileEntity));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('change Email'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+          find.widgetWithText(TextFormField, 'New email'), 'bad-email');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Current password'),
+        'password123',
+      );
+
+      await tester.tap(find.text('Send link'));
+      await tester.pump();
+
+      expect(find.text('Please enter a valid email address.'), findsOneWidget);
+    });
+
+    testWidgets('change email dialog shows cooldown message', (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
+      when(() => mockAuthCubit.emailChangeCooldownRemainingSeconds)
+          .thenReturn(30);
+
+      profileCubit.setTestState(ProfileLoaded(tProfileEntity));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('change Email'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'New email'),
+        'new@example.com',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Current password'),
+        'password123',
+      );
+
+      await tester.tap(find.text('Send link'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Wait 30 seconds before resending.'),
+          findsOneWidget);
+      verifyNever(
+        () => mockAuthCubit.requestEmailChange(
+          newEmail: any(named: 'newEmail'),
+          currentPassword: any(named: 'currentPassword'),
+        ),
+      );
+    });
+
+    testWidgets('change email dialog shows failure returned from auth cubit',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(
+        AuthEmailChangeFailure(
+          user: ownUser,
+          message: 'Invalid password',
+        ),
+      );
+
+      when(
+        () => mockAuthCubit.requestEmailChange(
+          newEmail: any(named: 'newEmail'),
+          currentPassword: any(named: 'currentPassword'),
+        ),
+      ).thenAnswer((_) async {});
+
+      profileCubit.setTestState(ProfileLoaded(tProfileEntity));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('change Email'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'New email'),
+        'new@example.com',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Current password'),
+        'wrong-password',
+      );
+
+      await tester.tap(find.text('Send link'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invalid password'), findsOneWidget);
     });
   });
 }

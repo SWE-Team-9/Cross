@@ -43,7 +43,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
       return ProfileDto.fromJson(profileMap);
     } catch (e) {
-      print('🔥 Error in getProfile: $e');
       rethrow;
     }
   }
@@ -63,7 +62,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
       return ProfileDto.fromJson(profileMap);
     } catch (e) {
-      print('🔥 Error in getMyProfile: $e');
       rethrow;
     }
   }
@@ -84,7 +82,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           .map(ManagedTrackDto.fromJson)
           .toList(growable: false);
     } catch (e) {
-      print('🔥 Error in getUserTracks: $e');
       rethrow;
     }
   }
@@ -104,7 +101,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
       return ProfileDto.fromJson(profileMap);
     } catch (e) {
-      print('🔥 Error in updateProfile: $e');
       rethrow;
     }
   }
@@ -158,7 +154,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
       return parsed;
     } catch (e) {
-      print('🔥 Error in updateExternalLinks: $e');
       rethrow;
     }
   }
@@ -204,7 +199,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         'Invalid upload response: missing image url.',
       );
     } catch (e) {
-      print('🔥 Error in uploadProfileImage: $e');
       rethrow;
     }
   }
@@ -221,7 +215,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           response.data is String ? jsonDecode(response.data) : response.data;
       return responseData['available'] as bool;
     } catch (e) {
-      print('🔥 Error in checkHandleAvailable: $e');
       rethrow;
     }
   }
