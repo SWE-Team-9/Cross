@@ -6,6 +6,7 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 // Project
@@ -44,6 +45,7 @@ import '../../features/upload/domain/usecases/update_track_visibility_usecase.da
 import '../../features/upload/presentation/bloc/track_management_cubit.dart';
 import '../../features/upload/presentation/bloc/upload_picker_cubit.dart';
 import '../../features/upload/data/services/audio_picker_permission_service.dart';
+
 // Profile feature
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
@@ -85,8 +87,7 @@ import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
 
-// ── Deep Links (Sprint 4 — T4.1) ─────────────────────────────────────────
-
+// ── Deep Links / OAuth ─────────────────────────────────────────────────────
 import '../../features/playback/data/datasources/track_detail_remote_data_source.dart';
 import '../../features/playback/data/repositories/track_detail_repository_impl.dart';
 import '../../features/playback/domain/repositories/i_track_detail_repository.dart';
@@ -94,6 +95,8 @@ import '../../features/playback/domain/usecases/get_track_detail_use_case.dart';
 import '../../features/playback/domain/usecases/get_track_by_secret_use_case.dart';
 import '../../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../deep_links/deep_link_service.dart';
+import '../oauth/oauth_pending_request_store.dart';
+import '../oauth/windows_oauth_callback_server.dart';
 
 final getIt = GetIt.instance;
 
@@ -119,6 +122,23 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<SharedPreferences>()) {
+    final prefs = await SharedPreferences.getInstance();
+    getIt.registerLazySingleton<SharedPreferences>(() => prefs);
+  }
+
+  if (!getIt.isRegistered<OAuthPendingRequestStore>()) {
+    getIt.registerLazySingleton<OAuthPendingRequestStore>(
+      () => OAuthPendingRequestStore(getIt<SharedPreferences>()),
+    );
+  }
+
+  if (!getIt.isRegistered<WindowsOAuthCallbackServer>()) {
+    getIt.registerLazySingleton<WindowsOAuthCallbackServer>(
+      () => WindowsOAuthCallbackServer(),
+    );
+  }
+
   if (!getIt.isRegistered<DioClient>()) {
     getIt.registerLazySingleton<DioClient>(
       () => DioClient(
@@ -136,6 +156,7 @@ Future<void> setupDependencies() async {
   }
 
   // ── Core Services ────────────────────────────────────────────────────────
+
   if (!getIt.isRegistered<DeepLinkService>()) {
     getIt.registerLazySingleton<DeepLinkService>(
       () => DeepLinkService(),
@@ -166,17 +187,6 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // Factory — fresh instance per bridge page, not a singleton
-  if (!getIt.isRegistered<TrackLoaderCubit>()) {
-    getIt.registerFactory<TrackLoaderCubit>(
-      () => TrackLoaderCubit(
-        getTrackDetail: getIt<GetTrackDetailUseCase>(),
-        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
-        playerCubit: getIt<PlayerCubit>(),
-      ),
-    );
-  }
-
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
       () => JustAudioPlayerService(),
@@ -186,6 +196,16 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<PlayerCubit>()) {
     getIt.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(getIt<AudioPlayerService>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackLoaderCubit>()) {
+    getIt.registerFactory<TrackLoaderCubit>(
+      () => TrackLoaderCubit(
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
+        playerCubit: getIt<PlayerCubit>(),
+      ),
     );
   }
 
@@ -228,6 +248,7 @@ Future<void> setupDependencies() async {
       ),
     );
   }
+
   // ── Upload Feature: Track Management Basics ─────────────────────────────
 
   const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
@@ -385,6 +406,9 @@ Future<void> setupDependencies() async {
         verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
         requestEmailChangeUseCase: getIt<RequestEmailChangeUseCase>(),
         confirmEmailChangeUseCase: getIt<ConfirmEmailChangeUseCase>(),
+        authRepository: getIt<AuthRepository>(),
+        windowsOAuthCallbackServer: getIt<WindowsOAuthCallbackServer>(),
+        oauthPendingRequestStore: getIt<OAuthPendingRequestStore>(),
       ),
     );
   }

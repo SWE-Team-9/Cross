@@ -1,12 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../core/deep_links/deep_link_destination.dart';
+import '../core/deep_links/deep_link_service.dart';
 import '../core/di/injector.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/social/data/repositories/social_repo.dart';
-import '../features/playback/presentation/widgets/mini_player.dart';
-
 import 'router.dart';
 
 class App extends StatelessWidget {
@@ -22,11 +24,9 @@ class App extends StatelessWidget {
       ],
       child: MultiBlocProvider(
         providers: [
-          // Auth (existing)
           BlocProvider(
             create: (_) => getIt<AuthCubit>(),
           ),
-
           BlocProvider(
             create: (_) => getIt<PlayerCubit>(),
           ),
@@ -38,41 +38,64 @@ class App extends StatelessWidget {
             primarySwatch: Colors.orange,
             useMaterial3: true,
           ),
+          routerConfig: router,
           builder: (context, child) {
-            final isPlayerOpen =
-                context.watch<PlayerCubit>().state.isFullScreen;
-
-            return Scaffold(
-              body: Stack(
-                children: [
-                  child!,
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 70,
-                    child: IgnorePointer(
-                      ignoring: isPlayerOpen,
-                      child: AnimatedSlide(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOutCubic,
-                        offset:
-                            isPlayerOpen ? const Offset(0, 1.2) : Offset.zero,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOut,
-                          opacity: isPlayerOpen ? 0 : 1,
-                          child: const MiniPlayer(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            return _DeepLinkBridge(
+              child: child ?? const SizedBox.shrink(),
             );
           },
-          routerConfig: router,
         ),
       ),
     );
+  }
+}
+
+class _DeepLinkBridge extends StatefulWidget {
+  const _DeepLinkBridge({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_DeepLinkBridge> createState() => _DeepLinkBridgeState();
+}
+
+class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
+  StreamSubscription<DeepLinkDestination>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final deepLinkService = getIt<DeepLinkService>();
+
+      final pending = deepLinkService.consumeLastDestination();
+      if (pending != null) {
+        _handleDestination(pending);
+      }
+
+      _subscription = deepLinkService.stream.listen(_handleDestination);
+    });
+  }
+
+  void _handleDestination(DeepLinkDestination destination) {
+    if (!mounted) return;
+
+    if (destination is OAuthCallbackDeepLink) {
+      context.read<AuthCubit>().handleOAuthCallbackDeepLink(destination);
+    }
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }

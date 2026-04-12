@@ -5,22 +5,22 @@ class AppConfig {
 
   static const String appEnv = String.fromEnvironment(
     'APP_ENV',
-    defaultValue: 'local',
+    defaultValue: 'production',
   );
 
   static bool get isLocal => appEnv == 'local';
   static bool get isProduction => appEnv == 'production';
 
+  /// IMPORTANT:
+  /// Keep this as ROOT origin only.
+  /// ApiConstants already appends `/api/v1/...`.
   static String get apiUrl {
     const override = String.fromEnvironment('API_URL', defaultValue: '');
-    if (override.isNotEmpty) return override;
+    if (override.isNotEmpty) {
+      return _stripTrailingSlash(_stripApiV1Suffix(override));
+    }
 
-    if (isProduction) return 'https://iqa3.tech';
-
-    // dev
-    if (Platform.isAndroid) return 'https://iqa3.tech';
-    if (Platform.isIOS) return 'http://localhost:3006';
-    return 'http://127.0.0.1:3006/api/v1';
+    return 'https://iqa3.tech';
   }
 
   static const bool useMockTrackManagement = bool.fromEnvironment(
@@ -44,4 +44,46 @@ class AppConfig {
     'RECAPTCHA_WINDOWS_WEB_URL',
     defaultValue: 'https://inquisitive-seahorse-5af208.netlify.app',
   );
+
+  // ── OAuth (Native App) ──────────────────────────────────────────────────
+
+  static const String oauthClientId = String.fromEnvironment(
+    'OAUTH_CLIENT_ID',
+    defaultValue: 'soundclone-native-app',
+  );
+
+  static const String oauthScope = String.fromEnvironment(
+    'OAUTH_SCOPE',
+    defaultValue: 'read write',
+  );
+
+  static const String oauthAndroidRedirectUri = String.fromEnvironment(
+    'OAUTH_ANDROID_REDIRECT_URI',
+    defaultValue: 'soundclone://oauth/callback',
+  );
+
+  static const String oauthWindowsRedirectUri = String.fromEnvironment(
+    'OAUTH_WINDOWS_REDIRECT_URI',
+    defaultValue: 'http://127.0.0.1:8080/oauth/callback',
+  );
+
+  static String get oauthRedirectUri {
+    if (Platform.isWindows) return oauthWindowsRedirectUri;
+    return oauthAndroidRedirectUri;
+  }
+
+  static String _stripTrailingSlash(String value) {
+    if (value.endsWith('/')) {
+      return value.substring(0, value.length - 1);
+    }
+    return value;
+  }
+
+  static String _stripApiV1Suffix(String value) {
+    final normalized = value.trim();
+    if (normalized.endsWith('/api/v1')) {
+      return normalized.substring(0, normalized.length - '/api/v1'.length);
+    }
+    return normalized;
+  }
 }
