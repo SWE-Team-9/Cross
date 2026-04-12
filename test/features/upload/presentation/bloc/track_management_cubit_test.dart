@@ -85,7 +85,7 @@ void main() {
       cubit.initialize(track);
       cubit.updateTitle('Edited Track');
       cubit.updateDescription('Edited Description');
-      cubit.updateGenre(genreId: 2, genreName: 'Electronic');
+      cubit.updateGenre('Electronic');
       cubit.updateTagsFromInput('edited, demo');
 
       await cubit.saveMetadata();
