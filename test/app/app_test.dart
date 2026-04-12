@@ -8,7 +8,8 @@ void main() {
       expect(isTrackSheetOpen.value, isFalse);
     });
 
-    testWidgets('can toggle track sheet visibility', (WidgetTester tester) async {
+    testWidgets('can toggle track sheet visibility',
+        (WidgetTester tester) async {
       final initialValue = isTrackSheetOpen.value;
 
       isTrackSheetOpen.value = !initialValue;
