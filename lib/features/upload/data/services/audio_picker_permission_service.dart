@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/errors/upload_picker_exceptions.dart';
+
 enum AudioPickerPermission {
   audio,
   storage,
@@ -98,7 +100,7 @@ class AudioPickerPermissionServiceImpl implements AudioPickerPermissionService {
 
     if (audioStatus == AudioPickerPermissionStatus.permanentlyDenied ||
         storageStatus == AudioPickerPermissionStatus.permanentlyDenied) {
-      throw Exception(
+      throw const UploadPickerPermissionPermanentlyDeniedException(
         'Audio file permission is permanently denied. Please enable it from system settings.',
       );
     }

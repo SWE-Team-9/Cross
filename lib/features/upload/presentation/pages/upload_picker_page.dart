@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../bloc/upload_picker_cubit.dart';
@@ -29,6 +30,33 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
     _titleController.dispose();
     _genreController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showPermissionSettingsDialog(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Permission required'),
+          content: const Text(
+            'Audio file access is permanently denied. Please enable it from system settings to continue.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await openAppSettings();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -72,9 +100,26 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
         listener: (context, state) {
           if (state.status == UploadPickerStatus.failure &&
               state.errorMessage != null) {
+            final message = state.errorMessage!;
+
+            if (state.status == UploadPickerStatus.failure &&
+                state.errorMessage != null) {
+              if (state.failureType ==
+                  UploadPickerFailureType.permissionPermanentlyDenied) {
+                _showPermissionSettingsDialog(context);
+                return;
+              }
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.errorMessage!),
+                ),
+              );
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.errorMessage!),
+                content: Text(message),
               ),
             );
           }
