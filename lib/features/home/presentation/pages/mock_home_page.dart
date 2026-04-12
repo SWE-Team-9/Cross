@@ -117,10 +117,11 @@ class _MockHomePageState extends State<MockHomePage> {
                         _GenreChips(
                           genres: _genres,
                           selected: _selectedGenre,
-                          onSelect: (g) => setState(() => _selectedGenre = g),
+                          onSelect: (g) =>
+                              setState(() => _selectedGenre = g),
                         ),
                         const _TrendingTracks(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 100), // ← مسافة للـ mini player
                       ],
                     ),
                   ),
@@ -233,7 +234,6 @@ class _TopBar extends StatelessWidget {
       );
       return;
     }
-
     ProfileRoutes.goToProfile(context, currentUserHandle);
   }
 
@@ -418,7 +418,8 @@ class _RelatedTracksRow extends StatelessWidget {
                     height: 148,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
-                      gradient: LinearGradient(colors: [c.color1, c.color2]),
+                      gradient:
+                          LinearGradient(colors: [c.color1, c.color2]),
                     ),
                     alignment: Alignment.center,
                     child: Text(
@@ -597,7 +598,8 @@ class _ManagedTracksSection extends StatelessWidget {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
                 children: [
                   Expanded(
@@ -685,7 +687,8 @@ class _GenreChips extends StatelessWidget {
               child: Text(
                 g,
                 style: TextStyle(
-                  color: active ? const Color(0xFFFF5500) : Colors.white70,
+                  color:
+                      active ? const Color(0xFFFF5500) : Colors.white70,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -738,7 +741,8 @@ class _TrendingTracks extends StatelessWidget {
         tracks.length,
         (i) => Column(
           children: [
-            TrackRow(track: tracks[i]),
+            // ← مرر الـ queue كلها لكل track
+            TrackRow(track: tracks[i], queue: tracks),
             if (i < tracks.length - 1)
               const Divider(
                 color: Color(0xFF1A1A1A),
@@ -753,6 +757,7 @@ class _TrendingTracks extends StatelessWidget {
   }
 }
 
+// ── Bottom nav ────────────────────────────────────────────────────────────────
 class _BottomNav extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onTap;
@@ -832,6 +837,8 @@ class _BottomNav extends StatelessWidget {
     );
   }
 }
+
+// ── Data classes ──────────────────────────────────────────────────────────────
 
 class _AlbumData {
   final String label, sub, handle, topText;
