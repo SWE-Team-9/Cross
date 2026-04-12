@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
@@ -355,7 +357,23 @@ void main() {
     testWidgets('own profile tracks tab shows managed tracks', (tester) async {
       when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 
-      profileCubit.setTestState(ProfileLoaded(profileForOwnUser));
+      profileCubit.setTestState(
+        ProfileLoaded(
+          profileForOwnUser,
+          tracks: const [
+            ManagedTrack(
+              id: 'profile-track-1',
+              title: 'Midnight Echoes',
+              visibility: TrackManagementVisibility.publicTrack,
+            ),
+            ManagedTrack(
+              id: 'profile-track-2',
+              title: 'City Lights',
+              visibility: TrackManagementVisibility.privateTrack,
+            ),
+          ],
+        ),
+      );
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pump();
