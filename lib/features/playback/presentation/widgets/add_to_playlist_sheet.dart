@@ -13,6 +13,7 @@ class AddToPlaylistSheet extends StatefulWidget {
   static Future<void> show(BuildContext context, {required Track track}) {
     return showModalBottomSheet(
       context: context,
+      useRootNavigator: true, // ← fixes mini player showing on top
       backgroundColor: const Color(0xFF1A1A1A),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -114,12 +115,11 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                // New playlist button
                 GestureDetector(
                   onTap: () => setState(() => _showCreate = !_showCreate),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.white30),
                       borderRadius: BorderRadius.circular(20),
@@ -131,7 +131,8 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
                         SizedBox(width: 4),
                         Text(
                           'New playlist',
-                          style: TextStyle(color: Colors.white, fontSize: 12),
+                          style:
+                              TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ],
                     ),
@@ -180,7 +181,8 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
                       child: const Text(
                         'Create',
                         style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -221,7 +223,8 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
                   ),
                   subtitle: Text(
                     '${playlist.tracks.length} tracks',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: const TextStyle(
+                        color: Colors.white54, fontSize: 12),
                   ),
                   trailing: alreadyAdded
                       ? const Icon(Icons.check,
@@ -229,13 +232,14 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
                       : null,
                   onTap: alreadyAdded
                       ? null
-                      : () => _addToPlaylist(playlist.id, playlist.name),
+                      : () =>
+                          _addToPlaylist(playlist.id, playlist.name),
                 );
               },
             ),
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
         ],
       ),
     );
