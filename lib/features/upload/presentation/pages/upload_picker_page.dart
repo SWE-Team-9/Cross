@@ -100,26 +100,15 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
         listener: (context, state) {
           if (state.status == UploadPickerStatus.failure &&
               state.errorMessage != null) {
-            final message = state.errorMessage!;
-
-            if (state.status == UploadPickerStatus.failure &&
-                state.errorMessage != null) {
-              if (state.failureType ==
-                  UploadPickerFailureType.permissionPermanentlyDenied) {
-                _showPermissionSettingsDialog(context);
-                return;
-              }
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.errorMessage!),
-                ),
-              );
+            if (state.failureType ==
+                UploadPickerFailureType.permissionPermanentlyDenied) {
+              _showPermissionSettingsDialog(context);
+              return;
             }
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(message),
+                content: Text(state.errorMessage!),
               ),
             );
           }
