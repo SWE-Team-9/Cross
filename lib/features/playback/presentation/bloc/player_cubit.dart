@@ -9,7 +9,6 @@ import 'player_ui_state.dart';
 
 class PlayerCubit extends Cubit<PlayerUIState> {
   final AudioPlayerService _audioService;
-
   StreamSubscription<PlayerState>? _subscription;
 
   PlayerCubit(this._audioService)
@@ -26,20 +25,21 @@ class PlayerCubit extends Cubit<PlayerUIState> {
 
   void _listenToPlayer() {
     _subscription = _audioService.playerStateStream.listen((playerState) {
-      emit(
-        state.copyWith(
-          playerState: playerState,
-        ),
-      );
+      emit(state.copyWith(playerState: playerState));
     });
   }
 
   Future<void> play(Track track) async {
-    emit(
-      state.copyWith(
-        currentTrack: track,
-      ),
-    );
+    // ← أضف الأغنية اللي كانت شغالة للـ playedTrackIds
+    final played = Set<String>.from(state.playedTrackIds);
+    if (state.currentTrack != null) {
+      played.add(state.currentTrack!.id);
+    }
+
+    emit(state.copyWith(
+      currentTrack: track,
+      playedTrackIds: played,
+    ));
 
     await _audioService.play(track);
   }
@@ -68,17 +68,17 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     await _audioService.stop();
   }
 
-  @override
-  Future<void> close() {
-    _subscription?.cancel();
-    return super.close();
-  }
-
   void openFullPlayer() {
     emit(state.copyWith(isFullScreen: true));
   }
 
   void closeFullPlayer() {
     emit(state.copyWith(isFullScreen: false));
+  }
+
+  @override
+  Future<void> close() {
+    _subscription?.cancel();
+    return super.close();
   }
 }

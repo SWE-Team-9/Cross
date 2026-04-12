@@ -12,18 +12,20 @@ import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 class MockAudioPlayerService extends Mock implements AudioPlayerService {}
 
-// 🔥 REQUIRED for mocktail
+class MockPlaybackCubit extends Mock implements PlaybackCubit {}
+
 class FakeTrack extends Fake implements Track {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late GetIt getIt;
   late MockAudioPlayerService mockAudioPlayerService;
+  late MockPlaybackCubit mockPlaybackCubit;
   late RecentlyPlayedCubit recentlyPlayedCubit;
   late StreamController<app_player.PlayerState> playerStateController;
 
@@ -51,31 +53,52 @@ void main() {
   });
 
   setUp(() {
-    getIt = GetIt.instance;
-    getIt.reset();
+    GetIt.instance.reset();
 
     mockAudioPlayerService = MockAudioPlayerService();
+    mockPlaybackCubit = MockPlaybackCubit();
     recentlyPlayedCubit = RecentlyPlayedCubit();
     playerStateController =
         StreamController<app_player.PlayerState>.broadcast();
 
+    // ✅ FIX: stream mock
     when(() => mockAudioPlayerService.playerStateStream)
         .thenAnswer((_) => playerStateController.stream);
+
+    // Audio controls
     when(() => mockAudioPlayerService.play(any())).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.pause()).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.resume()).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.stop()).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.seek(any())).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.dispose()).thenAnswer((_) async {});
 
-    getIt.registerSingleton<AudioPlayerService>(mockAudioPlayerService);
-    getIt.registerSingleton<RecentlyPlayedCubit>(recentlyPlayedCubit);
+    // ✅ FIX: PlaybackCubit MUST return Future
+    when(() => mockPlaybackCubit.playTrack(any(), any()))
+        .thenAnswer((_) async {});
+
+    when(() => mockPlaybackCubit.addPlayNext(any())).thenAnswer((_) async {});
+
+    when(() => mockPlaybackCubit.addPlayLast(any())).thenAnswer((_) async {});
+
+    when(() => mockPlaybackCubit.stream)
+        .thenAnswer((_) => const Stream.empty());
+
+    GetIt.instance
+        .registerSingleton<AudioPlayerService>(mockAudioPlayerService);
+
+    GetIt.instance.registerSingleton<RecentlyPlayedCubit>(recentlyPlayedCubit);
   });
 
   tearDown(() async {
     await playerStateController.close();
     await recentlyPlayedCubit.close();
-    await getIt.reset();
+    await GetIt.instance.reset();
   });
 
   Future<void> pumpTrackRow(
@@ -85,15 +108,13 @@ void main() {
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
-          // 🔥 GLOBAL FIX (important)
           BlocProvider<PlayerCubit>(
-            create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+            create: (_) => PlayerCubit(GetIt.instance<AudioPlayerService>()),
           ),
+          BlocProvider<PlaybackCubit>.value(value: mockPlaybackCubit),
         ],
         child: MaterialApp(
-          home: Scaffold(
-            body: TrackRow(track: inputTrack),
-          ),
+          home: Scaffold(body: TrackRow(track: inputTrack)),
         ),
       ),
     );
@@ -107,9 +128,8 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder: (context, state) => Scaffold(
-            body: TrackRow(track: inputTrack),
-          ),
+          builder: (context, state) =>
+              Scaffold(body: TrackRow(track: inputTrack)),
         ),
         GoRoute(
           path: '/profile/:handle',
@@ -123,14 +143,12 @@ void main() {
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
-          // 🔥 GLOBAL FIX (important)
           BlocProvider<PlayerCubit>(
-            create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+            create: (_) => PlayerCubit(GetIt.instance<AudioPlayerService>()),
           ),
+          BlocProvider<PlaybackCubit>.value(value: mockPlaybackCubit),
         ],
-        child: MaterialApp.router(
-          routerConfig: router,
-        ),
+        child: MaterialApp.router(routerConfig: router),
       ),
     );
   }
@@ -181,13 +199,14 @@ void main() {
   });
 
   testWidgets('navigate to artist works', (tester) async {
-    await pumpTrackRowWithRouter(
-      tester,
-      inputTrack: trackWithHandle,
-    );
+    await pumpTrackRowWithRouter(tester, inputTrack: trackWithHandle);
     await tester.pump();
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    final element = tester.element(find.byType(TrackRow));
+    final widget = element.widget as TrackRow;
+
+    widget.openMenu(element);
+
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Go to artist'));
