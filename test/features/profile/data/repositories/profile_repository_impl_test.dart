@@ -49,6 +49,18 @@ void main() {
     verify(() => mockRemoteDataSource.getProfile('ali')).called(1);
   });
 
+  test('getMyProfile delegates to remote source and maps dto to entity',
+      () async {
+    when(() => mockRemoteDataSource.getMyProfile())
+        .thenAnswer((_) async => dto);
+
+    final result = await repository.getMyProfile();
+
+    expect(result, isA<ProfileEntity>());
+    expect(result.handle, 'ali');
+    verify(() => mockRemoteDataSource.getMyProfile()).called(1);
+  });
+
   test('getUserTracks delegates to remote source and maps dto to entities',
       () async {
     when(() => mockRemoteDataSource.getUserTracks('user-1')).thenAnswer(
@@ -111,7 +123,6 @@ void main() {
       () => mockRemoteDataSource.updateProfile(captureAny()),
     ).captured.single as Map<String, dynamic>;
 
-    // Your implementation converts PUBLIC to is_private: false
     expect(captured['is_private'], false);
     expect(captured.length, 1);
   });
@@ -128,7 +139,6 @@ void main() {
       () => mockRemoteDataSource.updateProfile(captureAny()),
     ).captured.single as Map<String, dynamic>;
 
-    // Your implementation converts PRIVATE to is_private: true
     expect(captured['is_private'], true);
     expect(captured.length, 1);
   });
@@ -193,6 +203,19 @@ void main() {
     expect(captured['account_type'], 'LISTENER');
   });
 
+  test('updateProfile sends empty body when no values are provided', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile();
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured, isEmpty);
+  });
+
   test('updateProfile returns mapped entity from remote dto', () async {
     when(() => mockRemoteDataSource.updateProfile(any()))
         .thenAnswer((_) async => dto);
@@ -207,6 +230,25 @@ void main() {
 
     expect(result.handle, 'ali');
     expect(result.favoriteGenres, ['Rock']);
+  });
+
+  test('updateExternalLinks delegates to remote source', () async {
+    when(
+      () => mockRemoteDataSource.updateExternalLinks(
+        {'instagram': 'https://instagram.com/ali'},
+      ),
+    ).thenAnswer((_) async => {'instagram': 'https://instagram.com/ali'});
+
+    final result = await repository.updateExternalLinks(
+      externalLinks: {'instagram': 'https://instagram.com/ali'},
+    );
+
+    expect(result, {'instagram': 'https://instagram.com/ali'});
+    verify(
+      () => mockRemoteDataSource.updateExternalLinks(
+        {'instagram': 'https://instagram.com/ali'},
+      ),
+    ).called(1);
   });
 
   test('uploadProfileImage delegates to remote source', () async {
