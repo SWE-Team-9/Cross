@@ -37,6 +37,7 @@ abstract class ApiConstants {
   static String followingPath(String userId) => '$socialBase/$userId/following';
   static String followUserPath(String userId) => '$socialBase/follow/$userId';
   static String blockUserPath(String userId) => '$socialBase/block/$userId';
+  static const String blockedUsersPath = '$socialBase/blocked-users';
 
 // ── Tracks ──────────────────────────────────────────────────────────────
   static const String tracks = '/api/v1/tracks';
@@ -48,7 +49,7 @@ abstract class ApiConstants {
   static String trackWaveformPath(String trackId) =>
       '${trackByIdPath(trackId)}/waveform';
   static String userTracksPath(String userId) => '$users/$userId/tracks';
- // ── Interactions ────────────────────────────────────────────────────────
+  // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';
   static const String commentsBase = '/api/v1/interactions/comments';
 
@@ -64,6 +65,5 @@ abstract class ApiConstants {
   static String trackCommentsPath(String trackId) =>
       '$interactionsBase/tracks/$trackId/comments';
 
-  static String commentByIdPath(String commentId) =>
-      '$commentsBase/$commentId';
+  static String commentByIdPath(String commentId) => '$commentsBase/$commentId';
 }

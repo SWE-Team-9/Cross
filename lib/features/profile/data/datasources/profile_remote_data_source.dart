@@ -4,12 +4,14 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../upload/data/dto/managed_track_dto.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../dto/profile_dto.dart';
 
 abstract class ProfileRemoteDataSource {
   Future<ProfileDto> getProfile(String handle);
   Future<ProfileDto> getMyProfile();
+  Future<List<ManagedTrackDto>> getUserTracks(String userId);
   Future<ProfileDto> updateProfile(Map<String, dynamic> body);
   Future<Map<String, String>> updateExternalLinks(
     Map<String, String> externalLinks,
@@ -41,7 +43,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
       return ProfileDto.fromJson(profileMap);
     } catch (e) {
-      print('🔥 Error in getProfile: $e');
       rethrow;
     }
   }
@@ -61,7 +62,26 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
       return ProfileDto.fromJson(profileMap);
     } catch (e) {
-      print('🔥 Error in getMyProfile: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<ManagedTrackDto>> getUserTracks(String userId) async {
+    try {
+      final response = await _dioClient.dio.get(
+        ApiConstants.userTracksPath(userId),
+      );
+
+      final dynamic responseData =
+          response.data is String ? jsonDecode(response.data) : response.data;
+      final List<dynamic> rawTracks = _extractTrackList(responseData);
+
+      return rawTracks
+          .whereType<Map<String, dynamic>>()
+          .map(ManagedTrackDto.fromJson)
+          .toList(growable: false);
+    } catch (e) {
       rethrow;
     }
   }
@@ -81,7 +101,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
       return ProfileDto.fromJson(profileMap);
     } catch (e) {
-      print('🔥 Error in updateProfile: $e');
       rethrow;
     }
   }
@@ -135,7 +154,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
       return parsed;
     } catch (e) {
-      print('🔥 Error in updateExternalLinks: $e');
       rethrow;
     }
   }
@@ -181,7 +199,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         'Invalid upload response: missing image url.',
       );
     } catch (e) {
-      print('🔥 Error in uploadProfileImage: $e');
       rethrow;
     }
   }
@@ -198,7 +215,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           response.data is String ? jsonDecode(response.data) : response.data;
       return responseData['available'] as bool;
     } catch (e) {
-      print('🔥 Error in checkHandleAvailable: $e');
       rethrow;
     }
   }
@@ -229,5 +245,24 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     }
 
     return {};
+  }
+
+  List<dynamic> _extractTrackList(dynamic responseData) {
+    if (responseData is List<dynamic>) {
+      return responseData;
+    }
+
+    if (responseData is Map<String, dynamic>) {
+      final dynamic tracks = responseData['tracks'] ??
+          responseData['data'] ??
+          responseData['items'] ??
+          responseData['results'];
+
+      if (tracks is List<dynamic>) {
+        return tracks;
+      }
+    }
+
+    return const <dynamic>[];
   }
 }
