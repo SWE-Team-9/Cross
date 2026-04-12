@@ -63,6 +63,9 @@ class FakeDeepLinkService implements DeepLinkService {
   Stream<DeepLinkDestination> get stream => const Stream.empty();
 
   @override
+  DeepLinkDestination? consumeLastDestination() => null;
+
+  @override
   Future<void> init() async {}
 
   @override
