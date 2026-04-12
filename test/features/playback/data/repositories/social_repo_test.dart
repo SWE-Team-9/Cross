@@ -150,8 +150,8 @@ void main() {
 
   group('followUser', () {
     test('returns isFollowing true and followersCount from response', () async {
-      when(() => dio.post(any())).thenAnswer((_) async =>
-          _response({'isFollowing': true, 'followersCount': 42}));
+      when(() => dio.post(any())).thenAnswer(
+          (_) async => _response({'isFollowing': true, 'followersCount': 42}));
 
       final result = await repo.followUser('usr1');
       expect(result.isFollowing, isTrue);
@@ -172,8 +172,8 @@ void main() {
 
   group('unfollowUser', () {
     test('returns isFollowing false from response', () async {
-      when(() => dio.delete(any())).thenAnswer((_) async =>
-          _response({'isFollowing': false, 'followersCount': 10}));
+      when(() => dio.delete(any())).thenAnswer(
+          (_) async => _response({'isFollowing': false, 'followersCount': 10}));
 
       final result = await repo.unfollowUser('usr1');
       expect(result.isFollowing, isFalse);
@@ -185,8 +185,8 @@ void main() {
 
   group('blockUser', () {
     test('returns true when blockedUserId is non-empty', () async {
-      when(() => dio.post(any())).thenAnswer(
-          (_) async => _response({'blockedUserId': 'usr_999'}));
+      when(() => dio.post(any()))
+          .thenAnswer((_) async => _response({'blockedUserId': 'usr_999'}));
 
       expect(await repo.blockUser('usr_999'), isTrue);
     });
@@ -205,8 +205,8 @@ void main() {
 
   group('unblockUser', () {
     test('returns true when blockedUserId is non-empty', () async {
-      when(() => dio.delete(any())).thenAnswer(
-          (_) async => _response({'blockedUserId': 'usr_999'}));
+      when(() => dio.delete(any()))
+          .thenAnswer((_) async => _response({'blockedUserId': 'usr_999'}));
 
       expect(await repo.unblockUser('usr_999'), isTrue);
     });
@@ -225,16 +225,16 @@ void main() {
 
   group('getUserIdByHandle', () {
     test('returns id from response', () async {
-      when(() => dio.get(any())).thenAnswer(
-          (_) async => _response({'id': 'usr_123'}));
+      when(() => dio.get(any()))
+          .thenAnswer((_) async => _response({'id': 'usr_123'}));
 
       final id = await repo.getUserIdByHandle('alice');
       expect(id, 'usr_123');
     });
 
     test('falls back to _id key', () async {
-      when(() => dio.get(any())).thenAnswer(
-          (_) async => _response({'_id': 'usr_456'}));
+      when(() => dio.get(any()))
+          .thenAnswer((_) async => _response({'_id': 'usr_456'}));
 
       final id = await repo.getUserIdByHandle('alice');
       expect(id, 'usr_456');
@@ -259,16 +259,15 @@ void main() {
         'isFollowing': true,
         'followersCount': 7,
       };
-      when(() => dio.post(any()))
-          .thenAnswer((_) async => _response(rawMap));
+      when(() => dio.post(any())).thenAnswer((_) async => _response(rawMap));
       final result = await repo.followUser('usr1');
       expect(result.isFollowing, isTrue);
       expect(result.followersCount, 7);
     });
 
-    test('throws StateError when _asMap receives non-Map value (line 166)', () async {
-      when(() => dio.post(any()))
-          .thenAnswer((_) async => _response('invalid'));
+    test('throws StateError when _asMap receives non-Map value (line 166)',
+        () async {
+      when(() => dio.post(any())).thenAnswer((_) async => _response('invalid'));
       expect(() => repo.followUser('usr1'), throwsA(isA<StateError>()));
     });
   });
