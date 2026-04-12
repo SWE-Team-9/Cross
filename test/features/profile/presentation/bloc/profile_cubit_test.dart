@@ -476,7 +476,7 @@ void main() {
   );
 
   blocTest<ProfileCubit, ProfileState>(
-    'uploadImage emits ProfileUpdateError on Failure',
+    'uploadImage emits ProfileImageUploadError on Failure',
     build: () {
       when(
         () => mockProfileRepository.uploadProfileImage(
@@ -486,7 +486,7 @@ void main() {
       ).thenThrow(const ServerFailure('upload failed'));
 
       final cubit = buildCubit();
-      cubit.emit(ProfileLoaded(profile));
+      cubit.emit(ProfileLoaded(profile, tracks: [ownTrack]));
       return cubit;
     },
     act: (cubit) => cubit.uploadImage(
@@ -494,14 +494,19 @@ void main() {
       filePath: '/tmp/a.png',
     ),
     expect: () => [
-      isA<ProfileImageUploading>(),
-      isA<ProfileUpdateError>()
-          .having((s) => s.message, 'message', 'upload failed'),
+      isA<ProfileImageUploading>()
+          .having((s) => s.imageType, 'imageType', ProfileImageType.AVATAR)
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
+      isA<ProfileImageUploadError>()
+          .having((s) => s.imageType, 'imageType', ProfileImageType.AVATAR)
+          .having((s) => s.filePath, 'filePath', '/tmp/a.png')
+          .having((s) => s.message, 'message', 'upload failed')
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
     ],
   );
 
   blocTest<ProfileCubit, ProfileState>(
-    'uploadImage emits generic error on unexpected exception',
+    'uploadImage emits generic ProfileImageUploadError on unexpected exception',
     build: () {
       when(
         () => mockProfileRepository.uploadProfileImage(
@@ -511,7 +516,7 @@ void main() {
       ).thenThrow(Exception('boom'));
 
       final cubit = buildCubit();
-      cubit.emit(ProfileLoaded(profile));
+      cubit.emit(ProfileLoaded(profile, tracks: [ownTrack]));
       return cubit;
     },
     act: (cubit) => cubit.uploadImage(
@@ -520,14 +525,13 @@ void main() {
     ),
     expect: () => [
       isA<ProfileImageUploading>(),
-      isA<ProfileUpdateError>().having(
+      isA<ProfileImageUploadError>().having(
         (s) => s.message,
         'message',
         'Unable to upload image. Please try again.',
       ),
     ],
   );
-
   blocTest<ProfileCubit, ProfileState>(
     'uploadImage does nothing when there is no current profile state',
     build: buildCubit,
@@ -536,5 +540,40 @@ void main() {
       filePath: '/tmp/a.png',
     ),
     expect: () => [],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'uploadImage retries successfully from ProfileImageUploadError state',
+    build: () {
+      when(
+        () => mockProfileRepository.uploadProfileImage(
+          imageType: ProfileImageType.AVATAR,
+          filePath: '/tmp/a.png',
+        ),
+      ).thenAnswer((_) async => 'avatar-updated');
+
+      final cubit = buildCubit();
+      cubit.emit(
+        ProfileImageUploadError(
+          profile,
+          imageType: ProfileImageType.AVATAR,
+          filePath: '/tmp/a.png',
+          message: 'upload failed',
+          tracks: [ownTrack],
+        ),
+      );
+      return cubit;
+    },
+    act: (cubit) => cubit.uploadImage(
+      imageType: ProfileImageType.AVATAR,
+      filePath: '/tmp/a.png',
+    ),
+    expect: () => [
+      isA<ProfileImageUploading>()
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
+      isA<ProfileLoaded>()
+          .having((s) => s.profile.avatarUrl, 'avatarUrl', 'avatar-updated')
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
+    ],
   );
 }
