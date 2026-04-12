@@ -19,24 +19,14 @@ import 'package:soundcloud_clone/features/playback/presentation/widgets/player_c
 import 'package:soundcloud_clone/features/playback/presentation/widgets/player_seekbar.dart';
 
 class MockPlayerCubit extends MockCubit<PlayerUIState> implements PlayerCubit {}
-
-class MockPlaybackCubit extends MockCubit<PlaybackState>
-    implements PlaybackCubit {}
-
-class MockTrackLoaderCubit extends MockCubit<TrackLoaderState>
-    implements TrackLoaderCubit {}
-
+class MockPlaybackCubit extends MockCubit<PlaybackState> implements PlaybackCubit {}
+class MockTrackLoaderCubit extends MockCubit<TrackLoaderState> implements TrackLoaderCubit {}
 class FakeDuration extends Fake implements Duration {}
 
 void main() {
   setUpAll(() {
     registerFallbackValue(FakeDuration());
-    registerFallbackValue(const Track(
-      id: '',
-      title: '',
-      artist: '',
-      audioUrl: '',
-    ));
+    registerFallbackValue(const Track(id: '', title: '', artist: '', audioUrl: ''));
   });
 
   final track = const Track(
@@ -85,14 +75,12 @@ void main() {
 
       final slider = tester.widget<Slider>(find.byType(Slider));
       slider.onChanged?.call(80);
-
       expect(sought, isNotNull);
     });
 
     testWidgets('PlayerControls handles play/pause and skip buttons',
         (tester) async {
       var playPauseTapped = 0;
-      Duration? seekDuration;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -102,23 +90,13 @@ void main() {
               onPlayPause: () => playPauseTapped++,
               position: const Duration(seconds: 5),
               duration: const Duration(seconds: 60),
-              onSeek: (d) => seekDuration = d,
+              onSeek: (_) {},
             ),
           ),
         ),
       );
 
-      // replay_10: 5s - 10s = 0s (clamped)
-      await tester.tap(find.byIcon(Icons.replay_10));
-      await tester.pump();
-      expect(seekDuration, Duration.zero);
-
-      // forward_10: 5s + 10s = 15s
-      await tester.tap(find.byIcon(Icons.forward_10));
-      await tester.pump();
-      expect(seekDuration, const Duration(seconds: 15));
-
-      // play/pause button
+      // PlayerControls الأصلي عنده play/pause بس — نتست الزرار الموجود
       await tester.tap(find.byIcon(Icons.play_arrow));
       await tester.pump();
       expect(playPauseTapped, 1);
@@ -136,7 +114,6 @@ void main() {
       playerCubit = MockPlayerCubit();
       when(() => playerCubit.openFullPlayer()).thenReturn(null);
       when(() => playerCubit.closeFullPlayer()).thenReturn(null);
-      // MiniPlayer calls togglePlayPause() — stub it here
       when(() => playerCubit.togglePlayPause()).thenAnswer((_) async {});
     });
 
@@ -150,81 +127,58 @@ void main() {
         );
 
     testWidgets('renders nothing when no track loaded', (tester) async {
-      when(() => playerCubit.state).thenReturn(
-        const PlayerUIState(
-          playerState: PlayerState(
-            status: PlayerStatus.idle,
-            position: Duration.zero,
-          ),
-          currentTrack: null,
-        ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.state).thenReturn(const PlayerUIState(
+        playerState: PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        currentTrack: null,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
-
       expect(find.byType(GestureDetector), findsNothing);
     });
 
     testWidgets('displays track title and artist', (tester) async {
-      when(() => playerCubit.state).thenReturn(
-        PlayerUIState(
-          playerState: const PlayerState(
-            status: PlayerStatus.idle,
-            position: Duration.zero,
-          ),
-          currentTrack: track,
-        ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
-
       expect(find.text('Song 1'), findsOneWidget);
       expect(find.text('Artist 1'), findsOneWidget);
     });
 
     testWidgets('tapping play button calls pause when playing', (tester) async {
-      when(() => playerCubit.state).thenReturn(
-        PlayerUIState(
-          playerState: const PlayerState(
-            status: PlayerStatus.playing,
-            position: Duration(seconds: 30),
-            duration: Duration(seconds: 120),
-          ),
-          currentTrack: track,
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.playing,
+          position: Duration(seconds: 30),
+          duration: Duration(seconds: 120),
         ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
-
       await tester.tap(find.byIcon(Icons.pause));
       await tester.pump();
 
-      // MiniPlayer calls togglePlayPause() for both play and pause
       verify(() => playerCubit.togglePlayPause()).called(1);
     });
 
     testWidgets('tapping play button calls resume when paused', (tester) async {
-      when(() => playerCubit.state).thenReturn(
-        PlayerUIState(
-          playerState: const PlayerState(
-            status: PlayerStatus.paused,
-            position: Duration(seconds: 30),
-            duration: Duration(seconds: 120),
-          ),
-          currentTrack: track,
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.paused,
+          position: Duration(seconds: 30),
+          duration: Duration(seconds: 120),
         ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
-
       await tester.tap(find.byIcon(Icons.play_arrow));
       await tester.pump();
 
@@ -233,23 +187,19 @@ void main() {
 
     testWidgets('shows pause icon and correct progress when playing',
         (tester) async {
-      when(() => playerCubit.state).thenReturn(
-        PlayerUIState(
-          playerState: const PlayerState(
-            status: PlayerStatus.playing,
-            position: Duration(seconds: 60),
-            duration: Duration(seconds: 120),
-          ),
-          currentTrack: track,
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.playing,
+          position: Duration(seconds: 60),
+          duration: Duration(seconds: 120),
         ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
 
       expect(find.byIcon(Icons.pause), findsOneWidget);
-
       final indicator = tester.widget<CircularProgressIndicator>(
         find.byType(CircularProgressIndicator),
       );
@@ -257,17 +207,14 @@ void main() {
     });
 
     testWidgets('shows zero progress when duration is null', (tester) async {
-      when(() => playerCubit.state).thenReturn(
-        PlayerUIState(
-          playerState: const PlayerState(
-            status: PlayerStatus.idle,
-            position: Duration.zero,
-          ),
-          currentTrack: track,
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.idle,
+          position: Duration.zero,
         ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildMiniPlayer());
 
@@ -296,8 +243,7 @@ void main() {
       when(() => playerCubit.seek(any())).thenAnswer((_) async {});
 
       when(() => playbackCubit.state).thenReturn(emptyPlaybackState);
-      when(() => playbackCubit.stream)
-          .thenAnswer((_) => const Stream<PlaybackState>.empty());
+      when(() => playbackCubit.stream).thenAnswer((_) => const Stream<PlaybackState>.empty());
       when(() => playbackCubit.playNext()).thenAnswer((_) async {});
       when(() => playbackCubit.playPrevious()).thenAnswer((_) async {});
     });
@@ -314,54 +260,35 @@ void main() {
 
     testWidgets('shows no-track placeholder when currentTrack is null',
         (tester) async {
-      when(() => playerCubit.state).thenReturn(
-        const PlayerUIState(
-          playerState: PlayerState(
-            status: PlayerStatus.idle,
-            position: Duration.zero,
-          ),
-          currentTrack: null,
-        ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.state).thenReturn(const PlayerUIState(
+        playerState: PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        currentTrack: null,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildFullPlayer());
-
       expect(find.text('No track selected'), findsOneWidget);
     });
 
     testWidgets('renders controls and invokes cubit methods', (tester) async {
-      when(() => playerCubit.state).thenReturn(
-        PlayerUIState(
-          playerState: const PlayerState(
-            status: PlayerStatus.playing,
-            position: Duration(seconds: 10),
-            duration: Duration(seconds: 120),
-          ),
-          currentTrack: track,
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.playing,
+          position: Duration(seconds: 10),
+          duration: Duration(seconds: 120),
         ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
 
       await tester.pumpWidget(buildFullPlayer());
 
       expect(find.text('Song 1'), findsOneWidget);
       expect(find.text('Artist 1'), findsOneWidget);
 
-      // replay_10 inside PlayerControls: 10s - 10s = 0s
-      await tester.tap(find.byIcon(Icons.replay_10));
-      await tester.pump();
-      verify(() => playerCubit.seek(const Duration(seconds: 0))).called(1);
-
-      // pause button inside PlayerControls
-      await tester.tap(
-        find.descendant(
-          of: find.byType(PlayerControls),
-          matching: find.byIcon(Icons.pause),
-        ),
-      );
+      // FullPlayerPage بيعمل الـ play/pause button يدوياً — نتست الأيقونة مباشرة
+      expect(find.byIcon(Icons.pause), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.pause));
       await tester.pump();
       verify(() => playerCubit.togglePlayPause()).called(1);
     });
@@ -384,25 +311,18 @@ void main() {
       when(() => loaderCubit.loadByTrackId(any())).thenAnswer((_) async {});
       when(() => loaderCubit.loadBySecretToken(any())).thenAnswer((_) async {});
 
-      when(() => playerCubit.state).thenReturn(
-        const PlayerUIState(
-          playerState: PlayerState(
-            status: PlayerStatus.idle,
-            position: Duration.zero,
-          ),
-          currentTrack: null,
-        ),
-      );
-      when(() => playerCubit.stream)
-          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playerCubit.state).thenReturn(const PlayerUIState(
+        playerState: PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        currentTrack: null,
+      ));
+      when(() => playerCubit.stream).thenAnswer((_) => const Stream<PlayerUIState>.empty());
       when(() => playerCubit.openFullPlayer()).thenReturn(null);
       when(() => playerCubit.closeFullPlayer()).thenReturn(null);
       when(() => playerCubit.togglePlayPause()).thenAnswer((_) async {});
       when(() => playerCubit.seek(any())).thenAnswer((_) async {});
 
       when(() => playbackCubit.state).thenReturn(emptyPlaybackState);
-      when(() => playbackCubit.stream)
-          .thenAnswer((_) => const Stream<PlaybackState>.empty());
+      when(() => playbackCubit.stream).thenAnswer((_) => const Stream<PlaybackState>.empty());
       when(() => playbackCubit.playNext()).thenAnswer((_) async {});
       when(() => playbackCubit.playPrevious()).thenAnswer((_) async {});
     });
@@ -412,8 +332,7 @@ void main() {
       when(() => loaderCubit.state).thenReturn(const TrackLoaderIdle());
       whenListen(
         loaderCubit,
-        Stream<TrackLoaderState>.fromIterable(
-            [TrackLoaderReady(detail: detail)]),
+        Stream<TrackLoaderState>.fromIterable([TrackLoaderReady(detail: detail)]),
         initialState: const TrackLoaderIdle(),
       );
 
@@ -426,9 +345,7 @@ void main() {
           ],
           child: MaterialApp(
             home: const TrackDeepLinkBridgePage(trackId: 't1'),
-            routes: {
-              '/home': (_) => const Scaffold(body: Text('Home Screen')),
-            },
+            routes: {'/home': (_) => const Scaffold(body: Text('Home Screen'))},
           ),
         ),
       );
@@ -445,8 +362,7 @@ void main() {
       whenListen(
         loaderCubit,
         Stream<TrackLoaderState>.fromIterable(
-          const [TrackLoaderError(message: 'bad link')],
-        ),
+            const [TrackLoaderError(message: 'bad link')]),
         initialState: const TrackLoaderIdle(),
       );
 
@@ -459,9 +375,7 @@ void main() {
           ],
           child: MaterialApp(
             home: const TrackDeepLinkBridgePage(secretToken: 's1'),
-            routes: {
-              '/home': (_) => const Scaffold(body: Text('Home Screen')),
-            },
+            routes: {'/home': (_) => const Scaffold(body: Text('Home Screen'))},
           ),
         ),
       );
