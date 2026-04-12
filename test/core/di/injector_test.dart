@@ -20,6 +20,7 @@ import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_vi
 
 import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
+import 'package:soundcloud_clone/features/upload/data/services/audio_picker_permission_service.dart';
 
 class FakeAudioHandler extends BaseAudioHandler {}
 
@@ -76,6 +77,7 @@ void main() {
       expect(getIt.isRegistered<UpdateTrackVisibilityUseCase>(), true);
       expect(getIt.isRegistered<DeleteTrackUseCase>(), true);
       expect(getIt.isRegistered<TrackManagementCubit>(), true);
+      expect(getIt.isRegistered<AudioPickerPermissionService>(), true);
     });
   });
 }
