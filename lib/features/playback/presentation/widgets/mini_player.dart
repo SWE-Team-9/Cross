@@ -25,7 +25,7 @@ class MiniPlayer extends StatelessWidget {
               return GestureDetector(
                 onTap: () {
                   context.read<PlayerCubit>().openFullPlayer();
-                  router.push('/player');
+                  router.push(AppRoutes.player);
                 },
                 child: Container(
                   height: 60, // 🔥 smaller
