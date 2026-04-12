@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
+import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
@@ -12,7 +17,6 @@ class TrackRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 FIX: wrap with Builder to ensure proper context for Bloc
     return Builder(
       builder: (context) {
         return BlocBuilder<PlayerCubit, PlayerUIState>(
@@ -31,7 +35,6 @@ class TrackRow extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 child: Row(
                   children: [
-                    // Artwork
                     Container(
                       width: 52,
                       height: 52,
@@ -51,8 +54,6 @@ class TrackRow extends StatelessWidget {
                           : null,
                     ),
                     const SizedBox(width: 12),
-
-                    // Track info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,8 +99,6 @@ class TrackRow extends StatelessWidget {
                         ],
                       ),
                     ),
-
-                    // More options button
                     IconButton(
                       onPressed: () => _openMenu(context),
                       icon: const Icon(
@@ -117,56 +116,112 @@ class TrackRow extends StatelessWidget {
     );
   }
 
+  void _openComments(BuildContext context) {
+    Navigator.pop(context);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (_) => getIt<CommentsCubit>()..load(track.id),
+          child: TrackCommentsPage(trackId: track.id),
+        ),
+      ),
+    );
+  }
+
   void _openMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
-      builder: (_) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const ListTile(
-            leading: Icon(Icons.favorite_border, color: Colors.white),
-            title: Text('Like', style: TextStyle(color: Colors.white)),
-          ),
-          const ListTile(
-            leading: Icon(Icons.playlist_add, color: Colors.white),
-            title: Text(
-              'Add to playlist',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.person, color: Colors.white),
-            title: const Text(
-              'Go to artist',
-              style: TextStyle(color: Colors.white),
-            ),
-            onTap: () {
-              if (track.handle != null && track.handle!.isNotEmpty) {
-                ProfileRoutes.goToProfile(context, track.handle!);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Artist profile not available'),
-                    backgroundColor: Colors.red,
-                  ),
+      builder: (_) => BlocProvider(
+        create: (_) => getIt<TrackInteractionCubit>()..load(track.id),
+        child: Builder(
+          builder: (bottomSheetContext) {
+            return BlocBuilder<TrackInteractionCubit, TrackInteractionState>(
+              builder: (context, state) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: Icon(
+                        state.isLiked
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: Colors.white,
+                      ),
+                      title: Text(
+                        state.isLiked ? 'Unlike' : 'Like',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(
+                        '${state.likesCount} likes',
+                        style: const TextStyle(color: Colors.white54),
+                      ),
+                      onTap: () async {
+                        await bottomSheetContext
+                            .read<TrackInteractionCubit>()
+                            .toggleLike(track.id);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.mode_comment_outlined,
+                        color: Colors.white,
+                      ),
+                      title: const Text(
+                        'Comments',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onTap: () => _openComments(context),
+                    ),
+                    const ListTile(
+                      leading:
+                          Icon(Icons.playlist_add, color: Colors.white),
+                      title: Text(
+                        'Add to playlist',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.person, color: Colors.white),
+                      title: const Text(
+                        'Go to artist',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onTap: () {
+                        if (track.handle != null &&
+                            track.handle!.isNotEmpty) {
+                          ProfileRoutes.goToProfile(context, track.handle!);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text('Artist profile not available'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const Divider(color: Color(0xFF1F1F1F), height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.report, color: Colors.red),
+                      title: const Text(
+                        'Report',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
                 );
-              }
-              Navigator.pop(context);
-            },
-          ),
-          const Divider(color: Color(0xFF1F1F1F), height: 1),
-          ListTile(
-            leading: const Icon(Icons.report, color: Colors.red),
-            title: const Text(
-              'Report',
-              style: TextStyle(color: Colors.red),
-            ),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
-        ],
+              },
+            );
+          },
+        ),
       ),
     );
   }
