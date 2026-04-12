@@ -18,6 +18,13 @@ class MiniPlayer extends StatelessWidget {
         final track = state.currentTrack;
         if (track == null) return const SizedBox.shrink();
 
+        final duration = state.duration;
+        final double progress =
+            (duration != null && duration.inMilliseconds > 0)
+                ? (state.position.inMilliseconds / duration.inMilliseconds)
+                    .clamp(0.0, 1.0)
+                : 0.0;
+
         return SafeArea(
           child: GestureDetector(
             onTap: () {
@@ -52,25 +59,43 @@ class MiniPlayer extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        // Play/pause circle button
+                        // ── Play/pause with progress ring ──────────────
                         Padding(
                           padding: const EdgeInsets.all(6),
                           child: GestureDetector(
                             onTap: () =>
                                 context.read<PlayerCubit>().togglePlayPause(),
-                            child: Container(
+                            child: SizedBox(
                               width: 46,
                               height: 46,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                state.isPlaying
-                                    ? Icons.pause
-                                    : Icons.play_arrow,
-                                color: Colors.black,
-                                size: 26,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                    value: progress,
+                                    strokeWidth: 2.5,
+                                    backgroundColor: Colors.white24,
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                      Color(0xFFFF5500),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      state.isPlaying
+                                          ? Icons.pause
+                                          : Icons.play_arrow,
+                                      color: Colors.black,
+                                      size: 22,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -78,7 +103,7 @@ class MiniPlayer extends StatelessWidget {
 
                         const SizedBox(width: 8),
 
-                        // Title + artist
+                        // ── Title + artist ────────────────────────────
                         Expanded(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -107,7 +132,7 @@ class MiniPlayer extends StatelessWidget {
                           ),
                         ),
 
-                        // Follow
+                        // ── Follow ────────────────────────────────────
                         GestureDetector(
                           onTap: () {},
                           child: const Padding(
@@ -120,7 +145,7 @@ class MiniPlayer extends StatelessWidget {
                           ),
                         ),
 
-                        // Like
+                        // ── Like ──────────────────────────────────────
                         GestureDetector(
                           onTap: () {},
                           child: const Padding(
