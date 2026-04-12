@@ -61,10 +61,7 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
     );
   }
 
-  void updateGenre({
-    required int genreId,
-    required String genreName,
-  }) {
+  void updateGenre(String genreName) {
     if (!state.hasTrack) {
       return;
     }
@@ -73,8 +70,8 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
       state.copyWith(
         status: TrackManagementStatus.ready,
         form: state.form!.copyWith(
-          genreId: genreId,
           genreName: genreName,
+          clearGenreId: true,
         ),
         clearSuccessMessage: true,
         clearErrorMessage: true,
