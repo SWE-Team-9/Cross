@@ -37,6 +37,7 @@ abstract class ApiConstants {
   static String followingPath(String userId) => '$socialBase/$userId/following';
   static String followUserPath(String userId) => '$socialBase/follow/$userId';
   static String blockUserPath(String userId) => '$socialBase/block/$userId';
+  static const String blockedUsersPath = '$socialBase/blocked-users';
 
   // ── Tracks ──────────────────────────────────────────────────────────────
   static const String tracks = '/tracks';
