@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 
+import '../../../../core/errors/upload_picker_exceptions.dart';
 import '../dto/picked_audio_file_dto.dart';
 import '../services/audio_picker_permission_service.dart';
 
@@ -44,6 +45,8 @@ class AudioFilePickerDataSourceImpl implements AudioFilePickerDataSource {
         sizeInBytes: file.size,
         path: file.path,
       );
+    } on UploadPickerPermissionPermanentlyDeniedException {
+      rethrow;
     } catch (error) {
       final String message = error.toString().replaceFirst('Exception: ', '');
 

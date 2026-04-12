@@ -13,6 +13,11 @@ enum UploadPickerStatus {
   failure,
 }
 
+enum UploadPickerFailureType {
+  none,
+  permissionPermanentlyDenied,
+}
+
 class UploadPickerState extends Equatable {
   const UploadPickerState({
     this.status = UploadPickerStatus.initial,
@@ -20,6 +25,7 @@ class UploadPickerState extends Equatable {
     this.errorMessage,
     this.uploadedTrackId,
     this.processingStatus,
+    this.failureType = UploadPickerFailureType.none,
   });
 
   final UploadPickerStatus status;
@@ -27,6 +33,7 @@ class UploadPickerState extends Equatable {
   final String? errorMessage;
   final String? uploadedTrackId;
   final String? processingStatus;
+  final UploadPickerFailureType failureType;
 
   bool get isBusy =>
       status == UploadPickerStatus.picking ||
@@ -41,10 +48,12 @@ class UploadPickerState extends Equatable {
     String? errorMessage,
     String? uploadedTrackId,
     String? processingStatus,
+    UploadPickerFailureType? failureType,
     bool clearPickedAudioFile = false,
     bool clearErrorMessage = false,
     bool clearUploadedTrackId = false,
     bool clearProcessingStatus = false,
+    bool clearFailureType = false,
   }) {
     return UploadPickerState(
       status: status ?? this.status,
@@ -59,6 +68,9 @@ class UploadPickerState extends Equatable {
       processingStatus: clearProcessingStatus
           ? null
           : (processingStatus ?? this.processingStatus),
+      failureType: clearFailureType
+          ? UploadPickerFailureType.none
+          : (failureType ?? this.failureType),
     );
   }
 
@@ -69,5 +81,6 @@ class UploadPickerState extends Equatable {
         errorMessage,
         uploadedTrackId,
         processingStatus,
+        failureType,
       ];
 }
