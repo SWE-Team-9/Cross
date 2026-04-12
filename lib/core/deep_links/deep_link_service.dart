@@ -1,65 +1,86 @@
-// core/deep_links/deep_link_service.dart
+// deep_link_service.dart
 
+// Dart SDK
 import 'dart:async';
 
+// Flutter
+import 'package:flutter/foundation.dart';
+
+// Third-party
 import 'package:app_links/app_links.dart';
+
+// Project
 import 'deep_link_destination.dart';
 import 'deep_link_parser.dart';
 
-/// Owns the OS-level deep link listener for the lifetime of the app.
-///
-/// - Handles cold start (app launched via link) via [getInitialLink].
-/// - Handles warm start (app already running) via [uriLinkStream].
-/// - Parses every incoming URI through [DeepLinkParser].
-/// - Exposes [stream] for the router to listen to.
-///
-/// Register as @lazySingleton so only one OS listener is ever active.
 class DeepLinkService {
   DeepLinkService() : _appLinks = AppLinks();
 
   final AppLinks _appLinks;
 
-  // Internal broadcast controller — allows multiple listeners (router, etc.)
+  // Use a broadcast stream with a stored last event
+  // so the router listener gets it even if it subscribes late.
   final StreamController<DeepLinkDestination> _controller =
       StreamController<DeepLinkDestination>.broadcast();
 
-  /// The stream of parsed deep link destinations.
-  /// The router subscribes to this.
+  // Store last emitted destination so late subscribers can get it.
+  DeepLinkDestination? _lastDestination;
+  bool _lastDestinationConsumed = false;
+  String? _lastEmittedUri;
+  DateTime? _lastEmittedAt;
+
   Stream<DeepLinkDestination> get stream => _controller.stream;
 
-  /// Call once in main() or in your app's initState.
-  /// Sets up both cold-start and warm-start handling.
+  DeepLinkDestination? consumeLastDestination() {
+    if (_lastDestinationConsumed) return null;
+    _lastDestinationConsumed = true;
+    return _lastDestination;
+  }
+
   Future<void> init() async {
-    // ── Cold start ────────────────────────────────────────────────────────
-    // If the app was launched by tapping a deep link, this returns that URI.
-    // If the app launched normally, this returns null.
+    // ── Cold start ──────────────────────────────────────────────────────────
     try {
       final Uri? initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        _emit(initialUri);
+        _emitIfNotDuplicate(initialUri, source: 'initial');
       }
-    } catch (_) {
-      // If cold-start link retrieval fails, we just continue normally.
-      // Never crash the app over a failed deep link.
-    }
+    } catch (_) {}
 
-    // ── Warm start ────────────────────────────────────────────────────────
-    // Listen for links while the app is already running.
+    // ── Warm start ──────────────────────────────────────────────────────────
     _appLinks.uriLinkStream.listen(
-      _emit,
-      onError: (_) {
-        // Silently ignore stream errors — bad links shouldn't crash the app.
+      (uri) {
+        _lastDestinationConsumed = false;
+        _emitIfNotDuplicate(uri, source: 'stream');
       },
+      onError: (_) {},
     );
   }
 
-  /// Parses the URI and adds the result to the stream.
-  void _emit(Uri uri) {
-    final DeepLinkDestination destination = DeepLinkParser.parse(uri);
-    _controller.add(destination);
+  void _emitIfNotDuplicate(Uri uri, {required String source}) {
+    final DateTime now = DateTime.now();
+    final String currentUri = uri.toString();
+
+    final bool isRecentDuplicate = _lastEmittedUri == currentUri &&
+        _lastEmittedAt != null &&
+        now.difference(_lastEmittedAt!) < const Duration(seconds: 2);
+
+    if (isRecentDuplicate) {
+      debugPrint('[DeepLinkService] Ignored duplicate ($source): $currentUri');
+      return;
+    }
+
+    _lastEmittedUri = currentUri;
+    _lastEmittedAt = now;
+    _emit(uri);
   }
 
-  /// Clean up when the singleton is disposed (app shutdown).
+  void _emit(Uri uri) {
+    final DeepLinkDestination destination = DeepLinkParser.parse(uri);
+    _lastDestination = destination; // store for late subscribers
+    _controller.add(destination);
+    debugPrint('[DeepLinkService] Emitted: $destination');
+  }
+
   Future<void> dispose() async {
     await _controller.close();
   }

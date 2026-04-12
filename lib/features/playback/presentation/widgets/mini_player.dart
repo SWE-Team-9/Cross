@@ -8,6 +8,8 @@ import '../../../../app/router.dart';
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
 
+  static const String _playerHeroTag = 'player_shell_hero';
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PlayerCubit, PlayerUIState>(
@@ -24,71 +26,80 @@ class MiniPlayer extends StatelessWidget {
             builder: (innerContext) {
               return GestureDetector(
                 onTap: () {
-                  context.read<PlayerCubit>().openFullPlayer();
                   router.push(AppRoutes.player);
                 },
-                child: Container(
-                  height: 60, // 🔥 smaller
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900]?.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(40), // 🔥 pill shape
-                  ),
-                  child: Row(
-                    children: [
-                      // ▶️ Play Button
-                      _PlayButton(
-                        isPlaying: state.isPlaying,
-                        position: state.playerState.position,
-                        duration: state.playerState.duration,
+                child: Hero(
+                  tag: _playerHeroTag,
+                  transitionOnUserGestures: true,
+                  createRectTween: (begin, end) =>
+                      MaterialRectCenterArcTween(begin: begin, end: end),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      height: 60, // 🔥 smaller
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[900]?.withValues(alpha: 0.95),
+                        borderRadius:
+                            BorderRadius.circular(40), // 🔥 pill shape
                       ),
+                      child: Row(
+                        children: [
+                          // ▶️ Play Button
+                          _PlayButton(
+                            isPlaying: state.isPlaying,
+                            position: state.playerState.position,
+                            duration: state.playerState.duration,
+                          ),
 
-                      const SizedBox(width: 10),
+                          const SizedBox(width: 10),
 
-                      // 🎵 Title + Artist
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              track.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13, // 🔥 smaller
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                          // 🎵 Title + Artist
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  track.title,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13, // 🔥 smaller
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  track.artist,
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 11, // 🔥 smaller
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              track.artist,
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 11, // 🔥 smaller
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
 
-                      // 👤
-                      IconButton(
-                        icon: const Icon(Icons.person_add_alt_1,
-                            color: Colors.white, size: 20),
-                        onPressed: () {},
-                      ),
+                          // 👤
+                          IconButton(
+                            icon: const Icon(Icons.person_add_alt_1,
+                                color: Colors.white, size: 20),
+                            onPressed: () {},
+                          ),
 
-                      // ❤️
-                      IconButton(
-                        icon: const Icon(Icons.favorite_border,
-                            color: Colors.white, size: 20),
-                        onPressed: () {},
+                          // ❤️
+                          IconButton(
+                            icon: const Icon(Icons.favorite_border,
+                                color: Colors.white, size: 20),
+                            onPressed: () {},
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               );
