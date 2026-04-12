@@ -7,7 +7,7 @@ void main() {
   late BaseAudioHandler handler;
 
   setUp(() {
-    handler = BaseAudioHandler(); // ✅ PURE, NO PLATFORM
+    handler = BaseAudioHandler(); // ✅ no platform
   });
 
   test('mediaItem works', () {
@@ -36,5 +36,28 @@ void main() {
     );
 
     expect(handler.playbackState.value.playing, true);
+  });
+
+  test('playbackState emits values', () async {
+    final emitted = <PlaybackState>[];
+
+    final sub = handler.playbackState.listen(emitted.add);
+
+    handler.playbackState.add(
+      PlaybackState(
+        controls: const [],
+        systemActions: const {},
+        androidCompactActionIndices: const [],
+        processingState: AudioProcessingState.ready,
+        playing: true,
+        updatePosition: Duration.zero,
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    expect(emitted, isNotEmpty);
+
+    await sub.cancel();
   });
 }
