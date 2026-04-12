@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/upload_picker_exceptions.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../../domain/usecases/pick_audi_file_usecase.dart';
 import 'upload_picker_state.dart';
@@ -18,6 +19,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       state.copyWith(
         status: UploadPickerStatus.picking,
         clearErrorMessage: true,
+        clearFailureType: true,
       ),
     );
 
@@ -29,6 +31,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
           state.copyWith(
             status: UploadPickerStatus.cancelled,
             clearErrorMessage: true,
+            clearFailureType: true,
           ),
         );
         return;
@@ -41,6 +44,15 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
           clearErrorMessage: true,
           clearUploadedTrackId: true,
           clearProcessingStatus: true,
+          clearFailureType: true,
+        ),
+      );
+    } on UploadPickerPermissionPermanentlyDeniedException catch (error) {
+      emit(
+        state.copyWith(
+          status: UploadPickerStatus.failure,
+          errorMessage: error.message,
+          failureType: UploadPickerFailureType.permissionPermanentlyDenied,
         ),
       );
     } catch (error) {
@@ -48,6 +60,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         state.copyWith(
           status: UploadPickerStatus.failure,
           errorMessage: _readableError(error),
+          clearFailureType: true,
         ),
       );
     }
@@ -64,6 +77,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         state.copyWith(
           status: UploadPickerStatus.failure,
           errorMessage: 'Please select an audio file first.',
+          clearFailureType: true,
         ),
       );
       return;
@@ -75,6 +89,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         state.copyWith(
           status: UploadPickerStatus.failure,
           errorMessage: 'Please enter a track title before uploading.',
+          clearFailureType: true,
         ),
       );
       return;
@@ -84,6 +99,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       state.copyWith(
         status: UploadPickerStatus.uploading,
         clearErrorMessage: true,
+        clearFailureType: true,
       ),
     );
 
@@ -102,6 +118,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
           uploadedTrackId: uploadResult.trackId,
           processingStatus: initialStatus,
           clearErrorMessage: true,
+          clearFailureType: true,
         ),
       );
 
@@ -116,6 +133,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
             status: UploadPickerStatus.success,
             processingStatus: finalStatus,
             clearErrorMessage: true,
+            clearFailureType: true,
           ),
         );
         return;
@@ -127,6 +145,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
             status: UploadPickerStatus.failure,
             processingStatus: finalStatus,
             errorMessage: 'Track processing failed. Please try again.',
+            clearFailureType: true,
           ),
         );
         return;
@@ -138,6 +157,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
           processingStatus: finalStatus,
           errorMessage:
               'Track is still processing. Please check again in a moment.',
+          clearFailureType: true,
         ),
       );
     } catch (error) {
@@ -145,6 +165,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         state.copyWith(
           status: UploadPickerStatus.failure,
           errorMessage: _readableError(error),
+          clearFailureType: true,
         ),
       );
     }
@@ -158,6 +179,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         clearErrorMessage: true,
         clearUploadedTrackId: true,
         clearProcessingStatus: true,
+        clearFailureType: true,
       ),
     );
   }
@@ -187,6 +209,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
           uploadedTrackId: trackId,
           processingStatus: latestStatus,
           clearErrorMessage: true,
+          clearFailureType: true,
         ),
       );
 

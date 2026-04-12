@@ -97,6 +97,93 @@ void main() {
         expect(failure, isA<ValidationFailure>()); // This should now pass
       });
 
+      test('should map 403 to AuthFailure with fallback message', () {
+        final error = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/test'),
+            statusCode: 403,
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+        final failure = ErrorMapper.mapDioErrorToFailure(error);
+
+        expect(failure, isA<AuthFailure>());
+        expect(failure.message, contains('permission'));
+      });
+
+      test('should map 500 and 503 to ServerFailure messages', () {
+        final error500 = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/test'),
+            statusCode: 500,
+          ),
+          type: DioExceptionType.badResponse,
+        );
+        final error503 = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/test'),
+            statusCode: 503,
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+        final failure500 = ErrorMapper.mapDioErrorToFailure(error500);
+        final failure503 = ErrorMapper.mapDioErrorToFailure(error503);
+
+        expect(failure500, isA<ServerFailure>());
+        expect(failure500.message, contains('Server error'));
+        expect(failure503, isA<ServerFailure>());
+        expect(failure503.message, contains('later'));
+      });
+
+      test('should map unknown status code to generic ServerFailure', () {
+        final error = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/test'),
+            statusCode: 418,
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+        final failure = ErrorMapper.mapDioErrorToFailure(error);
+
+        expect(failure, isA<ServerFailure>());
+        expect(failure.message, 'Something went wrong');
+      });
+
+      test('should map send/receive timeout to NetworkFailure', () {
+        final receiveTimeout = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          type: DioExceptionType.receiveTimeout,
+        );
+        final sendTimeout = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          type: DioExceptionType.sendTimeout,
+        );
+
+        final receiveFailure = ErrorMapper.mapDioErrorToFailure(receiveTimeout);
+        final sendFailure = ErrorMapper.mapDioErrorToFailure(sendTimeout);
+
+        expect(receiveFailure, isA<NetworkFailure>());
+        expect(sendFailure, isA<NetworkFailure>());
+      });
+
+      test('should map unknown DioException type to generic ServerFailure', () {
+        final error = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          type: DioExceptionType.cancel,
+        );
+
+        final failure = ErrorMapper.mapDioErrorToFailure(error);
+
+        expect(failure, isA<ServerFailure>());
+      });
+
       test('should extract error message from different response formats', () {
         final errorWithMessage = DioException(
           requestOptions: RequestOptions(path: '/test'),

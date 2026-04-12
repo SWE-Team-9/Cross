@@ -273,6 +273,56 @@ void main() {
     });
   });
 
+  group('getUserTracks', () {
+    test('parses track list from wrapped response body', () async {
+      when(() => mockDio.get('/api/v1/users/user-1/tracks')).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
+          data: <String, dynamic>{
+            'tracks': [
+              <String, dynamic>{
+                'id': 'track-1',
+                'title': 'Midnight Echoes',
+                'visibility': 'PUBLIC',
+              },
+              <String, dynamic>{
+                'id': 'track-2',
+                'title': 'City Lights',
+                'visibility': 'PRIVATE',
+              },
+            ],
+          },
+        ),
+      );
+
+      final tracks = await dataSource.getUserTracks('user-1');
+
+      expect(tracks, hasLength(2));
+      expect(tracks.first.id, 'track-1');
+      expect(tracks.first.title, 'Midnight Echoes');
+    });
+
+    test('parses track list from direct array response', () async {
+      when(() => mockDio.get('/api/v1/users/user-1/tracks')).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
+          data: [
+            <String, dynamic>{
+              'id': 'track-3',
+              'title': 'Sunrise Loop',
+              'visibility': 'PUBLIC',
+            },
+          ],
+        ),
+      );
+
+      final tracks = await dataSource.getUserTracks('user-1');
+
+      expect(tracks, hasLength(1));
+      expect(tracks.single.id, 'track-3');
+    });
+  });
+
   group('updateExternalLinks', () {
     final Map<String, String> linksInput = {
       'twitter': 'https://twitter.com/user',
