@@ -66,7 +66,9 @@ class MiniPlayer extends StatelessWidget {
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                state.isPlaying ? Icons.pause : Icons.play_arrow,
+                                state.isPlaying
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
                                 color: Colors.black,
                                 size: 26,
                               ),

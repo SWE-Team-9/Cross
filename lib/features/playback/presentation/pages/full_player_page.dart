@@ -46,7 +46,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
       builder: (_) {
         if (queue.isEmpty) {
           return const Center(
-            child: Text('Queue is empty', style: TextStyle(color: Colors.white70)),
+            child:
+                Text('Queue is empty', style: TextStyle(color: Colors.white70)),
           );
         }
         return Column(
@@ -90,7 +91,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                             : null,
                       ),
                       child: track.artworkUrl == null
-                          ? const Icon(Icons.music_note, color: Colors.white54, size: 20)
+                          ? const Icon(Icons.music_note,
+                              color: Colors.white54, size: 20)
                           : null,
                     ),
                     title: Text(
@@ -100,7 +102,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                     ),
                     subtitle: Text(
                       track.artist,
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                     onTap: () {
                       playback.playTrack(track, queue);
@@ -150,9 +153,11 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                       child: Image.network(
                         track.artworkUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: Colors.black),
-                        loadingBuilder: (_, child, loading) =>
-                            loading == null ? child : Container(color: Colors.black),
+                        errorBuilder: (_, __, ___) =>
+                            Container(color: Colors.black),
+                        loadingBuilder: (_, child, loading) => loading == null
+                            ? child
+                            : Container(color: Colors.black),
                       ),
                     ),
 
@@ -198,7 +203,9 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                         shadows: [
-                                          Shadow(color: Colors.black54, blurRadius: 8),
+                                          Shadow(
+                                              color: Colors.black54,
+                                              blurRadius: 8),
                                         ],
                                       ),
                                       maxLines: 2,
@@ -220,18 +227,21 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                             horizontal: 10, vertical: 6),
                                         decoration: BoxDecoration(
                                           color: Colors.black45,
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                         ),
                                         child: const Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Icon(Icons.bar_chart,
-                                                color: Colors.white70, size: 14),
+                                                color: Colors.white70,
+                                                size: 14),
                                             SizedBox(width: 5),
                                             Text(
                                               'Behind this track',
                                               style: TextStyle(
-                                                  color: Colors.white70, fontSize: 12),
+                                                  color: Colors.white70,
+                                                  fontSize: 12),
                                             ),
                                           ],
                                         ),
@@ -247,7 +257,9 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                   _CircleBtn(
                                     icon: Icons.keyboard_arrow_down,
                                     onTap: () {
-                                      context.read<PlayerCubit>().closeFullPlayer();
+                                      context
+                                          .read<PlayerCubit>()
+                                          .closeFullPlayer();
                                       Navigator.pop(context);
                                     },
                                   ),
@@ -275,7 +287,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                           child: PlayerWaveform(
                             position: state.position,
                             duration: state.duration,
-                            onSeek: (pos) => context.read<PlayerCubit>().seek(pos),
+                            onSeek: (pos) =>
+                                context.read<PlayerCubit>().seek(pos),
                           ),
                         ),
 
@@ -352,7 +365,9 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  state.isPlaying ? Icons.pause : Icons.play_arrow,
+                                  state.isPlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
                                   size: 34,
                                   color: Colors.white,
                                 ),
