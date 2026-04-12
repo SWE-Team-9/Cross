@@ -44,6 +44,11 @@ import '../../features/upload/domain/usecases/update_track_visibility_usecase.da
 import '../../features/upload/presentation/bloc/track_management_cubit.dart';
 import '../../features/upload/presentation/bloc/upload_picker_cubit.dart';
 import '../../features/upload/data/services/audio_picker_permission_service.dart';
+import '../../features/upload/data/datasources/track_status_remote_data_source.dart';
+import '../../features/upload/data/repositories/track_status_repository_impl.dart';
+import '../../features/upload/domain/repositories/i_track_status_repository.dart';
+import '../../features/upload/domain/usecases/watch_track_processing_status_use_case.dart';
+
 // Profile feature
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
@@ -225,6 +230,48 @@ Future<void> setupDependencies() async {
       () => UploadPickerCubit(
         getIt<PickAudioFileUseCase>(),
         getIt<UploadRepository>(),
+        getIt<WatchTrackProcessingStatusUseCase>(),
+        getIt<UpdateTrackVisibilityUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackStatusRemoteDataSource>()) {
+    getIt.registerLazySingleton<TrackStatusRemoteDataSource>(
+      () => TrackStatusRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ITrackStatusRepository>()) {
+    getIt.registerLazySingleton<ITrackStatusRepository>(
+      () => TrackStatusRepositoryImpl(getIt<TrackStatusRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<WatchTrackProcessingStatusUseCase>()) {
+    getIt.registerLazySingleton<WatchTrackProcessingStatusUseCase>(
+      () => WatchTrackProcessingStatusUseCase(
+        getIt<ITrackStatusRepository>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackStatusRemoteDataSource>()) {
+    getIt.registerLazySingleton<TrackStatusRemoteDataSource>(
+      () => TrackStatusRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ITrackStatusRepository>()) {
+    getIt.registerLazySingleton<ITrackStatusRepository>(
+      () => TrackStatusRepositoryImpl(getIt<TrackStatusRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<WatchTrackProcessingStatusUseCase>()) {
+    getIt.registerLazySingleton<WatchTrackProcessingStatusUseCase>(
+      () => WatchTrackProcessingStatusUseCase(
+        getIt<ITrackStatusRepository>(),
       ),
     );
   }
