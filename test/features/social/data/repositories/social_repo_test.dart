@@ -20,16 +20,13 @@ void main() {
       when(
         () => mockDio.get(
           ApiConstants.followersPath('u1'),
-          queryParameters: {'page': 1},
+          queryParameters: {'page': 1, 'limit': 20},
         ),
       ).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
           data: [
-            {
-              'id': '1',
-              'username': 'ali',
-            }
+            {'id': '1', 'username': 'ali'}
           ],
         ),
       );
@@ -44,7 +41,7 @@ void main() {
       when(
         () => mockDio.get(
           ApiConstants.followersPath('u1'),
-          queryParameters: {'page': 1},
+          queryParameters: {'page': 1, 'limit': 20},
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -67,7 +64,7 @@ void main() {
       when(
         () => mockDio.get(
           ApiConstants.followersPath('u1'),
-          queryParameters: {'page': 1},
+          queryParameters: {'page': 1, 'limit': 20},
         ),
       ).thenThrow(
         DioException(
@@ -88,7 +85,7 @@ void main() {
       when(
         () => mockDio.get(
           ApiConstants.followersPath('u1'),
-          queryParameters: {'page': 1},
+          queryParameters: {'page': 1, 'limit': 20},
         ),
       ).thenThrow(
         DioException(
@@ -112,7 +109,7 @@ void main() {
       when(
         () => mockDio.get(
           ApiConstants.followingPath('u1'),
-          queryParameters: {'page': 2},
+          queryParameters: {'page': 2, 'limit': 20},
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -135,7 +132,7 @@ void main() {
       when(
         () => mockDio.get(
           ApiConstants.followingPath('u1'),
-          queryParameters: {'page': 1},
+          queryParameters: {'page': 1, 'limit': 20},
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -153,7 +150,7 @@ void main() {
       when(
         () => mockDio.get(
           ApiConstants.followingPath('u1'),
-          queryParameters: {'page': 1},
+          queryParameters: {'page': 1, 'limit': 20},
         ),
       ).thenThrow(
         DioException(
@@ -172,29 +169,31 @@ void main() {
   });
 
   group('action methods', () {
-    test('followUser posts and returns true', () async {
+    test('followUser posts and returns isFollowing true', () async {
       when(() => mockDio.post(ApiConstants.followUserPath('u1'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
+          data: {'isFollowing': true, 'followersCount': 1},
         ),
       );
 
       final result = await repo.followUser('u1');
 
-      expect(result, isTrue);
+      expect(result.isFollowing, isTrue);
       verify(() => mockDio.post(ApiConstants.followUserPath('u1'))).called(1);
     });
 
-    test('unfollowUser deletes and returns true', () async {
+    test('unfollowUser deletes and returns isFollowing false', () async {
       when(() => mockDio.delete(ApiConstants.followUserPath('u1'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
+          data: {'isFollowing': false},
         ),
       );
 
       final result = await repo.unfollowUser('u1');
 
-      expect(result, isTrue);
+      expect(result.isFollowing, isFalse);
       verify(() => mockDio.delete(ApiConstants.followUserPath('u1'))).called(1);
     });
 
@@ -202,6 +201,7 @@ void main() {
       when(() => mockDio.post(ApiConstants.blockUserPath('u1'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
+          data: {'blockedUserId': 'u1'},
         ),
       );
 
@@ -215,6 +215,7 @@ void main() {
       when(() => mockDio.delete(ApiConstants.blockUserPath('u1'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
+          data: {'blockedUserId': 'u1'},
         ),
       );
 

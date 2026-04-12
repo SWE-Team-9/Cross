@@ -26,19 +26,15 @@ void main() {
   );
 
   final following = [
-    User(
-      id: 'u1',
-      username: 'omar',
-      isFollowing: true,
-      followersCount: 12,
-    ),
-    User(
-      id: 'u2',
-      username: 'mona',
-      isFollowing: true,
-      followersCount: 20,
-    ),
+    User(id: 'u1', username: 'omar', isFollowing: true, followersCount: 12),
+    User(id: 'u2', username: 'mona', isFollowing: true, followersCount: 20),
   ];
+
+  void stubGetFollowing(String userId, List<User> result) {
+    when(
+      () => mockSocialRepo.getFollowing(userId, 1, limit: 20),
+    ).thenAnswer((_) async => result);
+  }
 
   Future<void> pumpPage(
     WidgetTester tester, {
@@ -57,6 +53,9 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
   }
 
   setUp(() {
@@ -73,25 +72,24 @@ void main() {
       initialState: AuthAuthenticated(authUser),
     );
 
-    when(() => mockSocialRepo.getFollowing('auth-1', 1))
-        .thenAnswer((_) async => following);
+    stubGetFollowing('auth-1', following);
 
-    await pumpPage(
-      tester,
-      handle: 'ali',
-    );
-    await tester.pumpAndSettle();
+    await pumpPage(tester, handle: 'ali');
 
     verifyNever(() => mockSocialRepo.getUserIdByHandle(any()));
-    verify(() => mockSocialRepo.getFollowing('auth-1', 1)).called(1);
+    verify(() => mockSocialRepo.getFollowing('auth-1', 1, limit: 20)).called(1);
 
-    expect(find.text('Following'), findsOneWidget);
+    // الـ appbar title = 'Following' (bold white)
+    // زراير الـ users = 'Following' (grey)
+    // نتحقق إن الـ usernames موجودين
     expect(find.text('omar'), findsOneWidget);
     expect(find.text('mona'), findsOneWidget);
     expect(find.text('12 followers'), findsOneWidget);
     expect(find.text('20 followers'), findsOneWidget);
-    expect(find.text('Unfollow'), findsNWidgets(2));
-    expect(find.text('Block'), findsNWidgets(2));
+    // 'Following' بيظهر 3 مرات: appbar + زرار omar + زرار mona
+    expect(find.text('Following'), findsNWidgets(3));
+    // الـ more_horiz button لكل يوزر
+    expect(find.byIcon(Icons.more_horiz), findsNWidgets(2));
   });
 
   testWidgets('resolves user id by handle for another profile', (tester) async {
@@ -104,17 +102,13 @@ void main() {
 
     when(() => mockSocialRepo.getUserIdByHandle('other-handle'))
         .thenAnswer((_) async => 'resolved-id');
-    when(() => mockSocialRepo.getFollowing('resolved-id', 1))
-        .thenAnswer((_) async => following);
+    stubGetFollowing('resolved-id', following);
 
-    await pumpPage(
-      tester,
-      handle: 'other-handle',
-    );
-    await tester.pumpAndSettle();
+    await pumpPage(tester, handle: 'other-handle');
 
     verify(() => mockSocialRepo.getUserIdByHandle('other-handle')).called(1);
-    verify(() => mockSocialRepo.getFollowing('resolved-id', 1)).called(1);
+    verify(() => mockSocialRepo.getFollowing('resolved-id', 1, limit: 20))
+        .called(1);
   });
 
   testWidgets('shows empty state when user id resolution fails',
@@ -129,13 +123,9 @@ void main() {
     when(() => mockSocialRepo.getUserIdByHandle('broken'))
         .thenThrow(Exception('fail'));
 
-    await pumpPage(
-      tester,
-      handle: 'broken',
-    );
-    await tester.pumpAndSettle();
+    await pumpPage(tester, handle: 'broken');
 
-    expect(find.text('Not following anyone yet'), findsOneWidget);
+    expect(find.text('User not found'), findsOneWidget);
     verifyNever(() => mockSocialRepo.getFollowing(any(), any()));
   });
 }
