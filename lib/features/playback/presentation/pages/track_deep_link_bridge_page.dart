@@ -3,11 +3,13 @@
 // Flutter
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 // Project — presentation
+import '../../../../app/router.dart';
+import '../bloc/player_cubit.dart';
 import '../bloc/track_loader_cubit.dart';
 import '../bloc/track_loader_state.dart';
-import '../bloc/player_cubit.dart';
 import 'full_player_page.dart';
 
 /// Shown while fetching track data triggered by a deep link.
@@ -63,19 +65,23 @@ class _TrackDeepLinkBridgePageState extends State<TrackDeepLinkBridgePage> {
       listener: (context, state) {
         switch (state) {
           case TrackLoaderReady():
-            // Replace bridge page with full player.
-            // pushReplacement means back button won't return here.
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute<void>(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<PlayerCubit>(),
-                  child: const FullPlayerPage(),
+            final GoRouter? router = GoRouter.maybeOf(context);
+            if (router != null) {
+              // go() replaces the stack so back exits to home flow.
+              context.go(AppRoutes.player);
+            } else {
+              // Test fallback when page is mounted under MaterialApp (no GoRouter).
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute<void>(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<PlayerCubit>(),
+                    child: const FullPlayerPage(),
+                  ),
                 ),
-              ),
-            );
+              );
+            }
 
           case TrackLoaderError(:final message):
-            // Show error then go home.
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(message),
@@ -83,11 +89,16 @@ class _TrackDeepLinkBridgePageState extends State<TrackDeepLinkBridgePage> {
                 behavior: SnackBarBehavior.floating,
               ),
             );
-            // Clear navigation stack — back button goes to home, not bridge.
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/home',
-              (_) => false,
-            );
+
+            final GoRouter? router = GoRouter.maybeOf(context);
+            if (router != null) {
+              context.go(AppRoutes.home);
+            } else {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/home',
+                (_) => false,
+              );
+            }
 
           // Loading and idle are handled by the builder below.
           case TrackLoaderLoading():

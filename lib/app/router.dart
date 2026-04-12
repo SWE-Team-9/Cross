@@ -1,12 +1,7 @@
-// app/router.dart
-// Dart SDK
 // Flutter
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
-// Third-party
-// (go_router, flutter_bloc imported above)
 
 // Project — core
 import '../core/deep_links/deep_link_destination.dart';
@@ -50,7 +45,6 @@ import '../features/home/presentation/pages/mock_home_page.dart';
 
 // ── Route name constants ──────────────────────────────────────────────────────
 class AppRoutes {
-  // Existing routes
   static const String home = '/home';
   static const String feed = '/feed';
   static const String search = '/search';
@@ -65,18 +59,70 @@ class AppRoutes {
   static const String player = '/player';
 
   // Deep link destinations — Sprint 4 T4.1
-  static const String trackDetail = '/track/:trackId';
+  // secretTrack MUST be declared before trackDetail — more specific path first
   static const String secretTrack = '/track/secret/:token';
+  static const String trackDetail = '/track/:trackId';
   static const String playlist = '/playlist/:playlistId';
-  // search already handles ?q= param — no new constant needed
 }
 
-// ── Path builders — used by deep link listener ────────────────────────────────
+// ── Path builders ─────────────────────────────────────────────────────────────
 String _trackPath(String trackId) => '/track/$trackId';
 String _secretPath(String token) => '/track/secret/$token';
 String _profilePath(String handle) => '/profile/$handle';
 String _playlistPath(String id) => '/playlist/$id';
 String _searchPath(String query) => '/search?q=$query';
+
+void _handleDeepLinkDestination(
+  DeepLinkDestination destination,
+  GoRouter router,
+) {
+  String? path;
+
+  switch (destination) {
+    case TrackDeepLink(:final trackId):
+      path = _trackPath(trackId);
+      debugPrint('[DeepLink] TrackDeepLink — path: $path');
+    case SecretTrackDeepLink(:final secretToken):
+      path = _secretPath(secretToken);
+    case ProfileDeepLink(:final handle):
+      path = _profilePath(handle);
+    case PlaylistDeepLink(:final playlistId):
+      path = _playlistPath(playlistId);
+    case SearchDeepLink(:final query):
+      path = _searchPath(query);
+    case InvalidDeepLink(:final reason):
+      debugPrint('[DeepLink] Invalid link ignored: $reason');
+      return;
+  }
+
+  final String currentLocation =
+      router.routerDelegate.currentConfiguration.uri.toString();
+
+  final bool isOnAuthScreen = currentLocation.contains('/auth') ||
+      currentLocation.contains('splash') ||
+      currentLocation == '/';
+
+  if (isOnAuthScreen) {
+    _pendingDeepLink = path;
+    debugPrint('[DeepLink] Stored pending: $path');
+  } else {
+    debugPrint('[DeepLink] Navigating to: $path');
+    router.go(path);
+  }
+}
+
+// ── Pending deep link ─────────────────────────────────────────────────────────
+// Stores a deep link that arrived while the user was on an auth screen.
+// Consumed once after successful login via getPendingDeepLink().
+String? _pendingDeepLink;
+
+/// Call this after successful login/splash to resume a pending deep link.
+/// Returns the path and clears it — can only be consumed once.
+String? getPendingDeepLink() {
+  final String? path = _pendingDeepLink;
+  _pendingDeepLink = null;
+  return path;
+}
 
 // ── Fallback seed for track management demo ───────────────────────────────────
 ManagedTrack _fallbackTrackManagementSeed() {
@@ -236,40 +282,24 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Full player route (used by mini player tap) ─────────────────────
+      // ── Full player (Sprint 3 — used by mini player tap) ─────────────────
       GoRoute(
         path: AppRoutes.player,
         name: 'player',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: FullPlayerPage(),
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          child: const FullPlayerPage(),
+          transitionDuration: const Duration(milliseconds: 180),
+          reverseTransitionDuration: const Duration(milliseconds: 140),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return child;
+          },
         ),
       ),
 
-      // ── Track detail — public deep link (Sprint 4 T4.1) ─────────────────
+      // ── Secret track — MUST be before trackDetail (more specific path) ───
       GoRoute(
-        path: AppRoutes.trackDetail,
-        name: 'track-detail',
-        parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) {
-          final trackId = state.pathParameters['trackId'] ?? '';
-          return MaterialPage(
-            child: MultiBlocProvider(
-              providers: [
-                // PlayerCubit is a lazySingleton — reuse the existing instance
-                BlocProvider.value(value: getIt<PlayerCubit>()),
-                // TrackLoaderCubit is @injectable — fresh instance per page
-                BlocProvider(create: (_) => getIt<TrackLoaderCubit>()),
-              ],
-              child: TrackDeepLinkBridgePage(trackId: trackId),
-            ),
-          );
-        },
-      ),
-
-      // ── Secret track — private deep link (Sprint 4 T4.1) ────────────────
-      GoRoute(
-        path: AppRoutes.secretTrack,
+        path: AppRoutes.secretTrack, // '/track/secret/:token'
         name: 'secret-track',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
@@ -281,6 +311,25 @@ GoRouter _createRouter() {
                 BlocProvider(create: (_) => getIt<TrackLoaderCubit>()),
               ],
               child: TrackDeepLinkBridgePage(secretToken: token),
+            ),
+          );
+        },
+      ),
+
+      // ── Track detail — after secretTrack (less specific path) ────────────
+      GoRoute(
+        path: AppRoutes.trackDetail, // '/track/:trackId'
+        name: 'track-detail',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final trackId = state.pathParameters['trackId'] ?? '';
+          return MaterialPage(
+            child: MultiBlocProvider(
+              providers: [
+                BlocProvider.value(value: getIt<PlayerCubit>()),
+                BlocProvider(create: (_) => getIt<TrackLoaderCubit>()),
+              ],
+              child: TrackDeepLinkBridgePage(trackId: trackId),
             ),
           );
         },
@@ -328,28 +377,22 @@ GoRouter _createRouter() {
   );
 
   // ── Deep link listener ────────────────────────────────────────────────────
-  // Bridges DeepLinkService stream → go_router navigation.
-  // Lives for the app lifetime — no need to cancel.
-  getIt<DeepLinkService>().stream.listen((DeepLinkDestination destination) {
-    switch (destination) {
-      case TrackDeepLink(:final trackId):
-        router.go(_trackPath(trackId));
+  final DeepLinkService deepLinkService = getIt<DeepLinkService>();
 
-      case SecretTrackDeepLink(:final secretToken):
-        router.go(_secretPath(secretToken));
+  // Handle link that arrived before listener subscribed (cold start).
+  // consumeLastDestination() ensures it's only processed once.
+  final DeepLinkDestination? pending = deepLinkService.consumeLastDestination();
+  if (pending != null) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleDeepLinkDestination(pending, router);
+    });
+  }
 
-      case ProfileDeepLink(:final handle):
-        router.go(_profilePath(handle));
-
-      case PlaylistDeepLink(:final playlistId):
-        router.go(_playlistPath(playlistId));
-
-      case SearchDeepLink(:final query):
-        router.go(_searchPath(query));
-
-      case InvalidDeepLink(:final reason):
-        debugPrint('[DeepLink] Invalid link ignored: $reason');
-    }
+  // Handle future warm-start links.
+  deepLinkService.stream.listen((DeepLinkDestination destination) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleDeepLinkDestination(destination, router);
+    });
   });
 
   return router;
