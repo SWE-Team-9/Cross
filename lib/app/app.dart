@@ -39,27 +39,35 @@ class App extends StatelessWidget {
             useMaterial3: true,
           ),
           builder: (context, child) {
-            return AnimatedBuilder(
-              animation: router.routerDelegate,
-              builder: (context, _) {
-                final isPlayerOpen =
-                    context.watch<PlayerCubit>().state.isFullScreen;
+            final isPlayerOpen =
+                context.watch<PlayerCubit>().state.isFullScreen;
 
-                return Scaffold(
-                  body: Stack(
-                    children: [
-                      child!,
-                      if (!isPlayerOpen)
-                        const Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 70,
-                          child: MiniPlayer(),
+            return Scaffold(
+              body: Stack(
+                children: [
+                  child!,
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 70,
+                    child: IgnorePointer(
+                      ignoring: isPlayerOpen,
+                      child: AnimatedSlide(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        offset:
+                            isPlayerOpen ? const Offset(0, 1.2) : Offset.zero,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOut,
+                          opacity: isPlayerOpen ? 0 : 1,
+                          child: const MiniPlayer(),
                         ),
-                    ],
+                      ),
+                    ),
                   ),
-                );
-              },
+                ],
+              ),
             );
           },
           routerConfig: router,

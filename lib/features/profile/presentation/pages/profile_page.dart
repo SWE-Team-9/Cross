@@ -9,6 +9,8 @@ import 'dart:io' show Platform;
 
 import '../../../../core/di/injector.dart';
 import '../../../../core/utils/platform_url_utils.dart';
+import '../../../playback/presentation/bloc/player_cubit.dart';
+import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../../upload/domain/entities/managed_track.dart';
 import '../../../upload/domain/entities/track_management_visibility.dart';
@@ -75,29 +77,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   bool _isFollowing = false;
+  bool _didSeedInitialTracks = false;
 
-  List<ManagedTrack> _managedTracks = const [
-    ManagedTrack(
-      id: 'profile-track-1',
-      title: 'Midnight Echoes',
-      description: 'Owner profile track for Sprint 2 management testing.',
-      genreId: 1,
-      genreName: 'Ambient',
-      tags: <String>['owner', 'ambient'],
-      visibility: TrackManagementVisibility.publicTrack,
-      durationInSeconds: 212,
-    ),
-    ManagedTrack(
-      id: 'profile-track-2',
-      title: 'City Lights',
-      description: 'Second owner track for edit/delete testing.',
-      genreId: 2,
-      genreName: 'Electronic',
-      tags: <String>['night', 'synth'],
-      visibility: TrackManagementVisibility.privateTrack,
-      durationInSeconds: 184,
-    ),
-  ];
+  List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
 
   bool get _isOwnProfile {
     final authState = context.read<AuthCubit>().state;
@@ -119,6 +101,29 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_didSeedInitialTracks) return;
+    _didSeedInitialTracks = true;
+
+    final profileState = context.read<ProfileCubit>().state;
+    if (_isOwnProfile && profileState is ProfileLoaded) {
+      _managedTracks = profileState.tracks;
+    }
+  }
+
+  void _syncManagedTracks(ProfileState state) {
+    if (!mounted || !_isOwnProfile) return;
+
+    if (state is ProfileLoaded) {
+      setState(() {
+        _managedTracks = state.tracks;
+      });
+    }
+  }
+
   Future<void> _openTrackManagement(ManagedTrack track) async {
     final result = await context.pushNamed(
       'track-management',
@@ -132,6 +137,33 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           result: result,
         );
       });
+    }
+  }
+
+  Future<void> _playTrack(ManagedTrack managedTrack) async {
+    try {
+      final getTrackDetailUseCase = getIt<GetTrackDetailUseCase>();
+      final result = await getTrackDetailUseCase(managedTrack.id);
+
+      if (result.failure != null || result.detail == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to play track: ${result.failure?.message ?? 'Unknown error'}',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final detail = result.detail!;
+      await getIt<PlayerCubit>().play(detail.toPlaybackTrack());
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error playing track: $e')),
+      );
     }
   }
 
@@ -401,69 +433,73 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listener: _handleAuthStateChanges,
-      child: BlocBuilder<ProfileCubit, ProfileState>(
-        builder: (context, state) {
-          print('🔍 DEBUG ProfilePage Build - State: $state');
+      child: BlocListener<ProfileCubit, ProfileState>(
+        listener: (context, state) => _syncManagedTracks(state),
+        child: BlocBuilder<ProfileCubit, ProfileState>(
+          builder: (context, state) {
+            print('🔍 DEBUG ProfilePage Build - State: $state');
 
-          if (state is ProfileLoading) {
-            print('🔍 DEBUG ProfilePage: Loading state');
-            return const Scaffold(
-              backgroundColor: Colors.black,
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
+            if (state is ProfileLoading) {
+              print('🔍 DEBUG ProfilePage: Loading state');
+              return const Scaffold(
+                backgroundColor: Colors.black,
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-          if (state is ProfileError) {
-            print('🔍 DEBUG ProfilePage: Error state - ${state.message}');
-            return Scaffold(
-              backgroundColor: Colors.black,
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: Colors.white54,
-                      size: 48,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      state.message,
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                    TextButton(
-                      onPressed: () => context.pop(),
-                      child: const Text('Go back'),
-                    ),
-                  ],
+            if (state is ProfileError) {
+              print('🔍 DEBUG ProfilePage: Error state - ${state.message}');
+              return Scaffold(
+                backgroundColor: Colors.black,
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        state.message,
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      TextButton(
+                        onPressed: () => context.pop(),
+                        child: const Text('Go back'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          final profile = switch (state) {
-            ProfileLoaded s => s.profile,
-            ProfileUpdating s => s.currentProfile,
-            ProfileUpdateSuccess s => s.updatedProfile,
-            ProfileUpdateError s => s.currentProfile,
-            ProfileImageUploading s => s.currentProfile,
-            _ => null,
-          };
+            final profile = switch (state) {
+              ProfileLoaded s => s.profile,
+              ProfileUpdating s => s.currentProfile,
+              ProfileUpdateSuccess s => s.updatedProfile,
+              ProfileUpdateError s => s.currentProfile,
+              ProfileImageUploading s => s.currentProfile,
+              _ => null,
+            };
 
-          if (profile == null) {
-            print('🔍 DEBUG ProfilePage: Profile is null');
-            return const Scaffold(backgroundColor: Colors.black);
-          }
+            if (profile == null) {
+              print('🔍 DEBUG ProfilePage: Profile is null');
+              return const Scaffold(backgroundColor: Colors.black);
+            }
 
-          print('🔍 DEBUG ProfilePage: Profile loaded - ID: ${profile.id}');
-          print('🔍 DEBUG ProfilePage: Raw avatarUrl: ${profile.avatarUrl}');
-          print(
-              '🔍 DEBUG ProfilePage: Raw coverPhotoUrl: ${profile.coverPhotoUrl}');
-          print('🔍 DEBUG ProfilePage: Display name: ${profile.displayName}');
-          print('🔍 DEBUG ProfilePage: Platform: ${Platform.operatingSystem}');
+            print('🔍 DEBUG ProfilePage: Profile loaded - ID: ${profile.id}');
+            print('🔍 DEBUG ProfilePage: Raw avatarUrl: ${profile.avatarUrl}');
+            print(
+                '🔍 DEBUG ProfilePage: Raw coverPhotoUrl: ${profile.coverPhotoUrl}');
+            print('🔍 DEBUG ProfilePage: Display name: ${profile.displayName}');
+            print(
+                '🔍 DEBUG ProfilePage: Platform: ${Platform.operatingSystem}');
 
-          return _buildBody(context, profile);
-        },
+            return _buildBody(context, profile);
+          },
+        ),
       ),
     );
   }
@@ -508,6 +544,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return _ManagedProfileTracksTab(
       tracks: _managedTracks,
       onManageTap: _openTrackManagement,
+      onPlayTap: _playTrack,
     );
   }
 
@@ -984,10 +1021,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 class _ManagedProfileTracksTab extends StatelessWidget {
   final List<ManagedTrack> tracks;
   final ValueChanged<ManagedTrack> onManageTap;
+  final ValueChanged<ManagedTrack> onPlayTap;
 
   const _ManagedProfileTracksTab({
     required this.tracks,
     required this.onManageTap,
+    required this.onPlayTap,
   });
 
   @override
@@ -1005,18 +1044,21 @@ class _ManagedProfileTracksTab extends StatelessWidget {
       itemCount: tracks.length,
       itemBuilder: (context, index) {
         final track = tracks[index];
-        return ListTile(
-          title: Text(
-            track.title,
-            style: const TextStyle(color: Colors.white),
-          ),
-          subtitle: Text(
-            track.visibility.displayLabel,
-            style: const TextStyle(color: Colors.grey),
-          ),
-          trailing: OutlinedButton(
-            onPressed: () => onManageTap(track),
-            child: const Text('Manage'),
+        return GestureDetector(
+          onTap: () => onPlayTap(track),
+          child: ListTile(
+            title: Text(
+              track.title,
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              track.visibility.displayLabel,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            trailing: OutlinedButton(
+              onPressed: () => onManageTap(track),
+              child: const Text('Manage'),
+            ),
           ),
         );
       },

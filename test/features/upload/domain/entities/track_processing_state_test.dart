@@ -21,6 +21,13 @@ void main() {
       expect(state.asTrackStatus, TrackStatus.PROCESSING);
     });
 
+    test('in-progress defaults pollAttempt to zero', () {
+      const state = TrackProcessingInProgress(trackId: 't-default');
+
+      expect(state.pollAttempt, 0);
+      expect(state.trackId, 't-default');
+    });
+
     test('ready exposes track and finished status', () {
       const state = TrackProcessingReady(trackId: 't2');
 

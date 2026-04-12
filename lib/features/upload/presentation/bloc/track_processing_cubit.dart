@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:injectable/injectable.dart';
-
 import '../../domain/entities/track_status.dart';
 import '../../domain/entities/track_processing_state.dart';
 import '../../domain/usecases/watch_track_processing_status_use_case.dart';
 
+//
+//Eyad Notes : Workflow for track processing status:
 /// Shared singleton cubit consumed by:
 ///   - Upload screen        → starts watching after 202 response
 ///   - Creator tracks list  → shows per-track processing badge (T3.10)
@@ -15,7 +15,6 @@ import '../../domain/usecases/watch_track_processing_status_use_case.dart';
 /// Registered as @lazySingleton so all screens share one instance via get_it.
 /// Holds an internal map of trackId → state so multiple tracks can be polled
 /// simultaneously (e.g. creator list with several PROCESSING tracks).
-@lazySingleton
 class TrackProcessingCubit extends Cubit<TrackProcessingState> {
   TrackProcessingCubit(this._watchStatus) : super(const TrackProcessingIdle());
 

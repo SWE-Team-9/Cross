@@ -1,13 +1,26 @@
+// Flutter
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+// Project — core
+import '../core/deep_links/deep_link_destination.dart';
+import '../core/deep_links/deep_link_service.dart';
 import '../core/di/injector.dart';
 
-// Profile
-import '../features/profile/presentation/bloc/profile_cubit.dart';
+// Project — auth
+import '../features/auth/presentation/routes/auth_routes.dart';
 
-// Upload (existing — Sprint 1)
+// Project — profile
+import '../features/profile/presentation/bloc/profile_cubit.dart';
+import '../features/profile/presentation/pages/edit_profile_page.dart';
+import '../features/profile/presentation/pages/profile_page.dart';
+
+// Project — social
+import '../features/social/presentation/pages/followers_page.dart';
+import '../features/social/presentation/pages/following_page.dart';
+
+// Project — upload
 import '../features/upload/domain/entities/managed_track.dart';
 import '../features/upload/domain/entities/track_management_visibility.dart';
 import '../features/upload/presentation/bloc/track_management_cubit.dart';
@@ -15,26 +28,22 @@ import '../features/upload/presentation/bloc/upload_picker_cubit.dart';
 import '../features/upload/presentation/pages/track_management_page.dart';
 import '../features/upload/presentation/pages/upload_picker_page.dart';
 
-// Auth (existing — Sprint 1)
-import '../features/auth/presentation/routes/auth_routes.dart';
+// Project — playback
+import '../features/playback/presentation/bloc/player_cubit.dart';
+import '../features/playback/presentation/bloc/track_loader_cubit.dart';
+import '../features/playback/presentation/pages/full_player_page.dart';
+import '../features/playback/presentation/pages/track_deep_link_bridge_page.dart';
 
-// Profile (Sprint 2 — T2.1)
-import '../features/profile/presentation/pages/edit_profile_page.dart';
-import '../features/profile/presentation/pages/profile_page.dart';
-import '../features/social/presentation/pages/followers_page.dart';
-import '../features/social/presentation/pages/following_page.dart';
-
-// Recently Played
+// Project — recently played
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
-// Library
+// Project — library
 import '../features/library/presentation/pages/library_page.dart';
 
-// Mock home page (temporary — replace with real home page in Sprint 4)
+// Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
-import '../features/playback/presentation/pages/full_player_page.dart';
 
-// ── Route name constants ─────────────────────────────────────────────────────
+// ── Route name constants ──────────────────────────────────────────────────────
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
@@ -47,8 +56,75 @@ class AppRoutes {
   static const String followers = '/followers/:handle';
   static const String following = '/following/:handle';
   static const String trackManagementDemo = '/track-management-demo';
+  static const String player = '/player';
+
+  // Deep link destinations — Sprint 4 T4.1
+  // secretTrack MUST be declared before trackDetail — more specific path first
+  static const String secretTrack = '/track/secret/:token';
+  static const String trackDetail = '/track/:trackId';
+  static const String playlist = '/playlist/:playlistId';
 }
 
+// ── Path builders ─────────────────────────────────────────────────────────────
+String _trackPath(String trackId) => '/track/$trackId';
+String _secretPath(String token) => '/track/secret/$token';
+String _profilePath(String handle) => '/profile/$handle';
+String _playlistPath(String id) => '/playlist/$id';
+String _searchPath(String query) => '/search?q=$query';
+
+void _handleDeepLinkDestination(
+  DeepLinkDestination destination,
+  GoRouter router,
+) {
+  String? path;
+
+  switch (destination) {
+    case TrackDeepLink(:final trackId):
+      path = _trackPath(trackId);
+      debugPrint('[DeepLink] TrackDeepLink — path: $path');
+    case SecretTrackDeepLink(:final secretToken):
+      path = _secretPath(secretToken);
+    case ProfileDeepLink(:final handle):
+      path = _profilePath(handle);
+    case PlaylistDeepLink(:final playlistId):
+      path = _playlistPath(playlistId);
+    case SearchDeepLink(:final query):
+      path = _searchPath(query);
+    case InvalidDeepLink(:final reason):
+      debugPrint('[DeepLink] Invalid link ignored: $reason');
+      return;
+  }
+
+  final String currentLocation =
+      router.routerDelegate.currentConfiguration.uri.toString();
+
+  final bool isOnAuthScreen = currentLocation.contains('/auth') ||
+      currentLocation.contains('splash') ||
+      currentLocation == '/';
+
+  if (isOnAuthScreen) {
+    _pendingDeepLink = path;
+    debugPrint('[DeepLink] Stored pending: $path');
+  } else {
+    debugPrint('[DeepLink] Navigating to: $path');
+    router.go(path);
+  }
+}
+
+// ── Pending deep link ─────────────────────────────────────────────────────────
+// Stores a deep link that arrived while the user was on an auth screen.
+// Consumed once after successful login via getPendingDeepLink().
+String? _pendingDeepLink;
+
+/// Call this after successful login/splash to resume a pending deep link.
+/// Returns the path and clears it — can only be consumed once.
+String? getPendingDeepLink() {
+  final String? path = _pendingDeepLink;
+  _pendingDeepLink = null;
+  return path;
+}
+
+// ── Fallback seed for track management demo ───────────────────────────────────
 ManagedTrack _fallbackTrackManagementSeed() {
   return const ManagedTrack(
     id: 'demo-track-001',
@@ -62,20 +138,18 @@ ManagedTrack _fallbackTrackManagementSeed() {
   );
 }
 
-// ── Router Configuration ─────────────────────────────────────────────────────
+// ── Router factory ────────────────────────────────────────────────────────────
 GoRouter _createRouter() {
-  // ✅ FIX: Create a unique Navigator key for every router instance.
-  // This prevents "Duplicate GlobalKey" errors during widget testing.
   final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AuthRoutes.splash,
     routes: [
-      // ── Auth (Sprint 1) ───────────────────────────────────────────
+      // ── Auth (Sprint 1) ─────────────────────────────────────────────────
       ...AuthRoutes.routes,
 
-      // ── Home ──────────────────────────────────────────────────────
+      // ── Home ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.home,
         name: 'home',
@@ -83,6 +157,8 @@ GoRouter _createRouter() {
           child: MockHomePage(),
         ),
       ),
+
+      // ── Feed ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.feed,
         name: 'feed',
@@ -91,14 +167,21 @@ GoRouter _createRouter() {
         ),
       ),
 
+      // ── Search (supports ?q= param from deep links) ──────────────────────
       GoRoute(
         path: AppRoutes.search,
         name: 'search',
-        pageBuilder: (context, state) => const NoTransitionPage(
-          child: _PlaceholderPage(title: 'Search'),
-        ),
+        pageBuilder: (context, state) {
+          final String? query = state.uri.queryParameters['q'];
+          return NoTransitionPage(
+            child: _PlaceholderPage(
+              title: query != null ? 'Search: $query' : 'Search',
+            ),
+          );
+        },
       ),
 
+      // ── Upgrade ─────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.upgrade,
         name: 'upgrade',
@@ -107,7 +190,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Library ───────────────────────────────────────────────────
+      // ── Library ─────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.library,
         name: 'library',
@@ -119,7 +202,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Upload picker (Sprint 1) ──────────────────────────────────
+      // ── Upload picker (Sprint 1) ─────────────────────────────────────────
       GoRoute(
         path: AppRoutes.uploadPicker,
         name: 'upload-picker',
@@ -131,11 +214,11 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Profile (Sprint 2 — T2.1) ────────────────────────────────
+      // ── Edit profile (Sprint 2) ──────────────────────────────────────────
       GoRoute(
         path: AppRoutes.editProfile,
         name: 'edit-profile',
-        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final cubit = state.extra as ProfileCubit;
           return MaterialPage(
@@ -147,10 +230,11 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Profile (Sprint 2) ───────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
-        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final handle = state.pathParameters['handle'] ?? '';
           return MaterialPage(
@@ -159,32 +243,29 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Social (Followers/Following) ──────────────────────────────
+      // ── Followers (Sprint 2) ─────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.followers,
         name: 'followers',
-        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final handle = state.pathParameters['handle'] ?? '';
-          return MaterialPage(
-            child: FollowersPage(handle: handle),
-          );
+          return MaterialPage(child: FollowersPage(handle: handle));
         },
       ),
 
+      // ── Following (Sprint 2) ─────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.following,
         name: 'following',
-        parentNavigatorKey: rootNavigatorKey, // ✅ Uses the local key
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final handle = state.pathParameters['handle'] ?? '';
-          return MaterialPage(
-            child: FollowingPage(handle: handle),
-          );
+          return MaterialPage(child: FollowingPage(handle: handle));
         },
       ),
 
-      // ── Track management demo (Sprint 2) ─────────────────────────
+      // ── Track management demo (Sprint 2) ─────────────────────────────────
       GoRoute(
         path: AppRoutes.trackManagementDemo,
         name: 'track-management',
@@ -192,29 +273,83 @@ GoRouter _createRouter() {
           final ManagedTrack initialTrack = state.extra is ManagedTrack
               ? state.extra as ManagedTrack
               : _fallbackTrackManagementSeed();
-
           return MaterialPage(
             child: BlocProvider<TrackManagementCubit>(
               create: (_) => getIt<TrackManagementCubit>(),
-              child: TrackManagementPage(
-                initialTrack: initialTrack,
-              ),
+              child: TrackManagementPage(initialTrack: initialTrack),
             ),
           );
         },
       ),
 
+      // ── Full player (Sprint 3 — used by mini player tap) ─────────────────
       GoRoute(
-        path: '/player',
+        path: AppRoutes.player,
         name: 'player',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: FullPlayerPage(),
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          child: const FullPlayerPage(),
+          transitionDuration: const Duration(milliseconds: 180),
+          reverseTransitionDuration: const Duration(milliseconds: 140),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return child;
+          },
         ),
+      ),
+
+      // ── Secret track — MUST be before trackDetail (more specific path) ───
+      GoRoute(
+        path: AppRoutes.secretTrack, // '/track/secret/:token'
+        name: 'secret-track',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final token = state.pathParameters['token'] ?? '';
+          return MaterialPage(
+            child: MultiBlocProvider(
+              providers: [
+                BlocProvider.value(value: getIt<PlayerCubit>()),
+                BlocProvider(create: (_) => getIt<TrackLoaderCubit>()),
+              ],
+              child: TrackDeepLinkBridgePage(secretToken: token),
+            ),
+          );
+        },
+      ),
+
+      // ── Track detail — after secretTrack (less specific path) ────────────
+      GoRoute(
+        path: AppRoutes.trackDetail, // '/track/:trackId'
+        name: 'track-detail',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final trackId = state.pathParameters['trackId'] ?? '';
+          return MaterialPage(
+            child: MultiBlocProvider(
+              providers: [
+                BlocProvider.value(value: getIt<PlayerCubit>()),
+                BlocProvider(create: (_) => getIt<TrackLoaderCubit>()),
+              ],
+              child: TrackDeepLinkBridgePage(trackId: trackId),
+            ),
+          );
+        },
+      ),
+
+      // ── Playlist — stub until Module 7 (Sprint 4 T4.1) ──────────────────
+      GoRoute(
+        path: AppRoutes.playlist,
+        name: 'playlist',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final playlistId = state.pathParameters['playlistId'] ?? '';
+          return MaterialPage(
+            child: _PlaceholderPage(title: 'Playlist $playlistId'),
+          );
+        },
       ),
     ],
 
-    // ── 404 fallback ───────────────────────────────────────────────
+    // ── 404 fallback ─────────────────────────────────────────────────────────
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: Colors.black,
       body: Center(
@@ -240,19 +375,34 @@ GoRouter _createRouter() {
       ),
     ),
   );
+
+  // ── Deep link listener ────────────────────────────────────────────────────
+  final DeepLinkService deepLinkService = getIt<DeepLinkService>();
+
+  // Handle link that arrived before listener subscribed (cold start).
+  // consumeLastDestination() ensures it's only processed once.
+  final DeepLinkDestination? pending = deepLinkService.consumeLastDestination();
+  if (pending != null) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleDeepLinkDestination(pending, router);
+    });
+  }
+
+  // Handle future warm-start links.
+  deepLinkService.stream.listen((DeepLinkDestination destination) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleDeepLinkDestination(destination, router);
+    });
+  });
+
+  return router;
 }
 
-// ── Router instance (for app use) ──────────────────────────────────────────
-// This is used by the main application entry point.
+// ── Router instances ──────────────────────────────────────────────────────────
 final router = _createRouter();
+GoRouter createRouter() => _createRouter();
 
-// ── Factory method for testing (creates fresh router instance) ─────────────
-// This is used by your router_test.dart to get an isolated router.
-GoRouter createRouter() {
-  return _createRouter();
-}
-
-// ── Placeholder Page ───────────────────────────────────────────────────────
+// ── Placeholder page ──────────────────────────────────────────────────────────
 class _PlaceholderPage extends StatelessWidget {
   const _PlaceholderPage({required this.title});
 
@@ -265,10 +415,7 @@ class _PlaceholderPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white),
-        ),
+        title: Text(title, style: const TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
