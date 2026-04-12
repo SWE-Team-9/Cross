@@ -161,7 +161,7 @@ void main() {
         <String, dynamic>{
           'title': 'Track',
           'description': 'Description',
-          'genreId': 2,
+          'genre': 'Electronic',
           'tags': <String>['demo', 'mix'],
         },
       );

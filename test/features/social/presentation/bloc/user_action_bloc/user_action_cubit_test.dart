@@ -27,7 +27,9 @@ void main() {
   blocTest<UserActionCubit, UserActionState>(
     'performAction follow emits loading then success',
     build: () {
-      when(() => mockRepo.followUser('u1')).thenAnswer((_) async => true);
+      when(() => mockRepo.followUser('u1')).thenAnswer(
+        (_) async => (isFollowing: true, followersCount: 1),
+      );
       return cubit;
     },
     act: (cubit) => cubit.performAction(
@@ -43,7 +45,9 @@ void main() {
   blocTest<UserActionCubit, UserActionState>(
     'performAction unfollow emits loading then success',
     build: () {
-      when(() => mockRepo.unfollowUser('u1')).thenAnswer((_) async => true);
+      when(() => mockRepo.unfollowUser('u1')).thenAnswer(
+        (_) async => (isFollowing: false, followersCount: null),
+      );
       return cubit;
     },
     act: (cubit) => cubit.performAction(

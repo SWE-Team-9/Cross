@@ -12,8 +12,7 @@ abstract class InteractionsRemoteDataSource {
   Future<InteractionStatusDto> getTrackInteractionStatus(String trackId);
 }
 
-class InteractionsRemoteDataSourceImpl
-    implements InteractionsRemoteDataSource {
+class InteractionsRemoteDataSourceImpl implements InteractionsRemoteDataSource {
   final DioClient dioClient;
 
   InteractionsRemoteDataSourceImpl(this.dioClient);

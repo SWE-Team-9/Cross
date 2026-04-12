@@ -59,11 +59,8 @@ class ManagedTrackDto {
   final String? artworkUrl;
   final int? durationInSeconds;
   final String? deletedAt;
-
-  // ── Sprint 3 additions ─────────────────────────────────────────────────────
   final TrackStatus status;
   final WaveformData waveformData;
-  // ──────────────────────────────────────────────────────────────────────────
 
   ManagedTrack toEntity() {
     return ManagedTrack(
@@ -83,18 +80,32 @@ class ManagedTrackDto {
   }
 }
 
-// ── Private helpers (unchanged from original) ──────────────────────────────
-
 int? _parseGenreId(Map<String, dynamic> json) {
   final dynamic genre = json['genre'];
-  if (genre is Map<String, dynamic>) return _parseInt(genre['id']);
+  if (genre is Map<String, dynamic>) {
+    return _parseInt(genre['id']);
+  }
   return _parseInt(json['genreId'] ?? json['genre_id']);
 }
 
 String? _parseGenreName(Map<String, dynamic> json) {
   final dynamic genre = json['genre'];
-  if (genre is Map<String, dynamic>) return genre['name']?.toString();
-  return json['genreName']?.toString() ?? json['genre_name']?.toString();
+
+  if (genre is String) {
+    final normalized = genre.trim();
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  if (genre is Map<String, dynamic>) {
+    final value = genre['name']?.toString().trim();
+    return (value == null || value.isEmpty) ? null : value;
+  }
+
+  final String? value =
+      json['genreName']?.toString() ?? json['genre_name']?.toString();
+  final normalized = value?.trim();
+
+  return (normalized == null || normalized.isEmpty) ? null : normalized;
 }
 
 List<String> _parseTags(dynamic rawTags) {

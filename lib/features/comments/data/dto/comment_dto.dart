@@ -29,7 +29,8 @@ class CommentDto {
     return CommentDto(
       id: (json['id'] ?? json['_id'] ?? '').toString(),
       content: (json['content'] ?? json['text'] ?? '').toString(),
-      userId: (json['user_id'] ?? json['userId'] ?? json['user']?['id'] ?? '').toString(),
+      userId: (json['user_id'] ?? json['userId'] ?? json['user']?['id'] ?? '')
+          .toString(),
       userDisplayName: (json['user']?['display_name'] ??
               json['user']?['username'] ??
               json['author_name'] ??

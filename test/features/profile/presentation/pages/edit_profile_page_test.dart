@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,10 +8,11 @@ import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
+import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
+import 'package:soundcloud_clone/features/profile/domain/usecases/update_profile_usecase.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/pages/edit_profile_page.dart';
-import 'package:soundcloud_clone/features/profile/domain/usecases/update_profile_usecase.dart';
 import 'package:soundcloud_clone/features/profile/presentation/widgets/edit_profile_country_picker.dart';
 import 'package:soundcloud_clone/features/profile/presentation/widgets/edit_profile_text_field.dart';
 
@@ -86,6 +89,7 @@ void main() {
     WidgetTester tester, {
     required ProfileState profileState,
     required AuthState authState,
+    bool settle = true,
   }) async {
     when(() => mockProfileCubit.state).thenReturn(profileState);
     whenListen(
@@ -113,7 +117,11 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+    }
   }
 
   setUpAll(() {
@@ -131,7 +139,6 @@ void main() {
     when(() => mockProfileCubit.updateProfile(any())).thenAnswer((_) async {});
   });
 
-  /// Helper to find TextFormField by its label's EditProfileTextField
   Finder findFieldByLabel(String label) {
     return find.descendant(
       of: find.widgetWithText(EditProfileTextField, label),
@@ -139,7 +146,29 @@ void main() {
     );
   }
 
-  // ================= ORIGINAL TESTS =================
+  Future<void> addExternalLink(
+    WidgetTester tester, {
+    required String platformLabel,
+    required String url,
+  }) async {
+    await tester.dragUntilVisible(
+      find.text('Add link'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.text('Add link'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(platformLabel).last);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).last, url);
+    await tester.pumpAndSettle();
+  }
 
   testWidgets('renders initial profile data from ProfileLoaded',
       (tester) async {
@@ -164,14 +193,12 @@ void main() {
       authState: AuthAuthenticated(authUser),
     );
 
-    // Ensure profile is loaded
     expect(find.text('Ali'), findsWidgets);
 
     final displayNameField = findFieldByLabel('Display Name');
     await tester.enterText(displayNameField, 'Ali Updated');
     await tester.pumpAndSettle();
 
-    // Button should be enabled after unsaved changes
     final saveButton = find.widgetWithText(TextButton, 'Save');
     expect(saveButton, findsOneWidget);
 
@@ -197,7 +224,6 @@ void main() {
     await tester.tap(saveButton);
     await tester.pump(const Duration(milliseconds: 300));
 
-    // Error message should appear below the field or inline
     expect(find.text('Name must be at least 2 characters'), findsOneWidget);
     verifyNever(() => mockProfileCubit.updateProfile(any()));
   });
@@ -239,8 +265,6 @@ void main() {
     );
 
     await tester.pump(const Duration(milliseconds: 800));
-    // Snackbar should be triggered on ProfileUpdateError state
-    // Just verify page remains functional with error state
     expect(find.byType(EditProfilePage), findsOneWidget);
   });
 
@@ -263,12 +287,8 @@ void main() {
     );
 
     await tester.pump(const Duration(milliseconds: 800));
-    // Snackbar should be triggered on ProfileUpdateSuccess state
-    // Update should trigger navigation pop which is handled by the listener
     expect(find.byType(EditProfilePage), findsOneWidget);
   });
-
-  // ================= NEW TESTS =================
 
   testWidgets('duplicate external platform shows error', (tester) async {
     await pumpPage(
@@ -277,7 +297,6 @@ void main() {
       authState: AuthAuthenticated(authUser),
     );
 
-    // Scroll down to show the Add link button
     await tester.dragUntilVisible(
       find.text('Add link'),
       find.byType(SingleChildScrollView),
@@ -310,8 +329,6 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pump(const Duration(milliseconds: 500));
 
-    // Adding duplicate platform should be prevented by validation
-    // Just verify the action was attempted and page is still functional
     expect(find.byType(EditProfilePage), findsOneWidget);
   });
 
@@ -334,7 +351,6 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pump(const Duration(milliseconds: 500));
 
-    // Validation should prevent updateProfile from being called
     verifyNever(() => mockProfileCubit.updateProfile(any()));
   });
 
@@ -387,7 +403,6 @@ void main() {
     await tester.tap(find.byIcon(Icons.delete_outline).first);
     await tester.pumpAndSettle();
 
-    // Dialog should show, find and tap Delete button
     await tester.tap(find.text('Delete').last);
     await tester.pumpAndSettle();
 
@@ -410,8 +425,6 @@ void main() {
     await tester.tap(find.text('Clear all'));
     await tester.pumpAndSettle();
 
-    // After clearing, there should be no external links shown (links should be empty)
-    // Just verify the action completed without errors
     expect(find.byType(EditProfilePage), findsOneWidget);
   });
 
@@ -700,5 +713,426 @@ void main() {
       expect(cityTextField.controller?.text, 'Cairo');
       expect(find.text('Egypt'), findsWidgets);
     });
+  });
+
+  testWidgets('save does nothing when there are no unsaved changes',
+      (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profileNoLinks),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    verifyNever(() => mockProfileCubit.updateProfile(any()));
+  });
+
+  testWidgets('shows retry snackbar for avatar image upload error',
+      (tester) async {
+    final controller = StreamController<ProfileState>();
+
+    when(() => mockProfileCubit.state)
+        .thenReturn(ProfileLoaded(profileNoLinks));
+    whenListen(
+      mockProfileCubit,
+      controller.stream,
+      initialState: ProfileLoaded(profileNoLinks),
+    );
+
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(
+      mockAuthCubit,
+      Stream<AuthState>.fromIterable([AuthAuthenticated(authUser)]),
+      initialState: AuthAuthenticated(authUser),
+    );
+
+    when(
+      () => mockProfileCubit.uploadImage(
+        imageType: ProfileImageType.AVATAR,
+        filePath: '/tmp/avatar.png',
+      ),
+    ).thenAnswer((_) async {});
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<ProfileCubit>.value(value: mockProfileCubit),
+          BlocProvider<AuthCubit>.value(value: mockAuthCubit),
+        ],
+        child: const MaterialApp(
+          home: EditProfilePage(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    controller.add(
+      ProfileImageUploadError(
+        profileNoLinks,
+        imageType: ProfileImageType.AVATAR,
+        filePath: '/tmp/avatar.png',
+        message: 'Image upload failed',
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Image upload failed'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    verify(
+      () => mockProfileCubit.uploadImage(
+        imageType: ProfileImageType.AVATAR,
+        filePath: '/tmp/avatar.png',
+      ),
+    ).called(1);
+
+    await controller.close();
+  });
+
+  testWidgets('shows avatar upload loading state', (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileImageUploading(
+        profileNoLinks,
+        ProfileImageType.AVATAR,
+      ),
+      authState: AuthAuthenticated(authUser),
+      settle: false,
+    );
+
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
+  });
+
+  testWidgets('shows cover upload loading state', (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileImageUploading(
+        profileNoLinks,
+        ProfileImageType.COVER,
+      ),
+      authState: AuthAuthenticated(authUser),
+      settle: false,
+    );
+
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
+  });
+
+  testWidgets('keeps page rendered on image upload error state',
+      (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileImageUploadError(
+        profileNoLinks,
+        imageType: ProfileImageType.COVER,
+        filePath: '/tmp/cover.png',
+        message: 'Upload failed',
+      ),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    expect(find.byType(EditProfilePage), findsOneWidget);
+    expect(find.text('Edit profile'), findsOneWidget);
+  });
+
+  testWidgets('invalid facebook link shows error', (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profileNoLinks),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    await addExternalLink(
+      tester,
+      platformLabel: 'Facebook',
+      url: 'https://facebook.com/watch/video',
+    );
+
+    await tester.dragUntilVisible(
+      find.text('Save'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Facebook link must point to a profile'),
+      findsOneWidget,
+    );
+    verifyNever(() => mockProfileCubit.updateProfile(any()));
+  });
+
+  testWidgets('invalid youtube link shows error', (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profileNoLinks),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    await addExternalLink(
+      tester,
+      platformLabel: 'YouTube',
+      url: 'https://youtube.com/watch?v=123',
+    );
+
+    await tester.dragUntilVisible(
+      find.text('Save'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('YouTube link must point to a channel/profile'),
+      findsOneWidget,
+    );
+    verifyNever(() => mockProfileCubit.updateProfile(any()));
+  });
+
+  testWidgets('invalid tiktok link shows error', (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profileNoLinks),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    await addExternalLink(
+      tester,
+      platformLabel: 'TikTok',
+      url: 'https://tiktok.com/discover',
+    );
+
+    await tester.dragUntilVisible(
+      find.text('Save'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('TikTok link must point to a profile'),
+      findsOneWidget,
+    );
+    verifyNever(() => mockProfileCubit.updateProfile(any()));
+  });
+
+  testWidgets('invalid x link shows error', (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profileNoLinks),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    await addExternalLink(
+      tester,
+      platformLabel: 'X',
+      url: 'https://x.com/home',
+    );
+
+    await tester.dragUntilVisible(
+      find.text('Save'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('X link must point to a profile'),
+      findsOneWidget,
+    );
+    verifyNever(() => mockProfileCubit.updateProfile(any()));
+  });
+
+  testWidgets('invalid soundcloud link shows error', (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profileNoLinks),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    await addExternalLink(
+      tester,
+      platformLabel: 'SoundCloud',
+      url: 'https://soundcloud.com/discover',
+    );
+
+    await tester.dragUntilVisible(
+      find.text('Save'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('SoundCloud link must point to a profile'),
+      findsOneWidget,
+    );
+    verifyNever(() => mockProfileCubit.updateProfile(any()));
+  });
+
+  testWidgets('cancel remove external link keeps the item', (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profile),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    await tester.dragUntilVisible(
+      find.byIcon(Icons.delete_outline).first,
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.byIcon(Icons.delete_outline).first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('No external links added yet.'), findsNothing);
+  });
+
+  testWidgets('cancel clear all external links keeps the items',
+      (tester) async {
+    await pumpPage(
+      tester,
+      profileState: ProfileLoaded(profile),
+      authState: AuthAuthenticated(authUser),
+    );
+
+    await tester.dragUntilVisible(
+      find.text('Clear all'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.text('Clear all'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('No external links added yet.'), findsNothing);
+  });
+
+  testWidgets('shows retry snackbar for cover image upload error',
+      (tester) async {
+    final controller = StreamController<ProfileState>();
+
+    when(() => mockProfileCubit.state)
+        .thenReturn(ProfileLoaded(profileNoLinks));
+    whenListen(
+      mockProfileCubit,
+      controller.stream,
+      initialState: ProfileLoaded(profileNoLinks),
+    );
+
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(
+      mockAuthCubit,
+      Stream<AuthState>.fromIterable([AuthAuthenticated(authUser)]),
+      initialState: AuthAuthenticated(authUser),
+    );
+
+    when(
+      () => mockProfileCubit.uploadImage(
+        imageType: ProfileImageType.COVER,
+        filePath: '/tmp/cover.png',
+      ),
+    ).thenAnswer((_) async {});
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<ProfileCubit>.value(value: mockProfileCubit),
+          BlocProvider<AuthCubit>.value(value: mockAuthCubit),
+        ],
+        child: const MaterialApp(home: EditProfilePage()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    controller.add(
+      ProfileImageUploadError(
+        profileNoLinks,
+        imageType: ProfileImageType.COVER,
+        filePath: '/tmp/cover.png',
+        message: 'Cover upload failed',
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cover upload failed'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    verify(
+      () => mockProfileCubit.uploadImage(
+        imageType: ProfileImageType.COVER,
+        filePath: '/tmp/cover.png',
+      ),
+    ).called(1);
+
+    await controller.close();
+  });
+
+  testWidgets('refreshes auth user after profile update success',
+      (tester) async {
+    final stateStream = Stream<ProfileState>.fromIterable([
+      ProfileLoaded(profileNoLinks),
+      ProfileUpdateSuccess(updatedProfile),
+    ]);
+
+    when(() => mockProfileCubit.state)
+        .thenReturn(ProfileLoaded(profileNoLinks));
+    whenListen(
+      mockProfileCubit,
+      stateStream,
+      initialState: ProfileLoaded(profileNoLinks),
+    );
+
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(
+      mockAuthCubit,
+      Stream<AuthState>.fromIterable([AuthAuthenticated(authUser)]),
+      initialState: AuthAuthenticated(authUser),
+    );
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<ProfileCubit>.value(value: mockProfileCubit),
+          BlocProvider<AuthCubit>.value(value: mockAuthCubit),
+        ],
+        child: const MaterialApp(
+          home: EditProfilePage(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+
+    verify(() => mockAuthCubit.refreshCurrentUserSilently()).called(1);
   });
 }

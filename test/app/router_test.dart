@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 
 import 'package:soundcloud_clone/app/router.dart' as app_router;
+import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
+import 'package:soundcloud_clone/core/deep_links/deep_link_service.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
@@ -56,6 +58,20 @@ class FakeAudioPlayerService implements AudioPlayerService {
   Future<void> dispose() async {}
 }
 
+class FakeDeepLinkService implements DeepLinkService {
+  @override
+  Stream<DeepLinkDestination> get stream => const Stream.empty();
+
+  @override
+  DeepLinkDestination? consumeLastDestination() => null;
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> dispose() async {}
+}
+
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 class MockProfileCubit extends MockCubit<ProfileState>
@@ -97,6 +113,9 @@ void main() {
 
     GetIt.I.registerSingleton<AudioPlayerService>(
       FakeAudioPlayerService(),
+    );
+    GetIt.I.registerSingleton<DeepLinkService>(
+      FakeDeepLinkService(),
     );
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(
       RecentlyPlayedCubit(),
