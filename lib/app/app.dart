@@ -11,6 +11,9 @@ import '../features/playback/presentation/widgets/mini_player.dart';
 
 import 'router.dart';
 
+// ← global notifier — track_options_sheet هيستخدمه
+final ValueNotifier<bool> isTrackSheetOpen = ValueNotifier(false);
+
 class App extends StatelessWidget {
   const App({super.key});
 
@@ -51,26 +54,33 @@ class App extends StatelessWidget {
                   body: Stack(
                     children: [
                       child!,
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 70,
-                        child: IgnorePointer(
-                          ignoring: isPlayerOpen,
-                          child: AnimatedSlide(
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOutCubic,
-                            offset: isPlayerOpen
-                                ? const Offset(0, 1.2)
-                                : Offset.zero,
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 180),
-                              curve: Curves.easeOut,
-                              opacity: isPlayerOpen ? 0 : 1,
-                              child: const MiniPlayer(),
+                      // ── Mini player ──────────────────────────────────
+                      ValueListenableBuilder<bool>(
+                        valueListenable: isTrackSheetOpen,
+                        builder: (context, sheetOpen, _) {
+                          final hide = isPlayerOpen || sheetOpen;
+                          return Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 70,
+                            child: IgnorePointer(
+                              ignoring: hide,
+                              child: AnimatedSlide(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                offset: hide
+                                    ? const Offset(0, 1.2)
+                                    : Offset.zero,
+                                child: AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 180),
+                                  curve: Curves.easeOut,
+                                  opacity: hide ? 0 : 1,
+                                  child: const MiniPlayer(),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
