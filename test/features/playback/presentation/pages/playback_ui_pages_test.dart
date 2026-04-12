@@ -57,7 +57,6 @@ void main() {
     streamUrl: 'https://cdn/t1.mp3',
   );
 
-  // ── shared helper: a PlaybackState with empty queue ──────────────────────
   const emptyPlaybackState = PlaybackState(isAvailable: true);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -109,14 +108,17 @@ void main() {
         ),
       );
 
+      // replay_10: 5s - 10s = 0s (clamped)
       await tester.tap(find.byIcon(Icons.replay_10));
       await tester.pump();
       expect(seekDuration, Duration.zero);
 
+      // forward_10: 5s + 10s = 15s
       await tester.tap(find.byIcon(Icons.forward_10));
       await tester.pump();
       expect(seekDuration, const Duration(seconds: 15));
 
+      // play/pause button
       await tester.tap(find.byIcon(Icons.play_arrow));
       await tester.pump();
       expect(playPauseTapped, 1);
@@ -134,8 +136,8 @@ void main() {
       playerCubit = MockPlayerCubit();
       when(() => playerCubit.openFullPlayer()).thenReturn(null);
       when(() => playerCubit.closeFullPlayer()).thenReturn(null);
-      when(() => playerCubit.pause()).thenAnswer((_) async {});
-      when(() => playerCubit.resume()).thenAnswer((_) async {});
+      // MiniPlayer calls togglePlayPause() — stub it here
+      when(() => playerCubit.togglePlayPause()).thenAnswer((_) async {});
     });
 
     Widget buildMiniPlayer() => MaterialApp(
@@ -203,7 +205,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.pause));
       await tester.pump();
 
-      verify(() => playerCubit.pause()).called(1);
+      // MiniPlayer calls togglePlayPause() for both play and pause
+      verify(() => playerCubit.togglePlayPause()).called(1);
     });
 
     testWidgets('tapping play button calls resume when paused', (tester) async {
@@ -225,7 +228,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.play_arrow));
       await tester.pump();
 
-      verify(() => playerCubit.resume()).called(1);
+      verify(() => playerCubit.togglePlayPause()).called(1);
     });
 
     testWidgets('shows pause icon and correct progress when playing',
@@ -292,7 +295,6 @@ void main() {
       when(() => playerCubit.togglePlayPause()).thenAnswer((_) async {});
       when(() => playerCubit.seek(any())).thenAnswer((_) async {});
 
-      // PlaybackCubit stubs
       when(() => playbackCubit.state).thenReturn(emptyPlaybackState);
       when(() => playbackCubit.stream)
           .thenAnswer((_) => const Stream<PlaybackState>.empty());
@@ -300,7 +302,6 @@ void main() {
       when(() => playbackCubit.playPrevious()).thenAnswer((_) async {});
     });
 
-    // Helper that wraps FullPlayerPage with both cubits
     Widget buildFullPlayer() => MaterialApp(
           home: MultiBlocProvider(
             providers: [
@@ -349,10 +350,12 @@ void main() {
       expect(find.text('Song 1'), findsOneWidget);
       expect(find.text('Artist 1'), findsOneWidget);
 
+      // replay_10 inside PlayerControls: 10s - 10s = 0s
       await tester.tap(find.byIcon(Icons.replay_10));
       await tester.pump();
       verify(() => playerCubit.seek(const Duration(seconds: 0))).called(1);
 
+      // pause button inside PlayerControls
       await tester.tap(
         find.descendant(
           of: find.byType(PlayerControls),
