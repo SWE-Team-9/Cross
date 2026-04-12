@@ -61,22 +61,37 @@ void main() {
     playerStateController =
         StreamController<app_player.PlayerState>.broadcast();
 
+    // ✅ FIX: stream mock
     when(() => mockAudioPlayerService.playerStateStream)
         .thenAnswer((_) => playerStateController.stream);
+
+    // Audio controls
     when(() => mockAudioPlayerService.play(any())).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.pause()).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.resume()).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.stop()).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.seek(any())).thenAnswer((_) async {});
+
     when(() => mockAudioPlayerService.dispose()).thenAnswer((_) async {});
 
-    when(() => mockPlaybackCubit.addPlayNext(any())).thenReturn(null);
-    when(() => mockPlaybackCubit.addPlayLast(any())).thenReturn(null);
+    // ✅ FIX: PlaybackCubit MUST return Future
+    when(() => mockPlaybackCubit.playTrack(any(), any()))
+        .thenAnswer((_) async {});
+
+    when(() => mockPlaybackCubit.addPlayNext(any())).thenAnswer((_) async {});
+
+    when(() => mockPlaybackCubit.addPlayLast(any())).thenAnswer((_) async {});
+
     when(() => mockPlaybackCubit.stream)
         .thenAnswer((_) => const Stream.empty());
 
     GetIt.instance
         .registerSingleton<AudioPlayerService>(mockAudioPlayerService);
+
     GetIt.instance.registerSingleton<RecentlyPlayedCubit>(recentlyPlayedCubit);
   });
 
@@ -86,28 +101,10 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  void ignoreOverflowErrors() {
-    final orig = FlutterError.onError!;
-    FlutterError.onError = (details) {
-      if (details.exceptionAsString().contains('RenderFlex overflowed')) return;
-      orig(details);
-    };
-    addTearDown(() => FlutterError.onError = orig);
-  }
-
-  Future<void> setTallSurface(WidgetTester tester) async {
-    await tester.binding.setSurfaceSize(const Size(640, 1200));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-  }
-
-  /// Pumps [TrackRow] inside a plain [MaterialApp].
   Future<void> pumpTrackRow(
     WidgetTester tester, {
     required Track inputTrack,
   }) async {
-    await setTallSurface(tester);
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
@@ -123,14 +120,10 @@ void main() {
     );
   }
 
-  /// Pumps [TrackRow] inside a [GoRouter] that knows the profile route.
-  /// Also exposes the [TrackRow] widget so we can call [openMenu] directly.
   Future<void> pumpTrackRowWithRouter(
     WidgetTester tester, {
     required Track inputTrack,
   }) async {
-    await setTallSurface(tester);
-
     final router = GoRouter(
       routes: [
         GoRoute(
@@ -160,8 +153,6 @@ void main() {
     );
   }
 
-  // ── Tests ──────────────────────────────────────────────────────────────────
-
   testWidgets('shows title, artist, and fallback icon', (tester) async {
     await pumpTrackRow(tester, inputTrack: track);
     await tester.pump();
@@ -181,6 +172,7 @@ void main() {
         currentTrackId: 't1',
       ),
     );
+
     await tester.pump();
 
     expect(find.byType(TrackRow), findsOneWidget);
@@ -197,32 +189,26 @@ void main() {
   });
 
   testWidgets('menu opens', (tester) async {
-    ignoreOverflowErrors();
     await pumpTrackRow(tester, inputTrack: track);
     await tester.pump();
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
 
-    // TrackOptionsSheet is open — 'Like' option must be visible
     expect(find.text('Like'), findsOneWidget);
   });
 
   testWidgets('navigate to artist works', (tester) async {
-    ignoreOverflowErrors();
     await pumpTrackRowWithRouter(tester, inputTrack: trackWithHandle);
     await tester.pump();
 
-    // Invoke openMenu() directly — it uses ProfileRoutes.goToProfile which
-    // calls context.push('/profile/:handle'), exactly what the test router handles.
-    // The more_vert button opens TrackOptionsSheet which has a TODO for navigation;
-    // openMenu() is the method that actually wires up the profile route.
-    final rowElement = tester.element(find.byType(TrackRow));
-    final rowWidget = rowElement.widget as TrackRow;
-    rowWidget.openMenu(rowElement);
+    final element = tester.element(find.byType(TrackRow));
+    final widget = element.widget as TrackRow;
+
+    widget.openMenu(element);
+
     await tester.pumpAndSettle();
 
-    // Tap 'Go to artist' inside the openMenu bottom sheet
     await tester.tap(find.text('Go to artist'));
     await tester.pumpAndSettle();
 
