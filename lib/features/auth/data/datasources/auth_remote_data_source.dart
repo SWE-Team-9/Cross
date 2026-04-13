@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
+
+import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../dto/auth_response_dto.dart';
 import '../dto/user_dto.dart';
-import '../../../../core/network/api_constants.dart';
 
 abstract class AuthRemoteDataSource {
   Future<AuthResponseDto> login({
@@ -47,6 +49,21 @@ abstract class AuthRemoteDataSource {
   Future<UserDto> getCurrentUser();
 
   Future<void> logout();
+
+  Uri buildGoogleAuthorizeUri({
+    required String clientId,
+    required String redirectUri,
+    required String scope,
+    required String state,
+    required String codeChallenge,
+  });
+
+  Future<void> exchangeOAuthCodeForSession({
+    required String clientId,
+    required String code,
+    required String redirectUri,
+    required String codeVerifier,
+  });
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -61,6 +78,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required bool rememberMe,
     required String captchaToken,
   }) async {
+    print('API BASE URL => ${ApiConstants.baseUrl}');
+    print('LOGIN URL => ${ApiConstants.baseUrl}${ApiConstants.login}');
     final response = await dioClient.dio.post(
       ApiConstants.login,
       data: {
@@ -191,5 +210,53 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout() async {
     await dioClient.dio.post(ApiConstants.logout);
+  }
+
+  @override
+  Uri buildGoogleAuthorizeUri({
+    required String clientId,
+    required String redirectUri,
+    required String scope,
+    required String state,
+    required String codeChallenge,
+  }) {
+    final base =
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.oauthAuthorize}');
+    return base.replace(
+      queryParameters: {
+        'client_id': clientId,
+        'redirect_uri': redirectUri,
+        'response_type': 'code',
+        'scope': scope,
+        'state': state,
+        'code_challenge': codeChallenge,
+        'code_challenge_method': 'S256',
+      },
+    );
+  }
+
+  @override
+  Future<void> exchangeOAuthCodeForSession({
+    required String clientId,
+    required String code,
+    required String redirectUri,
+    required String codeVerifier,
+  }) async {
+    await dioClient.dio.post(
+      ApiConstants.oauthToken,
+      data: {
+        'grant_type': 'authorization_code',
+        'client_id': clientId,
+        'code': code,
+        'redirect_uri': redirectUri,
+        'code_verifier': codeVerifier,
+      },
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+        headers: const {
+          'Content-Type': Headers.formUrlEncodedContentType,
+        },
+      ),
+    );
   }
 }

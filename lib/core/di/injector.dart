@@ -6,6 +6,7 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 // Project
@@ -74,6 +75,11 @@ import '../../features/interactions/domain/usecases/repost_track_usecase.dart';
 import '../../features/interactions/domain/usecases/unlike_track_usecase.dart';
 import '../../features/interactions/domain/usecases/unrepost_track_usecase.dart';
 import '../../features/interactions/presentation/bloc/track_interaction_cubit.dart';
+import '../../features/interactions/domain/usecases/get_track_likers_usecase.dart';
+import '../../features/interactions/domain/usecases/get_track_reposters_usecase.dart';
+import '../../features/interactions/presentation/bloc/engagement_list_cubit.dart';
+import '../../features/interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
+import '../../features/interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
 
 // Comments
 import '../../features/comments/data/datasources/comments_remote_data_source.dart';
@@ -91,8 +97,7 @@ import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
 
-// ── Deep Links (Sprint 4 — T4.1) ─────────────────────────────────────────
-
+// ── Deep Links / OAuth ─────────────────────────────────────────────────────
 import '../../features/playback/data/datasources/track_detail_remote_data_source.dart';
 import '../../features/playback/data/repositories/track_detail_repository_impl.dart';
 import '../../features/playback/domain/repositories/i_track_detail_repository.dart';
@@ -100,6 +105,8 @@ import '../../features/playback/domain/usecases/get_track_detail_use_case.dart';
 import '../../features/playback/domain/usecases/get_track_by_secret_use_case.dart';
 import '../../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../deep_links/deep_link_service.dart';
+import '../oauth/oauth_pending_request_store.dart';
+import '../oauth/windows_oauth_callback_server.dart';
 
 final getIt = GetIt.instance;
 
@@ -122,6 +129,23 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<SecureStorage>()) {
     getIt.registerLazySingleton<SecureStorage>(
       () => SecureStorage(getIt<FlutterSecureStorage>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SharedPreferences>()) {
+    final prefs = await SharedPreferences.getInstance();
+    getIt.registerLazySingleton<SharedPreferences>(() => prefs);
+  }
+
+  if (!getIt.isRegistered<OAuthPendingRequestStore>()) {
+    getIt.registerLazySingleton<OAuthPendingRequestStore>(
+      () => OAuthPendingRequestStore(getIt<SharedPreferences>()),
+    );
+  }
+
+  if (!getIt.isRegistered<WindowsOAuthCallbackServer>()) {
+    getIt.registerLazySingleton<WindowsOAuthCallbackServer>(
+      () => WindowsOAuthCallbackServer(),
     );
   }
 
@@ -182,6 +206,16 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<PlayerCubit>()) {
     getIt.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(getIt<AudioPlayerService>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackLoaderCubit>()) {
+    getIt.registerFactory<TrackLoaderCubit>(
+      () => TrackLoaderCubit(
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
+        playerCubit: getIt<PlayerCubit>(),
+      ),
     );
   }
 
@@ -283,6 +317,7 @@ Future<void> setupDependencies() async {
       ),
     );
   }
+
   // ── Upload Feature: Track Management Basics ─────────────────────────────
 
   const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
@@ -440,6 +475,9 @@ Future<void> setupDependencies() async {
         verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
         requestEmailChangeUseCase: getIt<RequestEmailChangeUseCase>(),
         confirmEmailChangeUseCase: getIt<ConfirmEmailChangeUseCase>(),
+        authRepository: getIt<AuthRepository>(),
+        windowsOAuthCallbackServer: getIt<WindowsOAuthCallbackServer>(),
+        oauthPendingRequestStore: getIt<OAuthPendingRequestStore>(),
       ),
     );
   }
@@ -484,6 +522,8 @@ Future<void> setupDependencies() async {
         getProfileUseCase: getIt<GetProfileUseCase>(),
         updateProfileUseCase: getIt<UpdateProfileUseCase>(),
         profileRepository: getIt<profile_domain.ProfileRepository>(),
+        getMyLikedTracksUseCase: getIt<GetMyLikedTracksUseCase>(),
+        getMyRepostedTracksUseCase: getIt<GetMyRepostedTracksUseCase>(),
       ),
     );
   }
@@ -505,6 +545,18 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<GetTrackInteractionStatusUseCase>()) {
     getIt.registerLazySingleton<GetTrackInteractionStatusUseCase>(
       () => GetTrackInteractionStatusUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetMyLikedTracksUseCase>()) {
+    getIt.registerLazySingleton<GetMyLikedTracksUseCase>(
+      () => GetMyLikedTracksUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetMyRepostedTracksUseCase>()) {
+    getIt.registerLazySingleton<GetMyRepostedTracksUseCase>(
+      () => GetMyRepostedTracksUseCase(getIt<InteractionsRepository>()),
     );
   }
 
@@ -532,6 +584,18 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<GetTrackLikersUseCase>()) {
+    getIt.registerLazySingleton<GetTrackLikersUseCase>(
+      () => GetTrackLikersUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackRepostersUseCase>()) {
+    getIt.registerLazySingleton<GetTrackRepostersUseCase>(
+      () => GetTrackRepostersUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<TrackInteractionCubit>()) {
     getIt.registerFactory<TrackInteractionCubit>(
       () => TrackInteractionCubit(
@@ -541,6 +605,15 @@ Future<void> setupDependencies() async {
         unlikeTrackUseCase: getIt<UnlikeTrackUseCase>(),
         repostTrackUseCase: getIt<RepostTrackUseCase>(),
         unrepostTrackUseCase: getIt<UnrepostTrackUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<EngagementListCubit>()) {
+    getIt.registerFactory<EngagementListCubit>(
+      () => EngagementListCubit(
+        getTrackLikersUseCase: getIt<GetTrackLikersUseCase>(),
+        getTrackRepostersUseCase: getIt<GetTrackRepostersUseCase>(),
       ),
     );
   }

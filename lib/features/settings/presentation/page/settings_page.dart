@@ -342,9 +342,6 @@ class SettingsPage extends StatelessWidget {
         );
       },
     );
-
-    newEmailController.dispose();
-    currentPasswordController.dispose();
   }
 }
 

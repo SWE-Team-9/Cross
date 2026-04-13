@@ -5,7 +5,10 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:bloc_test/bloc_test.dart';
+import 'package:dio/dio.dart';
 
+import 'package:soundcloud_clone/core/network/api_constants.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
@@ -41,6 +44,8 @@ class FakeAudioPlayerService implements AudioPlayerService {
 }
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
+
+class MockDioClient extends Mock implements DioClient {}
 
 // ─── Shared test user ─────────────────────────────────────────────────────────
 
@@ -112,10 +117,13 @@ Widget _buildApp(MockAuthCubit authCubit) {
 
 void main() {
   late MockAuthCubit mockAuthCubit;
+  late MockDioClient mockDioClient;
 
   setUp(() async {
     await _setUp();
     mockAuthCubit = MockAuthCubit();
+    mockDioClient = MockDioClient();
+    GetIt.I.registerSingleton<DioClient>(mockDioClient);
   });
 
   tearDown(() async {
@@ -419,5 +427,83 @@ void main() {
 
     expect(find.byIcon(Icons.logout_rounded), findsNothing);
     expect(find.byType(CircleAvatar), findsOneWidget);
+  });
+
+  testWidgets('shows seeded track rows when backend returns playable tracks',
+      (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
+    when(() => mockAuthCubit.stream)
+        .thenAnswer((_) => const Stream<AuthState>.empty());
+    when(
+      () => mockDioClient.get<dynamic>(
+        ApiConstants.userTracksPath('6b376248-3f0b-4309-bbd6-d26f9da9a23d'),
+        queryParameters: const {'page': 1, 'limit': 20},
+      ),
+    ).thenAnswer(
+      (_) async => Response<dynamic>(
+        requestOptions: RequestOptions(path: '/tracks'),
+        data: {
+          'data': {
+            'tracks': [
+              {
+                'id': 'seed-1',
+                'title': 'Seeded Track',
+                'artist': {
+                  'displayName': 'Seed Artist',
+                  'handle': 'seed-artist',
+                },
+                'likesCount': '3',
+                'repostsCount': 2,
+              },
+            ],
+          },
+        },
+      ),
+    );
+    when(() =>
+            mockDioClient.get<dynamic>('/api/v1/player/tracks/seed-1/source'))
+        .thenAnswer(
+      (_) async => Response<dynamic>(
+        requestOptions: RequestOptions(path: '/player/source'),
+        data: {'streamUrl': 'https://cdn.example.com/seed-1.mp3'},
+      ),
+    );
+
+    await tester.pumpWidget(_buildApp(mockAuthCubit));
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.text('Seeded Track'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -120),
+    );
+
+    expect(find.text('Seeded Track'), findsOneWidget);
+    expect(find.text('Seed Artist'), findsOneWidget);
+  });
+
+  testWidgets('shows seeded track error message when fetch fails',
+      (tester) async {
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
+    when(() => mockAuthCubit.stream)
+        .thenAnswer((_) => const Stream<AuthState>.empty());
+    when(
+      () => mockDioClient.get<dynamic>(
+        ApiConstants.userTracksPath('6b376248-3f0b-4309-bbd6-d26f9da9a23d'),
+        queryParameters: const {'page': 1, 'limit': 20},
+      ),
+    ).thenThrow(Exception('backend failed'));
+
+    await tester.pumpWidget(_buildApp(mockAuthCubit));
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.textContaining('Failed to load seeded user tracks'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -120),
+    );
+
+    expect(find.textContaining('Failed to load seeded user tracks'),
+        findsOneWidget);
   });
 }

@@ -26,22 +26,40 @@ class CommentDto {
   factory CommentDto.fromJson(Map<String, dynamic> json) {
     final rawReplies = (json['replies'] as List?) ?? const [];
 
+    final userMap = json['user'] is Map
+        ? Map<String, dynamic>.from(json['user'] as Map)
+        : <String, dynamic>{};
+
     return CommentDto(
       id: (json['id'] ?? json['_id'] ?? '').toString(),
       content: (json['content'] ?? json['text'] ?? '').toString(),
-      userId: (json['user_id'] ?? json['userId'] ?? json['user']?['id'] ?? '')
+      userId: (json['user_id'] ??
+              json['userId'] ??
+              userMap['userId'] ??
+              userMap['id'] ??
+              '')
           .toString(),
-      userDisplayName: (json['user']?['display_name'] ??
-              json['user']?['username'] ??
+      userDisplayName: (userMap['displayName'] ??
+              userMap['display_name'] ??
+              userMap['username'] ??
+              userMap['name'] ??
               json['author_name'] ??
-              'Unknown')
+              'Unknown User')
           .toString(),
-      userAvatarUrl: json['user']?['avatar_url']?.toString(),
-      parentCommentId: json['parent_comment_id']?.toString(),
-      timestampSeconds: json['timestamp_seconds'] as int?,
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'].toString())
-          : null,
+      userAvatarUrl:
+          (userMap['avatarUrl'] ?? userMap['avatar_url'])?.toString(),
+      parentCommentId:
+          (json['parentCommentId'] ?? json['parent_comment_id'])?.toString(),
+      timestampSeconds: _toInt(
+        json['timestampAt'] ??
+            json['timestamp_seconds'] ??
+            json['timestampSeconds'],
+      ),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : json['created_at'] != null
+              ? DateTime.tryParse(json['created_at'].toString())
+              : null,
       replies: rawReplies
           .map((e) => CommentDto.fromJson(Map<String, dynamic>.from(e)))
           .toList(growable: false),
@@ -60,5 +78,12 @@ class CommentDto {
       createdAt: createdAt,
       replies: replies.map((e) => e.toEntity()).toList(growable: false),
     );
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

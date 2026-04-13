@@ -25,10 +25,12 @@ class CommentsCubit extends Cubit<CommentsState> {
 
     try {
       final comments = await getTrackCommentsUseCase(trackId);
+      final sorted = _sortComments(comments);
+
       emit(
         state.copyWith(
           isLoading: false,
-          comments: comments,
+          comments: sorted,
           clearError: true,
         ),
       );
@@ -98,7 +100,7 @@ class CommentsCubit extends Cubit<CommentsState> {
       emit(
         state.copyWith(
           isSubmitting: false,
-          comments: updated,
+          comments: _sortComments(updated),
           clearError: true,
         ),
       );
@@ -123,13 +125,21 @@ class CommentsCubit extends Cubit<CommentsState> {
 
       emit(
         state.copyWith(
-          comments: updated,
+          comments: _sortComments(updated),
           clearError: true,
         ),
       );
     } catch (e) {
       emit(state.copyWith(errorMessage: e.toString()));
     }
+  }
+
+  List<CommentEntity> _sortComments(List<CommentEntity> comments) {
+    final sorted = [...comments];
+    sorted.sort(
+      (a, b) => (a.timestampSeconds ?? 0).compareTo(b.timestampSeconds ?? 0),
+    );
+    return sorted;
   }
 
   List<CommentEntity> _attachReply({
