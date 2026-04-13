@@ -33,14 +33,12 @@ class CommentDto {
     return CommentDto(
       id: (json['id'] ?? json['_id'] ?? '').toString(),
       content: (json['content'] ?? json['text'] ?? '').toString(),
-
       userId: (json['user_id'] ??
               json['userId'] ??
               userMap['userId'] ??
               userMap['id'] ??
               '')
           .toString(),
-
       userDisplayName: (userMap['displayName'] ??
               userMap['display_name'] ??
               userMap['username'] ??
@@ -48,27 +46,20 @@ class CommentDto {
               json['author_name'] ??
               'Unknown User')
           .toString(),
-
-      userAvatarUrl: (userMap['avatarUrl'] ??
-              userMap['avatar_url'])
-          ?.toString(),
-
-      parentCommentId: (json['parentCommentId'] ??
-              json['parent_comment_id'])
-          ?.toString(),
-
+      userAvatarUrl:
+          (userMap['avatarUrl'] ?? userMap['avatar_url'])?.toString(),
+      parentCommentId:
+          (json['parentCommentId'] ?? json['parent_comment_id'])?.toString(),
       timestampSeconds: _toInt(
         json['timestampAt'] ??
             json['timestamp_seconds'] ??
             json['timestampSeconds'],
       ),
-
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : json['created_at'] != null
               ? DateTime.tryParse(json['created_at'].toString())
               : null,
-
       replies: rawReplies
           .map((e) => CommentDto.fromJson(Map<String, dynamic>.from(e)))
           .toList(growable: false),

@@ -128,7 +128,8 @@ void main() {
     verify(() => interactionCubit.toggleRepost('t1')).called(1);
   });
 
-  testWidgets('play next and play last update playback queue and show snackbars',
+  testWidgets(
+      'play next and play last update playback queue and show snackbars',
       (tester) async {
     await tester.pumpWidget(buildHost());
 

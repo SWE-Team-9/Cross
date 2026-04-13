@@ -169,8 +169,7 @@ void main() {
     test('delegates delete to dio client', () async {
       when(() => mockDioClient.delete('/api/v1/tracks/track-1'))
           .thenAnswer((_) async => Response<void>(
-                requestOptions:
-                    RequestOptions(path: '/api/v1/tracks/track-1'),
+                requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
               ));
 
       await dataSource.deleteTrack(trackId: 'track-1');

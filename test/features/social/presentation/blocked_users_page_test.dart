@@ -40,7 +40,8 @@ void main() {
     test('loadMore appends next page', () async {
       final cubit = BlockedUsersCubit(repo);
       when(() => repo.getBlockedUsers(1, limit: 20)).thenAnswer(
-        (_) async => List.generate(20, (index) => makeUser('$index', 'u$index')),
+        (_) async =>
+            List.generate(20, (index) => makeUser('$index', 'u$index')),
       );
       when(() => repo.getBlockedUsers(2, limit: 20))
           .thenAnswer((_) async => [makeUser('21', 'extra')]);
@@ -104,7 +105,8 @@ void main() {
       verify(() => repo.getBlockedUsers(1, limit: 20)).called(greaterThan(1));
     });
 
-    testWidgets('renders users and unblocks after confirmation', (tester) async {
+    testWidgets('renders users and unblocks after confirmation',
+        (tester) async {
       when(() => repo.getBlockedUsers(1, limit: 20))
           .thenAnswer((_) async => [makeUser('1', 'ali')]);
       when(() => repo.unblockUser('1')).thenAnswer((_) async => true);

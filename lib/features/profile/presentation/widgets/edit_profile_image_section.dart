@@ -23,9 +23,8 @@ class EditProfileImageSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalizedCoverUrl = PlatformUrlUtils.normalizeBackendUrl(coverUrl);
     final normalizedAvatarUrl = PlatformUrlUtils.normalizeBackendUrl(avatarUrl);
-    final NetworkImage? avatarImage = normalizedAvatarUrl != null
-        ? NetworkImage(normalizedAvatarUrl)
-        : null;
+    final NetworkImage? avatarImage =
+        normalizedAvatarUrl != null ? NetworkImage(normalizedAvatarUrl) : null;
 
     return SizedBox(
       height: 180,

@@ -22,7 +22,8 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
 
   @override
   Future<List<CommentDto>> getTrackComments(String trackId) async {
-    final response = await dioClient.get(ApiConstants.trackCommentsPath(trackId));
+    final response =
+        await dioClient.get(ApiConstants.trackCommentsPath(trackId));
 
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
@@ -32,8 +33,9 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
     if (responseData is List) {
       rawList = responseData;
     } else if (responseData is Map<String, dynamic>) {
-      final dynamic nested =
-          responseData['comments'] ?? responseData['data'] ?? responseData['items'];
+      final dynamic nested = responseData['comments'] ??
+          responseData['data'] ??
+          responseData['items'];
 
       if (nested is List) {
         rawList = nested;
@@ -47,7 +49,8 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
     }
 
     return rawList
-        .map((item) => CommentDto.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map((item) =>
+            CommentDto.fromJson(Map<String, dynamic>.from(item as Map)))
         .toList(growable: false);
   }
 

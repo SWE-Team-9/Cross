@@ -183,8 +183,7 @@ void main() {
 
   group('liked and reposted tracks', () {
     test('getMyLikedTracks extracts nested track items', () async {
-      when(() => dioClient.get<dynamic>(ApiConstants.myLikedTracks))
-          .thenAnswer(
+      when(() => dioClient.get<dynamic>(ApiConstants.myLikedTracks)).thenAnswer(
         (_) async => responseWith({
           'data': {
             'items': [
@@ -225,8 +224,7 @@ void main() {
     });
 
     test('extracts tracks from collection-like payloads', () async {
-      when(() => dioClient.get<dynamic>(ApiConstants.myLikedTracks))
-          .thenAnswer(
+      when(() => dioClient.get<dynamic>(ApiConstants.myLikedTracks)).thenAnswer(
         (_) async => responseWith({
           'data': {
             'collection': [
@@ -248,7 +246,9 @@ void main() {
 
     test('returns empty list for unexpected payload shape', () async {
       when(() => dioClient.get<dynamic>(ApiConstants.myRepostedTracks))
-          .thenAnswer((_) async => responseWith({'data': {'items': 'bad'}}));
+          .thenAnswer((_) async => responseWith({
+                'data': {'items': 'bad'}
+              }));
 
       final result = await dataSource.getMyRepostedTracks();
 

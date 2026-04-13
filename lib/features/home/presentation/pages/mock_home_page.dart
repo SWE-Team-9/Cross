@@ -25,8 +25,7 @@ class MockHomePage extends StatefulWidget {
 }
 
 class _MockHomePageState extends State<MockHomePage> {
-  static const String seededUserId =
-      '6b376248-3f0b-4309-bbd6-d26f9da9a23d';
+  static const String seededUserId = '6b376248-3f0b-4309-bbd6-d26f9da9a23d';
 
   int _selectedTab = 0;
   String _selectedGenre = 'ELECTRONIC';
@@ -115,7 +114,8 @@ class _MockHomePageState extends State<MockHomePage> {
                         const _RelatedTracksRow(),
                         const _SectionHeader(title: 'Mixed for you'),
                         _MixesRow(userHandle: currentHandle),
-                        const _SectionHeader(title: 'Your Tracks (Sprint 2 Test)'),
+                        const _SectionHeader(
+                            title: 'Your Tracks (Sprint 2 Test)'),
                         _ManagedTracksSection(
                           tracks: _managedTracks,
                           onManageTap: _openTrackManagement,
@@ -728,7 +728,7 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
     _futureTracks = _fetchTracks();
   }
 
-Future<List<Track>> _fetchTracks() async {
+  Future<List<Track>> _fetchTracks() async {
     final response = await getIt<DioClient>().get(
       ApiConstants.userTracksPath(widget.userId),
       queryParameters: const {
@@ -759,16 +759,17 @@ Future<List<Track>> _fetchTracks() async {
     // هنلف على التراكات ونجيب الرابط المباشر لكل تراك
     for (var item in items) {
       final trackJson = Map<String, dynamic>.from(item as Map);
-      final trackId = (trackJson['id'] ?? trackJson['trackId'] ?? '').toString();
-      
+      final trackId =
+          (trackJson['id'] ?? trackJson['trackId'] ?? '').toString();
+
       String finalAudioUrl = '';
 
       try {
         // الريكويست اللي بيجيب رابط الـ Stream الحقيقي للتراك
         final sourceResponse = await getIt<DioClient>().get(
-          '/api/v1/player/tracks/$trackId/source', 
+          '/api/v1/player/tracks/$trackId/source',
         );
-        
+
         final streamUrl = sourceResponse.data['streamUrl'];
         if (streamUrl != null && streamUrl.toString().isNotEmpty) {
           finalAudioUrl = streamUrl.toString();
@@ -780,16 +781,16 @@ Future<List<Track>> _fetchTracks() async {
       // كاحتياطي: لو فشل يجيب الرابط المباشر، هنشوف لو موجود في الـ JSON الأصلي
       if (finalAudioUrl.isEmpty) {
         finalAudioUrl = PlatformUrlUtils.normalizeBackendUrl(
-          trackJson['audioUrl']?.toString() ??
-          trackJson['streamUrl']?.toString() ??
-          trackJson['fileUrl']?.toString()
-        ) ?? '';
+                trackJson['audioUrl']?.toString() ??
+                    trackJson['streamUrl']?.toString() ??
+                    trackJson['fileUrl']?.toString()) ??
+            '';
       }
 
       // لو الرابط لسه فاضي هنعمل تخطي عشان البلاير ميضربش إيرور الكراش (ENOENT)
       if (finalAudioUrl.isEmpty) {
         debugPrint('Skipped track $trackId because audioUrl is still empty.');
-        continue; 
+        continue;
       }
 
       // هنباصي الرابط الحقيقي لدالة الماب
@@ -834,7 +835,7 @@ Future<List<Track>> _fetchTracks() async {
       id: trackId,
       title: (json['title'] ?? 'Untitled Track').toString(),
       artist: artistName,
-      audioUrl: validAudioUrl, 
+      audioUrl: validAudioUrl,
       artworkUrl: artworkUrl,
       handle: handle,
       likesCount: _toInt(

@@ -22,7 +22,8 @@ class PaginatedEngagementUsersDto {
 
   factory PaginatedEngagementUsersDto.fromJson(Map<String, dynamic> json) {
     final itemsJson = (json['items'] as List? ?? const [])
-        .map((e) => EngagementUserDto.fromJson(Map<String, dynamic>.from(e as Map)))
+        .map((e) =>
+            EngagementUserDto.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();
 
     final pagination = Map<String, dynamic>.from(
@@ -56,5 +57,5 @@ class PaginatedEngagementUsersDto {
     if (value is int) return value;
     if (value is String) return int.tryParse(value) ?? fallback;
     return fallback;
-    }
+  }
 }
