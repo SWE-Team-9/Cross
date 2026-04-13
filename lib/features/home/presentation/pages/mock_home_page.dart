@@ -120,7 +120,7 @@ class _MockHomePageState extends State<MockHomePage> {
                           onSelect: (g) => setState(() => _selectedGenre = g),
                         ),
                         const _TrendingTracks(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 100), // ← مسافة للـ mini player
                       ],
                     ),
                   ),
@@ -233,7 +233,6 @@ class _TopBar extends StatelessWidget {
       );
       return;
     }
-
     ProfileRoutes.goToProfile(context, currentUserHandle);
   }
 
@@ -738,7 +737,8 @@ class _TrendingTracks extends StatelessWidget {
         tracks.length,
         (i) => Column(
           children: [
-            TrackRow(track: tracks[i]),
+            // ← مرر الـ queue كلها لكل track
+            TrackRow(track: tracks[i], queue: tracks),
             if (i < tracks.length - 1)
               const Divider(
                 color: Color(0xFF1A1A1A),
@@ -753,6 +753,7 @@ class _TrendingTracks extends StatelessWidget {
   }
 }
 
+// ── Bottom nav ────────────────────────────────────────────────────────────────
 class _BottomNav extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onTap;
@@ -832,6 +833,8 @@ class _BottomNav extends StatelessWidget {
     );
   }
 }
+
+// ── Data classes ──────────────────────────────────────────────────────────────
 
 class _AlbumData {
   final String label, sub, handle, topText;

@@ -28,6 +28,7 @@ import '../../features/auth/presentation/bloc/auth_cubit.dart';
 
 // Playback
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 
 // Upload
 import '../../features/upload/data/datasources/audio_file_picker_data_source.dart';
@@ -141,6 +142,7 @@ Future<void> setupDependencies() async {
   }
 
   // ── Core Services ────────────────────────────────────────────────────────
+
   if (!getIt.isRegistered<DeepLinkService>()) {
     getIt.registerLazySingleton<DeepLinkService>(
       () => DeepLinkService(),
@@ -171,17 +173,6 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // Factory — fresh instance per bridge page, not a singleton
-  if (!getIt.isRegistered<TrackLoaderCubit>()) {
-    getIt.registerFactory<TrackLoaderCubit>(
-      () => TrackLoaderCubit(
-        getTrackDetail: getIt<GetTrackDetailUseCase>(),
-        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
-        playerCubit: getIt<PlayerCubit>(),
-      ),
-    );
-  }
-
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
       () => JustAudioPlayerService(),
@@ -191,6 +182,23 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<PlayerCubit>()) {
     getIt.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(getIt<AudioPlayerService>()),
+    );
+  }
+
+  if (!getIt.isRegistered<PlaybackCubit>()) {
+    getIt.registerLazySingleton<PlaybackCubit>(
+      () => PlaybackCubit(getIt<AudioPlayerService>()),
+    );
+  }
+
+  // Factory — fresh instance per bridge page, not a singleton
+  if (!getIt.isRegistered<TrackLoaderCubit>()) {
+    getIt.registerFactory<TrackLoaderCubit>(
+      () => TrackLoaderCubit(
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
+        playerCubit: getIt<PlayerCubit>(),
+      ),
     );
   }
 
