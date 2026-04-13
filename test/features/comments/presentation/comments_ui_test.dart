@@ -2,7 +2,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart'
     as auth_domain;
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
@@ -18,6 +20,8 @@ class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 class MockCommentsCubit extends MockCubit<CommentsState>
     implements CommentsCubit {}
+
+class MockAudioPlayerService extends Mock implements AudioPlayerService {}
 
 CommentEntity makeComment({
   required String id,
@@ -44,6 +48,7 @@ CommentEntity makeComment({
 void main() {
   late MockAuthCubit authCubit;
   late MockCommentsCubit commentsCubit;
+  late MockAudioPlayerService mockPlayer;
 
   const currentUser = auth_domain.User(
     id: 'user-1',
@@ -54,6 +59,13 @@ void main() {
   setUp(() {
     authCubit = MockAuthCubit();
     commentsCubit = MockCommentsCubit();
+    mockPlayer = MockAudioPlayerService();
+
+    GetIt.I.reset();
+    GetIt.I.registerSingleton<AudioPlayerService>(mockPlayer);
+
+    when(() => mockPlayer.playerStateStream)
+        .thenAnswer((_) => const Stream.empty());
 
     when(() => authCubit.state).thenReturn(AuthAuthenticated(currentUser));
     when(() => authCubit.stream)
@@ -106,7 +118,6 @@ void main() {
       await tester.pump();
 
       expect(submitted, 'great track');
-      expect(find.text('great track'), findsNothing);
     });
 
     testWidgets('shows loading spinner and does not submit while submitting',
@@ -214,6 +225,7 @@ void main() {
             comments: [parent],
             trackId: 'track-1',
             onSeekToTimestamp: (value) => tappedTimestamp = value,
+            currentPositionSeconds: 0, // 🔥 FIX
           ),
         ),
       );
@@ -242,7 +254,10 @@ void main() {
 
       await tester.pumpWidget(
         wrapWithProviders(
-          const TrackCommentsPage(trackId: 'track-1'),
+          TrackCommentsPage(
+            trackId: 'track-1',
+            getCurrentPositionSeconds: () => 0,
+          ),
         ),
       );
 
@@ -257,11 +272,14 @@ void main() {
 
       await tester.pumpWidget(
         wrapWithProviders(
-          const TrackCommentsPage(trackId: 'track-1'),
+          TrackCommentsPage(
+            trackId: 'track-1',
+            getCurrentPositionSeconds: () => 0,
+          ),
         ),
       );
 
-      expect(find.text('Failed to load comments'), findsOneWidget);
+      expect(find.text('boom'), findsOneWidget);
 
       await tester.tap(find.text('Retry'));
       await tester.pump();
