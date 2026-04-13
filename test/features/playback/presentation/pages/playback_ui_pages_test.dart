@@ -2,10 +2,12 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/comments/domain/entities/comment_entity.dart';
 import 'package:soundcloud_clone/features/comments/domain/usecases/get_track_comments_usecase.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
@@ -26,6 +28,8 @@ import 'package:soundcloud_clone/features/playback/presentation/pages/track_deep
 import 'package:soundcloud_clone/features/playback/presentation/widgets/mini_player.dart';
 import 'package:soundcloud_clone/features/playback/presentation/widgets/player_controls.dart';
 import 'package:soundcloud_clone/features/playback/presentation/widgets/player_seekbar.dart';
+
+class MockAudioPlayerService extends Mock implements AudioPlayerService {}
 
 class MockPlayerCubit extends MockCubit<PlayerUIState> implements PlayerCubit {}
 
@@ -56,6 +60,13 @@ void main() {
     registerFallbackValue(
         const Track(id: '', title: '', artist: '', audioUrl: ''));
     registerFallbackValue(<Track>[]);
+
+    final mockPlayer = MockAudioPlayerService();
+
+    GetIt.I.registerSingleton<AudioPlayerService>(mockPlayer);
+
+    when(() => mockPlayer.playerStateStream)
+        .thenAnswer((_) => const Stream.empty());
   });
 
   final track = const Track(
@@ -286,6 +297,15 @@ void main() {
 
     setUp(() async {
       await getIt.reset();
+
+      // 🔥 VERY IMPORTANT: re-register AudioPlayerService after reset
+      final mockPlayer = MockAudioPlayerService();
+      if (!GetIt.I.isRegistered<AudioPlayerService>()) {
+        GetIt.I.registerSingleton<AudioPlayerService>(mockPlayer);
+      }
+
+      when(() => mockPlayer.playerStateStream)
+          .thenAnswer((_) => const Stream.empty());
       playerCubit = MockPlayerCubit();
       playbackCubit = MockPlaybackCubit();
       trackInteractionCubit = MockTrackInteractionCubit();
@@ -684,6 +704,13 @@ void main() {
 
     setUp(() async {
       await getIt.reset();
+      final mockPlayer = MockAudioPlayerService();
+      if (!GetIt.I.isRegistered<AudioPlayerService>()) {
+        GetIt.I.registerSingleton<AudioPlayerService>(mockPlayer);
+      }
+
+      when(() => mockPlayer.playerStateStream)
+          .thenAnswer((_) => const Stream.empty());
       loaderCubit = MockTrackLoaderCubit();
       playerCubit = MockPlayerCubit();
       playbackCubit = MockPlaybackCubit();
