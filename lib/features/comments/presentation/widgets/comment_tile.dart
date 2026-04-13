@@ -111,62 +111,69 @@ class CommentTile extends StatelessWidget {
               height: 1.45,
             ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              if (onReplySubmitted != null)
-                TextButton(
-                  onPressed: () async {
-                    final result = await showDialog<String>(
-                      context: context,
-                      builder: (_) {
-                        return AlertDialog(
-                          backgroundColor: const Color(0xFF121212),
-                          title: const Text(
-                            'Reply',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          content: TextField(
-                            controller: replyController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              hintText: 'Write a reply...',
-                              hintStyle: TextStyle(color: Colors.white38),
+          if (onReplySubmitted != null || onDelete != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (onReplySubmitted != null)
+                  TextButton(
+                    onPressed: () async {
+                      final result = await showDialog<String>(
+                        context: context,
+                        builder: (_) {
+                          return AlertDialog(
+                            backgroundColor: const Color(0xFF121212),
+                            title: const Text(
+                              'Reply',
+                              style: TextStyle(color: Colors.white),
                             ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(
-                                context,
-                                replyController.text.trim(),
+                            content: TextField(
+                              controller: replyController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                hintText: 'Write a reply...',
+                                hintStyle: TextStyle(color: Colors.white38),
                               ),
-                              child: const Text('Send'),
                             ),
-                          ],
-                        );
-                      },
-                    );
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(
+                                  context,
+                                  replyController.text.trim(),
+                                ),
+                                child: const Text('Send'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
 
-                    if (result != null && result.isNotEmpty) {
-                      onReplySubmitted!(result);
-                    }
-                  },
-                  child: const Text('Reply'),
-                ),
-              if (onDelete != null)
-                TextButton(
-                  onPressed: onDelete,
-                  child: const Text(
-                    'Delete',
-                    style: TextStyle(color: Colors.redAccent),
+                      if (result != null && result.isNotEmpty) {
+                        onReplySubmitted!(result);
+                      }
+                    },
+                    child: const Text('Reply'),
                   ),
-                ),
-            ],
-          ),
+                if (onDelete != null)
+                  TextButton.icon(
+                    onPressed: onDelete,
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 16,
+                      color: Colors.redAccent,
+                    ),
+                    label: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
