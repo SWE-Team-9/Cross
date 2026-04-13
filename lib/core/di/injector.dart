@@ -76,6 +76,9 @@ import '../../features/interactions/domain/usecases/repost_track_usecase.dart';
 import '../../features/interactions/domain/usecases/unlike_track_usecase.dart';
 import '../../features/interactions/domain/usecases/unrepost_track_usecase.dart';
 import '../../features/interactions/presentation/bloc/track_interaction_cubit.dart';
+import '../../features/interactions/domain/usecases/get_track_likers_usecase.dart';
+import '../../features/interactions/domain/usecases/get_track_reposters_usecase.dart';
+import '../../features/interactions/presentation/bloc/engagement_list_cubit.dart';
 
 // Comments
 import '../../features/comments/data/datasources/comments_remote_data_source.dart';
@@ -523,7 +526,7 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Interactions Feature ─────────────────────────────────────────────────
+   // ── Interactions Feature ─────────────────────────────────────────────────
 
   if (!getIt.isRegistered<InteractionsRemoteDataSource>()) {
     getIt.registerLazySingleton<InteractionsRemoteDataSource>(
@@ -567,6 +570,18 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<GetTrackLikersUseCase>()) {
+    getIt.registerLazySingleton<GetTrackLikersUseCase>(
+      () => GetTrackLikersUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackRepostersUseCase>()) {
+    getIt.registerLazySingleton<GetTrackRepostersUseCase>(
+      () => GetTrackRepostersUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<TrackInteractionCubit>()) {
     getIt.registerFactory<TrackInteractionCubit>(
       () => TrackInteractionCubit(
@@ -576,6 +591,15 @@ Future<void> setupDependencies() async {
         unlikeTrackUseCase: getIt<UnlikeTrackUseCase>(),
         repostTrackUseCase: getIt<RepostTrackUseCase>(),
         unrepostTrackUseCase: getIt<UnrepostTrackUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<EngagementListCubit>()) {
+    getIt.registerFactory<EngagementListCubit>(
+      () => EngagementListCubit(
+        getTrackLikersUseCase: getIt<GetTrackLikersUseCase>(),
+        getTrackRepostersUseCase: getIt<GetTrackRepostersUseCase>(),
       ),
     );
   }

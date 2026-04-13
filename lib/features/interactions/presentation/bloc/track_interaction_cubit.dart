@@ -22,8 +22,19 @@ class TrackInteractionCubit extends Cubit<TrackInteractionState> {
     required this.unrepostTrackUseCase,
   }) : super(TrackInteractionState.initial());
 
-  Future<void> load(String trackId) async {
-    emit(state.copyWith(isLoading: true, clearError: true));
+  Future<void> load({
+    required String trackId,
+    required int likesCount,
+    required int repostsCount,
+  }) async {
+    emit(
+      state.copyWith(
+        isLoading: true,
+        likesCount: likesCount,
+        repostsCount: repostsCount,
+        clearError: true,
+      ),
+    );
 
     try {
       final status = await getTrackInteractionStatusUseCase(trackId);
@@ -33,8 +44,6 @@ class TrackInteractionCubit extends Cubit<TrackInteractionState> {
           isLoading: false,
           isLiked: status.isLiked,
           isReposted: status.isReposted,
-          likesCount: status.likesCount,
-          repostsCount: status.repostsCount,
           clearError: true,
         ),
       );

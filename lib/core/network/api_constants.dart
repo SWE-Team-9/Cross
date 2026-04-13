@@ -59,7 +59,7 @@ abstract class ApiConstants {
 
   // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';
-  static const String commentsBase = '/api/v1/interactions/comments';
+  static const String commentsBase = '$interactionsBase/comments';
 
   static String likeTrackPath(String trackId) =>
       '$interactionsBase/tracks/$trackId/like';
@@ -74,4 +74,10 @@ abstract class ApiConstants {
       '$interactionsBase/tracks/$trackId/comments';
 
   static String commentByIdPath(String commentId) => '$commentsBase/$commentId';
+
+  static String trackLikersPath(String trackId) =>
+      '$interactionsBase/tracks/$trackId/likers';
+
+  static String trackRepostersPath(String trackId) =>
+      '$interactionsBase/tracks/$trackId/reposters';
 }
