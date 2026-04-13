@@ -1,3 +1,4 @@
+import '../../../upload/domain/entities/managed_track.dart';
 import '../../domain/entities/interaction_status.dart';
 import '../../domain/entities/paginated_engagement_users.dart';
 import '../../domain/repositories/interactions_repository.dart';
@@ -60,5 +61,17 @@ class InteractionsRepositoryImpl implements InteractionsRepository {
       limit: limit,
     );
     return dto.toEntity();
+  }
+
+  @override
+  Future<List<ManagedTrack>> getMyLikedTracks() async {
+    final dtos = await remoteDataSource.getMyLikedTracks();
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  }
+
+  @override
+  Future<List<ManagedTrack>> getMyRepostedTracks() async {
+    final dtos = await remoteDataSource.getMyRepostedTracks();
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
   }
 }
