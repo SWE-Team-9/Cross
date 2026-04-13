@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
+import '../../../interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
+import '../../../interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
 import '../../../upload/domain/entities/managed_track.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
@@ -12,14 +14,20 @@ class ProfileCubit extends Cubit<ProfileState> {
   final GetProfileUseCase _getProfileUseCase;
   final UpdateProfileUseCase _updateProfileUseCase;
   final ProfileRepository _profileRepository;
+  final GetMyLikedTracksUseCase _getMyLikedTracksUseCase;
+  final GetMyRepostedTracksUseCase _getMyRepostedTracksUseCase;
 
   ProfileCubit({
     required GetProfileUseCase getProfileUseCase,
     required UpdateProfileUseCase updateProfileUseCase,
     required ProfileRepository profileRepository,
+    required GetMyLikedTracksUseCase getMyLikedTracksUseCase,
+    required GetMyRepostedTracksUseCase getMyRepostedTracksUseCase,
   })  : _getProfileUseCase = getProfileUseCase,
         _updateProfileUseCase = updateProfileUseCase,
         _profileRepository = profileRepository,
+        _getMyLikedTracksUseCase = getMyLikedTracksUseCase,
+        _getMyRepostedTracksUseCase = getMyRepostedTracksUseCase,
         super(ProfileInitial());
 
   Future<void> loadProfile(String handle) async {
@@ -57,6 +65,9 @@ class ProfileCubit extends Cubit<ProfileState> {
       );
 
       List<ManagedTrack> tracks = const <ManagedTrack>[];
+      List<ManagedTrack> likedTracks = const <ManagedTrack>[];
+      List<ManagedTrack> repostedTracks = const <ManagedTrack>[];
+
       try {
         tracks = await _profileRepository.getUserTracks(profile.id).timeout(
           const Duration(seconds: 10),
@@ -70,7 +81,47 @@ class ProfileCubit extends Cubit<ProfileState> {
         tracks = const <ManagedTrack>[];
       }
 
-      emit(ProfileLoaded(profile, tracks: tracks));
+      try {
+        likedTracks = await _getMyLikedTracksUseCase().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Liked tracks request timed out. Please check your connection.',
+            );
+          },
+        );
+        // ignore: avoid_print
+        print('LIKED TRACKS COUNT: ${likedTracks.length}');
+      } catch (e) {
+        // ignore: avoid_print
+        print('LIKED TRACKS ERROR: $e');
+        likedTracks = const <ManagedTrack>[];
+      }
+
+      try {
+        repostedTracks = await _getMyRepostedTracksUseCase().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Reposted tracks request timed out. Please check your connection.',
+            );
+          },
+        );
+        // ignore: avoid_print
+        print('REPOSTED TRACKS COUNT: ${repostedTracks.length}');
+      } catch (e) {
+        // ignore: avoid_print
+        print('REPOSTED TRACKS ERROR: $e');
+        repostedTracks = const <ManagedTrack>[];
+      }
+      emit(
+        ProfileLoaded(
+          profile,
+          tracks: tracks,
+          likedTracks: likedTracks,
+          repostedTracks: repostedTracks,
+        ),
+      );
     } on Failure catch (failure) {
       emit(ProfileError(failure.message));
     } catch (_) {
@@ -83,13 +134,29 @@ class ProfileCubit extends Cubit<ProfileState> {
     if (currentProfile == null) return;
 
     final List<ManagedTrack> currentTracks = _tracksFromState();
+    final List<ManagedTrack> currentLikedTracks = _likedTracksFromState();
+    final List<ManagedTrack> currentRepostedTracks = _repostedTracksFromState();
 
     if (!params.hasBaseProfileChanges && !params.hasExternalLinksChanges) {
-      emit(ProfileLoaded(currentProfile, tracks: currentTracks));
+      emit(
+        ProfileLoaded(
+          currentProfile,
+          tracks: currentTracks,
+          likedTracks: currentLikedTracks,
+          repostedTracks: currentRepostedTracks,
+        ),
+      );
       return;
     }
 
-    emit(ProfileUpdating(currentProfile));
+    emit(
+      ProfileUpdating(
+        currentProfile,
+        tracks: currentTracks,
+        likedTracks: currentLikedTracks,
+        repostedTracks: currentRepostedTracks,
+      ),
+    );
 
     try {
       ProfileEntity workingProfile = currentProfile;
@@ -105,15 +172,41 @@ class ProfileCubit extends Cubit<ProfileState> {
         workingProfile = workingProfile.copyWith(externalLinks: updatedLinks);
       }
 
-      emit(ProfileUpdateSuccess(workingProfile));
-      emit(ProfileLoaded(workingProfile, tracks: currentTracks));
+      emit(
+        ProfileUpdateSuccess(
+          workingProfile,
+          tracks: currentTracks,
+          likedTracks: currentLikedTracks,
+          repostedTracks: currentRepostedTracks,
+        ),
+      );
+
+      emit(
+        ProfileLoaded(
+          workingProfile,
+          tracks: currentTracks,
+          likedTracks: currentLikedTracks,
+          repostedTracks: currentRepostedTracks,
+        ),
+      );
     } on Failure catch (failure) {
-      emit(ProfileUpdateError(currentProfile, failure.message));
+      emit(
+        ProfileUpdateError(
+          currentProfile,
+          failure.message,
+          tracks: currentTracks,
+          likedTracks: currentLikedTracks,
+          repostedTracks: currentRepostedTracks,
+        ),
+      );
     } catch (_) {
       emit(
         ProfileUpdateError(
           currentProfile,
           'Unable to update profile. Please try again.',
+          tracks: currentTracks,
+          likedTracks: currentLikedTracks,
+          repostedTracks: currentRepostedTracks,
         ),
       );
     }
@@ -127,12 +220,16 @@ class ProfileCubit extends Cubit<ProfileState> {
     if (currentProfile == null) return;
 
     final List<ManagedTrack> currentTracks = _tracksFromState();
+    final List<ManagedTrack> currentLikedTracks = _likedTracksFromState();
+    final List<ManagedTrack> currentRepostedTracks = _repostedTracksFromState();
 
     emit(
       ProfileImageUploading(
         currentProfile,
         imageType,
         tracks: currentTracks,
+        likedTracks: currentLikedTracks,
+        repostedTracks: currentRepostedTracks,
       ),
     );
 
@@ -146,7 +243,14 @@ class ProfileCubit extends Cubit<ProfileState> {
           ? currentProfile.copyWith(avatarUrl: newUrl)
           : currentProfile.copyWith(coverPhotoUrl: newUrl);
 
-      emit(ProfileLoaded(updatedProfile, tracks: currentTracks));
+      emit(
+        ProfileLoaded(
+          updatedProfile,
+          tracks: currentTracks,
+          likedTracks: currentLikedTracks,
+          repostedTracks: currentRepostedTracks,
+        ),
+      );
     } on Failure catch (failure) {
       emit(
         ProfileImageUploadError(
@@ -155,6 +259,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           filePath: filePath,
           message: failure.message,
           tracks: currentTracks,
+          likedTracks: currentLikedTracks,
+          repostedTracks: currentRepostedTracks,
         ),
       );
     } catch (_) {
@@ -165,6 +271,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           filePath: filePath,
           message: 'Unable to upload image. Please try again.',
           tracks: currentTracks,
+          likedTracks: currentLikedTracks,
+          repostedTracks: currentRepostedTracks,
         ),
       );
     }
@@ -201,11 +309,70 @@ class ProfileCubit extends Cubit<ProfileState> {
     if (currentState is ProfileLoaded) {
       return currentState.tracks;
     }
+    if (currentState is ProfileUpdating) {
+      return currentState.tracks;
+    }
+    if (currentState is ProfileUpdateSuccess) {
+      return currentState.tracks;
+    }
+    if (currentState is ProfileUpdateError) {
+      return currentState.tracks;
+    }
     if (currentState is ProfileImageUploading) {
       return currentState.tracks;
     }
     if (currentState is ProfileImageUploadError) {
       return currentState.tracks;
+    }
+
+    return const <ManagedTrack>[];
+  }
+
+  List<ManagedTrack> _likedTracksFromState() {
+    final currentState = state;
+
+    if (currentState is ProfileLoaded) {
+      return currentState.likedTracks;
+    }
+    if (currentState is ProfileUpdating) {
+      return currentState.likedTracks;
+    }
+    if (currentState is ProfileUpdateSuccess) {
+      return currentState.likedTracks;
+    }
+    if (currentState is ProfileUpdateError) {
+      return currentState.likedTracks;
+    }
+    if (currentState is ProfileImageUploading) {
+      return currentState.likedTracks;
+    }
+    if (currentState is ProfileImageUploadError) {
+      return currentState.likedTracks;
+    }
+
+    return const <ManagedTrack>[];
+  }
+
+  List<ManagedTrack> _repostedTracksFromState() {
+    final currentState = state;
+
+    if (currentState is ProfileLoaded) {
+      return currentState.repostedTracks;
+    }
+    if (currentState is ProfileUpdating) {
+      return currentState.repostedTracks;
+    }
+    if (currentState is ProfileUpdateSuccess) {
+      return currentState.repostedTracks;
+    }
+    if (currentState is ProfileUpdateError) {
+      return currentState.repostedTracks;
+    }
+    if (currentState is ProfileImageUploading) {
+      return currentState.repostedTracks;
+    }
+    if (currentState is ProfileImageUploadError) {
+      return currentState.repostedTracks;
     }
 
     return const <ManagedTrack>[];

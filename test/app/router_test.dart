@@ -66,6 +66,12 @@ class FakeDeepLinkService implements DeepLinkService {
   DeepLinkDestination? consumeLastDestination() => null;
 
   @override
+  DeepLinkDestination? peekLastDestination() => null;
+
+  @override
+  void markLastDestinationConsumed() {}
+
+  @override
   Future<void> init() async {}
 
   @override
@@ -454,6 +460,20 @@ void main() {
       expect(find.text('Search page is not implemented yet.'), findsOneWidget);
     });
 
+    testWidgets('search route reads query parameter from url', (tester) async {
+      await pumpRouter(
+        tester,
+        authState: authenticatedUser,
+        initialLocation: '/search?q=edm',
+      );
+
+      expect(find.text('Search: edm'), findsOneWidget);
+      expect(
+        find.text('Search: edm page is not implemented yet.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('can navigate to upgrade placeholder', (tester) async {
       await pumpRouter(
         tester,
@@ -463,6 +483,33 @@ void main() {
 
       expect(find.text('Upgrade'), findsOneWidget);
       expect(find.text('Upgrade page is not implemented yet.'), findsOneWidget);
+    });
+
+    testWidgets('404 fallback Go Home button navigates home', (tester) async {
+      await pumpRouter(
+        tester,
+        authState: authenticatedUser,
+        initialLocation: '/missing-route',
+      );
+
+      await tester.tap(find.text('Go Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('GET PRO'), findsOneWidget);
+    });
+
+    testWidgets('feed placeholder Go Home button navigates home',
+        (tester) async {
+      await pumpRouter(
+        tester,
+        authState: authenticatedUser,
+        initialLocation: app_router.AppRoutes.feed,
+      );
+
+      await tester.tap(find.text('Go Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('GET PRO'), findsOneWidget);
     });
   });
 }

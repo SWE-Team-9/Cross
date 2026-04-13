@@ -120,8 +120,8 @@ void main() {
           ApiConstants.trackCommentsPath('t1'),
           data: {
             'content': 'hey',
-            'parent_comment_id': 'p1',
-            'timestamp_seconds': 33,
+            'timestampAt': 33,
+            'parentCommentId': 'p1',
           },
         ),
       ).thenAnswer(

@@ -33,6 +33,7 @@ import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../features/playback/presentation/pages/full_player_page.dart';
 import '../features/playback/presentation/pages/track_deep_link_bridge_page.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 
 // Project — recently played
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
@@ -88,6 +89,8 @@ void _handleDeepLinkDestination(
       path = _playlistPath(playlistId);
     case SearchDeepLink(:final query):
       path = _searchPath(query);
+    case OAuthCallbackDeepLink():
+      return;
     case InvalidDeepLink(:final reason):
       debugPrint('[DeepLink] Invalid link ignored: $reason');
       return;
@@ -281,7 +284,10 @@ GoRouter _createRouter() {
         name: 'player',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => CustomTransitionPage<void>(
-          child: const FullPlayerPage(),
+          child: BlocProvider(
+            create: (_) => getIt<TrackInteractionCubit>(),
+            child: const FullPlayerPage(),
+          ),
           transitionDuration: const Duration(milliseconds: 180),
           reverseTransitionDuration: const Duration(milliseconds: 140),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -378,7 +384,6 @@ GoRouter _createRouter() {
     ),
   );
 
-  // ── Deep link listener ────────────────────────────────────────────────────
   final DeepLinkService deepLinkService = getIt<DeepLinkService>();
 
   final DeepLinkDestination? pending = deepLinkService.consumeLastDestination();

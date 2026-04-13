@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../upload/domain/entities/track_management_visibility.dart';
+
 import '../../../../core/di/injector.dart';
 import '../../../../core/utils/platform_url_utils.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
@@ -71,6 +71,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   bool _didSeedInitialTracks = false;
 
   List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
+  List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
+  List<ManagedTrack> _repostedTracks = const <ManagedTrack>[];
 
   bool get _isOwnProfile {
     final authState = context.read<AuthCubit>().state;
@@ -80,16 +82,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return false;
   }
 
+  // ── Lifecycle Methods ───────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   @override
@@ -102,8 +100,18 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     final profileState = context.read<ProfileCubit>().state;
     if (_isOwnProfile && profileState is ProfileLoaded) {
       _managedTracks = profileState.tracks;
+      _likedTracks = profileState.likedTracks;
+      _repostedTracks = profileState.repostedTracks;
     }
   }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // ── Action Methods ──────────────────────────────────────────────────────
 
   void _syncManagedTracks(ProfileState state) {
     if (!mounted || !_isOwnProfile) return;
@@ -111,6 +119,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     if (state is ProfileLoaded) {
       setState(() {
         _managedTracks = state.tracks;
+        _likedTracks = state.likedTracks;
+        _repostedTracks = state.repostedTracks;
       });
     }
   }
@@ -420,6 +430,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return 'https://$trimmed';
   }
 
+  // ── Main Build Method ───────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
@@ -504,10 +516,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           body: TabBarView(
             controller: _tabController,
             children: [
-              _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet'),
+              _buildLikedTracksTab(),
               _buildTracksTab(),
               _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet'),
-              _buildEmptyTab(Icons.repeat, 'No reposts yet'),
+              _buildRepostedTracksTab(),
             ],
           ),
         ),
@@ -515,8 +527,24 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
+  // ── Tab Builders ────────────────────────────────────────────────────────
+
+  Widget _buildLikedTracksTab() {
+    if (!_isOwnProfile) {
+      return _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet');
+    }
+
+    return _ProfileTracksListTab(
+      tracks: _likedTracks,
+      emptyIcon: Icons.favorite_border,
+      emptyMessage: 'No liked tracks yet',
+      onPlayTap: _playTrack,
+    );
+  }
+
   Widget _buildTracksTab() {
     if (!_isOwnProfile) {
+      // NOTE: You can change this later to fetch public tracks for other users
       return _buildEmptyTab(Icons.music_note_outlined, 'No tracks yet');
     }
 
@@ -526,6 +554,45 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       onPlayTap: _playTrack,
     );
   }
+
+  Widget _buildRepostedTracksTab() {
+    if (!_isOwnProfile) {
+      return _buildEmptyTab(Icons.repeat, 'No reposts yet');
+    }
+
+    return _ProfileTracksListTab(
+      tracks: _repostedTracks,
+      emptyIcon: Icons.repeat,
+      emptyMessage: 'No reposts yet',
+      onPlayTap: _playTrack,
+    );
+  }
+
+  Widget _buildEmptyTab(IconData icon, String message) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 48, color: Colors.white24),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: const TextStyle(color: Colors.white38),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── UI Components ───────────────────────────────────────────────────────
 
   Widget _buildActionRow(BuildContext context, ProfileEntity profile) {
     return Padding(
@@ -672,6 +739,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildAvatar(ProfileEntity profile) {
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
+    final ImageProvider<Object>? avatarImage =
+        avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -681,8 +750,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       child: CircleAvatar(
         radius: 50,
         backgroundColor: const Color(0xFF5B7BBB),
-        backgroundImage:
-            avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null,
+        backgroundImage: avatarImage,
+        onBackgroundImageError: avatarImage != null ? (_, __) {} : null,
         child: avatarUrl == null
             ? const Icon(
                 Icons.person,
@@ -766,8 +835,11 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 16, color: Colors.grey),
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: Colors.grey,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   location,
@@ -935,30 +1007,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
-  Widget _buildEmptyTab(IconData icon, String message) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 48, color: Colors.white24),
-                const SizedBox(height: 12),
-                Text(
-                  message,
-                  style: const TextStyle(color: Colors.white38),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _circleIconBtn(IconData icon, VoidCallback onTap) {
     return IconButton(
       onPressed: onTap,
@@ -979,6 +1027,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 }
+
+// ── Shared Sub-Widgets ──────────────────────────────────────────────────
 
 class _ManagedProfileTracksTab extends StatelessWidget {
   final List<ManagedTrack> tracks;
@@ -1014,13 +1064,68 @@ class _ManagedProfileTracksTab extends StatelessWidget {
               style: const TextStyle(color: Colors.white),
             ),
             subtitle: Text(
-              track.visibility.displayLabel,
+              track.visibility.name,
               style: const TextStyle(color: Colors.grey),
             ),
             trailing: OutlinedButton(
               onPressed: () => onManageTap(track),
               child: const Text('Manage'),
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProfileTracksListTab extends StatelessWidget {
+  final List<ManagedTrack> tracks;
+  final IconData emptyIcon;
+  final String emptyMessage;
+  final ValueChanged<ManagedTrack> onPlayTap;
+
+  const _ProfileTracksListTab({
+    required this.tracks,
+    required this.emptyIcon,
+    required this.emptyMessage,
+    required this.onPlayTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (tracks.isEmpty) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(emptyIcon, size: 48, color: Colors.white24),
+                  const SizedBox(height: 12),
+                  Text(
+                    emptyMessage,
+                    style: const TextStyle(color: Colors.white38),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return ListView.builder(
+      itemCount: tracks.length,
+      itemBuilder: (context, index) {
+        final track = tracks[index];
+
+        return ListTile(
+          onTap: () => onPlayTap(track),
+          title: Text(
+            track.title,
+            style: const TextStyle(color: Colors.white),
           ),
         );
       },

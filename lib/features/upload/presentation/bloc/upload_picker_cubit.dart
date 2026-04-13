@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/upload_picker_exceptions.dart';
+import '../../domain/entities/managed_track.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../../domain/entities/track_status.dart';
 import '../../domain/repositories/upload_repository.dart';
@@ -162,42 +163,22 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         uploadResult.status,
       );
 
-      String? privateShareToken = uploadResult.secretToken;
+      TrackManagementVisibility? uploadedVisibility =
+          visibility == TrackManagementVisibility.privateTrack
+              ? TrackManagementVisibility.privateTrack
+              : null;
 
-      try {
-        final updatedTrack = await _updateTrackVisibilityUseCase(
-          trackId: uploadResult.trackId,
-          visibility: visibility,
-        );
-
-        if (visibility == TrackManagementVisibility.privateTrack) {
-          privateShareToken = updatedTrack.secretToken ?? privateShareToken;
-        } else {
-          privateShareToken = null;
-        }
-      } catch (error) {
-        emit(
-          state.copyWith(
-            status: UploadPickerStatus.failure,
-            uploadedTrackId: uploadResult.trackId,
-            processingStatus: initialStatus.name,
-            errorMessage:
-                'Track uploaded, but visibility could not be updated. ${_readableError(error)}',
-            clearFailureType: true,
-            clearUploadProgress: true,
-            clearUploadedVisibility: true,
-            clearPrivateShareToken: true,
-          ),
-        );
-        return;
-      }
+      String? privateShareToken =
+          visibility == TrackManagementVisibility.privateTrack
+              ? uploadResult.secretToken
+              : null;
 
       emit(
         state.copyWith(
           status: UploadPickerStatus.processing,
           uploadedTrackId: uploadResult.trackId,
           processingStatus: initialStatus.name,
-          uploadedVisibility: visibility,
+          uploadedVisibility: uploadedVisibility,
           privateShareToken: privateShareToken,
           clearErrorMessage: true,
           clearFailureType: true,
@@ -209,7 +190,10 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         emit(
           state.copyWith(
             status: UploadPickerStatus.failure,
+            uploadedTrackId: uploadResult.trackId,
             processingStatus: initialStatus.name,
+            uploadedVisibility: uploadedVisibility,
+            privateShareToken: privateShareToken,
             errorMessage: 'Track processing failed. Please try again.',
             clearFailureType: true,
             clearUploadProgress: true,
@@ -219,10 +203,38 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       }
 
       if (initialStatus.isReady) {
+        final resolution = await _resolveRequestedVisibility(
+          trackId: uploadResult.trackId,
+          requestedVisibility: visibility,
+          fallbackPrivateShareToken: uploadResult.secretToken,
+        );
+
+        uploadedVisibility = resolution.uploadedVisibility;
+        privateShareToken = resolution.privateShareToken;
+
+        if (resolution.errorMessage != null) {
+          emit(
+            state.copyWith(
+              status: UploadPickerStatus.failure,
+              uploadedTrackId: uploadResult.trackId,
+              processingStatus: initialStatus.name,
+              uploadedVisibility: uploadedVisibility,
+              privateShareToken: privateShareToken,
+              errorMessage: resolution.errorMessage,
+              clearFailureType: true,
+              clearUploadProgress: true,
+            ),
+          );
+          return;
+        }
+
         emit(
           state.copyWith(
             status: UploadPickerStatus.success,
+            uploadedTrackId: uploadResult.trackId,
             processingStatus: initialStatus.name,
+            uploadedVisibility: uploadedVisibility,
+            privateShareToken: privateShareToken,
             clearErrorMessage: true,
             clearFailureType: true,
             clearUploadProgress: true,
@@ -240,18 +252,23 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
             status: UploadPickerStatus.processing,
             uploadedTrackId: uploadResult.trackId,
             processingStatus: polledStatus.name,
+            uploadedVisibility: uploadedVisibility,
+            privateShareToken: privateShareToken,
             clearErrorMessage: true,
             clearFailureType: true,
             clearUploadProgress: true,
           ),
         );
 
-        if (polledStatus.isReady) {
+        if (polledStatus == TrackStatus.FAILED) {
           emit(
             state.copyWith(
-              status: UploadPickerStatus.success,
+              status: UploadPickerStatus.failure,
+              uploadedTrackId: uploadResult.trackId,
               processingStatus: polledStatus.name,
-              clearErrorMessage: true,
+              uploadedVisibility: uploadedVisibility,
+              privateShareToken: privateShareToken,
+              errorMessage: 'Track processing failed. Please try again.',
               clearFailureType: true,
               clearUploadProgress: true,
             ),
@@ -259,12 +276,40 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
           return;
         }
 
-        if (polledStatus == TrackStatus.FAILED) {
+        if (polledStatus.isReady) {
+          final resolution = await _resolveRequestedVisibility(
+            trackId: uploadResult.trackId,
+            requestedVisibility: visibility,
+            fallbackPrivateShareToken: uploadResult.secretToken,
+          );
+
+          uploadedVisibility = resolution.uploadedVisibility;
+          privateShareToken = resolution.privateShareToken;
+
+          if (resolution.errorMessage != null) {
+            emit(
+              state.copyWith(
+                status: UploadPickerStatus.failure,
+                uploadedTrackId: uploadResult.trackId,
+                processingStatus: polledStatus.name,
+                uploadedVisibility: uploadedVisibility,
+                privateShareToken: privateShareToken,
+                errorMessage: resolution.errorMessage,
+                clearFailureType: true,
+                clearUploadProgress: true,
+              ),
+            );
+            return;
+          }
+
           emit(
             state.copyWith(
-              status: UploadPickerStatus.failure,
+              status: UploadPickerStatus.success,
+              uploadedTrackId: uploadResult.trackId,
               processingStatus: polledStatus.name,
-              errorMessage: 'Track processing failed. Please try again.',
+              uploadedVisibility: uploadedVisibility,
+              privateShareToken: privateShareToken,
+              clearErrorMessage: true,
               clearFailureType: true,
               clearUploadProgress: true,
             ),
@@ -276,6 +321,10 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       emit(
         state.copyWith(
           status: UploadPickerStatus.failure,
+          uploadedTrackId: uploadResult.trackId,
+          processingStatus: initialStatus.name,
+          uploadedVisibility: uploadedVisibility,
+          privateShareToken: privateShareToken,
           errorMessage:
               'Track is still processing. Please check again in a moment.',
           clearFailureType: true,
@@ -294,6 +343,51 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         ),
       );
     }
+  }
+
+  Future<_VisibilityResolution> _resolveRequestedVisibility({
+    required String trackId,
+    required TrackManagementVisibility requestedVisibility,
+    required String? fallbackPrivateShareToken,
+  }) async {
+    if (requestedVisibility == TrackManagementVisibility.privateTrack) {
+      return _VisibilityResolution(
+        uploadedVisibility: TrackManagementVisibility.privateTrack,
+        privateShareToken: fallbackPrivateShareToken,
+      );
+    }
+
+    Object? lastError;
+
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        final ManagedTrack updatedTrack = await _updateTrackVisibilityUseCase(
+          trackId: trackId,
+          visibility: TrackManagementVisibility.publicTrack,
+        );
+
+        return _VisibilityResolution(
+          uploadedVisibility: updatedTrack.visibility,
+          privateShareToken:
+              updatedTrack.visibility == TrackManagementVisibility.privateTrack
+                  ? updatedTrack.secretToken ?? fallbackPrivateShareToken
+                  : null,
+        );
+      } catch (error) {
+        lastError = error;
+
+        if (attempt < 2) {
+          await Future<void>.delayed(const Duration(seconds: 1));
+        }
+      }
+    }
+
+    return _VisibilityResolution(
+      uploadedVisibility: TrackManagementVisibility.privateTrack,
+      privateShareToken: fallbackPrivateShareToken,
+      errorMessage:
+          'Track uploaded successfully, but it is still private because visibility could not be updated. ${_readableError(lastError ?? Exception('Unknown error'))}',
+    );
   }
 
   void clearSelection() {
@@ -348,4 +442,16 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
     final raw = error.toString().trim();
     return raw.replaceFirst('Exception: ', '');
   }
+}
+
+class _VisibilityResolution {
+  const _VisibilityResolution({
+    required this.uploadedVisibility,
+    required this.privateShareToken,
+    this.errorMessage,
+  });
+
+  final TrackManagementVisibility? uploadedVisibility;
+  final String? privateShareToken;
+  final String? errorMessage;
 }
