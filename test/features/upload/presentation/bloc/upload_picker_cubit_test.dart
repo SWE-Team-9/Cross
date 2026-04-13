@@ -223,6 +223,65 @@ void main() {
   );
 
   blocTest<UploadPickerCubit, UploadPickerState>(
+    'uploadSelectedFile parses trailing-comma tags input as single tag list',
+    build: () {
+      when(
+        () => mockUploadRepository.uploadTrack(
+          file: tPickedAudioFile,
+          title: 'My Track',
+          genre: null,
+          description: null,
+          tags: const <String>['lofi'],
+          onProgress: any(named: 'onProgress'),
+        ),
+      ).thenAnswer((_) async => tFinishedUploadTrackResult);
+
+      when(
+        () => mockUpdateTrackVisibilityUseCase(
+          trackId: 'track-123',
+          visibility: TrackManagementVisibility.privateTrack,
+        ),
+      ).thenAnswer(
+        (_) async => const ManagedTrack(
+          id: 'track-123',
+          title: 'My Track',
+          visibility: TrackManagementVisibility.privateTrack,
+        ),
+      );
+
+      return buildCubit();
+    },
+    seed: () => const UploadPickerState(
+      status: UploadPickerStatus.ready,
+      pickedAudioFile: tPickedAudioFile,
+    ),
+    act: (cubit) => cubit.uploadSelectedFile(
+      title: 'My Track',
+      tagsInput: 'lofi,',
+    ),
+    expect: () => [
+      const UploadPickerState(
+        status: UploadPickerStatus.uploading,
+        pickedAudioFile: tPickedAudioFile,
+      ),
+      const UploadPickerState(
+        status: UploadPickerStatus.processing,
+        pickedAudioFile: tPickedAudioFile,
+        uploadedTrackId: 'track-123',
+        processingStatus: 'FINISHED',
+        uploadedVisibility: TrackManagementVisibility.privateTrack,
+      ),
+      const UploadPickerState(
+        status: UploadPickerStatus.success,
+        pickedAudioFile: tPickedAudioFile,
+        uploadedTrackId: 'track-123',
+        processingStatus: 'FINISHED',
+        uploadedVisibility: TrackManagementVisibility.privateTrack,
+      ),
+    ],
+  );
+
+  blocTest<UploadPickerCubit, UploadPickerState>(
     'uploadSelectedFile emits failure when upload throws',
     build: () {
       when(

@@ -34,6 +34,11 @@ Open **Run and Debug** in VS Code and choose the configuration you want.
 
 These configurations already include the required `--dart-define` values, so you do not need to type them manually each time.
 
+## Testing Docs
+
+- App keys: `docs/testing/app_keys.md`
+- Sprint 0/1/2/3 manual QA plan: `docs/testing/sprint_0_1_2_3_manual_test_plan.md`
+
 ## Running the app manually
 
 ### PowerShell - Android emulator
