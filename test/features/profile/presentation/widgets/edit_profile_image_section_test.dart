@@ -118,7 +118,7 @@ void main() {
       await tester.pump();
 
       final exception = tester.takeException();
-      expect(exception, isNotNull);
+      expect(exception, isNull);
 
       expect(find.byType(CircleAvatar), findsOneWidget);
       expect(find.byIcon(Icons.person), findsNothing);

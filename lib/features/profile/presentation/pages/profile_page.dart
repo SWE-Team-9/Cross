@@ -739,6 +739,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildAvatar(ProfileEntity profile) {
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
+    final ImageProvider<Object>? avatarImage =
+        avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -748,8 +750,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       child: CircleAvatar(
         radius: 50,
         backgroundColor: const Color(0xFF5B7BBB),
-        backgroundImage:
-            avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null,
+        backgroundImage: avatarImage,
+        onBackgroundImageError: avatarImage != null ? (_, __) {} : null,
         child: avatarUrl == null
             ? const Icon(
                 Icons.person,
@@ -1092,18 +1094,25 @@ class _ProfileTracksListTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (tracks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(emptyIcon, size: 48, color: Colors.white24),
-            const SizedBox(height: 12),
-            Text(
-              emptyMessage,
-              style: const TextStyle(color: Colors.white38),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(emptyIcon, size: 48, color: Colors.white24),
+                  const SizedBox(height: 12),
+                  Text(
+                    emptyMessage,
+                    style: const TextStyle(color: Colors.white38),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          );
+        },
       );
     }
 

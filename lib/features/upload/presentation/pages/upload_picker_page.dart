@@ -147,6 +147,12 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
         },
         builder: (context, state) {
           final cubit = context.read<UploadPickerCubit>();
+          final bool canStartNewUpload =
+              !state.isBusy && !state.hasCreatedTrack;
+          final bool canEditCurrentUpload =
+              !state.isBusy && !state.hasCreatedTrack;
+          final bool canClearCurrentUpload =
+              !state.isBusy && state.hasSelection;
 
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -155,7 +161,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                 _UserAccountCard(user: user),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: state.isBusy ? null : cubit.pickAudioFile,
+                  onPressed: canStartNewUpload ? cubit.pickAudioFile : null,
                   child: Text(
                     state.status == UploadPickerStatus.picking
                         ? 'Selecting...'
@@ -173,12 +179,12 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                     genreController: _genreController,
                     tagsController: _tagsController,
                     descriptionController: _descriptionController,
-                    isEnabled: !state.isBusy,
+                    isEnabled: canEditCurrentUpload,
                   ),
                   const SizedBox(height: 16),
                   _UploadVisibilityCard(
                     selectedVisibility: _selectedVisibility,
-                    isEnabled: !state.isBusy,
+                    isEnabled: canEditCurrentUpload,
                     onChanged: (visibility) {
                       setState(() {
                         _selectedVisibility = visibility;
@@ -190,23 +196,24 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed:
-                              state.isBusy ? null : () => _resetForm(cubit),
+                          onPressed: canClearCurrentUpload
+                              ? () => _resetForm(cubit)
+                              : null,
                           child: const Text('Clear'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: state.isBusy
-                              ? null
-                              : () => cubit.uploadSelectedFile(
+                          onPressed: canEditCurrentUpload
+                              ? () => cubit.uploadSelectedFile(
                                     title: _titleController.text,
                                     genre: _genreController.text,
                                     tagsInput: _tagsController.text,
                                     description: _descriptionController.text,
                                     visibility: _selectedVisibility,
-                                  ),
+                                  )
+                              : null,
                           child: Text(
                             state.status == UploadPickerStatus.uploading
                                 ? 'Uploading...'
@@ -521,8 +528,17 @@ class _UploadStatusCard extends StatelessWidget {
         trailing = const Icon(Icons.check_circle, color: Colors.green);
         break;
       case UploadPickerStatus.failure:
-        title = 'Upload failed';
+        title = state.uploadedTrackId != null
+            ? 'Upload completed with warning'
+            : 'Upload failed';
+
         subtitle = state.errorMessage ?? 'Something went wrong.';
+
+        if (state.uploadedTrackId != null) {
+          subtitle =
+              '$subtitle\n\nTrack ID: ${state.uploadedTrackId}\nStatus: ${state.processingStatus ?? '-'}';
+        }
+
         trailing = const Icon(Icons.error_outline, color: Colors.red);
         break;
       case UploadPickerStatus.initial:

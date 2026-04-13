@@ -42,6 +42,10 @@ class FakeDeepLinkService implements DeepLinkService {
   @override
   DeepLinkDestination? consumeLastDestination() => null;
   @override
+  DeepLinkDestination? peekLastDestination() => null;
+  @override
+  void markLastDestinationConsumed() {}
+  @override
   Future<void> init() async {}
   @override
   Future<void> dispose() async {}

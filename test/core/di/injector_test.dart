@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:soundcloud_clone/main.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
@@ -87,14 +88,16 @@ void main() {
 
   setUpAll(() {
     audioHandler = FakeAudioHandler();
-  });
 
-  setUp(() async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
       pathProviderChannel,
       (MethodCall methodCall) async => '.',
     );
+  });
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
 
     await getIt.reset();
 
@@ -104,9 +107,12 @@ void main() {
   });
 
   tearDown(() async {
+    await getIt.reset();
+  });
+
+  tearDownAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(pathProviderChannel, null);
-    await getIt.reset();
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -412,13 +418,10 @@ void main() {
 
   group('setupDependencies idempotency', () {
     test('can be called twice without throwing', () async {
-      await expectLater(
-        () async {
-          await setupDependencies();
-          await setupDependencies();
-        },
-        returnsNormally,
-      );
+      await setupDependencies();
+      await Future<void>.delayed(Duration.zero);
+      await setupDependencies();
+      await Future<void>.delayed(Duration.zero);
     });
   });
 
@@ -430,7 +433,8 @@ void main() {
 
   group('Mock track management mode parsing', () {
     test('setupDependencies completes without error (default mode)', () async {
-      await expectLater(setupDependencies(), completes);
+      await setupDependencies();
+      await Future<void>.delayed(Duration.zero);
     });
   });
 }

@@ -14,6 +14,10 @@ import 'package:soundcloud_clone/features/auth/domain/usecases/send_email_verifi
 import 'package:soundcloud_clone/features/auth/domain/usecases/verify_email_usecase.dart';
 import 'package:soundcloud_clone/features/auth/domain/usecases/request_email_change_usecase.dart';
 import 'package:soundcloud_clone/features/auth/domain/usecases/confirm_email_change_usecase.dart';
+import 'package:soundcloud_clone/features/auth/domain/repositories/auth_repository.dart';
+import 'package:soundcloud_clone/core/oauth/oauth_pending_request_store.dart';
+import 'package:soundcloud_clone/core/oauth/windows_oauth_callback_server.dart';
+import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 
 class MockLoginUseCase extends Mock implements LoginUseCase {}
@@ -41,6 +45,14 @@ class MockRequestEmailChangeUseCase extends Mock
 class MockConfirmEmailChangeUseCase extends Mock
     implements ConfirmEmailChangeUseCase {}
 
+class MockAuthRepository extends Mock implements AuthRepository {}
+
+class MockWindowsOAuthCallbackServer extends Mock
+    implements WindowsOAuthCallbackServer {}
+
+class MockOAuthPendingRequestStore extends Mock
+    implements OAuthPendingRequestStore {}
+
 void main() {
   late MockLoginUseCase mockLoginUseCase;
   late MockRegisterUseCase mockRegisterUseCase;
@@ -53,6 +65,9 @@ void main() {
   late MockVerifyEmailUseCase mockVerifyEmailUseCase;
   late MockRequestEmailChangeUseCase mockRequestEmailChangeUseCase;
   late MockConfirmEmailChangeUseCase mockConfirmEmailChangeUseCase;
+  late MockAuthRepository mockAuthRepository;
+  late MockWindowsOAuthCallbackServer mockWindowsOAuthCallbackServer;
+  late MockOAuthPendingRequestStore mockOAuthPendingRequestStore;
   late AuthCubit cubit;
 
   const user = User(
@@ -78,6 +93,9 @@ void main() {
       verifyEmailUseCase: mockVerifyEmailUseCase,
       requestEmailChangeUseCase: mockRequestEmailChangeUseCase,
       confirmEmailChangeUseCase: mockConfirmEmailChangeUseCase,
+      authRepository: mockAuthRepository,
+      windowsOAuthCallbackServer: mockWindowsOAuthCallbackServer,
+      oauthPendingRequestStore: mockOAuthPendingRequestStore,
     );
   }
 
@@ -93,6 +111,9 @@ void main() {
     mockVerifyEmailUseCase = MockVerifyEmailUseCase();
     mockRequestEmailChangeUseCase = MockRequestEmailChangeUseCase();
     mockConfirmEmailChangeUseCase = MockConfirmEmailChangeUseCase();
+    mockAuthRepository = MockAuthRepository();
+    mockWindowsOAuthCallbackServer = MockWindowsOAuthCallbackServer();
+    mockOAuthPendingRequestStore = MockOAuthPendingRequestStore();
     cubit = buildCubit();
   });
 
@@ -1090,5 +1111,296 @@ void main() {
     );
 
     expect(cubit.emailChangeCooldownRemainingSeconds, greaterThan(0));
+  });
+
+  group('OAuth callbacks', () {
+    const pending = OAuthPendingRequest(
+      state: 'state-123',
+      codeVerifier: 'verifier-123',
+      redirectUri: 'soundcloud://oauth/callback',
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallback emits error from provider and clears pending request',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallback(
+        code: null,
+        state: null,
+        error: 'access_denied',
+        errorDescription: 'User cancelled sign in',
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'User cancelled sign in',
+        ),
+      ],
+      verify: (_) {
+        verify(() => mockOAuthPendingRequestStore.clear()).called(1);
+      },
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallback emits error when no pending request exists',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(null);
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallback(
+        code: 'code-123',
+        state: 'state-123',
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'No pending Google sign-in request was found.',
+        ),
+      ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallback emits error when callback code is missing',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(pending);
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallback(
+        code: '  ',
+        state: 'state-123',
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'OAuth callback is missing the authorization code.',
+        ),
+      ],
+      verify: (_) {
+        verify(() => mockOAuthPendingRequestStore.clear()).called(1);
+      },
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallback emits error when state does not match',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(pending);
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallback(
+        code: 'code-123',
+        state: 'wrong-state',
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'OAuth state mismatch. Please try again.',
+        ),
+      ],
+      verify: (_) {
+        verify(() => mockOAuthPendingRequestStore.clear()).called(1);
+      },
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallback emits authenticated when exchange succeeds',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(pending);
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        when(
+          () => mockAuthRepository.exchangeOAuthCodeForSession(
+            code: 'code-123',
+            redirectUri: pending.redirectUri,
+            codeVerifier: pending.codeVerifier,
+          ),
+        ).thenAnswer((_) async {});
+        when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => user);
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallback(
+        code: 'code-123',
+        state: pending.state,
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthAuthenticated>().having((s) => s.user.id, 'user id', user.id),
+      ],
+      verify: (_) {
+        verify(() => mockOAuthPendingRequestStore.clear()).called(1);
+      },
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallback emits error when session exchange succeeds but user refresh is null',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(pending);
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        when(
+          () => mockAuthRepository.exchangeOAuthCodeForSession(
+            code: 'code-123',
+            redirectUri: pending.redirectUri,
+            codeVerifier: pending.codeVerifier,
+          ),
+        ).thenAnswer((_) async {});
+        when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => null);
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallback(
+        code: 'code-123',
+        state: pending.state,
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'Google sign-in completed, but the session could not be loaded.',
+        ),
+      ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallback emits mapped Dio error when exchange fails',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(pending);
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        when(
+          () => mockAuthRepository.exchangeOAuthCodeForSession(
+            code: 'code-123',
+            redirectUri: pending.redirectUri,
+            codeVerifier: pending.codeVerifier,
+          ),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/oauth/google/callback'),
+            response: Response(
+              requestOptions: RequestOptions(path: '/oauth/google/callback'),
+              statusCode: 400,
+              data: {'message': 'Invalid OAuth code'},
+            ),
+          ),
+        );
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallback(
+        code: 'code-123',
+        state: pending.state,
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'Something went wrong. Please try again.',
+        ),
+      ],
+      verify: (_) {
+        verify(() => mockOAuthPendingRequestStore.clear()).called(1);
+      },
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallback emits generic error on unexpected exception',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(pending);
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        when(
+          () => mockAuthRepository.exchangeOAuthCodeForSession(
+            code: 'code-123',
+            redirectUri: pending.redirectUri,
+            codeVerifier: pending.codeVerifier,
+          ),
+        ).thenThrow(Exception('boom'));
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallback(
+        code: 'code-123',
+        state: pending.state,
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (s) => s.message,
+          'message',
+          'Google sign-in failed. Please try again.',
+        ),
+      ],
+      verify: (_) {
+        verify(() => mockOAuthPendingRequestStore.clear()).called(1);
+      },
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallbackFromUri forwards query params to handler',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(pending);
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        when(
+          () => mockAuthRepository.exchangeOAuthCodeForSession(
+            code: 'code-from-uri',
+            redirectUri: pending.redirectUri,
+            codeVerifier: pending.codeVerifier,
+          ),
+        ).thenAnswer((_) async {});
+        when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => user);
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallbackFromUri(
+        Uri.parse(
+          'soundcloud://oauth/callback?code=code-from-uri&state=state-123',
+        ),
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthAuthenticated>(),
+      ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'handleOAuthCallbackDeepLink forwards deep link payload to handler',
+      build: () {
+        when(() => mockOAuthPendingRequestStore.read()).thenReturn(pending);
+        when(() => mockOAuthPendingRequestStore.clear())
+            .thenAnswer((_) async {});
+        when(
+          () => mockAuthRepository.exchangeOAuthCodeForSession(
+            code: 'code-from-link',
+            redirectUri: pending.redirectUri,
+            codeVerifier: pending.codeVerifier,
+          ),
+        ).thenAnswer((_) async {});
+        when(() => mockGetCurrentUserUseCase()).thenAnswer((_) async => user);
+        return buildCubit();
+      },
+      act: (cubit) => cubit.handleOAuthCallbackDeepLink(
+        const OAuthCallbackDeepLink(
+          code: 'code-from-link',
+          state: 'state-123',
+        ),
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthAuthenticated>(),
+      ],
+    );
   });
 }
