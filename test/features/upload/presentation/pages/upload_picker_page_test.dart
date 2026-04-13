@@ -97,7 +97,19 @@ void main() {
     );
   }
 
-  Finder textFieldAt(int index) => find.byType(TextField).at(index);
+  Finder textFieldWithLabel(String label) => find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.labelText == label,
+      );
+
+  Finder genreDropdownField() => find.byType(DropdownButtonFormField<String>);
+
+  Future<void> selectGenre(WidgetTester tester, String genre) async {
+    await tester.tap(genreDropdownField());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(genre).last);
+    await tester.pumpAndSettle();
+  }
 
   setUp(() {
     mockUploadPickerCubit = MockUploadPickerCubit();
@@ -230,10 +242,10 @@ void main() {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
-      await tester.enterText(textFieldAt(0), 'My Track');
-      await tester.enterText(textFieldAt(1), 'Pop');
-      await tester.enterText(textFieldAt(2), 'lofi, chill');
-      await tester.enterText(textFieldAt(3), 'Description');
+      await tester.enterText(textFieldWithLabel('Track title'), 'My Track');
+      await selectGenre(tester, 'Pop');
+      await tester.enterText(textFieldWithLabel('Tags'), 'lofi, chill');
+      await tester.enterText(textFieldWithLabel('Description'), 'Description');
       await tester.pump();
 
       await tester.tap(find.text('Clear'));
@@ -241,15 +253,19 @@ void main() {
 
       verify(() => mockUploadPickerCubit.clearSelection()).called(1);
 
-      final TextField titleField = tester.widget(textFieldAt(0));
-      final TextField genreField = tester.widget(textFieldAt(1));
-      final TextField tagsField = tester.widget(textFieldAt(2));
-      final TextField descriptionField = tester.widget(textFieldAt(3));
+      final TextField titleField =
+          tester.widget(textFieldWithLabel('Track title'));
+      final TextField tagsField = tester.widget(textFieldWithLabel('Tags'));
+      final TextField descriptionField =
+          tester.widget(textFieldWithLabel('Description'));
+      final DropdownButtonFormField<String> genreField =
+          tester.widget(genreDropdownField());
 
       expect(titleField.controller!.text, isEmpty);
-      expect(genreField.controller!.text, isEmpty);
       expect(tagsField.controller!.text, isEmpty);
       expect(descriptionField.controller!.text, isEmpty);
+      expect(genreField.initialValue, isNull);
+      expect(find.text('Pop'), findsNothing);
     });
 
     testWidgets('upload button passes full metadata to cubit', (tester) async {
@@ -274,10 +290,13 @@ void main() {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
-      await tester.enterText(textFieldAt(0), 'My Track');
-      await tester.enterText(textFieldAt(1), 'Pop');
-      await tester.enterText(textFieldAt(2), 'lofi, chill');
-      await tester.enterText(textFieldAt(3), 'Nice description');
+      await tester.enterText(textFieldWithLabel('Track title'), 'My Track');
+      await selectGenre(tester, 'Pop');
+      await tester.enterText(textFieldWithLabel('Tags'), 'lofi, chill');
+      await tester.enterText(
+        textFieldWithLabel('Description'),
+        'Nice description',
+      );
       await tester.pump();
 
       await tester.tap(find.text('Public'));
@@ -297,6 +316,44 @@ void main() {
       ).called(1);
     });
 
+    testWidgets('upload requires selecting a genre first', (tester) async {
+      stubAuthState(AuthAuthenticated(artistUser));
+      stubUploadState(
+        const UploadPickerState(
+          status: UploadPickerStatus.ready,
+          pickedAudioFile: pickedAudioFile,
+        ),
+      );
+
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(textFieldWithLabel('Track title'), 'My Track');
+      await tester.enterText(textFieldWithLabel('Tags'), 'lofi, chill');
+      await tester.enterText(
+        textFieldWithLabel('Description'),
+        'Nice description',
+      );
+      await tester.pump();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Upload Track'));
+      await tester.pump();
+
+      expect(
+        find.text('Please choose a genre before uploading.'),
+        findsOneWidget,
+      );
+      verifyNever(
+        () => mockUploadPickerCubit.uploadSelectedFile(
+          title: 'My Track',
+          genre: null,
+          tagsInput: 'lofi, chill',
+          description: 'Nice description',
+          visibility: TrackManagementVisibility.privateTrack,
+        ),
+      );
+    });
+
     testWidgets('shows uploading state and disables form fields and actions',
         (tester) async {
       stubAuthState(AuthAuthenticated(artistUser));
@@ -311,10 +368,13 @@ void main() {
       await pumpPage(tester);
       await tester.pump();
 
-      final TextField titleField = tester.widget(textFieldAt(0));
-      final TextField genreField = tester.widget(textFieldAt(1));
-      final TextField tagsField = tester.widget(textFieldAt(2));
-      final TextField descriptionField = tester.widget(textFieldAt(3));
+      final TextField titleField =
+          tester.widget(textFieldWithLabel('Track title'));
+      final DropdownButtonFormField<String> genreField =
+          tester.widget(genreDropdownField());
+      final TextField tagsField = tester.widget(textFieldWithLabel('Tags'));
+      final TextField descriptionField =
+          tester.widget(textFieldWithLabel('Description'));
 
       final OutlinedButton clearButton =
           tester.widget(find.widgetWithText(OutlinedButton, 'Clear'));
@@ -322,7 +382,7 @@ void main() {
           tester.widget(find.widgetWithText(ElevatedButton, 'Uploading...'));
 
       expect(titleField.enabled, isFalse);
-      expect(genreField.enabled, isFalse);
+      expect(genreField.onChanged, isNull);
       expect(tagsField.enabled, isFalse);
       expect(descriptionField.enabled, isFalse);
       expect(clearButton.onPressed, isNull);

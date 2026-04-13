@@ -5,6 +5,7 @@ import '../../domain/entities/managed_track.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../bloc/track_management_cubit.dart';
 import '../bloc/track_management_state.dart';
+import '../constants/track_genres.dart';
 import '../models/track_management_result.dart';
 import '../widgets/delete_track_confirmation_dialog.dart';
 import '../widgets/edit_track_metadata_form.dart';
@@ -30,13 +31,9 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _tagsController;
 
-  final List<TrackGenreOption> _genreOptions = const [
-    TrackGenreOption(name: 'Ambient'),
-    TrackGenreOption(name: 'Electronic'),
-    TrackGenreOption(name: 'Hip-Hop'),
-    TrackGenreOption(name: 'Rock'),
-    TrackGenreOption(name: 'Pop'),
-  ];
+  late final List<TrackGenreOption> _genreOptions = kTrackGenreNames
+      .map((genreName) => TrackGenreOption(name: genreName))
+      .toList(growable: false);
 
   @override
   void initState() {

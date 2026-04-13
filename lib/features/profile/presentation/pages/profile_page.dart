@@ -1063,9 +1063,29 @@ class _ManagedProfileTracksTab extends StatelessWidget {
               track.title,
               style: const TextStyle(color: Colors.white),
             ),
-            subtitle: Text(
-              track.visibility.name,
-              style: const TextStyle(color: Colors.grey),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  track.visibility.name,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                if ((track.description ?? '').trim().isNotEmpty)
+                  Text(
+                    track.description!.trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                if (track.tags.isNotEmpty)
+                  Text(
+                    track.tags.map((tag) => '#$tag').join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white60),
+                  ),
+              ],
             ),
             trailing: OutlinedButton(
               onPressed: () => onManageTap(track),
