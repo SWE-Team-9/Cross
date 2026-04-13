@@ -24,7 +24,7 @@ class MockInteractionsRepository extends Mock
 
 void main() {
   group('InteractionStatusDto', () {
-    test('fromJson supports alt keys and string integers', () {
+    test('fromJson supports alt keys', () {
       final dto = InteractionStatusDto.fromJson({
         'liked': true,
         'reposted': false,
@@ -34,21 +34,17 @@ void main() {
 
       expect(dto.isLiked, isTrue);
       expect(dto.isReposted, isFalse);
-      expect(dto.likesCount, 7);
-      expect(dto.repostsCount, 2);
     });
 
     test('toEntity maps fields exactly', () {
       const dto = InteractionStatusDto(
         isLiked: true,
         isReposted: true,
-        likesCount: 4,
-        repostsCount: 3,
       );
 
       final entity = dto.toEntity();
       expect(entity, isA<InteractionStatus>());
-      expect(entity.likesCount, 4);
+      expect(entity.isLiked, isTrue);
       expect(entity.isReposted, isTrue);
     });
   });
@@ -113,7 +109,7 @@ void main() {
 
       final status = await dataSource.getTrackInteractionStatus('t1');
       expect(status.isLiked, isTrue);
-      expect(status.likesCount, 11);
+      expect(status.isReposted, isTrue);
     });
   });
 
@@ -138,8 +134,6 @@ void main() {
         (_) async => const InteractionStatusDto(
           isLiked: false,
           isReposted: true,
-          likesCount: 10,
-          repostsCount: 6,
         ),
       );
 
@@ -150,7 +144,7 @@ void main() {
       final status = await repository.getTrackInteractionStatus('t1');
 
       expect(status.isReposted, isTrue);
-      expect(status.repostsCount, 6);
+      expect(status.isLiked, isFalse);
     });
 
     test('usecases forward calls to repository', () async {
@@ -167,8 +161,6 @@ void main() {
         (_) async => const InteractionStatus(
           isLiked: true,
           isReposted: false,
-          likesCount: 8,
-          repostsCount: 1,
         ),
       );
 

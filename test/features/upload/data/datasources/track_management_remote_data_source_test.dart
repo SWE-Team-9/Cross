@@ -50,11 +50,11 @@ void main() {
   group('updateTrackMetadata', () {
     test('parses payload from response.data.track', () async {
       when(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
           data: <String, dynamic>{
             'track': trackJson(),
           },
@@ -72,18 +72,18 @@ void main() {
       expect(result.genreName, 'Electronic');
 
       verify(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).called(1);
     });
 
     test('parses payload from response.data.data', () async {
       when(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
           data: <String, dynamic>{
             'data': trackJson(title: 'New Title'),
           },
@@ -100,23 +100,30 @@ void main() {
 
     test('parses payload from direct map response', () async {
       when(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
           data: trackJson(title: 'Direct Map'),
         ),
       );
+
+      final result = await dataSource.updateTrackMetadata(
+        trackId: 'track-1',
+        form: form,
+      );
+
+      expect(result.title, 'Direct Map');
     });
 
     test('throws FormatException on unexpected response shape', () async {
       when(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
           data: 'bad-response',
         ),
       );
@@ -132,11 +139,12 @@ void main() {
     test('updateTrackVisibility sends visibility api value and parses entity',
         () async {
       when(() => mockDioClient.patch(
-            '/tracks/track-1/visibility',
+            '/api/v1/tracks/track-1/visibility',
             data: <String, dynamic>{'visibility': 'PUBLIC'},
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1/visibility'),
+          requestOptions:
+              RequestOptions(path: '/api/v1/tracks/track-1/visibility'),
           data: <String, dynamic>{
             'track': trackJson(visibility: 'PUBLIC'),
           },
@@ -151,7 +159,7 @@ void main() {
       expect(result.visibility, TrackManagementVisibility.publicTrack);
 
       verify(() => mockDioClient.patch(
-            '/tracks/track-1/visibility',
+            '/api/v1/tracks/track-1/visibility',
             data: <String, dynamic>{'visibility': 'PUBLIC'},
           )).called(1);
     });
@@ -159,14 +167,15 @@ void main() {
 
   group('deleteTrack', () {
     test('delegates delete to dio client', () async {
-      when(() => mockDioClient.delete('/tracks/track-1'))
+      when(() => mockDioClient.delete('/api/v1/tracks/track-1'))
           .thenAnswer((_) async => Response<void>(
-                requestOptions: RequestOptions(path: '/tracks/track-1'),
+                requestOptions:
+                    RequestOptions(path: '/api/v1/tracks/track-1'),
               ));
 
       await dataSource.deleteTrack(trackId: 'track-1');
 
-      verify(() => mockDioClient.delete('/tracks/track-1')).called(1);
+      verify(() => mockDioClient.delete('/api/v1/tracks/track-1')).called(1);
     });
   });
 }

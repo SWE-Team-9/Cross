@@ -7,6 +7,8 @@ import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
+import 'package:soundcloud_clone/features/interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
+import 'package:soundcloud_clone/features/interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
@@ -25,11 +27,19 @@ class MockUpdateProfileUseCase extends Mock implements UpdateProfileUseCase {}
 
 class MockProfileRepository extends Mock implements ProfileRepository {}
 
+class MockGetMyLikedTracksUseCase extends Mock
+    implements GetMyLikedTracksUseCase {}
+
+class MockGetMyRepostedTracksUseCase extends Mock
+    implements GetMyRepostedTracksUseCase {}
+
 class TestProfileCubit extends ProfileCubit {
   TestProfileCubit({
     required super.getProfileUseCase,
     required super.updateProfileUseCase,
     required super.profileRepository,
+    required super.getMyLikedTracksUseCase,
+    required super.getMyRepostedTracksUseCase,
   });
 
   void setTestState(ProfileState state) => emit(state);
@@ -40,6 +50,8 @@ void main() {
   late MockGetProfileUseCase mockGetProfileUseCase;
   late MockUpdateProfileUseCase mockUpdateProfileUseCase;
   late MockProfileRepository mockProfileRepository;
+  late MockGetMyLikedTracksUseCase mockGetMyLikedTracksUseCase;
+  late MockGetMyRepostedTracksUseCase mockGetMyRepostedTracksUseCase;
   late TestProfileCubit profileCubit;
 
   late ProfileEntity profileWithoutAvatar;
@@ -70,11 +82,15 @@ void main() {
     mockGetProfileUseCase = MockGetProfileUseCase();
     mockUpdateProfileUseCase = MockUpdateProfileUseCase();
     mockProfileRepository = MockProfileRepository();
+    mockGetMyLikedTracksUseCase = MockGetMyLikedTracksUseCase();
+    mockGetMyRepostedTracksUseCase = MockGetMyRepostedTracksUseCase();
 
     profileCubit = TestProfileCubit(
       getProfileUseCase: mockGetProfileUseCase,
       updateProfileUseCase: mockUpdateProfileUseCase,
       profileRepository: mockProfileRepository,
+      getMyLikedTracksUseCase: mockGetMyLikedTracksUseCase,
+      getMyRepostedTracksUseCase: mockGetMyRepostedTracksUseCase,
     );
 
     profileWithoutAvatar = ProfileEntity(

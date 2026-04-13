@@ -45,8 +45,12 @@ class _TrackCommentsPageState extends State<TrackCommentsPage> {
   Widget build(BuildContext context) {
     final currentTimestamp = widget.getCurrentPositionSeconds?.call() ?? 0;
 
-    return WillPopScope(
-      onWillPop: _handleBack,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _handleBack();
+      },
       child: Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(

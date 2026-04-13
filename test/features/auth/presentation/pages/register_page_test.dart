@@ -144,5 +144,69 @@ void main() {
 
       expect(find.text('complete:newuser@example.com'), findsOneWidget);
     });
+
+    testWidgets('shows snackbar when captcha fetching fails', (tester) async {
+      Future<String> failingCaptchaProvider(BuildContext _) async {
+        throw Exception('captcha failed');
+      }
+
+      await tester.pumpWidget(
+        buildTestWidget(captchaProvider: failingCaptchaProvider),
+      );
+      await tester.pump();
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'newuser@example.com',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'StrongPass123!',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(2),
+        'StrongPass123!',
+      );
+
+      await scrollToText(tester, 'Next');
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Security verification failed. Please try again.'),
+        findsOneWidget,
+      );
+      expect(find.text('complete:newuser@example.com'), findsNothing);
+    });
+
+    testWidgets('does not navigate when captcha token is empty',
+        (tester) async {
+      Future<String> emptyCaptchaProvider(BuildContext _) async => '';
+
+      await tester.pumpWidget(
+        buildTestWidget(captchaProvider: emptyCaptchaProvider),
+      );
+      await tester.pump();
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'newuser@example.com',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'StrongPass123!',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(2),
+        'StrongPass123!',
+      );
+
+      await scrollToText(tester, 'Next');
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('complete:newuser@example.com'), findsNothing);
+      expect(find.byType(RegisterPage), findsOneWidget);
+    });
   });
 }

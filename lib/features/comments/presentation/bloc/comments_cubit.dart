@@ -58,12 +58,10 @@ class CommentsCubit extends Cubit<CommentsState> {
         timestampSeconds: timestampSeconds,
       );
 
-      final updated = _sortComments([...state.comments, created]);
-
       emit(
         state.copyWith(
           isSubmitting: false,
-          comments: updated,
+          comments: [created, ...state.comments],
           clearError: true,
         ),
       );

@@ -23,6 +23,9 @@ class EditProfileImageSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalizedCoverUrl = PlatformUrlUtils.normalizeBackendUrl(coverUrl);
     final normalizedAvatarUrl = PlatformUrlUtils.normalizeBackendUrl(avatarUrl);
+    final NetworkImage? avatarImage = normalizedAvatarUrl != null
+        ? NetworkImage(normalizedAvatarUrl)
+        : null;
 
     return SizedBox(
       height: 180,
@@ -90,9 +93,9 @@ class EditProfileImageSection extends StatelessWidget {
                 CircleAvatar(
                   radius: 46,
                   backgroundColor: const Color(0xFFB8CDE8),
-                  backgroundImage: normalizedAvatarUrl != null
-                      ? NetworkImage(normalizedAvatarUrl)
-                      : null,
+                  backgroundImage: avatarImage,
+                  onBackgroundImageError:
+                      avatarImage != null ? (_, __) {} : null,
                   child: normalizedAvatarUrl == null
                       ? const Icon(
                           Icons.person,

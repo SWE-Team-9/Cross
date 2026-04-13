@@ -510,7 +510,6 @@ void main() {
         pickedAudioFile: tPickedAudioFile,
         uploadedTrackId: 'track-123',
         processingStatus: 'FINISHED',
-        uploadedVisibility: TrackManagementVisibility.publicTrack,
       ),
       const UploadPickerState(
         status: UploadPickerStatus.success,
@@ -567,12 +566,19 @@ void main() {
         pickedAudioFile: tPickedAudioFile,
       ),
       const UploadPickerState(
+        status: UploadPickerStatus.processing,
+        pickedAudioFile: tPickedAudioFile,
+        uploadedTrackId: 'track-123',
+        processingStatus: 'FINISHED',
+      ),
+      const UploadPickerState(
         status: UploadPickerStatus.failure,
         pickedAudioFile: tPickedAudioFile,
         uploadedTrackId: 'track-123',
         processingStatus: 'FINISHED',
+        uploadedVisibility: TrackManagementVisibility.privateTrack,
         errorMessage:
-            'Track uploaded, but visibility could not be updated. Visibility update failed',
+            'Track uploaded successfully, but it is still private because visibility could not be updated. Visibility update failed',
       ),
     ],
   );

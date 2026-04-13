@@ -3,8 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/comments/domain/entities/comment_entity.dart';
+import 'package:soundcloud_clone/features/comments/domain/usecases/get_track_comments_usecase.dart';
+import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
+import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_state.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/engagement_list_cubit.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/engagement_list_state.dart';
 import 'package:soundcloud_clone/features/playback/domain/entities/track_details.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
@@ -26,13 +35,27 @@ class MockPlaybackCubit extends MockCubit<PlaybackState>
 class MockTrackLoaderCubit extends MockCubit<TrackLoaderState>
     implements TrackLoaderCubit {}
 
+class MockTrackInteractionCubit extends MockCubit<TrackInteractionState>
+    implements TrackInteractionCubit {}
+
+class MockCommentsCubit extends MockCubit<CommentsState>
+    implements CommentsCubit {}
+
+class MockEngagementListCubit extends MockCubit<EngagementListState>
+    implements EngagementListCubit {}
+
+class MockGetTrackCommentsUseCase extends Mock
+    implements GetTrackCommentsUseCase {}
+
 class FakeDuration extends Fake implements Duration {}
 
 void main() {
   setUpAll(() {
     registerFallbackValue(FakeDuration());
+    registerFallbackValue(EngagementListType.likers);
     registerFallbackValue(
         const Track(id: '', title: '', artist: '', audioUrl: ''));
+    registerFallbackValue(<Track>[]);
   });
 
   final track = const Track(
@@ -246,30 +269,97 @@ void main() {
   group('FullPlayerPage', () {
     late MockPlayerCubit playerCubit;
     late MockPlaybackCubit playbackCubit;
+    late MockTrackInteractionCubit trackInteractionCubit;
+    late MockCommentsCubit commentsCubit;
+    late MockEngagementListCubit engagementListCubit;
+    late MockGetTrackCommentsUseCase getTrackCommentsUseCase;
+    final queueTrack = const Track(
+      id: 't2',
+      title: 'Song 2',
+      artist: 'Artist 2',
+      audioUrl: 'https://cdn/t2.mp3',
+      artworkUrl: null,
+      handle: 'artist2',
+      likesCount: 4,
+      repostsCount: 1,
+    );
 
-    setUp(() {
+    setUp(() async {
+      await getIt.reset();
       playerCubit = MockPlayerCubit();
       playbackCubit = MockPlaybackCubit();
+      trackInteractionCubit = MockTrackInteractionCubit();
+      commentsCubit = MockCommentsCubit();
+      engagementListCubit = MockEngagementListCubit();
+      getTrackCommentsUseCase = MockGetTrackCommentsUseCase();
 
       when(() => playerCubit.openFullPlayer()).thenReturn(null);
       when(() => playerCubit.closeFullPlayer()).thenReturn(null);
       when(() => playerCubit.togglePlayPause()).thenAnswer((_) async {});
       when(() => playerCubit.seek(any())).thenAnswer((_) async {});
+      when(() => playerCubit.play(any())).thenAnswer((_) async {});
 
       when(() => playbackCubit.state).thenReturn(emptyPlaybackState);
       when(() => playbackCubit.stream)
           .thenAnswer((_) => const Stream<PlaybackState>.empty());
       when(() => playbackCubit.playNext()).thenAnswer((_) async {});
       when(() => playbackCubit.playPrevious()).thenAnswer((_) async {});
+
+      when(() => trackInteractionCubit.state)
+          .thenReturn(TrackInteractionState.initial());
+      when(() => trackInteractionCubit.stream)
+          .thenAnswer((_) => const Stream<TrackInteractionState>.empty());
+      when(
+        () => trackInteractionCubit.load(
+          trackId: any(named: 'trackId'),
+          likesCount: any(named: 'likesCount'),
+          repostsCount: any(named: 'repostsCount'),
+        ),
+      ).thenAnswer((_) async {});
+      when(() => trackInteractionCubit.toggleLike(any()))
+          .thenAnswer((_) async {});
+      when(() => trackInteractionCubit.toggleRepost(any()))
+          .thenAnswer((_) async {});
+      when(() => commentsCubit.state).thenReturn(CommentsState.initial());
+      when(() => commentsCubit.stream)
+          .thenAnswer((_) => const Stream<CommentsState>.empty());
+      when(() => commentsCubit.load(any())).thenAnswer((_) async {});
+      when(() => engagementListCubit.state)
+          .thenReturn(EngagementListState.initial());
+      when(() => engagementListCubit.stream)
+          .thenAnswer((_) => const Stream<EngagementListState>.empty());
+      when(
+        () => engagementListCubit.load(
+          trackId: any(named: 'trackId'),
+          type: any(named: 'type'),
+        ),
+      ).thenAnswer((_) async {});
+      when(() => engagementListCubit.loadMore()).thenAnswer((_) async {});
+      when(() => getTrackCommentsUseCase(any()))
+          .thenAnswer((_) async => const []);
+
+      getIt.registerFactory<TrackInteractionCubit>(() => trackInteractionCubit);
+      getIt.registerFactory<CommentsCubit>(() => commentsCubit);
+      getIt.registerFactory<EngagementListCubit>(() => engagementListCubit);
+      getIt.registerLazySingleton<GetTrackCommentsUseCase>(
+        () => getTrackCommentsUseCase,
+      );
     });
 
-    Widget buildFullPlayer() => MaterialApp(
-          home: MultiBlocProvider(
-            providers: [
-              BlocProvider<PlayerCubit>.value(value: playerCubit),
-              BlocProvider<PlaybackCubit>.value(value: playbackCubit),
-            ],
-            child: const FullPlayerPage(),
+    tearDown(() async {
+      await getIt.reset();
+    });
+
+    Widget buildFullPlayer() => MultiBlocProvider(
+          providers: [
+            BlocProvider<PlayerCubit>.value(value: playerCubit),
+            BlocProvider<PlaybackCubit>.value(value: playbackCubit),
+            BlocProvider<TrackInteractionCubit>.value(
+              value: trackInteractionCubit,
+            ),
+          ],
+          child: const MaterialApp(
+            home: FullPlayerPage(),
           ),
         );
 
@@ -310,6 +400,272 @@ void main() {
       await tester.pump();
       verify(() => playerCubit.togglePlayPause()).called(1);
     });
+
+    testWidgets('loads comments count and interaction data for track',
+        (tester) async {
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.paused,
+          position: Duration(seconds: 10),
+          duration: Duration(seconds: 120),
+        ),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => getTrackCommentsUseCase('t1')).thenAnswer(
+        (_) async => [
+          CommentEntity(
+            id: 'c1',
+            content: 'Nice',
+            userId: 'u1',
+            userDisplayName: 'Ali',
+            userAvatarUrl: null,
+            parentCommentId: null,
+            timestampSeconds: 5,
+            createdAt: DateTime(2024),
+            replies: const [],
+          ),
+          CommentEntity(
+            id: 'c2',
+            content: 'Great',
+            userId: 'u2',
+            userDisplayName: 'Sara',
+            userAvatarUrl: null,
+            parentCommentId: null,
+            timestampSeconds: 15,
+            createdAt: DateTime(2024),
+            replies: const [],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(buildFullPlayer());
+      await tester.pump();
+
+      verify(
+        () => trackInteractionCubit.load(
+          trackId: 't1',
+          likesCount: 0,
+          repostsCount: 0,
+        ),
+      ).called(1);
+      expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('opens empty queue sheet when queue is empty', (tester) async {
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.paused,
+          position: Duration(seconds: 10),
+          duration: Duration(seconds: 120),
+        ),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playbackCubit.state).thenReturn(
+        emptyPlaybackState.copyWith(currentTrack: track, queue: const []),
+      );
+
+      await tester.pumpWidget(buildFullPlayer());
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.queue_music));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Queue is empty'), findsOneWidget);
+    });
+
+    testWidgets('queue sheet plays selected queued track', (tester) async {
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.paused,
+          position: Duration(seconds: 10),
+          duration: Duration(seconds: 120),
+        ),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playbackCubit.state).thenReturn(
+        emptyPlaybackState.copyWith(
+          currentTrack: track,
+          queue: [track, queueTrack],
+        ),
+      );
+      when(() => playbackCubit.playTrack(queueTrack, any()))
+          .thenAnswer((_) async {});
+
+      await tester.pumpWidget(buildFullPlayer());
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.queue_music));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Song 2'));
+      await tester.pumpAndSettle();
+
+      verify(() => playbackCubit.playTrack(queueTrack, any())).called(1);
+      verify(() => playerCubit.play(queueTrack)).called(1);
+    });
+
+    testWidgets('skip next syncs displayed track from playback',
+        (tester) async {
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.playing,
+          position: Duration(seconds: 10),
+          duration: Duration(seconds: 120),
+        ),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => playbackCubit.state).thenReturn(
+        emptyPlaybackState.copyWith(
+          currentTrack: queueTrack,
+          queue: [track, queueTrack],
+        ),
+      );
+      when(() => getTrackCommentsUseCase('t2')).thenAnswer((_) async => const []);
+
+      await tester.pumpWidget(buildFullPlayer());
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.skip_next));
+      await tester.pump(const Duration(milliseconds: 20));
+
+      verify(() => playbackCubit.playNext()).called(1);
+      verify(() => playerCubit.play(queueTrack)).called(1);
+      verify(
+        () => trackInteractionCubit.load(
+          trackId: 't2',
+          likesCount: 4,
+          repostsCount: 1,
+        ),
+      ).called(1);
+    });
+
+    testWidgets('opens comments page and triggers comments cubit load',
+        (tester) async {
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.paused,
+          position: Duration(seconds: 45),
+          duration: Duration(seconds: 120),
+        ),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+      await tester.pumpWidget(buildFullPlayer());
+      await tester.pump();
+
+      await tester.tap(find.text('Comment...'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Comments'), findsOneWidget);
+      verify(() => commentsCubit.load('t1')).called(2);
+    });
+
+    testWidgets('likes label opens likers page', (tester) async {
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.paused,
+          position: Duration(seconds: 10),
+          duration: Duration(seconds: 120),
+        ),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => trackInteractionCubit.state).thenReturn(
+        TrackInteractionState.initial().copyWith(
+          likesCount: 1,
+          repostsCount: 7,
+        ),
+      );
+      when(() => engagementListCubit.state).thenReturn(
+        EngagementListState.initial().copyWith(
+          type: EngagementListType.reposters,
+          trackId: 't1',
+        ),
+      );
+
+      await tester.pumpWidget(buildFullPlayer());
+      await tester.pump();
+
+      await tester.tap(find.text('1'));
+      await tester.pumpAndSettle();
+      verify(
+        () => engagementListCubit.load(
+          trackId: 't1',
+          type: EngagementListType.likers,
+        ),
+      ).called(2);
+    });
+
+    testWidgets('reposts label opens reposters page', (tester) async {
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.paused,
+          position: Duration(seconds: 10),
+          duration: Duration(seconds: 120),
+        ),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+      when(() => trackInteractionCubit.state).thenReturn(
+        TrackInteractionState.initial().copyWith(
+          likesCount: 1,
+          repostsCount: 7,
+        ),
+      );
+
+      await tester.pumpWidget(buildFullPlayer());
+      await tester.pump();
+
+      await tester.tap(
+        find.ancestor(
+          of: find.text('7'),
+          matching: find.byType(InkWell),
+        ).last,
+      );
+      await tester.pumpAndSettle();
+      verify(
+        () => engagementListCubit.load(
+          trackId: 't1',
+          type: EngagementListType.reposters,
+        ),
+      ).called(2);
+    });
+
+    testWidgets('like and repost icons delegate to interaction cubit',
+        (tester) async {
+      when(() => playerCubit.state).thenReturn(PlayerUIState(
+        playerState: const PlayerState(
+          status: PlayerStatus.paused,
+          position: Duration(seconds: 10),
+          duration: Duration(seconds: 120),
+        ),
+        currentTrack: track,
+      ));
+      when(() => playerCubit.stream)
+          .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+      await tester.pumpWidget(buildFullPlayer());
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.favorite_border));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.repeat));
+      await tester.pump();
+
+      verify(() => trackInteractionCubit.toggleLike('t1')).called(1);
+      verify(() => trackInteractionCubit.toggleRepost('t1')).called(1);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -320,11 +676,16 @@ void main() {
     late MockTrackLoaderCubit loaderCubit;
     late MockPlayerCubit playerCubit;
     late MockPlaybackCubit playbackCubit;
+    late MockTrackInteractionCubit trackInteractionCubit;
+    late MockGetTrackCommentsUseCase getTrackCommentsUseCase;
 
-    setUp(() {
+    setUp(() async {
+      await getIt.reset();
       loaderCubit = MockTrackLoaderCubit();
       playerCubit = MockPlayerCubit();
       playbackCubit = MockPlaybackCubit();
+      trackInteractionCubit = MockTrackInteractionCubit();
+      getTrackCommentsUseCase = MockGetTrackCommentsUseCase();
 
       when(() => loaderCubit.loadByTrackId(any())).thenAnswer((_) async {});
       when(() => loaderCubit.loadBySecretToken(any())).thenAnswer((_) async {});
@@ -346,6 +707,33 @@ void main() {
           .thenAnswer((_) => const Stream<PlaybackState>.empty());
       when(() => playbackCubit.playNext()).thenAnswer((_) async {});
       when(() => playbackCubit.playPrevious()).thenAnswer((_) async {});
+
+      when(() => trackInteractionCubit.state)
+          .thenReturn(TrackInteractionState.initial());
+      when(() => trackInteractionCubit.stream)
+          .thenAnswer((_) => const Stream<TrackInteractionState>.empty());
+      when(
+        () => trackInteractionCubit.load(
+          trackId: any(named: 'trackId'),
+          likesCount: any(named: 'likesCount'),
+          repostsCount: any(named: 'repostsCount'),
+        ),
+      ).thenAnswer((_) async {});
+      when(() => trackInteractionCubit.toggleLike(any()))
+          .thenAnswer((_) async {});
+      when(() => trackInteractionCubit.toggleRepost(any()))
+          .thenAnswer((_) async {});
+      when(() => getTrackCommentsUseCase(any()))
+          .thenAnswer((_) async => const []);
+
+      getIt.registerFactory<TrackInteractionCubit>(() => trackInteractionCubit);
+      getIt.registerLazySingleton<GetTrackCommentsUseCase>(
+        () => getTrackCommentsUseCase,
+      );
+    });
+
+    tearDown(() async {
+      await getIt.reset();
     });
 
     testWidgets('calls loadByTrackId and pushes FullPlayerPage on ready',
@@ -364,6 +752,9 @@ void main() {
             BlocProvider<TrackLoaderCubit>.value(value: loaderCubit),
             BlocProvider<PlayerCubit>.value(value: playerCubit),
             BlocProvider<PlaybackCubit>.value(value: playbackCubit),
+            BlocProvider<TrackInteractionCubit>.value(
+              value: trackInteractionCubit,
+            ),
           ],
           child: MaterialApp(
             home: const TrackDeepLinkBridgePage(trackId: 't1'),
@@ -394,6 +785,9 @@ void main() {
             BlocProvider<TrackLoaderCubit>.value(value: loaderCubit),
             BlocProvider<PlayerCubit>.value(value: playerCubit),
             BlocProvider<PlaybackCubit>.value(value: playbackCubit),
+            BlocProvider<TrackInteractionCubit>.value(
+              value: trackInteractionCubit,
+            ),
           ],
           child: MaterialApp(
             home: const TrackDeepLinkBridgePage(secretToken: 's1'),
