@@ -80,4 +80,6 @@ abstract class ApiConstants {
 
   static String trackRepostersPath(String trackId) =>
       '$interactionsBase/tracks/$trackId/reposters';
+  static const String myLikedTracks = '/api/v1/interactions/me/likes';
+  static const String myRepostedTracks = '/api/v1/interactions/me/reposts';
 }
