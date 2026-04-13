@@ -1,3 +1,4 @@
+import '../../../../core/config/app_config.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
@@ -127,5 +128,34 @@ class AuthRepositoryImpl implements AuthRepository {
     } finally {
       await localDataSource.clearAll();
     }
+  }
+
+  @override
+  Uri buildGoogleAuthorizeUri({
+    required String state,
+    required String codeChallenge,
+    required String redirectUri,
+  }) {
+    return remoteDataSource.buildGoogleAuthorizeUri(
+      clientId: AppConfig.oauthClientId,
+      redirectUri: redirectUri,
+      scope: AppConfig.oauthScope,
+      state: state,
+      codeChallenge: codeChallenge,
+    );
+  }
+
+  @override
+  Future<void> exchangeOAuthCodeForSession({
+    required String code,
+    required String redirectUri,
+    required String codeVerifier,
+  }) {
+    return remoteDataSource.exchangeOAuthCodeForSession(
+      clientId: AppConfig.oauthClientId,
+      code: code,
+      redirectUri: redirectUri,
+      codeVerifier: codeVerifier,
+    );
   }
 }

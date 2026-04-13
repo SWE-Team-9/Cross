@@ -32,7 +32,7 @@ class TrackManagementRemoteDataSourceImpl
     required TrackManagementForm form,
   }) async {
     final dynamic response = await _dioClient.put(
-      '/tracks/$trackId',
+      '/api/v1/tracks/$trackId', // تم إضافة /api/v1
       data: form.toMetadataRequestBody(),
     );
 
@@ -47,7 +47,7 @@ class TrackManagementRemoteDataSourceImpl
     required TrackManagementVisibility visibility,
   }) async {
     final dynamic response = await _dioClient.patch(
-      '/tracks/$trackId/visibility',
+      '/api/v1/tracks/$trackId/visibility', // تم إضافة /api/v1
       data: <String, dynamic>{
         'visibility': visibility.apiValue,
       },
@@ -62,7 +62,7 @@ class TrackManagementRemoteDataSourceImpl
   Future<void> deleteTrack({
     required String trackId,
   }) async {
-    await _dioClient.delete('/tracks/$trackId');
+    await _dioClient.delete('/api/v1/tracks/$trackId'); // تم إضافة /api/v1
   }
 }
 

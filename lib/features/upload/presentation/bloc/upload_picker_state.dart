@@ -49,6 +49,8 @@ class UploadPickerState extends Equatable {
 
   bool get hasSelection => pickedAudioFile != null;
 
+  bool get hasCreatedTrack => uploadedTrackId != null;
+
   UploadPickerState copyWith({
     UploadPickerStatus? status,
     PickedAudioFile? pickedAudioFile,

@@ -1,0 +1,129 @@
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/app/router_test.dart: AppRouter Tests can navigate to edit profile route
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/config/app_config_test.dart: AppConfig constants isLocal is true when appEnv is default (local)
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: Mock track management mode parsing setupDependencies completes without error (default mode)
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers AudioFilePickerDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers AudioPickerPermissionService
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers AuthCubit as factory
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers AuthLocalDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers AuthRemoteDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers AuthRepository
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers CommentsCubit as factory
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers CommentsRemoteDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers CommentsRepository
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ConfirmEmailChangeUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers CreateCommentUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers DeepLinkService
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers DeleteCommentUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers DeleteTrackUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers DioClient
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ForgotPasswordUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers GetCurrentUserUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers GetProfileUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers GetTrackBySecretUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers GetTrackCommentsUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers GetTrackDetailUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers GetTrackInteractionStatusUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers InteractionsRemoteDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers InteractionsRepository
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers IsLoggedInUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ITrackDetailRepository
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ITrackStatusRepository
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers LikeTrackUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers LoginUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers LogoutUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers PickAudioFileUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers PlaybackCubit
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers PlayerCubit
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ProfileCubit as factory
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ProfileRemoteDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ProfileRepository
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers RecentlyPlayedCubit
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers RegisterUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ReplyToCommentUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers RepostTrackUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers RequestEmailChangeUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers ResetPasswordUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers SecureStorage
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers SendEmailVerificationUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers SocialRepo
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers TrackDetailRemoteDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers TrackInteractionCubit as factory
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers TrackLoaderCubit as factory (fresh each time)
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers TrackManagementCubit as factory
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers TrackManagementRemoteDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers TrackManagementRepository
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers TrackStatusRemoteDataSource
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers UnlikeTrackUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers UnrepostTrackUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers UpdateProfileUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers UpdateTrackMetadataUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers UpdateTrackVisibilityUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers UploadPickerCubit as factory
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers UploadRepository
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers VerifyEmailUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies — all registrations registers WatchTrackProcessingStatusUseCase
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/di/injector_test.dart: setupDependencies idempotency can be called twice without throwing
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/widgets/track_row_test.dart: menu opens
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/core/widgets/track_row_test.dart: navigate to artist works
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/auth/presentation/pages/welcome_page_test.dart: WelcomePage Tests navigates to login page when tapping Log in
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/auth/presentation/pages/welcome_page_test.dart: WelcomePage Tests navigates to register page when tapping Create an account
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/auth/presentation/pages/welcome_page_test.dart: WelcomePage Tests renders welcome content, illustration and buttons
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/comments/data/comments_data_layer_test.dart: CommentsRemoteDataSourceImpl createComment posts payload and parses response
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/comments/presentation/bloc/comments_cubit_test.dart: CommentsCubit addComment prepends newly created comment
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/interactions/data/interactions_data_layer_test.dart: InteractionStatusDto fromJson supports alt keys
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/playback/presentation/pages/playback_ui_pages_test.dart: FullPlayerPage renders controls and invokes cubit methods
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: account type switch updates UI text
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: cancel clear all external links keeps the items
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: cancel remove external link keeps the item
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: clear all external links works
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: country picker selection updates selected country label
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: discard dialog appears when back is pressed
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: duplicate external platform shows error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: External Link Validation fails when adding the same platform twice
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: External Link Validation normalizes URLs missing https protocol
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: External Link Validation validates Instagram profile-only constraint
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: Image Section renders image pick affordances
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: invalid facebook link shows error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: invalid instagram link shows error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: invalid soundcloud link shows error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: invalid tiktok link shows error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: invalid website URL shows error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: invalid x link shows error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: invalid youtube link shows error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: keeps page rendered on image upload error state
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: privacy toggle updates text
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: refreshes auth user after profile update success
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: remove external link confirms deletion
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: renders initial profile data from ProfileLoaded
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: save does nothing when there are no unsaved changes
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: save triggers updateProfile with trimmed values
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: shows avatar upload loading state
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: shows cover upload loading state
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: shows retry snackbar for avatar image upload error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: shows retry snackbar for cover image upload error
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: shows snackbar on ProfileUpdateError
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: shows snackbar on ProfileUpdateSuccess
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: State Synchronization parses location correctly into City and Country fields
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: State Synchronization updates form fields when profile state carries updated values
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: Unsaved Changes Guard does not show discard dialog when no changes were made
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: Unsaved Changes Guard stays on page if Keep editing is pressed
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/edit_profile_page_test.dart: validation prevents save when display name is too short
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: External links and auth listener coverage own profile tracks tab shows empty state when no tracks
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: External links and auth listener coverage renders body correctly for ProfileImageUploadError state
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: External links and auth listener coverage renders private chip and website text when present
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage does not render bio text when bio is null
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage does not render favorite genres when genres are empty
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage does not render location row when location is null
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage own profile tracks tab shows managed tracks
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage renders follow button for non-own profile
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage renders loaded own profile basic info
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage shows cover image section when coverPhotoUrl exists
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage shows non-own-profile UI when auth state is unauthenticated
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage toggles follow button text when tapped
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/pages/profile_page_test.dart: ProfilePage tracks tab shows no tracks text for non-own profile
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/widgets/edit_profile_image_section_test.dart: EditProfileImageSection shows avatar upload overlay and disables avatar tap
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/widgets/edit_profile_image_section_test.dart: EditProfileImageSection shows cover upload overlay and disables cover interactions
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/widgets/edit_profile_image_section_test.dart: EditProfileImageSection shows placeholder avatar icon when avatar url is null
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/widgets/edit_profile_image_section_test.dart: EditProfileImageSection tapping avatar camera triggers avatar picker
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/widgets/edit_profile_image_section_test.dart: EditProfileImageSection tapping cover area triggers cover picker
+C:/Users/Ali Khedr/Documents/GitHub/Cross/test/features/profile/presentation/widgets/edit_profile_image_section_test.dart: EditProfileImageSection tapping cover camera badge triggers cover picker
