@@ -388,7 +388,8 @@ void main() {
       expect(clearButton.onPressed, isNull);
       expect(uploadButton.onPressed, isNull);
 
-      expect(find.text('Uploading'), findsOneWidget);
+      // هنا عدلنا الـ expect عشان تدور على Uploading... بدلاً من Uploading وتتوقع تلاقي 2 (واحد في الزرار وواحد في الكارت)
+      expect(find.text('Uploading...'), findsNWidgets(2));
       expect(
         find.text('Your file is being sent to the server.'),
         findsOneWidget,
@@ -539,7 +540,8 @@ void main() {
 
       expect(find.text('Selecting file'), findsNothing);
       expect(find.text('Ready to upload'), findsNothing);
-      expect(find.text('Uploading'), findsNothing);
+      // عدلنا هنا لـ Uploading... بدل Uploading
+      expect(find.text('Uploading...'), findsNothing);
       expect(find.text('Processing'), findsNothing);
       expect(find.text('Upload complete'), findsNothing);
       expect(find.text('Upload failed'), findsNothing);
