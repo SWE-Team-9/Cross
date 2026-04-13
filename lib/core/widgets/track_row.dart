@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
-import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
@@ -32,13 +32,12 @@ class TrackRow extends StatelessWidget {
             final isPlaying = isCurrentTrack && state.isPlaying;
             final wasPlayed = state.wasPlayed(track.id);
 
-            // ← opacity أقل للأغاني اللي اتشغلت زي SoundCloud
             final opacity = wasPlayed && !isCurrentTrack ? 0.45 : 1.0;
 
             return Opacity(
               opacity: opacity,
               child: InkWell(
-                onTap: () async {
+                onTap: () {
                   final playerCubit = context.read<PlayerCubit>();
                   final playbackCubit = context.read<PlaybackCubit>();
 
@@ -47,8 +46,8 @@ class TrackRow extends StatelessWidget {
                   final tracksFromHere =
                       index >= 0 ? tracks.sublist(index) : [track];
 
-                  await playbackCubit.playTrack(track, tracksFromHere);
-                  await playerCubit.play(track);
+                  playbackCubit.playTrack(track, tracksFromHere);
+                  playerCubit.play(track);
                 },
                 splashColor: Colors.white10,
                 child: Padding(
@@ -56,7 +55,6 @@ class TrackRow extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Row(
                     children: [
-                      // Artwork
                       Container(
                         width: 52,
                         height: 52,
@@ -76,8 +74,6 @@ class TrackRow extends StatelessWidget {
                             : null,
                       ),
                       const SizedBox(width: 12),
-
-                      // Track info
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,8 +119,6 @@ class TrackRow extends StatelessWidget {
                           ],
                         ),
                       ),
-
-                      // More options
                       IconButton(
                         onPressed: () =>
                             TrackOptionsSheet.show(context, track: track),
@@ -163,7 +157,12 @@ class TrackRow extends StatelessWidget {
       context: context,
       backgroundColor: Colors.black,
       builder: (_) => BlocProvider(
-        create: (_) => getIt<TrackInteractionCubit>()..load(track.id),
+        create: (_) => getIt<TrackInteractionCubit>()
+          ..load(
+            trackId: track.id,
+            likesCount: track.likesCount,
+            repostsCount: track.repostsCount,
+          ),
         child: Builder(
           builder: (bottomSheetContext) {
             return BlocBuilder<TrackInteractionCubit, TrackInteractionState>(
@@ -201,11 +200,10 @@ class TrackRow extends StatelessWidget {
                         'Comments',
                         style: TextStyle(color: Colors.white),
                       ),
-                      onTap: () => _openComments(context),
+                      onTap: () => _openComments(bottomSheetContext),
                     ),
                     const ListTile(
-                      leading:
-                          Icon(Icons.playlist_add, color: Colors.white),
+                      leading: Icon(Icons.playlist_add, color: Colors.white),
                       title: Text(
                         'Add to playlist',
                         style: TextStyle(color: Colors.white),
@@ -218,19 +216,20 @@ class TrackRow extends StatelessWidget {
                         style: TextStyle(color: Colors.white),
                       ),
                       onTap: () {
-                        if (track.handle != null &&
-                            track.handle!.isNotEmpty) {
-                          ProfileRoutes.goToProfile(context, track.handle!);
+                        if (track.handle != null && track.handle!.isNotEmpty) {
+                          ProfileRoutes.goToProfile(
+                            bottomSheetContext,
+                            track.handle!,
+                          );
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                             const SnackBar(
-                              content:
-                                  Text('Artist profile not available'),
+                              content: Text('Artist profile not available'),
                               backgroundColor: Colors.red,
                             ),
                           );
                         }
-                        Navigator.pop(context);
+                        Navigator.pop(bottomSheetContext);
                       },
                     ),
                     const Divider(color: Color(0xFF1F1F1F), height: 1),
@@ -241,7 +240,7 @@ class TrackRow extends StatelessWidget {
                         style: TextStyle(color: Colors.red),
                       ),
                       onTap: () {
-                        Navigator.pop(context);
+                        Navigator.pop(bottomSheetContext);
                       },
                     ),
                   ],
