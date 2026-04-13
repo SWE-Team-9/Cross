@@ -324,8 +324,7 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -477,11 +476,14 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                           ),
                                         ),
                                       ),
-                                      Text('🔥', style: TextStyle(fontSize: 20)),
+                                      Text('🔥',
+                                          style: TextStyle(fontSize: 20)),
                                       SizedBox(width: 10),
-                                      Text('👏', style: TextStyle(fontSize: 20)),
+                                      Text('👏',
+                                          style: TextStyle(fontSize: 20)),
                                       SizedBox(width: 10),
-                                      Text('🥰', style: TextStyle(fontSize: 20)),
+                                      Text('🥰',
+                                          style: TextStyle(fontSize: 20)),
                                     ],
                                   ),
                                 ),
@@ -499,7 +501,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                   ),
                                   onPressed: () async {
                                     playback.playPrevious();
-                                    await _syncDisplayedTrackFromPlayback(context);
+                                    await _syncDisplayedTrackFromPlayback(
+                                        context);
                                   },
                                 ),
                                 const SizedBox(width: 20),
@@ -532,7 +535,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                   ),
                                   onPressed: () async {
                                     playback.playNext();
-                                    await _syncDisplayedTrackFromPlayback(context);
+                                    await _syncDisplayedTrackFromPlayback(
+                                        context);
                                   },
                                 ),
                               ],
@@ -540,7 +544,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                             const SizedBox(height: 12),
                             PlayerActions(
                               onQueueTap: () => _showQueue(context),
-                              onCommentsTap: () => _openComments(context, track.id),
+                              onCommentsTap: () =>
+                                  _openComments(context, track.id),
                               onLikesTap: () => _openEngagementList(
                                 context,
                                 trackId: track.id,

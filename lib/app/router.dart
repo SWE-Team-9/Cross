@@ -279,31 +279,31 @@ GoRouter _createRouter() {
       ),
 
       // ── Full player ──────────────────────────────────────────────────────────
-     GoRoute(
-  path: AppRoutes.player,
-  name: 'player',
-  parentNavigatorKey: rootNavigatorKey,
-  pageBuilder: (context, state) => CustomTransitionPage<void>(
-    child: BlocProvider(
-      create: (_) => getIt<TrackInteractionCubit>(),
-      child: const FullPlayerPage(),
-    ),
-    transitionDuration: const Duration(milliseconds: 180),
-    reverseTransitionDuration: const Duration(milliseconds: 140),
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      return SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 1),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-        )),
-        child: child,
-      );
-    },
-  ),
-),
+      GoRoute(
+        path: AppRoutes.player,
+        name: 'player',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          child: BlocProvider(
+            create: (_) => getIt<TrackInteractionCubit>(),
+            child: const FullPlayerPage(),
+          ),
+          transitionDuration: const Duration(milliseconds: 180),
+          reverseTransitionDuration: const Duration(milliseconds: 140),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              )),
+              child: child,
+            );
+          },
+        ),
+      ),
 
       // ── Secret track — MUST be before trackDetail ────────────────────────────
       GoRoute(

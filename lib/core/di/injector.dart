@@ -51,7 +51,6 @@ import '../../features/upload/data/repositories/track_status_repository_impl.dar
 import '../../features/upload/domain/repositories/i_track_status_repository.dart';
 import '../../features/upload/domain/usecases/watch_track_processing_status_use_case.dart';
 
-
 // Profile feature
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
@@ -167,7 +166,6 @@ Future<void> setupDependencies() async {
   }
 
   // ── Core Services ────────────────────────────────────────────────────────
-
 
   if (!getIt.isRegistered<DeepLinkService>()) {
     getIt.registerLazySingleton<DeepLinkService>(
@@ -518,19 +516,19 @@ Future<void> setupDependencies() async {
     );
   }
 
- if (!getIt.isRegistered<ProfileCubit>()) {
-  getIt.registerFactory<ProfileCubit>(
-    () => ProfileCubit(
-      getProfileUseCase: getIt<GetProfileUseCase>(),
-      updateProfileUseCase: getIt<UpdateProfileUseCase>(),
-      profileRepository: getIt<profile_domain.ProfileRepository>(),
-      getMyLikedTracksUseCase: getIt<GetMyLikedTracksUseCase>(),
-      getMyRepostedTracksUseCase: getIt<GetMyRepostedTracksUseCase>(),
-    ),
-  );
-}
+  if (!getIt.isRegistered<ProfileCubit>()) {
+    getIt.registerFactory<ProfileCubit>(
+      () => ProfileCubit(
+        getProfileUseCase: getIt<GetProfileUseCase>(),
+        updateProfileUseCase: getIt<UpdateProfileUseCase>(),
+        profileRepository: getIt<profile_domain.ProfileRepository>(),
+        getMyLikedTracksUseCase: getIt<GetMyLikedTracksUseCase>(),
+        getMyRepostedTracksUseCase: getIt<GetMyRepostedTracksUseCase>(),
+      ),
+    );
+  }
 
-   // ── Interactions Feature ─────────────────────────────────────────────────
+  // ── Interactions Feature ─────────────────────────────────────────────────
 
   if (!getIt.isRegistered<InteractionsRemoteDataSource>()) {
     getIt.registerLazySingleton<InteractionsRemoteDataSource>(
@@ -551,16 +549,16 @@ Future<void> setupDependencies() async {
   }
 
   if (!getIt.isRegistered<GetMyLikedTracksUseCase>()) {
-  getIt.registerLazySingleton<GetMyLikedTracksUseCase>(
-    () => GetMyLikedTracksUseCase(getIt<InteractionsRepository>()),
-  );
-}
+    getIt.registerLazySingleton<GetMyLikedTracksUseCase>(
+      () => GetMyLikedTracksUseCase(getIt<InteractionsRepository>()),
+    );
+  }
 
-if (!getIt.isRegistered<GetMyRepostedTracksUseCase>()) {
-  getIt.registerLazySingleton<GetMyRepostedTracksUseCase>(
-    () => GetMyRepostedTracksUseCase(getIt<InteractionsRepository>()),
-  );
-}
+  if (!getIt.isRegistered<GetMyRepostedTracksUseCase>()) {
+    getIt.registerLazySingleton<GetMyRepostedTracksUseCase>(
+      () => GetMyRepostedTracksUseCase(getIt<InteractionsRepository>()),
+    );
+  }
 
   if (!getIt.isRegistered<LikeTrackUseCase>()) {
     getIt.registerLazySingleton<LikeTrackUseCase>(

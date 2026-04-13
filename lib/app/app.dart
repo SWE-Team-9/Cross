@@ -54,17 +54,17 @@ class App extends StatelessWidget {
                 final isPlayerOpen = playerState.isFullScreen;
 
                 return _DeepLinkBridge(
-              child: Scaffold(
+                  child: Scaffold(
                     backgroundColor: Colors.black,
-                  body: Stack(
+                    body: Stack(
                       children: [
                         child ?? const SizedBox.shrink(),
                         // ── Mini player ──────────────────────────────────
-                      ValueListenableBuilder<bool>(
-                        valueListenable: isTrackSheetOpen,
-                        builder: (context, sheetOpen, _) {
-                          final hide = isPlayerOpen || sheetOpen;
-                          return Positioned(
+                        ValueListenableBuilder<bool>(
+                          valueListenable: isTrackSheetOpen,
+                          builder: (context, sheetOpen, _) {
+                            final hide = isPlayerOpen || sheetOpen;
+                            return Positioned(
                               left: 0,
                               right: 0,
                               bottom: 70,
@@ -84,10 +84,10 @@ class App extends StatelessWidget {
                                 ),
                               ),
                             );
-                        },
-                      ),
+                          },
+                        ),
                       ],
-                ),
+                    ),
                   ),
                 );
               },

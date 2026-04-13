@@ -11,10 +11,11 @@ class InteractionStatusDto {
 
   factory InteractionStatusDto.fromJson(Map<String, dynamic> json) {
     return InteractionStatusDto(
-      isLiked:
-          json['isLiked'] ?? json['is_liked'] ?? json['liked'] ?? false,
-      isReposted:
-          json['isReposted'] ?? json['is_reposted'] ?? json['reposted'] ?? false,
+      isLiked: json['isLiked'] ?? json['is_liked'] ?? json['liked'] ?? false,
+      isReposted: json['isReposted'] ??
+          json['is_reposted'] ??
+          json['reposted'] ??
+          false,
     );
   }
 

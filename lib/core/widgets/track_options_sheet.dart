@@ -77,7 +77,6 @@ class TrackOptionsSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Row(
@@ -131,7 +130,6 @@ class TrackOptionsSheet extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
             SizedBox(
               height: 80,
@@ -147,9 +145,7 @@ class TrackOptionsSheet extends StatelessWidget {
                 ],
               ),
             ),
-
             const Divider(color: Colors.white12, height: 1),
-
             Expanded(
               child: ListView(
                 controller: scrollController,
@@ -160,7 +156,9 @@ class TrackOptionsSheet extends StatelessWidget {
                         : Icons.favorite_border,
                     label: interactionState.isLiked ? 'Unlike' : 'Like',
                     onTap: () {
-                      context.read<TrackInteractionCubit>().toggleLike(track.id);
+                      context
+                          .read<TrackInteractionCubit>()
+                          .toggleLike(track.id);
                     },
                   ),
                   _OptionTile(

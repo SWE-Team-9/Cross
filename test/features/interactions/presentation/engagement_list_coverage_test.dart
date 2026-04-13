@@ -14,7 +14,8 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/engagem
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/engagement_list_state.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/pages/engagement_list_page.dart';
 
-class MockInteractionsRepository extends Mock implements InteractionsRepository {}
+class MockInteractionsRepository extends Mock
+    implements InteractionsRepository {}
 
 class MockGetTrackLikersUseCase extends Mock implements GetTrackLikersUseCase {}
 
@@ -294,7 +295,8 @@ void main() {
       expect(find.text('No likes yet'), findsOneWidget);
     });
 
-    testWidgets('renders users and triggers loadMore on scroll', (tester) async {
+    testWidgets('renders users and triggers loadMore on scroll',
+        (tester) async {
       final items = List.generate(
         25,
         (index) => EngagementUser(

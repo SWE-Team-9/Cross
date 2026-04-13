@@ -70,7 +70,8 @@ class CommentsList extends StatelessWidget {
       itemCount: comments.length,
       itemBuilder: (context, index) {
         final comment = comments[index];
-        final canDelete = currentUserId != null && comment.userId == currentUserId;
+        final canDelete =
+            currentUserId != null && comment.userId == currentUserId;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

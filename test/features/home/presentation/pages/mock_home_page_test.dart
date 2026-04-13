@@ -460,7 +460,8 @@ void main() {
         },
       ),
     );
-    when(() => mockDioClient.get<dynamic>('/api/v1/player/tracks/seed-1/source'))
+    when(() =>
+            mockDioClient.get<dynamic>('/api/v1/player/tracks/seed-1/source'))
         .thenAnswer(
       (_) async => Response<dynamic>(
         requestOptions: RequestOptions(path: '/player/source'),
@@ -505,5 +506,4 @@ void main() {
     expect(find.textContaining('Failed to load seeded user tracks'),
         findsOneWidget);
   });
-
 }
