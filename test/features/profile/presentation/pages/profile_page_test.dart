@@ -382,11 +382,15 @@ void main() {
             ManagedTrack(
               id: 'profile-track-1',
               title: 'Midnight Echoes',
+              description: 'Layered synth pads',
+              tags: <String>['ambient', 'night'],
               visibility: TrackManagementVisibility.publicTrack,
             ),
             ManagedTrack(
               id: 'profile-track-2',
               title: 'City Lights',
+              description: 'Private draft',
+              tags: <String>['draft'],
               visibility: TrackManagementVisibility.privateTrack,
             ),
           ],
@@ -411,6 +415,8 @@ void main() {
       expect(find.text('Midnight Echoes'), findsOneWidget);
       expect(find.text('City Lights'), findsOneWidget);
       expect(find.text('Manage'), findsNWidgets(2));
+      expect(find.text('Layered synth pads'), findsOneWidget);
+      expect(find.text('#ambient · #night'), findsOneWidget);
     });
   });
 

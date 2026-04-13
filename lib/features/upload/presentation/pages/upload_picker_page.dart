@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -6,8 +7,8 @@ import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../bloc/upload_picker_cubit.dart';
 import '../bloc/upload_picker_state.dart';
+import '../constants/track_genres.dart';
 import '../widgets/selected_audio_file_card.dart';
-import 'package:flutter/services.dart';
 
 class UploadPickerPage extends StatefulWidget {
   const UploadPickerPage({super.key});
@@ -18,9 +19,9 @@ class UploadPickerPage extends StatefulWidget {
 
 class _UploadPickerPageState extends State<UploadPickerPage> {
   late final TextEditingController _titleController;
-  late final TextEditingController _genreController;
   late final TextEditingController _tagsController;
   late final TextEditingController _descriptionController;
+  String? _selectedGenre;
 
   TrackManagementVisibility _selectedVisibility =
       TrackManagementVisibility.privateTrack;
@@ -29,7 +30,6 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
   void initState() {
     super.initState();
     _titleController = TextEditingController();
-    _genreController = TextEditingController();
     _tagsController = TextEditingController();
     _descriptionController = TextEditingController();
   }
@@ -37,7 +37,6 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
   @override
   void dispose() {
     _titleController.dispose();
-    _genreController.dispose();
     _tagsController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -45,12 +44,12 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
 
   void _resetForm(UploadPickerCubit cubit) {
     _titleController.clear();
-    _genreController.clear();
     _tagsController.clear();
     _descriptionController.clear();
 
     setState(() {
       _selectedVisibility = TrackManagementVisibility.privateTrack;
+      _selectedGenre = null;
     });
 
     cubit.clearSelection();
@@ -176,7 +175,13 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                   const SizedBox(height: 16),
                   _UploadMetadataCard(
                     titleController: _titleController,
-                    genreController: _genreController,
+                    selectedGenre: _selectedGenre,
+                    genreOptions: kTrackGenreNames,
+                    onGenreChanged: (genre) {
+                      setState(() {
+                        _selectedGenre = genre;
+                      });
+                    },
                     tagsController: _tagsController,
                     descriptionController: _descriptionController,
                     isEnabled: canEditCurrentUpload,
@@ -206,13 +211,26 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: canEditCurrentUpload
-                              ? () => cubit.uploadSelectedFile(
+                              ? () {
+                                  if (_selectedGenre == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Please choose a genre before uploading.',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  cubit.uploadSelectedFile(
                                     title: _titleController.text,
-                                    genre: _genreController.text,
+                                    genre: _selectedGenre,
                                     tagsInput: _tagsController.text,
                                     description: _descriptionController.text,
                                     visibility: _selectedVisibility,
-                                  )
+                                  );
+                                }
                               : null,
                           child: Text(
                             state.status == UploadPickerStatus.uploading
@@ -302,14 +320,18 @@ class _UserAccountCard extends StatelessWidget {
 class _UploadMetadataCard extends StatelessWidget {
   const _UploadMetadataCard({
     required this.titleController,
-    required this.genreController,
+    required this.selectedGenre,
+    required this.genreOptions,
+    required this.onGenreChanged,
     required this.tagsController,
     required this.descriptionController,
     required this.isEnabled,
   });
 
   final TextEditingController titleController;
-  final TextEditingController genreController;
+  final String? selectedGenre;
+  final List<String> genreOptions;
+  final ValueChanged<String?> onGenreChanged;
   final TextEditingController tagsController;
   final TextEditingController descriptionController;
   final bool isEnabled;
@@ -336,9 +358,19 @@ class _UploadMetadataCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: genreController,
-              enabled: isEnabled,
+            DropdownButtonFormField<String>(
+              key: ValueKey(selectedGenre),
+              initialValue: selectedGenre,
+              hint: const Text('Select genre'),
+              items: genreOptions
+                  .map(
+                    (genre) => DropdownMenuItem<String>(
+                      value: genre,
+                      child: Text(genre),
+                    ),
+                  )
+                  .toList(),
+              onChanged: isEnabled ? onGenreChanged : null,
               decoration: const InputDecoration(
                 labelText: 'Genre',
                 border: OutlineInputBorder(),
