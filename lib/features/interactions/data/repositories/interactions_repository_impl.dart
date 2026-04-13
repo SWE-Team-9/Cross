@@ -1,4 +1,5 @@
 import '../../domain/entities/interaction_status.dart';
+import '../../domain/entities/paginated_engagement_users.dart';
 import '../../domain/repositories/interactions_repository.dart';
 import '../datasources/interactions_remote_data_source.dart';
 
@@ -30,6 +31,34 @@ class InteractionsRepositoryImpl implements InteractionsRepository {
   @override
   Future<InteractionStatus> getTrackInteractionStatus(String trackId) async {
     final dto = await remoteDataSource.getTrackInteractionStatus(trackId);
+    return dto.toEntity();
+  }
+
+  @override
+  Future<PaginatedEngagementUsers> getTrackLikers(
+    String trackId, {
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final dto = await remoteDataSource.getTrackLikers(
+      trackId,
+      page: page,
+      limit: limit,
+    );
+    return dto.toEntity();
+  }
+
+  @override
+  Future<PaginatedEngagementUsers> getTrackReposters(
+    String trackId, {
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final dto = await remoteDataSource.getTrackReposters(
+      trackId,
+      page: page,
+      limit: limit,
+    );
     return dto.toEntity();
   }
 }

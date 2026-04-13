@@ -33,6 +33,7 @@ import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../features/playback/presentation/pages/full_player_page.dart';
 import '../features/playback/presentation/pages/track_deep_link_bridge_page.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 
 // Project — recently played
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
@@ -278,28 +279,31 @@ GoRouter _createRouter() {
       ),
 
       // ── Full player ──────────────────────────────────────────────────────────
-      GoRoute(
-        path: AppRoutes.player,
-        name: 'player',
-        parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => CustomTransitionPage<void>(
-          child: const FullPlayerPage(),
-          transitionDuration: const Duration(milliseconds: 180),
-          reverseTransitionDuration: const Duration(milliseconds: 140),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              )),
-              child: child,
-            );
-          },
-        ),
-      ),
+     GoRoute(
+  path: AppRoutes.player,
+  name: 'player',
+  parentNavigatorKey: rootNavigatorKey,
+  pageBuilder: (context, state) => CustomTransitionPage<void>(
+    child: BlocProvider(
+      create: (_) => getIt<TrackInteractionCubit>(),
+      child: const FullPlayerPage(),
+    ),
+    transitionDuration: const Duration(milliseconds: 180),
+    reverseTransitionDuration: const Duration(milliseconds: 140),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        )),
+        child: child,
+      );
+    },
+  ),
+),
 
       // ── Secret track — MUST be before trackDetail ────────────────────────────
       GoRoute(
