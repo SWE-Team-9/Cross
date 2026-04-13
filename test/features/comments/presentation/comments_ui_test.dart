@@ -13,9 +13,6 @@ import 'package:soundcloud_clone/features/comments/domain/entities/comment_entit
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_state.dart';
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
-import 'package:soundcloud_clone/features/comments/presentation/widgets/comment_input_field.dart';
-import 'package:soundcloud_clone/features/comments/presentation/widgets/comment_tile.dart';
-import 'package:soundcloud_clone/features/comments/presentation/widgets/comments_list.dart';
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
