@@ -321,6 +321,73 @@ void main() {
       expect(tracks, hasLength(1));
       expect(tracks.single.id, 'track-3');
     });
+
+    test('parses nested track payload and preserves metadata fields', () async {
+      when(() => mockDio.get('/api/v1/users/user-1/tracks')).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
+          data: <String, dynamic>{
+            'tracks': [
+              <String, dynamic>{
+                'track': <String, dynamic>{
+                  'id': 'track-4',
+                  'title': 'Nested Track',
+                  'visibility': 'PUBLIC',
+                },
+                'description': 'Nested description',
+                'tags': <String>['nested', 'profile'],
+              },
+            ],
+          },
+        ),
+      );
+
+      final tracks = await dataSource.getUserTracks('user-1');
+
+      expect(tracks, hasLength(1));
+      expect(tracks.single.id, 'track-4');
+      expect(tracks.single.description, 'Nested description');
+      expect(tracks.single.tags, const <String>['nested', 'profile']);
+    });
+
+    test('hydrates missing metadata from track details endpoint', () async {
+      when(() => mockDio.get('/api/v1/users/user-1/tracks')).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
+          data: <String, dynamic>{
+            'tracks': [
+              <String, dynamic>{
+                'id': 'track-9',
+                'title': 'Needs Hydration',
+                'visibility': 'PUBLIC',
+              },
+            ],
+          },
+        ),
+      );
+
+      when(() => mockDio.get('/api/v1/tracks/track-9')).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-9'),
+          data: <String, dynamic>{
+            'track': <String, dynamic>{
+              'id': 'track-9',
+              'title': 'Needs Hydration',
+              'visibility': 'PUBLIC',
+              'description': 'Hydrated description',
+              'tags': <String>['hydrated', 'metadata'],
+            },
+          },
+        ),
+      );
+
+      final tracks = await dataSource.getUserTracks('user-1');
+
+      expect(tracks, hasLength(1));
+      expect(tracks.single.description, 'Hydrated description');
+      expect(tracks.single.tags, const <String>['hydrated', 'metadata']);
+      verify(() => mockDio.get('/api/v1/tracks/track-9')).called(1);
+    });
   });
 
   group('updateExternalLinks', () {

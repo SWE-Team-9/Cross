@@ -19,7 +19,13 @@ import '../widgets/edit_profile_text_field.dart';
 import '../widgets/windows_image_crop_dialog.dart';
 
 class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({super.key});
+  final Future<String?> Function(ProfileImageType imageType)?
+      pickAndCropImageOverride;
+
+  const EditProfilePage({
+    super.key,
+    this.pickAndCropImageOverride,
+  });
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
@@ -37,6 +43,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late ProfileEntity _initialProfile;
   late AccountTier _selectedAccountTier;
   late bool _isPrivate;
+  String? _pendingAvatarImagePath;
+  String? _pendingCoverImagePath;
 
   final List<_EditableExternalLink> _externalLinks = [];
 
@@ -150,6 +158,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         currentWebsite != (_initialProfile.website ?? '') ||
         _selectedAccountTier != _initialProfile.accountTier ||
         _isPrivate != _initialProfile.isPrivate ||
+        _pendingAvatarImagePath != null ||
+        _pendingCoverImagePath != null ||
         !_mapEquals(currentLinks, _initialProfile.externalLinks);
   }
 
@@ -216,6 +226,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _selectedCountry = parsed.country;
     _selectedAccountTier = profile.accountTier;
     _isPrivate = profile.isPrivate;
+    _pendingAvatarImagePath = null;
+    _pendingCoverImagePath = null;
 
     for (final item in _externalLinks) {
       item.dispose();
@@ -266,38 +278,81 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     final currentLocation =
         LocationUtils.build(_cityController.text, _selectedCountry);
-    final normalizedLinks = _buildExternalLinksMap();
 
     final String trimmedBio = _bioController.text.trim();
     final String trimmedWebsite = _normalizeUrl(_websiteController.text.trim());
+    final normalizedLinks = _buildExternalLinksMap();
+    final hadPendingImageChanges =
+        _pendingAvatarImagePath != null || _pendingCoverImagePath != null;
 
-    context.read<ProfileCubit>().updateProfile(
-          UpdateProfileParams(
-            displayName: _displayNameController.text.trim() !=
-                    _initialProfile.displayName
-                ? _displayNameController.text.trim()
-                : null,
-            bio: trimmedBio != (_initialProfile.bio ?? '') ? trimmedBio : null,
-            location: currentLocation != _initialProfile.location
-                ? currentLocation
-                : null,
-            website: trimmedWebsite != (_initialProfile.website ?? '')
-                ? trimmedWebsite
-                : null,
-            accountTier: _selectedAccountTier != _initialProfile.accountTier
-                ? _selectedAccountTier
-                : null,
-            visibility: _isPrivate != _initialProfile.isPrivate
-                ? (_isPrivate
-                    ? ProfileVisibility.PRIVATE
-                    : ProfileVisibility.PUBLIC)
-                : null,
-            externalLinks:
-                !_mapEquals(normalizedLinks, _initialProfile.externalLinks)
-                    ? normalizedLinks
-                    : null,
-          ),
-        );
+    final params = UpdateProfileParams(
+      displayName:
+          _displayNameController.text.trim() != _initialProfile.displayName
+              ? _displayNameController.text.trim()
+              : null,
+      bio: trimmedBio != (_initialProfile.bio ?? '') ? trimmedBio : null,
+      location:
+          currentLocation != _initialProfile.location ? currentLocation : null,
+      website: trimmedWebsite != (_initialProfile.website ?? '')
+          ? trimmedWebsite
+          : null,
+      accountTier: _selectedAccountTier != _initialProfile.accountTier
+          ? _selectedAccountTier
+          : null,
+      visibility: _isPrivate != _initialProfile.isPrivate
+          ? (_isPrivate ? ProfileVisibility.PRIVATE : ProfileVisibility.PUBLIC)
+          : null,
+      externalLinks: !_mapEquals(normalizedLinks, _initialProfile.externalLinks)
+          ? normalizedLinks
+          : null,
+    );
+
+    final profileCubit = context.read<ProfileCubit>();
+    final authCubit = context.read<AuthCubit>();
+
+    if (_pendingAvatarImagePath != null) {
+      await profileCubit.uploadImage(
+        imageType: ProfileImageType.AVATAR,
+        filePath: _pendingAvatarImagePath!,
+      );
+      if (!mounted) return;
+
+      final state = profileCubit.state;
+      if (state is ProfileImageUploadError &&
+          state.imageType == ProfileImageType.AVATAR) {
+        return;
+      }
+
+      _clearPendingImagePath(ProfileImageType.AVATAR);
+    }
+
+    if (_pendingCoverImagePath != null) {
+      await profileCubit.uploadImage(
+        imageType: ProfileImageType.COVER,
+        filePath: _pendingCoverImagePath!,
+      );
+      if (!mounted) return;
+
+      final state = profileCubit.state;
+      if (state is ProfileImageUploadError &&
+          state.imageType == ProfileImageType.COVER) {
+        return;
+      }
+
+      _clearPendingImagePath(ProfileImageType.COVER);
+    }
+
+    if (!mounted) return;
+
+    if (params.hasBaseProfileChanges || params.hasExternalLinksChanges) {
+      profileCubit.updateProfile(params);
+      return;
+    }
+
+    if (hadPendingImageChanges) {
+      _syncFormWithState(profileCubit.state);
+      authCubit.refreshCurrentUserSilently();
+    }
   }
 
   bool _validateExternalLinks() {
@@ -506,6 +561,35 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return _platformLabels[platform] ?? platform;
   }
 
+  void _setPendingImagePath({
+    required ProfileImageType imageType,
+    required String filePath,
+  }) {
+    if (imageType == ProfileImageType.AVATAR) {
+      _pendingAvatarImagePath = filePath;
+    } else {
+      _pendingCoverImagePath = filePath;
+    }
+  }
+
+  void _clearPendingImagePath(ProfileImageType imageType) {
+    if (!mounted) return;
+    setState(() {
+      if (imageType == ProfileImageType.AVATAR) {
+        _pendingAvatarImagePath = null;
+      } else {
+        _pendingCoverImagePath = null;
+      }
+    });
+  }
+
+  void _syncFormWithState(ProfileState state) {
+    final profile = _profileFromState(state);
+    if (profile != null && !_hasUnsavedChanges) {
+      _applyProfileToForm(profile);
+    }
+  }
+
   void _addExternalLink() {
     setState(() {
       _externalLinks.add(
@@ -672,6 +756,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _onPickImage(ProfileImageType imageType) async {
     try {
+      if (widget.pickAndCropImageOverride != null) {
+        final String? overridePath =
+            await widget.pickAndCropImageOverride!(imageType);
+        if (overridePath == null || overridePath.trim().isEmpty || !mounted) {
+          return;
+        }
+        setState(() {
+          _setPendingImagePath(imageType: imageType, filePath: overridePath);
+        });
+        return;
+      }
+
       String? selectedPath;
 
       if (Platform.isWindows) {
@@ -700,14 +796,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         return;
       }
 
-      await context.read<ProfileCubit>().uploadImage(
-            imageType: imageType,
-            filePath: croppedPath,
-          );
-
-      if (mounted) {
-        context.read<AuthCubit>().refreshCurrentUserSilently();
-      }
+      setState(() {
+        _setPendingImagePath(imageType: imageType, filePath: croppedPath);
+      });
     } catch (_) {
       if (!mounted) return;
       _showFloatingError('Unable to select image. Please try again.');
@@ -783,9 +874,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       },
       child: BlocConsumer<ProfileCubit, ProfileState>(
         listener: (context, state) {
-          final profile = _profileFromState(state);
-          if (profile != null && !_hasUnsavedChanges) {
-            _applyProfileToForm(profile);
+          _syncFormWithState(state);
+
+          if (state is ProfileImageUploading || state is ProfileLoaded) {
+            ScaffoldMessenger.of(context).removeCurrentSnackBar();
           }
 
           if (state is ProfileUpdateSuccess) {
@@ -875,6 +967,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     EditProfileImageSection(
                       avatarUrl: currentAvatarUrl,
                       coverUrl: currentCoverUrl,
+                      localAvatarPath: _pendingAvatarImagePath,
+                      localCoverPath: _pendingCoverImagePath,
                       isUploadingAvatar: isUploadingAvatar,
                       isUploadingCover: isUploadingCover,
                       onPickImage: _onPickImage,

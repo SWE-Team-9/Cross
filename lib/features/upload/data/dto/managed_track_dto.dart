@@ -25,10 +25,10 @@ class ManagedTrackDto {
     return ManagedTrackDto(
       id: (json['id'] ?? json['trackId'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
-      description: json['description']?.toString(),
+      description: _parseDescription(json),
       genreId: _parseGenreId(json),
       genreName: _parseGenreName(json),
-      tags: _parseTags(json['tags']),
+      tags: _parseTags(_extractRawTags(json)),
       visibility: trackManagementVisibilityFromApiValue(
         json['visibility']?.toString(),
       ),
@@ -85,6 +85,20 @@ class ManagedTrackDto {
   }
 }
 
+String? _parseDescription(Map<String, dynamic> json) {
+  final Map<String, dynamic>? metadata = _extractMetadataMap(json);
+  final dynamic metadataDescription = metadata?['description'] ??
+      metadata?['track_description'] ??
+      metadata?['trackDescription'];
+
+  final String? value = json['description']?.toString() ??
+      json['track_description']?.toString() ??
+      json['trackDescription']?.toString() ??
+      metadataDescription?.toString();
+  final String normalized = (value ?? '').trim();
+  return normalized.isEmpty ? null : normalized;
+}
+
 int? _parseGenreId(Map<String, dynamic> json) {
   final dynamic genre = json['genre'];
   if (genre is Map<String, dynamic>) {
@@ -114,6 +128,14 @@ String? _parseGenreName(Map<String, dynamic> json) {
 }
 
 List<String> _parseTags(dynamic rawTags) {
+  if (rawTags is String) {
+    return rawTags
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList(growable: false);
+  }
+
   if (rawTags is! List) return const <String>[];
 
   final List<String> result = <String>[];
@@ -136,6 +158,33 @@ List<String> _parseTags(dynamic rawTags) {
   }
 
   return result;
+}
+
+dynamic _extractRawTags(Map<String, dynamic> json) {
+  // Supports known payload variants from track management/profile endpoints:
+  // tags, tagList/tag_list, trackTags/track_tags, and metadata tag keys.
+  final Map<String, dynamic>? metadata = _extractMetadataMap(json);
+  final dynamic metadataTags = metadata?['tags'] ??
+      metadata?['tag_list'] ??
+      metadata?['tagList'] ??
+      metadata?['track_tags'] ??
+      metadata?['trackTags'];
+
+  return json['tags'] ??
+      json['tagList'] ??
+      json['tag_list'] ??
+      json['track_tags'] ??
+      json['trackTags'] ??
+      metadataTags;
+}
+
+Map<String, dynamic>? _extractMetadataMap(Map<String, dynamic> json) {
+  final dynamic metadata =
+      json['metadata'] ?? json['track_metadata'] ?? json['trackMetadata'];
+  if (metadata is Map<String, dynamic>) {
+    return metadata;
+  }
+  return null;
 }
 
 int? _parseInt(dynamic value) {
