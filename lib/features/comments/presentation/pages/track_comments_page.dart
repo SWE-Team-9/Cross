@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
+import '../../../../core/services/audio_player_service.dart';
 import '../bloc/comments_cubit.dart';
 import '../bloc/comments_state.dart';
 import '../widgets/comment_input_field.dart';
@@ -23,10 +27,35 @@ class TrackCommentsPage extends StatefulWidget {
 }
 
 class _TrackCommentsPageState extends State<TrackCommentsPage> {
+  int _currentPositionSeconds = 0;
+  StreamSubscription? _playerSub;
+
   @override
   void initState() {
     super.initState();
+
     context.read<CommentsCubit>().load(widget.trackId);
+
+    final player = GetIt.I<AudioPlayerService>();
+
+    final initial = widget.getCurrentPositionSeconds?.call() ?? 0;
+    _currentPositionSeconds = initial;
+
+    _playerSub = player.playerStateStream.listen((state) {
+      final seconds = state.position.inSeconds;
+
+      if (seconds != _currentPositionSeconds) {
+        setState(() {
+          _currentPositionSeconds = seconds;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _playerSub?.cancel();
+    super.dispose();
   }
 
   Future<bool> _handleBack() async {
@@ -43,8 +72,6 @@ class _TrackCommentsPageState extends State<TrackCommentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final currentTimestamp = widget.getCurrentPositionSeconds?.call() ?? 0;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -74,6 +101,7 @@ class _TrackCommentsPageState extends State<TrackCommentsPage> {
         ),
         body: Column(
           children: [
+            // 🔥 LIVE TIMESTAMP DISPLAY
             Container(
               width: double.infinity,
               margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -92,7 +120,7 @@ class _TrackCommentsPageState extends State<TrackCommentsPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Commenting at ${_formatTime(currentTimestamp)}',
+                    'Commenting at ${_formatTime(_currentPositionSeconds)}',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 13,
@@ -102,6 +130,7 @@ class _TrackCommentsPageState extends State<TrackCommentsPage> {
                 ],
               ),
             ),
+
             Expanded(
               child: BlocBuilder<CommentsCubit, CommentsState>(
                 builder: (context, state) {
@@ -115,87 +144,18 @@ class _TrackCommentsPageState extends State<TrackCommentsPage> {
 
                   if (state.errorMessage != null && state.comments.isEmpty) {
                     return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: Colors.redAccent,
-                              size: 34,
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Failed to load comments',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              state.errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextButton(
-                              onPressed: () => context
-                                  .read<CommentsCubit>()
-                                  .load(widget.trackId),
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
+                      child: Text(
+                        state.errorMessage!,
+                        style: const TextStyle(color: Colors.white),
                       ),
                     );
                   }
 
                   if (state.comments.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 72,
-                              height: 72,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.mode_comment_outlined,
-                                color: Colors.white38,
-                                size: 34,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'No comments yet',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Drop the first timestamped comment for this track.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white54,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
+                    return const Center(
+                      child: Text(
+                        'No comments yet',
+                        style: TextStyle(color: Colors.white),
                       ),
                     );
                   }
@@ -204,20 +164,22 @@ class _TrackCommentsPageState extends State<TrackCommentsPage> {
                     comments: state.comments,
                     trackId: widget.trackId,
                     onSeekToTimestamp: widget.onSeekToTimestamp,
+                    currentPositionSeconds: _currentPositionSeconds, // 🔥 LIVE
                   );
                 },
               ),
             ),
+
             BlocBuilder<CommentsCubit, CommentsState>(
               builder: (context, state) {
                 return CommentInputField(
                   isSubmitting: state.isSubmitting,
-                  currentTimestampLabel: _formatTime(currentTimestamp),
+                  currentTimestampLabel: _formatTime(_currentPositionSeconds),
                   onSubmit: (text) {
                     context.read<CommentsCubit>().addComment(
                           trackId: widget.trackId,
                           content: text,
-                          timestampSeconds: currentTimestamp,
+                          timestampSeconds: _currentPositionSeconds,
                         );
                   },
                 );
