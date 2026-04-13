@@ -76,9 +76,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       final dynamic responseData =
           response.data is String ? jsonDecode(response.data) : response.data;
       final List<dynamic> rawTracks = _extractTrackList(responseData);
-
-      return rawTracks
+      final List<Map<String, dynamic>> normalizedTracks = rawTracks
           .whereType<Map<String, dynamic>>()
+          .map(_normalizeTrackPayload)
+          .toList(growable: false);
+      final List<Map<String, dynamic>> enrichedTracks = await Future.wait(
+        normalizedTracks.map(_enrichTrackMetadataIfMissing),
+      );
+
+      return enrichedTracks
           .map(ManagedTrackDto.fromJson)
           .toList(growable: false);
     } catch (e) {
@@ -264,5 +270,161 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     }
 
     return const <dynamic>[];
+  }
+
+  Map<String, dynamic> _normalizeTrackPayload(Map<String, dynamic> rawTrack) {
+    final dynamic nestedTrack = rawTrack['track'];
+
+    if (nestedTrack is! Map<String, dynamic>) {
+      return rawTrack;
+    }
+
+    final Map<String, dynamic> normalized = Map<String, dynamic>.from(
+      nestedTrack,
+    );
+
+    for (final entry in rawTrack.entries) {
+      normalized.putIfAbsent(entry.key, () => entry.value);
+    }
+
+    return normalized;
+  }
+
+  Future<Map<String, dynamic>> _enrichTrackMetadataIfMissing(
+    Map<String, dynamic> track,
+  ) async {
+    if (_hasMetadataFields(track)) {
+      return track;
+    }
+
+    final String trackId = (track['id'] ?? track['trackId'] ?? '').toString();
+    if (trackId.isEmpty) {
+      return track;
+    }
+
+    try {
+      final response =
+          await _dioClient.dio.get('${ApiConstants.tracks}/$trackId');
+      final dynamic responseData =
+          response.data is String ? jsonDecode(response.data) : response.data;
+      final Map<String, dynamic>? detailTrack =
+          _extractSingleTrackMap(responseData);
+      if (detailTrack == null) {
+        return track;
+      }
+
+      final Map<String, dynamic> normalizedDetail =
+          _normalizeTrackPayload(detailTrack);
+      final Map<String, dynamic> merged = Map<String, dynamic>.from(
+        normalizedDetail,
+      );
+
+      for (final entry in track.entries) {
+        merged.putIfAbsent(entry.key, () => entry.value);
+      }
+
+      return merged;
+    } catch (_) {
+      return track;
+    }
+  }
+
+  Map<String, dynamic>? _extractSingleTrackMap(dynamic responseData) {
+    if (responseData is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final dynamic track = responseData['track'];
+    if (track is Map<String, dynamic>) {
+      return track;
+    }
+
+    final dynamic data = responseData['data'];
+    if (data is Map<String, dynamic>) {
+      final dynamic nestedTrack = data['track'];
+      if (nestedTrack is Map<String, dynamic>) {
+        return nestedTrack;
+      }
+      return data;
+    }
+
+    return responseData;
+  }
+
+  bool _hasMetadataFields(Map<String, dynamic> track) {
+    final String description = (track['description'] ??
+            track['track_description'] ??
+            track['trackDescription'] ??
+            '')
+        .toString()
+        .trim();
+    if (description.isNotEmpty) {
+      return true;
+    }
+
+    final dynamic directTags = track['tags'] ??
+        track['tag_list'] ??
+        track['tagList'] ??
+        track['track_tags'] ??
+        track['trackTags'];
+    if (_hasAnyTags(directTags)) {
+      return true;
+    }
+
+    final dynamic metadata =
+        track['metadata'] ?? track['track_metadata'] ?? track['trackMetadata'];
+    final Map<String, dynamic>? metadataMap = _toMap(metadata);
+    if (metadataMap == null) {
+      return false;
+    }
+
+    final String metadataDescription = (metadataMap['description'] ??
+            metadataMap['track_description'] ??
+            metadataMap['trackDescription'] ??
+            '')
+        .toString()
+        .trim();
+    if (metadataDescription.isNotEmpty) {
+      return true;
+    }
+
+    final dynamic metadataTags = metadataMap['tags'] ??
+        metadataMap['tag_list'] ??
+        metadataMap['tagList'] ??
+        metadataMap['track_tags'] ??
+        metadataMap['trackTags'];
+    return _hasAnyTags(metadataTags);
+  }
+
+  bool _hasAnyTags(dynamic value) {
+    if (value is List) {
+      return value.isNotEmpty;
+    }
+
+    if (value is String) {
+      return value
+          .split(',')
+          .map((item) => item.trim())
+          .any((item) => item.isNotEmpty);
+    }
+
+    return false;
+  }
+
+  Map<String, dynamic>? _toMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+
+    if (value is String) {
+      try {
+        final dynamic decoded = jsonDecode(value);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+      } catch (_) {}
+    }
+
+    return null;
   }
 }

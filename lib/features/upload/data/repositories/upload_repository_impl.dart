@@ -49,16 +49,26 @@ class UploadRepositoryImpl implements UploadRepository {
     final String? normalizedDescription = _normalizeOptional(description);
     final List<String> sanitizedTags = _sanitizeTags(tags);
 
-    final formData = FormData.fromMap({
-      'title': normalizedTitle,
-      if (normalizedGenre != null) 'genre': normalizedGenre,
-      if (normalizedDescription != null) 'description': normalizedDescription,
-      if (sanitizedTags.isNotEmpty) 'tags': sanitizedTags,
-      'audioFile': await MultipartFile.fromFile(
-        filePath,
-        filename: file.name,
+    final formData = FormData();
+    formData.fields.add(MapEntry('title', normalizedTitle));
+    if (normalizedGenre != null) {
+      formData.fields.add(MapEntry('genre', normalizedGenre));
+    }
+    if (normalizedDescription != null) {
+      formData.fields.add(MapEntry('description', normalizedDescription));
+    }
+    for (final tag in sanitizedTags) {
+      formData.fields.add(MapEntry('tags[]', tag));
+    }
+    formData.files.add(
+      MapEntry(
+        'audioFile',
+        await MultipartFile.fromFile(
+          filePath,
+          filename: file.name,
+        ),
       ),
-    });
+    );
 
     final response = onProgress == null
         ? await dioClient.post(
