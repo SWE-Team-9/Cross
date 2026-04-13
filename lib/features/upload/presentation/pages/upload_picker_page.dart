@@ -64,7 +64,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text('Permission required', style: TextStyle(color: Colors.white)),
+          title: const Text('Permission required',
+              style: TextStyle(color: Colors.white)),
           content: const Text(
             'Audio file access is permanently denied. Please enable it from system settings to continue.',
             style: TextStyle(color: Colors.white70),
@@ -72,7 +73,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -96,12 +98,15 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
     final authState = context.watch<AuthCubit>().state;
 
     const orangeColor = Color(0xFFFF7A00);
-    
+
     final darkOrangeTheme = ThemeData.dark().copyWith(
       scaffoldBackgroundColor: const Color(0xFF0D0D0D),
       colorScheme: const ColorScheme.dark(
         primary: orangeColor,
         onPrimary: Colors.black,
+        secondary: orangeColor,
+        secondaryContainer: Color(0x33FF7A00),
+        onSecondaryContainer: orangeColor,
         surface: Color(0xFF181818),
         onSurface: Colors.white,
       ),
@@ -112,7 +117,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: orangeColor,
-        selectionColor: orangeColor.withOpacity(0.3),
+        selectionColor: orangeColor.withValues(alpha: 0.3),
         selectionHandleColor: orangeColor,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -126,7 +131,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: orangeColor,
-          side: BorderSide(color: orangeColor.withOpacity(0.4), width: 1.5),
+          side:
+              BorderSide(color: orangeColor.withValues(alpha: 0.4), width: 1.5),
         ),
       ),
     );
@@ -201,7 +207,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Colors.greenAccent, width: 1),
+                      side:
+                          const BorderSide(color: Colors.greenAccent, width: 1),
                     ),
                   ),
                 );
@@ -217,7 +224,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                   !state.isBusy && state.hasSelection;
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
                   children: [
@@ -303,18 +311,23 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                               onPressed: canEditCurrentUpload
                                   ? () {
                                       if (_selectedGenre == null) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           SnackBar(
-                                            backgroundColor: const Color(0xFF1A1A1A),
+                                            backgroundColor:
+                                                const Color(0xFF1A1A1A),
                                             content: const Text(
                                               'Please choose a genre before uploading.',
-                                              style: TextStyle(color: Colors.white),
+                                              style: TextStyle(
+                                                  color: Colors.white),
                                             ),
                                             behavior: SnackBarBehavior.floating,
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(10),
-                                              side: BorderSide(color: orangeColor.withOpacity(0.5)),
+                                              side: BorderSide(
+                                                  color: orangeColor.withValues(
+                                                      alpha: 0.5)),
                                             ),
                                           ),
                                         );
@@ -325,7 +338,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                                         title: _titleController.text,
                                         genre: _selectedGenre,
                                         tagsInput: _tagsController.text,
-                                        description: _descriptionController.text,
+                                        description:
+                                            _descriptionController.text,
                                         visibility: _selectedVisibility,
                                       );
                                     }
@@ -348,7 +362,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                       state: state,
                       onCopyPrivateLink: state.privateShareToken == null
                           ? null
-                          : () => _copyPrivateTrackLink(state.privateShareToken!),
+                          : () =>
+                              _copyPrivateTrackLink(state.privateShareToken!),
                     ),
                     const SizedBox(height: 40),
                   ],
@@ -375,11 +390,14 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF1A1A1A),
-        content: const Text('Private track link copied', style: TextStyle(color: Colors.white)),
+        content: const Text('Private track link copied',
+            style: TextStyle(color: Colors.white)),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+          side: BorderSide(
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
         ),
       ),
     );
@@ -394,9 +412,9 @@ class _SleekContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       padding: const EdgeInsets.all(20),
       child: child,
@@ -418,7 +436,8 @@ class _UserAccountCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+            backgroundColor:
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
             child: Icon(
               Icons.person,
               color: Theme.of(context).colorScheme.primary,
@@ -450,9 +469,14 @@ class _UserAccountCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+              border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.3)),
             ),
             child: Text(
               user.accountType,
@@ -488,13 +512,14 @@ class _UploadMetadataCard extends StatelessWidget {
   final TextEditingController descriptionController;
   final bool isEnabled;
 
-  InputDecoration _buildInputDecoration(BuildContext context, String label, {String? hint, String? helper}) {
+  InputDecoration _buildInputDecoration(BuildContext context, String label,
+      {String? hint, String? helper}) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
       helperText: helper,
       filled: true,
-      fillColor: Colors.black.withOpacity(0.3),
+      fillColor: Colors.black.withValues(alpha: 0.3),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -505,11 +530,13 @@ class _UploadMetadataCard extends StatelessWidget {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
+        borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       labelStyle: TextStyle(color: Colors.grey.shade400),
-      floatingLabelStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
+      floatingLabelStyle:
+          TextStyle(color: Theme.of(context).colorScheme.primary),
     );
   }
 
@@ -536,7 +563,8 @@ class _UploadMetadataCard extends StatelessWidget {
           DropdownButtonFormField<String>(
             key: ValueKey(selectedGenre),
             initialValue: selectedGenre,
-            hint: Text('Select genre', style: TextStyle(color: Colors.grey.shade500)),
+            hint: Text('Select genre',
+                style: TextStyle(color: Colors.grey.shade500)),
             dropdownColor: const Color(0xFF1E1E1E),
             style: const TextStyle(color: Colors.white),
             items: genreOptions
@@ -618,19 +646,25 @@ class _UploadVisibilityCard extends StatelessWidget {
                 label: Text(visibility.displayLabel),
                 selected: isSelected,
                 onSelected: isEnabled ? (_) => onChanged(visibility) : null,
-                selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                backgroundColor: Colors.black.withOpacity(0.3),
+                selectedColor: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.15),
+                backgroundColor: Colors.black.withValues(alpha: 0.3),
                 labelStyle: TextStyle(
-                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey.shade300,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: isSelected
                       ? BorderSide(color: Theme.of(context).colorScheme.primary)
-                      : BorderSide(color: Colors.white.withOpacity(0.05)),
+                      : BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               );
             }).toList(),
           ),
@@ -660,7 +694,12 @@ class _AccessInfoCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 56, color: Theme.of(context).colorScheme.primary.withOpacity(0.8)),
+              Icon(icon,
+                  size: 56,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.8)),
               const SizedBox(height: 20),
               Text(
                 title,
@@ -722,15 +761,17 @@ class _UploadStatusCard extends StatelessWidget {
         title = 'Ready to upload';
         subtitle =
             'Review the file, fill the metadata, choose visibility, then upload.';
-        trailing = Icon(Icons.check_circle_outline, color: Theme.of(context).colorScheme.primary);
+        trailing = Icon(Icons.check_circle_outline,
+            color: Theme.of(context).colorScheme.primary);
         break;
       case UploadPickerStatus.uploading:
         title = 'Uploading...';
         subtitle = 'Your file is being sent to the server.';
-        trailing = Icon(Icons.cloud_upload_outlined, color: Theme.of(context).colorScheme.primary);
+        trailing = Icon(Icons.cloud_upload_outlined,
+            color: Theme.of(context).colorScheme.primary);
         progressBar = LinearProgressIndicator(
           value: state.uploadProgress,
-          backgroundColor: Colors.white.withOpacity(0.05),
+          backgroundColor: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(4),
           minHeight: 6,
         );
@@ -748,7 +789,7 @@ class _UploadStatusCard extends StatelessWidget {
           child: CircularProgressIndicator(strokeWidth: 2.5),
         );
         progressBar = LinearProgressIndicator(
-          backgroundColor: Colors.white.withOpacity(0.05),
+          backgroundColor: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(4),
           minHeight: 6,
         );
@@ -802,7 +843,8 @@ class _UploadStatusCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       subtitle,
-                      style: TextStyle(color: Colors.grey.shade400, height: 1.4),
+                      style:
+                          TextStyle(color: Colors.grey.shade400, height: 1.4),
                     ),
                   ],
                 ),
@@ -821,9 +863,10 @@ class _UploadStatusCard extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -839,7 +882,8 @@ class _UploadStatusCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           visibility.displayLabel,
-                          style: TextStyle(color: Colors.grey.shade300, fontSize: 13),
+                          style: TextStyle(
+                              color: Colors.grey.shade300, fontSize: 13),
                         ),
                       ],
                     ),
@@ -850,7 +894,8 @@ class _UploadStatusCard extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 0),
                       ),
                       onPressed: onCopyPrivateLink,
                       icon: const Icon(Icons.link, size: 18),
