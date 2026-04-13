@@ -142,9 +142,7 @@ class _EngagementUserTile extends StatelessWidget {
               style: const TextStyle(color: Colors.white54, fontSize: 12),
             )
           : null,
-      onTap: () {
-        
-      },
+      onTap: () {},
     );
   }
 

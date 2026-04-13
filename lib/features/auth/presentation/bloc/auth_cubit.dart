@@ -180,7 +180,8 @@ class AuthCubit extends Cubit<AuthState> {
 
         if (!launched) {
           await windowsOAuthCallbackServer.stop();
-          emit(AuthError('Could not open the browser to continue with Google.'));
+          emit(
+              AuthError('Could not open the browser to continue with Google.'));
           return;
         }
 

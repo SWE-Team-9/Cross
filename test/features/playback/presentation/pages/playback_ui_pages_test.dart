@@ -527,7 +527,8 @@ void main() {
           queue: [track, queueTrack],
         ),
       );
-      when(() => getTrackCommentsUseCase('t2')).thenAnswer((_) async => const []);
+      when(() => getTrackCommentsUseCase('t2'))
+          .thenAnswer((_) async => const []);
 
       await tester.pumpWidget(buildFullPlayer());
       await tester.pump();
@@ -628,10 +629,12 @@ void main() {
       await tester.pump();
 
       await tester.tap(
-        find.ancestor(
-          of: find.text('7'),
-          matching: find.byType(InkWell),
-        ).last,
+        find
+            .ancestor(
+              of: find.text('7'),
+              matching: find.byType(InkWell),
+            )
+            .last,
       );
       await tester.pumpAndSettle();
       verify(

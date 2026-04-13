@@ -142,19 +142,16 @@ class InteractionsRemoteDataSourceImpl implements InteractionsRemoteDataSource {
   List<ManagedTrackDto> _extractInteractionTrackDtos(dynamic responseData) {
     final List<dynamic> rawItems = _extractItemsList(responseData);
 
-    return rawItems
-        .whereType<Map<String, dynamic>>()
-        .map((item) {
-          final dynamic rawTrack = item['track'];
+    return rawItems.whereType<Map<String, dynamic>>().map((item) {
+      final dynamic rawTrack = item['track'];
 
-          if (rawTrack is Map<String, dynamic>) {
-            return ManagedTrackDto.fromJson(rawTrack);
-          }
+      if (rawTrack is Map<String, dynamic>) {
+        return ManagedTrackDto.fromJson(rawTrack);
+      }
 
-          // fallback لو الـ API رجعت التراك مباشرة
-          return ManagedTrackDto.fromJson(item);
-        })
-        .toList(growable: false);
+      // fallback لو الـ API رجعت التراك مباشرة
+      return ManagedTrackDto.fromJson(item);
+    }).toList(growable: false);
   }
 
   List<dynamic> _extractItemsList(dynamic responseData) {
@@ -186,8 +183,9 @@ class InteractionsRemoteDataSourceImpl implements InteractionsRemoteDataSource {
         }
       }
 
-      final dynamic directTracks =
-          responseData['tracks'] ?? responseData['results'] ?? responseData['collection'];
+      final dynamic directTracks = responseData['tracks'] ??
+          responseData['results'] ??
+          responseData['collection'];
       if (directTracks is List<dynamic>) {
         return directTracks;
       }

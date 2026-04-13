@@ -172,9 +172,7 @@ class TrackRow extends StatelessWidget {
                   children: [
                     ListTile(
                       leading: Icon(
-                        state.isLiked
-                            ? Icons.favorite
-                            : Icons.favorite_border,
+                        state.isLiked ? Icons.favorite : Icons.favorite_border,
                         color: Colors.white,
                       ),
                       title: Text(

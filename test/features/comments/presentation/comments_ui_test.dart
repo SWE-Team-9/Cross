@@ -84,7 +84,8 @@ void main() {
   }
 
   group('CommentInputField', () {
-    testWidgets('shows timestamp label and submits trimmed text', (tester) async {
+    testWidgets('shows timestamp label and submits trimmed text',
+        (tester) async {
       String? submitted;
 
       await tester.pumpWidget(
@@ -188,7 +189,8 @@ void main() {
   });
 
   group('CommentsList', () {
-    testWidgets('renders replies, handles timestamp taps, and deletes own comments',
+    testWidgets(
+        'renders replies, handles timestamp taps, and deletes own comments',
         (tester) async {
       int? tappedTimestamp;
       final parent = makeComment(
@@ -233,7 +235,8 @@ void main() {
   });
 
   group('TrackCommentsPage', () {
-    testWidgets('loads comments on init and shows loading state', (tester) async {
+    testWidgets('loads comments on init and shows loading state',
+        (tester) async {
       when(() => commentsCubit.state)
           .thenReturn(CommentsState.initial().copyWith(isLoading: true));
 

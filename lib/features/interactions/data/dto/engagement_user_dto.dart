@@ -20,9 +20,11 @@ class EngagementUserDto {
 
     return EngagementUserDto(
       userId: (user['userId'] ?? user['id'] ?? '').toString(),
-      displayName: (user['displayName'] ?? user['display_name'] ?? 'Unknown User')
-          .toString(),
-      avatarUrl: user['avatarUrl']?.toString() ?? user['avatar_url']?.toString(),
+      displayName:
+          (user['displayName'] ?? user['display_name'] ?? 'Unknown User')
+              .toString(),
+      avatarUrl:
+          user['avatarUrl']?.toString() ?? user['avatar_url']?.toString(),
       interactedAt: _parseDate(json['interactedAt'] ?? json['interacted_at']),
     );
   }

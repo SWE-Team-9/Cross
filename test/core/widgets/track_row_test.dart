@@ -37,7 +37,11 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(
-      const Track(id: 'fallback', title: 'fallback', artist: 'fallback', audioUrl: 'fallback'),
+      const Track(
+          id: 'fallback',
+          title: 'fallback',
+          artist: 'fallback',
+          audioUrl: 'fallback'),
     );
     registerFallbackValue(<Track>[]);
   });

@@ -30,18 +30,18 @@ class TrackDetail extends Equatable {
   final int likesCount;
   final int repostsCount;
 
-Track toPlaybackTrack() {
-  return Track(
-    id: trackId,
-    title: title,
-    artist: artist,
-    audioUrl: streamUrl,
-    artworkUrl: artworkUrl,
-    handle: artistHandle,
-    likesCount: likesCount,
-    repostsCount: repostsCount,
-  );
-}
+  Track toPlaybackTrack() {
+    return Track(
+      id: trackId,
+      title: title,
+      artist: artist,
+      audioUrl: streamUrl,
+      artworkUrl: artworkUrl,
+      handle: artistHandle,
+      likesCount: likesCount,
+      repostsCount: repostsCount,
+    );
+  }
 
   @override
   List<Object?> get props => [
