@@ -10,51 +10,21 @@ class CommentsList extends StatelessWidget {
   final List<CommentEntity> comments;
   final String trackId;
   final ValueChanged<int>? onSeekToTimestamp;
+  final int currentPositionSeconds; // 🔥 NEW
 
   const CommentsList({
     super.key,
     required this.comments,
     required this.trackId,
     this.onSeekToTimestamp,
+    required this.currentPositionSeconds, // 🔥 NEW
   });
 
-  Future<void> _confirmAndDelete(
-    BuildContext context,
-    String commentId,
-  ) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF121212),
-          title: const Text(
-            'Delete comment?',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: const Text(
-            'This action cannot be undone.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.redAccent),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+  bool _isActive(int? timestamp) {
+    if (timestamp == null) return false;
 
-    if (shouldDelete == true && context.mounted) {
-      await context.read<CommentsCubit>().deleteComment(commentId);
-    }
+    // 🔥 tolerance of 2 seconds
+    return (currentPositionSeconds - timestamp).abs() <= 2;
   }
 
   @override
@@ -78,8 +48,10 @@ class CommentsList extends StatelessWidget {
           children: [
             CommentTile(
               comment: comment,
+              isActive: _isActive(comment.timestampSeconds), // 🔥
               onDelete: canDelete
-                  ? () => _confirmAndDelete(context, comment.id)
+                  ? () =>
+                      context.read<CommentsCubit>().deleteComment(comment.id)
                   : null,
               onReplySubmitted: null,
               onTapTimestamp: comment.timestampSeconds != null
@@ -92,8 +64,10 @@ class CommentsList extends StatelessWidget {
 
               return CommentTile(
                 comment: reply,
+                isActive: _isActive(reply.timestampSeconds), // 🔥
                 onDelete: canDeleteReply
-                    ? () => _confirmAndDelete(context, reply.id)
+                    ? () =>
+                        context.read<CommentsCubit>().deleteComment(reply.id)
                     : null,
                 onReplySubmitted: null,
                 onTapTimestamp: reply.timestampSeconds != null

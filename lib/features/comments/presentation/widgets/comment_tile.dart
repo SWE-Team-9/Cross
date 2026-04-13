@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../domain/entities/comment_entity.dart';
 
 class CommentTile extends StatelessWidget {
@@ -7,6 +6,7 @@ class CommentTile extends StatelessWidget {
   final VoidCallback? onDelete;
   final ValueChanged<String>? onReplySubmitted;
   final VoidCallback? onTapTimestamp;
+  final bool isActive; // 🔥 NEW
 
   const CommentTile({
     super.key,
@@ -14,6 +14,7 @@ class CommentTile extends StatelessWidget {
     this.onDelete,
     this.onReplySubmitted,
     this.onTapTimestamp,
+    this.isActive = false, // 🔥 NEW
   });
 
   String _formatTime(int seconds) {
@@ -35,10 +36,13 @@ class CommentTile extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF101010),
+        // 🔥 ACTIVE HIGHLIGHT
+        color: isActive ? const Color(0x22FF5500) : const Color(0xFF101010),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: isActive
+              ? const Color(0xFFFF5500)
+              : Colors.white.withValues(alpha: 0.06),
         ),
       ),
       child: Column(
