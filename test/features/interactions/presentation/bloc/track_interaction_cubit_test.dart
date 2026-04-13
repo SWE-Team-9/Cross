@@ -61,13 +61,15 @@ void main() {
           (_) async => const InteractionStatus(
             isLiked: true,
             isReposted: true,
-            likesCount: 9,
-            repostsCount: 4,
           ),
         );
         return buildCubit();
       },
-      act: (cubit) => cubit.load('t1'),
+      act: (cubit) => cubit.load(
+        trackId: 't1',
+        likesCount: 9,
+        repostsCount: 4,
+      ),
       expect: () => [
         isA<TrackInteractionState>()
             .having((s) => s.isLoading, 'isLoading', isTrue),

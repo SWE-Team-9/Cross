@@ -12,10 +12,10 @@ void main() {
       expect(AppConfig.isLocal && AppConfig.isProduction, false);
     });
 
-    test('isLocal is true when appEnv is default (local)', () {
-      // بيئة التيست مش بتمرر APP_ENV فـ default هو local
-      expect(AppConfig.isLocal, true);
-      expect(AppConfig.isProduction, false);
+    test('isProduction is true when appEnv uses the default value', () {
+      expect(AppConfig.appEnv, 'production');
+      expect(AppConfig.isProduction, true);
+      expect(AppConfig.isLocal, false);
     });
 
     test('useMockTrackManagement has a value', () {
@@ -38,8 +38,6 @@ void main() {
     });
 
     test('apiUrl returns non-empty string', () {
-      // Platform.isAndroid أو isIOS بيشتغل في بيئة التيست على Linux/Mac
-      // فـ apiUrl هيرجع الـ fallback
       expect(AppConfig.apiUrl, isNotEmpty);
     });
 

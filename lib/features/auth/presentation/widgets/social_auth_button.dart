@@ -28,8 +28,8 @@ class SocialAuthButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: textColor,
-          disabledBackgroundColor: backgroundColor.withOpacity(0.75),
-          disabledForegroundColor: textColor.withOpacity(0.75),
+          disabledBackgroundColor: backgroundColor.withValues(alpha: 0.75),
+          disabledForegroundColor: textColor.withValues(alpha: 0.75),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6),

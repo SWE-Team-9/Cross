@@ -239,13 +239,17 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
 
     _loadedTrackId = trackId;
 
-    context.read<TrackInteractionCubit>().load(
-          trackId: trackId,
-          likesCount: likesCount,
-          repostsCount: repostsCount,
-        );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _loadedTrackId != trackId) return;
 
-    _loadCommentsCount(trackId);
+      context.read<TrackInteractionCubit>().load(
+            trackId: trackId,
+            likesCount: likesCount,
+            repostsCount: repostsCount,
+          );
+
+      _loadCommentsCount(trackId);
+    });
   }
 
   @override

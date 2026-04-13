@@ -79,16 +79,13 @@ class WelcomePage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 28),
-
                       AuthButton(
                         text: 'Create an account',
                         onPressed: () {
                           context.push(AuthRoutes.register);
                         },
                       ),
-
                       const SizedBox(height: 16),
-
                       SocialAuthButton(
                         text: 'Continue with Google',
                         isLoading: isGoogleLoading,
@@ -115,9 +112,7 @@ class WelcomePage extends StatelessWidget {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       AuthButton(
                         text: 'Log in',
                         backgroundColor: const Color(0xFFDCE4F7),
@@ -126,7 +121,6 @@ class WelcomePage extends StatelessWidget {
                           context.push(AuthRoutes.login);
                         },
                       ),
-
                       if (state is AuthOAuthInProgress) ...[
                         const SizedBox(height: 16),
                         const Text(

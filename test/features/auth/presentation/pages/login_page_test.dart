@@ -245,5 +245,50 @@ void main() {
             captchaToken: 'test-captcha',
           )).called(1);
     });
+
+    testWidgets('shows snackbar when captcha fetching fails', (tester) async {
+      Future<String> failingCaptchaProvider(BuildContext _) async {
+        throw Exception('captcha failed');
+      }
+
+      await tester.pumpWidget(
+        buildTestWidget(captchaProvider: failingCaptchaProvider),
+      );
+      await tester.pump();
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'valid@example.com',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'ValidPass123!',
+      );
+      await tester.tap(find.text('Log in'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Security verification failed. Please try again.'),
+        findsOneWidget,
+      );
+      verifyNever(() => authCubit.login(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            rememberMe: any(named: 'rememberMe'),
+            captchaToken: any(named: 'captchaToken'),
+          ));
+    });
+
+    testWidgets('shows loading indicator when auth state is loading',
+        (tester) async {
+      when(() => authCubit.state).thenReturn(AuthLoading());
+      when(() => authCubit.stream)
+          .thenAnswer((_) => const Stream<AuthState>.empty());
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
   });
 }
