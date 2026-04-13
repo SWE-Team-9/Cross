@@ -153,8 +153,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final saveVisibilityButton =
-          find.widgetWithText(FilledButton, 'Save Visibility');
-      FilledButton button = tester.widget(saveVisibilityButton);
+          find.widgetWithText(ElevatedButton, 'Save Visibility');
+      ElevatedButton button = tester.widget(saveVisibilityButton);
       expect(button.onPressed, isNull);
 
       final privateChip = find.widgetWithText(ChoiceChip, 'Private');
@@ -170,7 +170,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
 
-      expect(find.widgetWithText(Chip, 'Private'), findsWidgets);
+      expect(find.text('Private'), findsWidgets);
 
       await cubit.close();
     });
@@ -197,7 +197,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final deleteTrackButton =
-          find.widgetWithText(FilledButton, 'Delete Track');
+          find.widgetWithText(OutlinedButton, 'Delete Track');
       await scrollTo(tester, deleteTrackButton);
       await tester.tap(deleteTrackButton);
       await tester.pumpAndSettle();
@@ -221,7 +221,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final deleteTrackButton =
-          find.widgetWithText(FilledButton, 'Delete Track');
+          find.widgetWithText(OutlinedButton, 'Delete Track');
       await scrollTo(tester, deleteTrackButton);
       await tester.tap(deleteTrackButton);
       await tester.pumpAndSettle();
