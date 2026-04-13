@@ -1,3 +1,4 @@
+import '../../../upload/domain/entities/managed_track.dart';
 import '../entities/interaction_status.dart';
 import '../entities/paginated_engagement_users.dart';
 
@@ -19,4 +20,8 @@ abstract class InteractionsRepository {
     int page = 1,
     int limit = 20,
   });
+
+  Future<List<ManagedTrack>> getMyLikedTracks();
+
+  Future<List<ManagedTrack>> getMyRepostedTracks();
 }
