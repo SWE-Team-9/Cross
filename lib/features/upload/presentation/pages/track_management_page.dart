@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/managed_track.dart';
@@ -60,12 +59,15 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
   @override
   Widget build(BuildContext context) {
     const orangeColor = Color(0xFFFF7A00);
-    
+
     final darkOrangeTheme = ThemeData.dark().copyWith(
       scaffoldBackgroundColor: const Color(0xFF0D0D0D),
       colorScheme: const ColorScheme.dark(
         primary: orangeColor,
         onPrimary: Colors.black,
+        secondary: orangeColor,
+        secondaryContainer: Color(0x33FF7A00),
+        onSecondaryContainer: orangeColor,
         surface: Color(0xFF181818),
         onSurface: Colors.white,
       ),
@@ -76,7 +78,7 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: orangeColor,
-        selectionColor: orangeColor.withOpacity(0.3),
+        selectionColor: orangeColor.withValues(alpha: 0.3),
         selectionHandleColor: orangeColor,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -90,12 +92,13 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: orangeColor,
-          side: BorderSide(color: orangeColor.withOpacity(0.4), width: 1.5),
+          side:
+              BorderSide(color: orangeColor.withValues(alpha: 0.4), width: 1.5),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.black.withOpacity(0.3),
+        fillColor: Colors.black.withValues(alpha: 0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -108,7 +111,8 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: orangeColor, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         labelStyle: TextStyle(color: Colors.grey.shade400),
         floatingLabelStyle: const TextStyle(color: orangeColor),
       ),
@@ -158,7 +162,8 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(color: orangeColor.withOpacity(0.5)),
+                      side:
+                          BorderSide(color: orangeColor.withValues(alpha: 0.5)),
                     ),
                   ),
                 );
@@ -190,7 +195,8 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Colors.greenAccent, width: 1),
+                      side:
+                          const BorderSide(color: Colors.greenAccent, width: 1),
                     ),
                   ),
                 );
@@ -271,8 +277,9 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                                 onSave: context
                                     .read<TrackManagementCubit>()
                                     .saveMetadata,
-                                onReset:
-                                    context.read<TrackManagementCubit>().resetForm,
+                                onReset: context
+                                    .read<TrackManagementCubit>()
+                                    .resetForm,
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -308,14 +315,16 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                                             .read<TrackManagementCubit>()
                                             .saveVisibility
                                         : null,
-                                    child: const Text('Save Visibility', style: TextStyle(fontSize: 16)),
+                                    child: const Text('Save Visibility',
+                                        style: TextStyle(fontSize: 16)),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(height: 24),
                             _SleekContainer(
-                              borderColor: Colors.redAccent.withOpacity(0.3),
+                              borderColor:
+                                  Colors.redAccent.withValues(alpha: 0.3),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -332,13 +341,18 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                                   const SizedBox(height: 8),
                                   Text(
                                     'Deleting a track removes it from your listings and should be treated as gone from the app.',
-                                    style: TextStyle(color: Colors.grey.shade400, height: 1.4),
+                                    style: TextStyle(
+                                        color: Colors.grey.shade400,
+                                        height: 1.4),
                                   ),
                                   const SizedBox(height: 24),
                                   OutlinedButton(
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: Colors.redAccent,
-                                      side: BorderSide(color: Colors.redAccent.withOpacity(0.5), width: 1.5),
+                                      side: BorderSide(
+                                          color: Colors.redAccent
+                                              .withValues(alpha: 0.5),
+                                          width: 1.5),
                                       minimumSize: const Size.fromHeight(54),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
@@ -347,7 +361,8 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                                     onPressed: state.isBusy
                                         ? null
                                         : () => _confirmDelete(context, state),
-                                    child: const Text('Delete Track', style: TextStyle(fontSize: 16)),
+                                    child: const Text('Delete Track',
+                                        style: TextStyle(fontSize: 16)),
                                   ),
                                 ],
                               ),
@@ -374,8 +389,8 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
       ),
       builder: (bottomSheetContext) {
         return Theme(
-           data: Theme.of(context),
-           child: TrackManagementActionsSheet(
+          data: Theme.of(context),
+          child: TrackManagementActionsSheet(
             onEditTap: () => Navigator.of(bottomSheetContext).pop(),
             onVisibilityTap: () => Navigator.of(bottomSheetContext).pop(),
             onDeleteTap: () async {
@@ -411,16 +426,17 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
 class _SleekContainer extends StatelessWidget {
   final Widget child;
   final Color? borderColor;
-  
+
   const _SleekContainer({required this.child, this.borderColor});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor ?? Colors.white.withOpacity(0.05)),
+        border: Border.all(
+            color: borderColor ?? Colors.white.withValues(alpha: 0.05)),
       ),
       padding: const EdgeInsets.all(20),
       child: child,
@@ -446,7 +462,8 @@ class _TrackPreviewCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.music_note, color: Theme.of(context).colorScheme.primary, size: 20),
+              Icon(Icons.music_note,
+                  color: Theme.of(context).colorScheme.primary, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Current Track',
@@ -460,7 +477,10 @@ class _TrackPreviewCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             state.form?.normalizedTitle ?? track.title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -468,17 +488,20 @@ class _TrackPreviewCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      (state.form?.visibility ?? track.visibility) == TrackManagementVisibility.privateTrack
+                      (state.form?.visibility ?? track.visibility) ==
+                              TrackManagementVisibility.privateTrack
                           ? Icons.lock_outline
                           : Icons.public,
                       size: 14,
@@ -486,18 +509,22 @@ class _TrackPreviewCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      state.form?.visibility.displayLabel ?? track.visibility.displayLabel,
-                      style: TextStyle(color: Colors.grey.shade300, fontSize: 12),
+                      state.form?.visibility.displayLabel ??
+                          track.visibility.displayLabel,
+                      style:
+                          TextStyle(color: Colors.grey.shade300, fontSize: 12),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
                 child: Text(
                   state.form?.genreName ?? track.genreName ?? 'Unknown genre',
@@ -506,28 +533,31 @@ class _TrackPreviewCard extends StatelessWidget {
               ),
               if (track.durationInSeconds != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Row(
-                     mainAxisSize: MainAxisSize.min,
-                     children: [
-                        Icon(Icons.timer_outlined, size: 14, color: Colors.grey.shade400),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${(track.durationInSeconds! ~/ 60).toString().padLeft(2, '0')}:${(track.durationInSeconds! % 60).toString().padLeft(2, '0')}',
-                          style: TextStyle(color: Colors.grey.shade300, fontSize: 12),
-                        ),
-                     ],
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.timer_outlined,
+                          size: 14, color: Colors.grey.shade400),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${(track.durationInSeconds! ~/ 60).toString().padLeft(2, '0')}:${(track.durationInSeconds! % 60).toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                            color: Colors.grey.shade300, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ),
             ],
           ),
-          if ((state.form?.normalizedDescription ?? track.description) !=
-              null)
+          if ((state.form?.normalizedDescription ?? track.description) != null)
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Text(
@@ -541,10 +571,15 @@ class _TrackPreviewCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final tag in tags) 
+                for (final tag in tags)
                   Text(
                     '#$tag',
-                    style: TextStyle(color: Theme.of(context).colorScheme.primary.withOpacity(0.8), fontSize: 13),
+                    style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.8),
+                        fontSize: 13),
                   ),
               ],
             ),
@@ -564,11 +599,12 @@ class _TrackDeletedView extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: _SleekContainer(
-          borderColor: Colors.redAccent.withOpacity(0.3),
+          borderColor: Colors.redAccent.withValues(alpha: 0.3),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.delete_outline, size: 56, color: Colors.redAccent),
+              const Icon(Icons.delete_outline,
+                  size: 56, color: Colors.redAccent),
               const SizedBox(height: 20),
               Text(
                 'This track has been deleted.',
