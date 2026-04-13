@@ -128,6 +128,7 @@ void main() {
     registerFallbackValue(
       const UpdateProfileParams(displayName: 'fallback'),
     );
+    registerFallbackValue(ProfileImageType.AVATAR);
   });
 
   setUp(() {
@@ -137,6 +138,12 @@ void main() {
     when(() => mockAuthCubit.refreshCurrentUserSilently())
         .thenAnswer((_) async {});
     when(() => mockProfileCubit.updateProfile(any())).thenAnswer((_) async {});
+    when(
+      () => mockProfileCubit.uploadImage(
+        imageType: any(named: 'imageType'),
+        filePath: any(named: 'filePath'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   Finder findFieldByLabel(String label) {
@@ -206,6 +213,67 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     verify(() => mockProfileCubit.updateProfile(any())).called(1);
+  });
+
+  testWidgets('avatar change is staged and uploaded only after save',
+      (tester) async {
+    when(() => mockProfileCubit.state)
+        .thenReturn(ProfileLoaded(profileNoLinks));
+    whenListen(
+      mockProfileCubit,
+      Stream<ProfileState>.fromIterable([ProfileLoaded(profileNoLinks)]),
+      initialState: ProfileLoaded(profileNoLinks),
+    );
+
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(
+      mockAuthCubit,
+      Stream<AuthState>.fromIterable([AuthAuthenticated(authUser)]),
+      initialState: AuthAuthenticated(authUser),
+    );
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<ProfileCubit>.value(value: mockProfileCubit),
+          BlocProvider<AuthCubit>.value(value: mockAuthCubit),
+        ],
+        child: MaterialApp(
+          home: EditProfilePage(
+            pickAndCropImageOverride: (_) async => '/tmp/new-avatar.png',
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    var saveButton =
+        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Save'));
+    expect(saveButton.onPressed, isNull);
+
+    await tester.tap(find.byIcon(Icons.camera_alt));
+    await tester.pumpAndSettle();
+
+    saveButton =
+        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Save'));
+    expect(saveButton.onPressed, isNotNull);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Save'));
+    await tester.pumpAndSettle();
+
+    final savedButtonState =
+        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Save'));
+    expect(savedButtonState.onPressed, isNull);
+
+    verify(
+      () => mockProfileCubit.uploadImage(
+        imageType: ProfileImageType.AVATAR,
+        filePath: '/tmp/new-avatar.png',
+      ),
+    ).called(1);
+    verify(() => mockAuthCubit.refreshCurrentUserSilently()).called(1);
+    verifyNever(() => mockProfileCubit.updateProfile(any()));
   });
 
   testWidgets('validation prevents save when display name is too short',
@@ -792,6 +860,68 @@ void main() {
         filePath: '/tmp/avatar.png',
       ),
     ).called(1);
+
+    await controller.close();
+  });
+
+  testWidgets('hides image upload error snackbar when upload retry starts',
+      (tester) async {
+    final controller = StreamController<ProfileState>();
+
+    when(() => mockProfileCubit.state)
+        .thenReturn(ProfileLoaded(profileNoLinks));
+    whenListen(
+      mockProfileCubit,
+      controller.stream,
+      initialState: ProfileLoaded(profileNoLinks),
+    );
+
+    when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(authUser));
+    whenListen(
+      mockAuthCubit,
+      Stream<AuthState>.fromIterable([AuthAuthenticated(authUser)]),
+      initialState: AuthAuthenticated(authUser),
+    );
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<ProfileCubit>.value(value: mockProfileCubit),
+          BlocProvider<AuthCubit>.value(value: mockAuthCubit),
+        ],
+        child: const MaterialApp(
+          home: EditProfilePage(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    controller.add(
+      ProfileImageUploadError(
+        profileNoLinks,
+        imageType: ProfileImageType.AVATAR,
+        filePath: '/tmp/avatar.png',
+        message: 'Image upload failed',
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Image upload failed'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+
+    controller.add(
+      ProfileImageUploading(
+        profileNoLinks,
+        ProfileImageType.AVATAR,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Image upload failed'), findsNothing);
+    expect(find.text('Retry'), findsNothing);
 
     await controller.close();
   });

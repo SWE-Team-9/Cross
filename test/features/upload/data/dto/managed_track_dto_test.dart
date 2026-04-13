@@ -55,6 +55,53 @@ void main() {
       expect(dto.visibility, TrackManagementVisibility.publicTrack);
     });
 
+    test('fromJson parses comma-separated tags string', () {
+      final dto = ManagedTrackDto.fromJson(
+        <String, dynamic>{
+          'id': 'track-4',
+          'title': 'Track',
+          'tags': 'q, f , c',
+          'visibility': 'PUBLIC',
+        },
+      );
+
+      expect(dto.tags, const <String>['q', 'f', 'c']);
+    });
+
+    test('fromJson parses description and tags from metadata payload', () {
+      final dto = ManagedTrackDto.fromJson(
+        <String, dynamic>{
+          'id': 'track-5',
+          'title': 'Track',
+          'metadata': <String, dynamic>{
+            'description': 'Metadata description',
+            'tags': <String>['meta', 'tag'],
+          },
+          'visibility': 'PUBLIC',
+        },
+      );
+
+      expect(dto.description, 'Metadata description');
+      expect(dto.tags, const <String>['meta', 'tag']);
+    });
+
+    test('fromJson parses metadata aliases from track_metadata payload', () {
+      final dto = ManagedTrackDto.fromJson(
+        <String, dynamic>{
+          'id': 'track-6',
+          'title': 'Track',
+          'track_metadata': <String, dynamic>{
+            'track_description': 'Track metadata description',
+            'tag_list': <String>['alias', 'tags'],
+          },
+          'visibility': 'PUBLIC',
+        },
+      );
+
+      expect(dto.description, 'Track metadata description');
+      expect(dto.tags, const <String>['alias', 'tags']);
+    });
+
     test('toEntity maps dto to domain entity', () {
       const dto = ManagedTrackDto(
         id: 'track-3',

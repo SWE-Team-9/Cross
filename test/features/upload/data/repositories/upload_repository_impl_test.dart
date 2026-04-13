@@ -163,6 +163,59 @@ void main() {
         ).called(1);
       });
 
+      test('serializes tags as repeated tags[] fields for multipart upload',
+          () async {
+        final temp = await Directory.systemTemp.createTemp('upload_repo_test4');
+        final tempFile = File('${temp.path}/audio4.wav');
+        await tempFile.writeAsBytes(const [1, 2, 3]);
+
+        final repoWithClient = UploadRepositoryImpl(
+          mockAudioFilePickerDataSource,
+          dioClient: mockDioClient,
+        );
+
+        final picked = PickedAudioFile(
+          name: 'audio4.wav',
+          extension: 'wav',
+          sizeInBytes: 3,
+          path: tempFile.path,
+        );
+
+        when(
+          () => mockDioClient.post(
+            any(),
+            data: any(named: 'data'),
+            options: any(named: 'options'),
+          ),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(path: ApiConstants.tracks),
+            data: {'trackId': 'track-4', 'status': 'PROCESSING'},
+          ),
+        );
+
+        await repoWithClient.uploadTrack(
+          file: picked,
+          title: 'Song',
+          tags: const ['lofi'],
+        );
+
+        final captured = verify(
+          () => mockDioClient.post(
+            ApiConstants.tracks,
+            data: captureAny(named: 'data'),
+            options: any(named: 'options'),
+          ),
+        ).captured.single as FormData;
+
+        final tagFields = captured.fields
+            .where((entry) => entry.key == 'tags[]')
+            .map((entry) => entry.value)
+            .toList();
+
+        expect(tagFields, equals(const ['lofi']));
+      });
+
       test('extracts nested track payload and default status', () async {
         final temp = await Directory.systemTemp.createTemp('upload_repo_test2');
         final tempFile = File('${temp.path}/audio2.wav');

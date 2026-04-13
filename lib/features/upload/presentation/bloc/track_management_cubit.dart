@@ -146,9 +146,17 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
     );
 
     try {
-      final ManagedTrack updatedTrack = await _updateTrackMetadataUseCase(
+      final ManagedTrack apiTrack = await _updateTrackMetadataUseCase(
         trackId: state.currentTrack!.id,
         form: form,
+      );
+      final ManagedTrack updatedTrack = apiTrack.copyWith(
+        title: form.normalizedTitle,
+        description: form.normalizedDescription,
+        clearDescription: form.normalizedDescription == null,
+        genreName: form.normalizedGenreName,
+        clearGenreName: form.normalizedGenreName == null,
+        tags: form.sanitizedTags,
       );
 
       emit(
