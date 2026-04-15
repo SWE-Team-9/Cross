@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
@@ -38,15 +38,20 @@ class TrackRow extends StatelessWidget {
               opacity: opacity,
               child: InkWell(
                 onTap: () {
+                  final playerService = getIt<AudioPlayerService>();
                   final playerCubit = context.read<PlayerCubit>();
-                  final playbackCubit = context.read<PlaybackCubit>();
 
                   final tracks = queue ?? [track];
                   final index = tracks.indexWhere((t) => t.id == track.id);
-                  final tracksFromHere =
-                      index >= 0 ? tracks.sublist(index) : [track];
 
-                  playbackCubit.playTrack(track, tracksFromHere);
+                  // 🔥 PLAY USING NEW QUEUE SYSTEM
+                  playerService.playFromContext(
+                    tracks: tracks,
+                    startIndex: index >= 0 ? index : 0,
+                    source: "feed",
+                  );
+
+                  // 🔥 UPDATE UI STATE (CRITICAL FIX)
                   playerCubit.play(track);
                 },
                 splashColor: Colors.white10,
