@@ -13,59 +13,83 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.music());
 
-    // 🔥 Playback state
+    // ================= PLAYBACK STATE =================
     _player.playerStateStream.listen((state) {
-      playbackState.add(
-        PlaybackState(
-          controls: [
-            if (!state.playing) MediaControl.play,
-            if (state.playing) MediaControl.pause,
-          ],
-          systemActions: const {
-            MediaAction.seek,
-            MediaAction.seekForward,
-            MediaAction.seekBackward,
-          },
-          androidCompactActionIndices: const [0],
-          processingState: _mapState(state.processingState),
-          playing: state.playing,
-          updatePosition: _player.position,
-          bufferedPosition: _player.bufferedPosition,
-          speed: _player.speed,
-        ),
-      );
+      _broadcastState(state);
     });
 
-    // 🔥 Smooth seek bar
+    // ================= POSITION =================
     _player.positionStream.listen((position) {
+      final current = playbackState.value;
+
       playbackState.add(
-        playbackState.value.copyWith(
+        current.copyWith(
           updatePosition: position,
         ),
       );
     });
 
-    // 🔥 FIX 1: SYNC CURRENT TRACK WITH INDEX
+    // ================= INDEX CHANGE =================
     _player.currentIndexStream.listen((index) {
       if (index != null && index < queue.value.length) {
-        final currentItem = queue.value[index];
-        mediaItem.add(currentItem);
+        mediaItem.add(queue.value[index]);
       }
     });
 
-    // 🔥 FIX 2: SET REAL DURATION AFTER LOAD (CRITICAL FIX)
+    // ================= DURATION FIX (CRITICAL) =================
     _player.durationStream.listen((duration) {
       final current = mediaItem.value;
 
-      if (duration != null && current != null) {
+      if (current != null) {
         mediaItem.add(
-          current.copyWith(duration: duration),
+          current.copyWith(
+            duration: duration ?? const Duration(seconds: 1),
+          ),
+        );
+      }
+    });
+
+    // ================= EXTRA SAFETY =================
+    _player.sequenceStateStream.listen((sequenceState) {
+      final index = sequenceState.currentIndex;
+      final duration = _player.duration;
+
+      if (index != null && index < queue.value.length) {
+        final item = queue.value[index];
+
+        mediaItem.add(
+          item.copyWith(
+            duration: duration ?? const Duration(seconds: 1),
+          ),
         );
       }
     });
   }
 
-  // ========================= QUEUE LOGIC =========================
+  void _broadcastState(PlayerState state) {
+    playbackState.add(
+      PlaybackState(
+        controls: [
+          if (!state.playing) MediaControl.play,
+          if (state.playing) MediaControl.pause,
+        ],
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.seekForward,
+          MediaAction.seekBackward,
+        },
+        androidCompactActionIndices: const [0],
+        processingState: _mapState(state.processingState),
+        playing: state.playing,
+        updatePosition: _player.position,
+        bufferedPosition: _player.bufferedPosition,
+        speed: _player.speed,
+        queueIndex: _player.currentIndex,
+      ),
+    );
+  }
+
+  // ================= QUEUE =================
 
   Future<void> setQueue(List<MediaItem> items) async {
     queue.add(items);
@@ -77,9 +101,13 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     await _player.setAudioSources(sources);
 
-    // 🔥 Set first item (WITHOUT duration)
+    // 🔥 CRITICAL: duration must NOT be null
     if (items.isNotEmpty) {
-      mediaItem.add(items.first);
+      mediaItem.add(
+        items.first.copyWith(
+          duration: const Duration(seconds: 1),
+        ),
+      );
     }
   }
 
@@ -96,9 +124,9 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> skipToNext() async {
     await _player.seekToNext();
 
-    final nextIndex = _player.currentIndex;
-    if (nextIndex != null && nextIndex < queue.value.length) {
-      mediaItem.add(queue.value[nextIndex]);
+    final index = _player.currentIndex;
+    if (index != null && index < queue.value.length) {
+      mediaItem.add(queue.value[index]);
     }
   }
 
@@ -106,13 +134,13 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> skipToPrevious() async {
     await _player.seekToPrevious();
 
-    final prevIndex = _player.currentIndex;
-    if (prevIndex != null && prevIndex < queue.value.length) {
-      mediaItem.add(queue.value[prevIndex]);
+    final index = _player.currentIndex;
+    if (index != null && index < queue.value.length) {
+      mediaItem.add(queue.value[index]);
     }
   }
 
-  // ========================= PLAYER CONTROLS =========================
+  // ================= CONTROLS =================
 
   @override
   Future<void> play() => _player.play();
@@ -131,7 +159,7 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     await stop();
   }
 
-  // ========================= HELPERS =========================
+  // ================= HELPER =================
 
   AudioProcessingState _mapState(ProcessingState state) {
     switch (state) {
