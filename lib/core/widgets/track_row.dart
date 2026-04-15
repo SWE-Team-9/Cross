@@ -15,11 +15,13 @@ import 'package:soundcloud_clone/features/profile/presentation/routes/profile_ro
 class TrackRow extends StatelessWidget {
   final Track track;
   final List<Track>? queue;
+  final String source; // ✅ NEW
 
   const TrackRow({
     super.key,
     required this.track,
     this.queue,
+    this.source = "unknown", // ✅ DEFAULT
   });
 
   @override
@@ -44,95 +46,101 @@ class TrackRow extends StatelessWidget {
                   final tracks = queue ?? [track];
                   final index = tracks.indexWhere((t) => t.id == track.id);
 
-                  // 🔥 PLAY USING NEW QUEUE SYSTEM
+                  // 🔥 PLAY USING CONTEXT (FIXED)
                   playerService.playFromContext(
                     tracks: tracks,
                     startIndex: index >= 0 ? index : 0,
-                    source: "feed",
+                    source: source, // ✅ FIXED
                   );
 
-                  // 🔥 UPDATE UI STATE (CRITICAL FIX)
+                  // 🔥 UPDATE UI
                   playerCubit.play(track);
                 },
                 splashColor: Colors.white10,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          color: Colors.grey[800],
-                          image: track.artworkUrl != null
-                              ? DecorationImage(
-                                  image: NetworkImage(track.artworkUrl!),
-                                  fit: BoxFit.cover,
-                                  onError: (_, __) {},
-                                )
+                child: Container(
+                  color: isCurrentTrack
+                      ? Colors.white.withValues(alpha: 0.05) // ✅ UI IMPROVEMENT
+                      : Colors.transparent,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.grey[800],
+                            image: track.artworkUrl != null
+                                ? DecorationImage(
+                                    image: NetworkImage(track.artworkUrl!),
+                                    fit: BoxFit.cover,
+                                    onError: (_, __) {},
+                                  )
+                                : null,
+                          ),
+                          child: track.artworkUrl == null
+                              ? const Icon(Icons.music_note,
+                                  color: Colors.white)
                               : null,
                         ),
-                        child: track.artworkUrl == null
-                            ? const Icon(Icons.music_note, color: Colors.white)
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              track.title,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            if (isPlaying)
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.equalizer,
-                                    color: Color(0xFFFF5500),
-                                    size: 16,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Now Playing',
-                                    style: TextStyle(
-                                      color: Color(0xFFFF5500),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                track.artist,
+                                track.title,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: Color(0xFF999999),
-                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                          ],
+                              const SizedBox(height: 3),
+                              if (isPlaying)
+                                const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.equalizer,
+                                      color: Color(0xFFFF5500),
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Now Playing',
+                                      style: TextStyle(
+                                        color: Color(0xFFFF5500),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else
+                                Text(
+                                  track.artist,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF999999),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () =>
-                            TrackOptionsSheet.show(context, track: track),
-                        icon: const Icon(
-                          Icons.more_vert,
-                          color: Color(0xFF666666),
+                        IconButton(
+                          onPressed: () =>
+                              TrackOptionsSheet.show(context, track: track),
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Color(0xFF666666),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
