@@ -16,6 +16,7 @@ import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart
 import 'package:soundcloud_clone/features/home/presentation/pages/mock_home_page.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 
 // ─── Fakes & Mocks ────────────────────────────────────────────────────────────
 
@@ -41,6 +42,12 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> dispose() async {}
+  @override
+  Future<void> playFromContext({
+    required List<Track> tracks,
+    required int startIndex,
+    required String source,
+  }) async {}
 }
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}

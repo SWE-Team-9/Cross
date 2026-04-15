@@ -16,6 +16,7 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubi
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 
 // ── Fakes / Mocks ─────────────────────────────────────────────────────────────
 
@@ -34,6 +35,12 @@ class FakeAudioPlayerService implements AudioPlayerService {
   Future<void> seek(Duration position) async {}
   @override
   Future<void> dispose() async {}
+  @override
+  Future<void> playFromContext({
+    required List<Track> tracks,
+    required int startIndex,
+    required String source,
+  }) async {}
 }
 
 class FakeDeepLinkService implements DeepLinkService {

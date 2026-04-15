@@ -79,6 +79,11 @@ class _StubPlayerCubit extends Cubit<PlayerUIState> implements PlayerCubit {
 
   @override
   void closeFullPlayer() {}
+  @override
+  void hideMiniPlayer() {}
+
+  @override
+  void showMiniPlayer() {}
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
