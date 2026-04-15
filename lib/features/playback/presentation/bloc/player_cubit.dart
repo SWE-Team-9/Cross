@@ -29,9 +29,19 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     });
   }
 
+  // 🔥 NEW CONTROL METHODS
+
+  void hideMiniPlayer() {
+    emit(state.copyWith(showMiniPlayer: false));
+  }
+
+  void showMiniPlayer() {
+    emit(state.copyWith(showMiniPlayer: true));
+  }
+
   Future<void> play(Track track) async {
-    // ← أضف الأغنية اللي كانت شغالة للـ playedTrackIds
     final played = Set<String>.from(state.playedTrackIds);
+
     if (state.currentTrack != null) {
       played.add(state.currentTrack!.id);
     }
@@ -39,6 +49,7 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     emit(state.copyWith(
       currentTrack: track,
       playedTrackIds: played,
+      showMiniPlayer: true,
     ));
 
     await _audioService.play(track);

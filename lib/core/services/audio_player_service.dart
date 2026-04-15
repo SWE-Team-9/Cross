@@ -8,6 +8,12 @@ abstract class AudioPlayerService {
   /// Play audio from a URL
   Future<void> play(Track track);
 
+  Future<void> playFromContext({
+    required List<Track> tracks,
+    required int startIndex,
+    required String source,
+  });
+
   /// Pause playback
   Future<void> pause();
 

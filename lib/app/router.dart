@@ -44,6 +44,9 @@ import '../features/library/presentation/pages/library_page.dart';
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
 
+// Project — feed
+import 'package:soundcloud_clone/features/feed/presentation/pages/mock_feed_page.dart';
+
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
@@ -159,7 +162,7 @@ GoRouter _createRouter() {
         path: AppRoutes.feed,
         name: 'feed',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: _PlaceholderPage(title: 'Feed'),
+          child: MockFeedPage(),
         ),
       ),
 
