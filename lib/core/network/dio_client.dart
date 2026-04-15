@@ -22,6 +22,7 @@ class DioClient {
             connectTimeout: const Duration(seconds: 30),
             receiveTimeout: const Duration(seconds: 30),
             headers: const {'Content-Type': 'application/json'},
+            extra: {'withCredentials': true},
           ),
         ) {
     final authInterceptor = AuthInterceptor(secureStorage: secureStorage);
