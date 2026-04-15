@@ -44,53 +44,75 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         ),
       );
     });
-  }
 
-  AudioProcessingState _mapState(ProcessingState state) {
-    switch (state) {
-      case ProcessingState.idle:
-        return AudioProcessingState.idle;
-      case ProcessingState.loading:
-        return AudioProcessingState.loading;
-      case ProcessingState.buffering:
-        return AudioProcessingState.buffering;
-      case ProcessingState.ready:
-        return AudioProcessingState.ready;
-      case ProcessingState.completed:
-        return AudioProcessingState.completed;
-    }
-  }
-
-  Future<void> playTrack({
-    required String url,
-    required String title,
-    required String artist,
-    String? artworkUrl, // 🔥 NEW
-  }) async {
-    await _player.setUrl(url);
-
-    // 🔥 SAFE artwork handling
-    Uri? artUri;
-    if (artworkUrl != null && artworkUrl.isNotEmpty) {
-      try {
-        artUri = Uri.parse(artworkUrl);
-      } catch (_) {
-        artUri = null;
+    // 🔥 FIX 1: SYNC CURRENT TRACK WITH INDEX
+    _player.currentIndexStream.listen((index) {
+      if (index != null && index < queue.value.length) {
+        final currentItem = queue.value[index];
+        mediaItem.add(currentItem);
       }
-    }
+    });
 
-    mediaItem.add(
-      MediaItem(
-        id: url,
-        title: title,
-        artist: artist,
-        duration: _player.duration ?? Duration.zero,
-        artUri: artUri,
-      ),
-    );
+    // 🔥 FIX 2: SET REAL DURATION AFTER LOAD (CRITICAL FIX)
+    _player.durationStream.listen((duration) {
+      final current = mediaItem.value;
 
-    await _player.play();
+      if (duration != null && current != null) {
+        mediaItem.add(
+          current.copyWith(duration: duration),
+        );
+      }
+    });
   }
+
+  // ========================= QUEUE LOGIC =========================
+
+  Future<void> setQueue(List<MediaItem> items) async {
+    queue.add(items);
+
+    final sources = items.map((item) {
+      final url = item.extras?['url'] as String;
+      return AudioSource.uri(Uri.parse(url));
+    }).toList();
+
+    await _player.setAudioSources(sources);
+
+    // 🔥 Set first item (WITHOUT duration)
+    if (items.isNotEmpty) {
+      mediaItem.add(items.first);
+    }
+  }
+
+  @override
+  Future<void> skipToQueueItem(int index) async {
+    await _player.seek(Duration.zero, index: index);
+
+    if (index < queue.value.length) {
+      mediaItem.add(queue.value[index]);
+    }
+  }
+
+  @override
+  Future<void> skipToNext() async {
+    await _player.seekToNext();
+
+    final nextIndex = _player.currentIndex;
+    if (nextIndex != null && nextIndex < queue.value.length) {
+      mediaItem.add(queue.value[nextIndex]);
+    }
+  }
+
+  @override
+  Future<void> skipToPrevious() async {
+    await _player.seekToPrevious();
+
+    final prevIndex = _player.currentIndex;
+    if (prevIndex != null && prevIndex < queue.value.length) {
+      mediaItem.add(queue.value[prevIndex]);
+    }
+  }
+
+  // ========================= PLAYER CONTROLS =========================
 
   @override
   Future<void> play() => _player.play();
@@ -107,5 +129,22 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   @override
   Future<void> onTaskRemoved() async {
     await stop();
+  }
+
+  // ========================= HELPERS =========================
+
+  AudioProcessingState _mapState(ProcessingState state) {
+    switch (state) {
+      case ProcessingState.idle:
+        return AudioProcessingState.idle;
+      case ProcessingState.loading:
+        return AudioProcessingState.loading;
+      case ProcessingState.buffering:
+        return AudioProcessingState.buffering;
+      case ProcessingState.ready:
+        return AudioProcessingState.ready;
+      case ProcessingState.completed:
+        return AudioProcessingState.completed;
+    }
   }
 }

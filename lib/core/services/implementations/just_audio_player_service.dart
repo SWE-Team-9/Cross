@@ -6,7 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 
-import '../../audio/app_audio_handler.dart'; // ✅ FIXED IMPORT
+import '../../audio/app_audio_handler.dart';
 import '../../../main.dart';
 import 'package:audio_service/audio_service.dart';
 
@@ -71,27 +71,42 @@ class JustAudioPlayerService implements AudioPlayerService {
     });
   }
 
-  void _updateState(PlayerState newState) {
-    _currentState = newState;
-    _playerStateController.add(newState);
-  }
-
+  // 🔥 MAIN METHOD FOR SPRINT 4
   @override
-  Future<void> play(Track track) async {
+  Future<void> playFromContext({
+    required List<Track> tracks,
+    required int startIndex,
+    required String source,
+  }) async {
     try {
-      // ✅ REAL APP: play actual audio
-      if (_handler is AppAudioHandler) {
-        await _handler.playTrack(
-          url: track.audioUrl,
+      final appHandler = _handler as AppAudioHandler;
+
+      final mediaItems = tracks.map((track) {
+        return MediaItem(
+          id: track.id,
           title: track.title,
           artist: track.artist,
-          artworkUrl: track.artworkUrl,
+          artUri:
+              track.artworkUrl != null ? Uri.parse(track.artworkUrl!) : null,
+          extras: {
+            'url': track.audioUrl,
+          },
         );
-      }
+      }).toList();
 
-      // ✅ TEST ENV: do nothing (no crash, no fake add)
+      await appHandler.setQueue(mediaItems);
+      await appHandler.skipToQueueItem(startIndex);
+      await appHandler.play();
 
-      GetIt.I<RecentlyPlayedCubit>().addTrack(track);
+      _updateState(
+        _currentState.copyWith(
+          queue: tracks,
+          currentIndex: startIndex,
+          source: source,
+        ),
+      );
+
+      GetIt.I<RecentlyPlayedCubit>().addTrack(tracks[startIndex]);
     } catch (e) {
       _updateState(
         _currentState.copyWith(
@@ -100,6 +115,16 @@ class JustAudioPlayerService implements AudioPlayerService {
         ),
       );
     }
+  }
+
+  // 🔥 SINGLE TRACK FALLBACK
+  @override
+  Future<void> play(Track track) {
+    return playFromContext(
+      tracks: [track],
+      startIndex: 0,
+      source: "single",
+    );
   }
 
   @override
@@ -113,6 +138,11 @@ class JustAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> seek(Duration position) => _handler.seek(position);
+
+  void _updateState(PlayerState newState) {
+    _currentState = newState;
+    _playerStateController.add(newState);
+  }
 
   @override
   Future<void> dispose() async {

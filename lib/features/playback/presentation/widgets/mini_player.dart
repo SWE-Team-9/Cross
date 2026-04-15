@@ -16,7 +16,9 @@ class MiniPlayer extends StatelessWidget {
     return BlocBuilder<PlayerCubit, PlayerUIState>(
       builder: (context, state) {
         final track = state.currentTrack;
-        if (track == null) return const SizedBox.shrink();
+        if (track == null || !state.showMiniPlayer) {
+          return const SizedBox.shrink();
+        }
 
         final duration = state.duration;
         final double progress =
