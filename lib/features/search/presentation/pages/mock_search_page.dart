@@ -1,44 +1,84 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/core/widgets/track_row.dart';
 
-class MockFeedPage extends StatelessWidget {
-  const MockFeedPage({super.key});
+class MockSearchPage extends StatefulWidget {
+  const MockSearchPage({super.key});
+
+  @override
+  State<MockSearchPage> createState() => _MockSearchPageState();
+}
+
+class _MockSearchPageState extends State<MockSearchPage> {
+  final TextEditingController _controller = TextEditingController();
+
+  List<Track> _results = [];
+  final List<Track> _allTracks = _mockTracks;
+
+  void _onSearch(String query) {
+    final filtered = _allTracks.where((track) {
+      return track.title.toLowerCase().contains(query.toLowerCase()) ||
+          track.artist.toLowerCase().contains(query.toLowerCase());
+    }).toList();
+
+    setState(() {
+      _results = filtered;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tracks = _mockTracks;
-
     return Scaffold(
       backgroundColor: Colors.black,
-      body: PageView.builder(
-        scrollDirection: Axis.vertical,
-        itemCount: tracks.length,
-        itemBuilder: (context, index) {
-          final track = tracks[index];
-          return _FeedTrackCard(
-            track: track,
-            tracks: tracks,
-            index: index,
-          );
-        },
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: TextField(
+          controller: _controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Search tracks...",
+            hintStyle: TextStyle(color: Colors.white54),
+            border: InputBorder.none,
+          ),
+          onChanged: _onSearch,
+        ),
       ),
+      body: _results.isEmpty
+          ? const Center(
+              child: Text(
+                "Start typing to search",
+                style: TextStyle(color: Colors.white70),
+              ),
+            )
+          : ListView.builder(
+              itemCount: _results.length,
+              itemBuilder: (context, index) {
+                final track = _results[index];
+
+                return TrackRow(
+                  track: track,
+                  queue: _results,
+                  source: "search", // ✅ CRITICAL FIX
+                );
+              },
+            ),
       bottomNavigationBar: _BottomNav(
-        selected: 1,
+        selected: 2,
         onTap: (i) {
           switch (i) {
             case 0:
               context.goNamed('home');
               break;
             case 1:
+              context.goNamed('feed');
               break;
             case 2:
-              context.goNamed('search');
               break;
             case 3:
               context.goNamed('library');
@@ -54,95 +94,7 @@ class MockFeedPage extends StatelessWidget {
 }
 
 // ─────────────────────────────
-
-class _FeedTrackCard extends StatelessWidget {
-  final Track track;
-  final List<Track> tracks;
-  final int index;
-
-  const _FeedTrackCard({
-    required this.track,
-    required this.tracks,
-    required this.index,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        track.artworkUrl != null
-            ? Image.network(
-                track.artworkUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: Colors.black),
-              )
-            : Container(color: Colors.black),
-
-        Container(color: Colors.black.withValues(alpha: 0.4)),
-
-        // 🔥 CENTER PLAY BUTTON (FIXED)
-        Center(
-          child: GestureDetector(
-            onTap: () {
-              final playerService = GetIt.I<AudioPlayerService>();
-              final playerCubit = context.read<PlayerCubit>();
-
-              playerService.playFromContext(
-                tracks: tracks,
-                startIndex: index,
-                source: "feed",
-              );
-
-              playerCubit.play(track);
-            },
-            child: const Icon(
-              Icons.play_circle_fill,
-              color: Colors.white,
-              size: 80,
-            ),
-          ),
-        ),
-
-        Positioned(
-          bottom: 40,
-          left: 16,
-          right: 16,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  track.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  track.artist,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────
+// 🔥 NAV BAR (reuse same)
 
 class _BottomNav extends StatelessWidget {
   final int selected;
@@ -215,6 +167,7 @@ class _NavItem {
 }
 
 // ─────────────────────────────
+// 🔥 MOCK DATA (reuse same)
 
 final List<Track> _mockTracks = [
   Track(
@@ -225,14 +178,14 @@ final List<Track> _mockTracks = [
   ),
   Track(
     id: '2',
-    title: 'Feed Track 2',
-    artist: 'Artist 2',
+    title: 'Chill Vibes',
+    artist: 'DJ Cool',
     audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
   ),
   Track(
     id: '3',
-    title: 'Feed Track 3',
-    artist: 'Artist 3',
+    title: 'Workout Mix',
+    artist: 'Gym Hero',
     audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
   ),
 ];
