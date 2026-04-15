@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
+
 import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/core/services/audio_player_service.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 
 class MockSearchPage extends StatefulWidget {
