@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
+//import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
@@ -251,12 +251,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'redirect_uri': redirectUri,
         'code_verifier': codeVerifier,
       },
-      options: Options(
-        contentType: Headers.formUrlEncodedContentType,
-        headers: const {
-          'Content-Type': Headers.formUrlEncodedContentType,
-        },
-      ),
+      //options: Options(
+        //contentType: Headers.formUrlEncodedContentType,
+        //headers: const {
+          //'Content-Type': Headers.formUrlEncodedContentType,
+        //},
+      //),
     );
   }
 }
