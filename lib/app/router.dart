@@ -44,6 +44,12 @@ import '../features/library/presentation/pages/library_page.dart';
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
 
+// Project — feed
+import 'package:soundcloud_clone/features/feed/presentation/pages/mock_feed_page.dart';
+
+// Project — search
+import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
+
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
@@ -159,7 +165,7 @@ GoRouter _createRouter() {
         path: AppRoutes.feed,
         name: 'feed',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: _PlaceholderPage(title: 'Feed'),
+          child: MockFeedPage(),
         ),
       ),
 
@@ -168,11 +174,8 @@ GoRouter _createRouter() {
         path: AppRoutes.search,
         name: 'search',
         pageBuilder: (context, state) {
-          final String? query = state.uri.queryParameters['q'];
-          return NoTransitionPage(
-            child: _PlaceholderPage(
-              title: query != null ? 'Search: $query' : 'Search',
-            ),
+          return const NoTransitionPage(
+            child: MockSearchPage(),
           );
         },
       ),
