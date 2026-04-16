@@ -827,8 +827,9 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
       handle: handle,
       likesCount: _toInt(
           json['likesCount'] ?? json['likes_count'] ?? json['like_count']),
-      repostsCount: _toInt(
-          json['repostsCount'] ?? json['reposts_count'] ?? json['repost_count']),
+      repostsCount: _toInt(json['repostsCount'] ??
+          json['reposts_count'] ??
+          json['repost_count']),
     );
   }
 
