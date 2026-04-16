@@ -10,6 +10,7 @@ import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
+import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
@@ -98,6 +99,29 @@ class _MockHomePageState extends State<MockHomePage> {
 
         return Scaffold(
           backgroundColor: Colors.black,
+          // ── Bottom Nav ──────────────────────────────────────────────────
+          bottomNavigationBar: BottomNavBar(
+            selected: _selectedTab,
+            onTap: (i) {
+              setState(() => _selectedTab = i);
+              switch (i) {
+                case 0:
+                  break;
+                case 1:
+                  context.go('/feed');
+                  break;
+                case 2:
+                  context.go('/search');
+                  break;
+                case 3:
+                  context.go('/library');
+                  break;
+                case 4:
+                  context.go('/upgrade');
+                  break;
+              }
+            },
+          ),
           body: SafeArea(
             child: Column(
               children: [
@@ -134,28 +158,6 @@ class _MockHomePageState extends State<MockHomePage> {
                       ],
                     ),
                   ),
-                ),
-                _BottomNav(
-                  selected: _selectedTab,
-                  onTap: (i) {
-                    setState(() => _selectedTab = i);
-                    switch (i) {
-                      case 0:
-                        break;
-                      case 1:
-                        context.go('/feed');
-                        break;
-                      case 2:
-                        context.go('/search');
-                        break;
-                      case 3:
-                        context.go('/library');
-                        break;
-                      case 4:
-                        context.go('/upgrade');
-                        break;
-                    }
-                  },
                 ),
               ],
             ),
@@ -710,9 +712,7 @@ class _GenreChips extends StatelessWidget {
 class _SeededUserTracksSection extends StatefulWidget {
   final String userId;
 
-  const _SeededUserTracksSection({
-    required this.userId,
-  });
+  const _SeededUserTracksSection({required this.userId});
 
   @override
   State<_SeededUserTracksSection> createState() =>
@@ -731,10 +731,7 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
   Future<List<Track>> _fetchTracks() async {
     final response = await getIt<DioClient>().get(
       ApiConstants.userTracksPath(widget.userId),
-      queryParameters: const {
-        'page': 1,
-        'limit': 20,
-      },
+      queryParameters: const {'page': 1, 'limit': 20},
     );
 
     final responseData =
@@ -756,7 +753,6 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
 
     final List<Track> tracks = [];
 
-    // هنلف على التراكات ونجيب الرابط المباشر لكل تراك
     for (var item in items) {
       final trackJson = Map<String, dynamic>.from(item as Map);
       final trackId =
@@ -765,11 +761,9 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
       String finalAudioUrl = '';
 
       try {
-        // الريكويست اللي بيجيب رابط الـ Stream الحقيقي للتراك
         final sourceResponse = await getIt<DioClient>().get(
           '/api/v1/player/tracks/$trackId/source',
         );
-
         final streamUrl = sourceResponse.data['streamUrl'];
         if (streamUrl != null && streamUrl.toString().isNotEmpty) {
           finalAudioUrl = streamUrl.toString();
@@ -778,7 +772,6 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
         debugPrint('Failed to fetch streamUrl for $trackId: $e');
       }
 
-      // كاحتياطي: لو فشل يجيب الرابط المباشر، هنشوف لو موجود في الـ JSON الأصلي
       if (finalAudioUrl.isEmpty) {
         finalAudioUrl = PlatformUrlUtils.normalizeBackendUrl(
                 trackJson['audioUrl']?.toString() ??
@@ -787,17 +780,13 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
             '';
       }
 
-      // لو الرابط لسه فاضي هنعمل تخطي عشان البلاير ميضربش إيرور الكراش (ENOENT)
       if (finalAudioUrl.isEmpty) {
         debugPrint('Skipped track $trackId because audioUrl is still empty.');
         continue;
       }
 
-      // هنباصي الرابط الحقيقي لدالة الماب
       final track = _mapTrack(trackJson, finalAudioUrl);
-      if (track != null) {
-        tracks.add(track);
-      }
+      if (track != null) tracks.add(track);
     }
 
     return tracks;
@@ -805,7 +794,6 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
 
   Track? _mapTrack(Map<String, dynamic> json, String validAudioUrl) {
     final artistValue = json['artist'];
-
     String artistName = 'Unknown Artist';
     String? handle;
 
@@ -823,7 +811,6 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
     }
 
     final String trackId = (json['id'] ?? json['trackId'] ?? '').toString();
-
     final artworkUrl = PlatformUrlUtils.normalizeBackendUrl(
       json['artworkUrl']?.toString() ??
           json['artwork_url']?.toString() ??
@@ -839,11 +826,9 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
       artworkUrl: artworkUrl,
       handle: handle,
       likesCount: _toInt(
-        json['likesCount'] ?? json['likes_count'] ?? json['like_count'],
-      ),
+          json['likesCount'] ?? json['likes_count'] ?? json['like_count']),
       repostsCount: _toInt(
-        json['repostsCount'] ?? json['reposts_count'] ?? json['repost_count'],
-      ),
+          json['repostsCount'] ?? json['reposts_count'] ?? json['repost_count']),
     );
   }
 
@@ -862,22 +847,16 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFFF5500),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFFFF5500)),
             ),
           );
         }
-
         if (snapshot.hasError) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Text(
               'Failed to load seeded user tracks:\n${snapshot.error}',
-              style: const TextStyle(
-                color: Colors.redAccent,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
             ),
           );
         }
@@ -889,10 +868,7 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
             padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Text(
               'No playable tracks were found for this seeded user.',
-              style: TextStyle(
-                color: Color(0xFF999999),
-                fontSize: 13,
-              ),
+              style: TextStyle(color: Color(0xFF999999), fontSize: 13),
             ),
           );
         }
@@ -902,10 +878,7 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
             tracks.length,
             (i) => Column(
               children: [
-                TrackRow(
-                  track: tracks[i],
-                  queue: tracks,
-                ),
+                TrackRow(track: tracks[i], queue: tracks),
                 if (i < tracks.length - 1)
                   const Divider(
                     color: Color(0xFF1A1A1A),
@@ -918,87 +891,6 @@ class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
           ),
         );
       },
-    );
-  }
-}
-
-// ── Bottom nav ────────────────────────────────────────────────────────────────
-class _BottomNav extends StatelessWidget {
-  final int selected;
-  final ValueChanged<int> onTap;
-
-  const _BottomNav({required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    const items = [
-      _NavItem(
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home,
-        label: 'Home',
-      ),
-      _NavItem(
-        icon: Icons.grid_view_outlined,
-        activeIcon: Icons.grid_view,
-        label: 'Feed',
-      ),
-      _NavItem(
-        icon: Icons.search,
-        activeIcon: Icons.search,
-        label: 'Search',
-      ),
-      _NavItem(
-        icon: Icons.library_music_outlined,
-        activeIcon: Icons.library_music,
-        label: 'Library',
-      ),
-      _NavItem(
-        icon: Icons.equalizer_outlined,
-        activeIcon: Icons.equalizer,
-        label: 'Upgrade',
-      ),
-    ];
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(top: BorderSide(color: Color(0xFF1F1F1F))),
-      ),
-      child: Row(
-        children: List.generate(
-          items.length,
-          (i) => Expanded(
-            child: GestureDetector(
-              onTap: () => onTap(i),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      selected == i ? items[i].activeIcon : items[i].icon,
-                      color: selected == i
-                          ? Colors.white
-                          : const Color(0xFF555555),
-                      size: 22,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      items[i].label,
-                      style: TextStyle(
-                        color: selected == i
-                            ? Colors.white
-                            : const Color(0xFF555555),
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1029,16 +921,5 @@ class _MixData {
     required this.badgeColor,
     required this.color1,
     required this.color2,
-  });
-}
-
-class _NavItem {
-  final IconData icon, activeIcon;
-  final String label;
-
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
   });
 }
