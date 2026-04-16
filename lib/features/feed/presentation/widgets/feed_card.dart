@@ -338,7 +338,9 @@ class _SideAction extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(9),
               border: Border.all(
-                color: active ? activeColor.withValues(alpha: 0.8) : Colors.white30,
+                color: active
+                    ? activeColor.withValues(alpha: 0.8)
+                    : Colors.white30,
                 width: 1.5,
               ),
               color: Colors.black45,
