@@ -45,10 +45,11 @@ import '../features/library/presentation/pages/library_page.dart';
 import '../features/home/presentation/pages/mock_home_page.dart';
 
 // Project — feed
-import 'package:soundcloud_clone/features/feed/presentation/pages/mock_feed_page.dart';
 
 // Project — search
 import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
+
+import '../features/feed/presentation/pages/feed_page.dart';
 
 class AppRoutes {
   static const String home = '/home';
@@ -165,7 +166,7 @@ GoRouter _createRouter() {
         path: AppRoutes.feed,
         name: 'feed',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: MockFeedPage(),
+          child: FeedPage(),
         ),
       ),
 
