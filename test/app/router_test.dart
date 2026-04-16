@@ -36,7 +36,7 @@ import 'package:soundcloud_clone/features/upload/presentation/bloc/track_managem
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/features/feed/presentation/pages/mock_feed_page.dart';
+import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
 import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
@@ -454,7 +454,7 @@ void main() {
         initialLocation: app_router.AppRoutes.feed,
       );
 
-      expect(find.byType(MockFeedPage), findsOneWidget);
+      expect(find.byType(FeedPage), findsOneWidget);
     });
 
     testWidgets('can navigate to search page', (tester) async {
