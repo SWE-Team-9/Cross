@@ -43,8 +43,6 @@ class ProfileCubit extends Cubit<ProfileState> {
         },
       );
 
-      emit(ProfileLoaded(profile));
-
       List<ManagedTrack> tracks = const <ManagedTrack>[];
 
       try {
@@ -60,9 +58,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         tracks = const <ManagedTrack>[];
       }
 
-      if (!isClosed) {
-        emit(ProfileLoaded(profile, tracks: tracks));
-      }
+      emit(ProfileLoaded(profile, tracks: tracks));
     } on Failure catch (failure) {
       emit(ProfileError(failure.message));
     } catch (_) {

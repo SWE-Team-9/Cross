@@ -176,6 +176,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Future<Set<String>> _loadViewerFollowingIds(String viewerId) async {
     if (_viewerFollowingIds != null) return _viewerFollowingIds!;
+    if (!getIt.isRegistered<SocialRepo>()) return const <String>{};
 
     final repo = getIt<SocialRepo>();
     final resolved = <String>{};
@@ -212,6 +213,11 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     });
 
     try {
+      if (!getIt.isRegistered<SocialRepo>()) {
+        SocialEvents.emitFollowChanged();
+        return;
+      }
+
       final repo = getIt<SocialRepo>();
       if (previous) {
         final result = await repo.unfollowUser(profile.id);
