@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
 import '../../data/repositories/social_repo.dart';
 import '../../domain/entities/user.dart';
@@ -132,6 +133,9 @@ class _SuggestedUserTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      onTap: user.username.trim().isEmpty
+          ? null
+          : () => ProfileRoutes.goToProfile(context, user.username.trim()),
       leading: CircleAvatar(
         backgroundColor: Colors.grey[800],
         child: Text(

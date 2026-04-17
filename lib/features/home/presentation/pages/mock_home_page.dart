@@ -48,19 +48,17 @@ class _MockHomePageState extends State<MockHomePage> {
     });
 
     try {
-      final response = await GetIt.I<DioClient>().get(
-        ApiConstants.tracks,
-        queryParameters: <String, dynamic>{
-          'genre': _selectedGenre,
-          'sort': 'likes',
-          'order': 'desc',
-          'limit': 50,
-        },
-      );
-
-      final rawList = _extractTracksList(response.data);
-      final tracks = rawList
+      final rawList = await _fetchTrendingRawTracks();
+      final trackLikeRawList = rawList.where(_looksLikeTrackPayload).toList(
+            growable: false,
+          );
+      final genreMatched = trackLikeRawList
           .where((raw) => _rawMatchesGenre(raw, _selectedGenre))
+          .toList(growable: false);
+      final filteredRawList =
+          genreMatched.isEmpty ? trackLikeRawList : genreMatched;
+
+      final tracks = filteredRawList
           .map(_mapToTrack)
           .whereType<Track>()
           .toList(growable: false)
@@ -84,10 +82,91 @@ class _MockHomePageState extends State<MockHomePage> {
     }
   }
 
+  bool _looksLikeTrackPayload(dynamic raw) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    if (nestedTrack is Map) return true;
+    return map.containsKey('title') ||
+        map.containsKey('genre') ||
+        map.containsKey('coverArtUrl') ||
+        map.containsKey('duration');
+  }
+
+  Future<List<dynamic>> _fetchTrendingRawTracks() async {
+    final dioClient = GetIt.I<DioClient>();
+
+    final suggestionsResponse = await dioClient.get(
+      ApiConstants.suggestedUsersPath,
+      queryParameters: const <String, dynamic>{'limit': 100},
+    );
+    final suggestionsTracks = _extractTracksList(suggestionsResponse.data);
+    if (suggestionsTracks.isNotEmpty) return suggestionsTracks;
+
+    final suggestionUserIds = _extractSuggestedUserIds(suggestionsResponse.data);
+    if (suggestionUserIds.isNotEmpty) {
+      final userTracksLists = await Future.wait(
+        suggestionUserIds.take(12).map(
+              (userId) async {
+                try {
+                  final response = await dioClient.get(
+                    ApiConstants.userTracksPath(userId),
+                    queryParameters: const <String, dynamic>{
+                      'page': 1,
+                      'limit': 50,
+                    },
+                  );
+                  return _extractTracksList(response.data);
+                } catch (_) {
+                  return const <dynamic>[];
+                }
+              },
+            ),
+      );
+      final aggregated = userTracksLists
+          .expand((tracks) => tracks)
+          .toList(growable: false);
+      if (aggregated.isNotEmpty) return aggregated;
+    }
+
+    final fallbackResponse = await dioClient.get(
+      ApiConstants.userTracksPath('me'),
+      queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
+    );
+    return _extractTracksList(fallbackResponse.data);
+  }
+
+  List<String> _extractSuggestedUserIds(dynamic responseData) {
+    final List<dynamic> rawUsers = <dynamic>[
+      if (responseData is Map<String, dynamic>) ...[
+        ...(responseData['suggestions'] is List
+            ? responseData['suggestions'] as List
+            : const <dynamic>[]),
+        ...(responseData['users'] is List
+            ? responseData['users'] as List
+            : const <dynamic>[]),
+        if (responseData['data'] is List) ...(responseData['data'] as List),
+      ] else if (responseData is List)
+        ...responseData,
+    ];
+
+    return rawUsers
+        .whereType<Map>()
+        .map((raw) => Map<String, dynamic>.from(raw))
+        .map(
+          (item) =>
+              (item['id'] ?? item['userId'] ?? item['user_id'] ?? '').toString(),
+        )
+        .where((id) => id.trim().isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
   List<dynamic> _extractTracksList(dynamic responseData) {
     if (responseData is List) return responseData;
     if (responseData is Map<String, dynamic>) {
       final dynamic directTracks = responseData['tracks'] ??
+          responseData['suggestions'] ??
           responseData['items'] ??
           responseData['results'] ??
           responseData['collection'];
@@ -97,6 +176,7 @@ class _MockHomePageState extends State<MockHomePage> {
       if (data is List) return data;
       if (data is Map<String, dynamic>) {
         final dynamic nestedTracks = data['tracks'] ??
+            data['suggestions'] ??
             data['items'] ??
             data['results'] ??
             data['collection'];

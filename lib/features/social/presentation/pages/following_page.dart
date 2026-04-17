@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/social/presentation/bloc/follow_bloc/cubit/follow_cubit.dart';
@@ -214,6 +215,9 @@ class _FollowingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      onTap: user.username.trim().isEmpty
+          ? null
+          : () => ProfileRoutes.goToProfile(context, user.username.trim()),
       leading: CircleAvatar(
         backgroundColor: Colors.grey[800],
         child: Text(

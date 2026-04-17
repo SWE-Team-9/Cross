@@ -837,16 +837,14 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             ],
           ),
           const SizedBox(height: 10),
-          TextButton.icon(
+          IconButton(
             onPressed: () => ProfileRoutes.goToSuggestedUsers(context),
-            icon: const Icon(Icons.group_add_outlined, size: 16),
-            label: const Text('Suggested users'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white70,
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              minimumSize: const Size(0, 0),
-            ),
+            icon: const Icon(Icons.group_add_outlined, size: 18),
+            color: Colors.white70,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Suggested users',
           ),
           if (favoriteGenres.isNotEmpty) ...[
             const SizedBox(height: 10),
