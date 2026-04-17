@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
@@ -15,11 +15,13 @@ import 'package:soundcloud_clone/features/profile/presentation/routes/profile_ro
 class TrackRow extends StatelessWidget {
   final Track track;
   final List<Track>? queue;
+  final String source; // ✅ NEW
 
   const TrackRow({
     super.key,
     required this.track,
     this.queue,
+    this.source = "unknown", // ✅ DEFAULT
   });
 
   @override
@@ -38,96 +40,107 @@ class TrackRow extends StatelessWidget {
               opacity: opacity,
               child: InkWell(
                 onTap: () {
+                  final playerService = getIt<AudioPlayerService>();
                   final playerCubit = context.read<PlayerCubit>();
-                  final playbackCubit = context.read<PlaybackCubit>();
 
                   final tracks = queue ?? [track];
                   final index = tracks.indexWhere((t) => t.id == track.id);
-                  final tracksFromHere =
-                      index >= 0 ? tracks.sublist(index) : [track];
 
-                  playbackCubit.playTrack(track, tracksFromHere);
+                  // 🔥 PLAY USING CONTEXT (FIXED)
+                  playerService.playFromContext(
+                    tracks: tracks,
+                    startIndex: index >= 0 ? index : 0,
+                    source: source, // ✅ FIXED
+                  );
+
+                  // 🔥 UPDATE UI
                   playerCubit.play(track);
                 },
                 splashColor: Colors.white10,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          color: Colors.grey[800],
-                          image: track.artworkUrl != null
-                              ? DecorationImage(
-                                  image: NetworkImage(track.artworkUrl!),
-                                  fit: BoxFit.cover,
-                                  onError: (_, __) {},
-                                )
+                child: Container(
+                  color: isCurrentTrack
+                      ? Colors.white.withValues(alpha: 0.05) // ✅ UI IMPROVEMENT
+                      : Colors.transparent,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.grey[800],
+                            image: track.artworkUrl != null
+                                ? DecorationImage(
+                                    image: NetworkImage(track.artworkUrl!),
+                                    fit: BoxFit.cover,
+                                    onError: (_, __) {},
+                                  )
+                                : null,
+                          ),
+                          child: track.artworkUrl == null
+                              ? const Icon(Icons.music_note,
+                                  color: Colors.white)
                               : null,
                         ),
-                        child: track.artworkUrl == null
-                            ? const Icon(Icons.music_note, color: Colors.white)
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              track.title,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            if (isPlaying)
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.equalizer,
-                                    color: Color(0xFFFF5500),
-                                    size: 16,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Now Playing',
-                                    style: TextStyle(
-                                      color: Color(0xFFFF5500),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                track.artist,
+                                track.title,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: Color(0xFF999999),
-                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                          ],
+                              const SizedBox(height: 3),
+                              if (isPlaying)
+                                const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.equalizer,
+                                      color: Color(0xFFFF5500),
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Now Playing',
+                                      style: TextStyle(
+                                        color: Color(0xFFFF5500),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else
+                                Text(
+                                  track.artist,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF999999),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () =>
-                            TrackOptionsSheet.show(context, track: track),
-                        icon: const Icon(
-                          Icons.more_vert,
-                          color: Color(0xFF666666),
+                        IconButton(
+                          onPressed: () =>
+                              TrackOptionsSheet.show(context, track: track),
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Color(0xFF666666),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
