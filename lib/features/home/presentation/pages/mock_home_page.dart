@@ -49,7 +49,10 @@ class _MockHomePageState extends State<MockHomePage> {
 
     try {
       final rawList = await _fetchTrendingRawTracks();
-      final trackLikeRawList = rawList.where(_looksLikeTrackPayload).toList(
+      final trackLikeRawList = rawList
+          .where(_looksLikeTrackPayload)
+          .where(_isDiscoverableTrackPayload)
+          .toList(
             growable: false,
           );
       final genreMatched = trackLikeRawList
@@ -93,11 +96,30 @@ class _MockHomePageState extends State<MockHomePage> {
         map.containsKey('duration');
   }
 
+  bool _isDiscoverableTrackPayload(dynamic raw) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final visibility = (source['visibility'] ?? '').toString().toUpperCase();
+    if (visibility == 'PRIVATE') return false;
+
+    final status = (source['status'] ?? '').toString().toUpperCase();
+    if (status == 'PROCESSING' || status == 'FAILED') return false;
+
+    return true;
+  }
+
   Future<List<dynamic>> _fetchTrendingRawTracks() async {
     final dioClient = GetIt.I<DioClient>();
+    final authState = context.read<AuthCubit>().state;
+    final String viewerId =
+        authState is AuthAuthenticated ? authState.user.id.trim() : '';
     final List<dynamic> collected = <dynamic>[];
     final Set<String> seenTrackIds = <String>{};
-    final Set<String> suggestionUserIds = <String>{};
+    final Set<String> userIdsToLoad = <String>{};
 
     void addTracks(Iterable<dynamic> tracks) {
       for (final raw in tracks) {
@@ -106,77 +128,72 @@ class _MockHomePageState extends State<MockHomePage> {
         final nestedTrack = map['track'];
         final source =
             nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
-        final id = (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
-            .toString()
-            .trim();
+        final id =
+            (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
+                .toString()
+                .trim();
         if (id.isEmpty || seenTrackIds.contains(id)) continue;
         seenTrackIds.add(id);
         collected.add(raw);
       }
     }
 
-    try {
-      final globalTracksResponse = await dioClient.get(
-        ApiConstants.tracks,
-        queryParameters: const <String, dynamic>{'page': 1, 'limit': 50},
-      );
-      addTracks(_extractTracksList(globalTracksResponse.data));
-    } catch (_) {}
+    if (viewerId.isNotEmpty) {
+      userIdsToLoad.add(viewerId);
 
-    try {
-      final suggestionsResponse = await dioClient.get(
-        ApiConstants.suggestedUsersPath,
-        queryParameters: const <String, dynamic>{'limit': 50},
-      );
-      final suggestionsTracks = _extractTracksList(suggestionsResponse.data);
-      addTracks(suggestionsTracks);
-      suggestionUserIds.addAll(_extractSuggestedUserIds(suggestionsResponse.data));
-    } catch (_) {}
-
-    if (suggestionUserIds.isNotEmpty) {
-      final userTracksLists = await Future.wait(
-        suggestionUserIds.take(12).map(
-              (userId) async {
-                try {
-                  final response = await dioClient.get(
-                    ApiConstants.userTracksPath(userId),
-                    queryParameters: const <String, dynamic>{
-                      'page': 1,
-                      'limit': 50,
-                    },
-                  );
-                  return _extractTracksList(response.data);
-                } catch (_) {
-                  return const <dynamic>[];
-                }
-              },
-            ),
-      );
-      final aggregated = userTracksLists
-          .expand((tracks) => tracks)
-          .toList(growable: false);
-      addTracks(aggregated);
+      try {
+        final followingResponse = await dioClient.get(
+          ApiConstants.followingPath(viewerId),
+          queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
+        );
+        userIdsToLoad.addAll(_extractUserIds(followingResponse.data));
+      } catch (_) {}
     }
 
-    try {
-      final fallbackResponse = await dioClient.get(
-        ApiConstants.userTracksPath('me'),
-        queryParameters: const <String, dynamic>{'page': 1, 'limit': 50},
+    if (userIdsToLoad.isNotEmpty) {
+      final userTracksLists = await Future.wait(
+        userIdsToLoad.take(25).map(
+          (userId) async {
+            try {
+              final response = await dioClient.get(
+                ApiConstants.userTracksPath(userId),
+                queryParameters: const <String, dynamic>{
+                  'page': 1,
+                  'limit': 50,
+                },
+              );
+              return _extractTracksList(response.data);
+            } catch (_) {
+              return const <dynamic>[];
+            }
+          },
+        ),
       );
-      addTracks(_extractTracksList(fallbackResponse.data));
-    } catch (_) {}
+      final aggregated =
+          userTracksLists.expand((tracks) => tracks).toList(growable: false);
+      addTracks(aggregated);
+    }
 
     return collected;
   }
 
-  List<String> _extractSuggestedUserIds(dynamic responseData) {
+  List<String> _extractUserIds(dynamic responseData) {
     final List<dynamic> rawUsers = <dynamic>[
       if (responseData is Map<String, dynamic>) ...[
-        ...(responseData['suggestions'] is List
-            ? responseData['suggestions'] as List
+        ...(responseData['following'] is List
+            ? responseData['following'] as List
+            : const <dynamic>[]),
+        ...(responseData['followers'] is List
+            ? responseData['followers'] as List
             : const <dynamic>[]),
         ...(responseData['users'] is List
             ? responseData['users'] as List
+            : const <dynamic>[]),
+        ...(responseData['items'] is List
+            ? responseData['items'] as List
+            : const <dynamic>[]),
+        ...(responseData['results'] is List
+            ? responseData['results'] as List
             : const <dynamic>[]),
         if (responseData['data'] is List) ...(responseData['data'] as List),
       ] else if (responseData is List)
@@ -187,8 +204,8 @@ class _MockHomePageState extends State<MockHomePage> {
         .whereType<Map>()
         .map((raw) => Map<String, dynamic>.from(raw))
         .map(
-          (item) =>
-              (item['id'] ?? item['userId'] ?? item['user_id'] ?? '').toString(),
+          (item) => (item['id'] ?? item['userId'] ?? item['user_id'] ?? '')
+              .toString(),
         )
         .where((id) => id.trim().isNotEmpty)
         .toSet()
@@ -199,7 +216,6 @@ class _MockHomePageState extends State<MockHomePage> {
     if (responseData is List) return responseData;
     if (responseData is Map<String, dynamic>) {
       final dynamic directTracks = responseData['tracks'] ??
-          responseData['suggestions'] ??
           responseData['items'] ??
           responseData['results'] ??
           responseData['collection'];
@@ -209,7 +225,6 @@ class _MockHomePageState extends State<MockHomePage> {
       if (data is List) return data;
       if (data is Map<String, dynamic>) {
         final dynamic nestedTracks = data['tracks'] ??
-            data['suggestions'] ??
             data['items'] ??
             data['results'] ??
             data['collection'];
@@ -223,7 +238,8 @@ class _MockHomePageState extends State<MockHomePage> {
     if (raw is! Map) return null;
     final map = Map<String, dynamic>.from(raw);
     final nestedTrack = map['track'];
-    final source = nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
 
     final id = (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
         .toString()
@@ -231,8 +247,9 @@ class _MockHomePageState extends State<MockHomePage> {
     if (id.isEmpty) return null;
 
     final uploader = source['uploader'] ?? source['artist'] ?? source['owner'];
-    final uploaderMap =
-        uploader is Map ? Map<String, dynamic>.from(uploader) : <String, dynamic>{};
+    final uploaderMap = uploader is Map
+        ? Map<String, dynamic>.from(uploader)
+        : <String, dynamic>{};
 
     final statsRaw = source['stats'];
     final stats = statsRaw is Map
@@ -243,7 +260,9 @@ class _MockHomePageState extends State<MockHomePage> {
       source['likesCount'] ?? source['likes_count'] ?? stats['likesCount'],
     );
     final repostsCount = _asInt(
-      source['repostsCount'] ?? source['reposts_count'] ?? stats['repostsCount'],
+      source['repostsCount'] ??
+          source['reposts_count'] ??
+          stats['repostsCount'],
     );
 
     return Track(
@@ -260,8 +279,9 @@ class _MockHomePageState extends State<MockHomePage> {
               source['cover_art_url'] ??
               source['artworkUrl'])
           ?.toString(),
-      handle:
-          (uploaderMap['handle'] ?? uploaderMap['username'] ?? '').toString().trim(),
+      handle: (uploaderMap['handle'] ?? uploaderMap['username'] ?? '')
+          .toString()
+          .trim(),
       likesCount: likesCount,
       repostsCount: repostsCount,
     );

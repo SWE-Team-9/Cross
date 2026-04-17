@@ -29,14 +29,13 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.verifyEmail,
   AuthRoutes.oauthDebug,
   AppRoutes.player,
-  AppRoutes.uploadPicker,
   AppRoutes.trackManagementDemo,
 };
 
 bool _shouldHideMiniPlayerForPath(String path) {
   if (_miniPlayerHiddenRoutes.contains(path)) return true;
 
-  return path.startsWith('/upload') || path.startsWith('/track-management');
+  return path.startsWith('/track-management');
 }
 
 class App extends StatelessWidget {
@@ -92,7 +91,8 @@ class App extends StatelessWidget {
                                 showMiniPlayerOnRoute &&
                                 !isPlayerOpen &&
                                 !sheetOpen;
-                            final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
+                            final safeAreaBottom =
+                                MediaQuery.paddingOf(context).bottom;
                             final miniPlayerBottomOffset =
                                 safeAreaBottom + BottomNavBar.minHeight + 8;
 
@@ -109,13 +109,15 @@ class App extends StatelessWidget {
                                     child: IgnorePointer(
                                       ignoring: !showMiniPlayer,
                                       child: AnimatedSlide(
-                                        duration: const Duration(milliseconds: 220),
+                                        duration:
+                                            const Duration(milliseconds: 220),
                                         curve: Curves.easeOutCubic,
                                         offset: showMiniPlayer
                                             ? Offset.zero
                                             : const Offset(0, 1.2),
                                         child: AnimatedOpacity(
-                                          duration: const Duration(milliseconds: 180),
+                                          duration:
+                                              const Duration(milliseconds: 180),
                                           curve: Curves.easeOut,
                                           opacity: showMiniPlayer ? 1 : 0,
                                           child: const MiniPlayer(),

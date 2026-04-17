@@ -71,6 +71,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     try {
       final response = await _dioClient.dio.get(
         ApiConstants.userTracksPath(userId),
+        queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
       );
 
       final dynamic responseData =

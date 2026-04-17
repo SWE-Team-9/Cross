@@ -101,15 +101,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    if (_didSeedInitialTracks) return;
-    _didSeedInitialTracks = true;
-
     final profileState = context.read<ProfileCubit>().state;
-    if (_isOwnProfile && profileState is ProfileLoaded) {
+    if (!_didSeedInitialTracks && profileState is ProfileLoaded) {
+      _didSeedInitialTracks = true;
       _managedTracks = profileState.tracks;
       _likedTracks = profileState.likedTracks;
       _repostedTracks = profileState.repostedTracks;
     }
+
+    _syncFollowState(profileState);
   }
 
   @override
@@ -121,7 +121,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   // ── Action Methods ──────────────────────────────────────────────────────
 
   void _syncManagedTracks(ProfileState state) {
-    if (!mounted || !_isOwnProfile) return;
+    if (!mounted) return;
 
     if (state is ProfileLoaded) {
       setState(() {
@@ -662,8 +662,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildTracksTab() {
     if (!_isOwnProfile) {
-      // NOTE: You can change this later to fetch public tracks for other users
-      return _buildEmptyTab(Icons.music_note_outlined, 'No tracks yet');
+      return _ProfileTracksListTab(
+        tracks: _managedTracks,
+        emptyIcon: Icons.music_note_outlined,
+        emptyMessage: 'No tracks yet',
+        onPlayTap: _playTrack,
+      );
     }
 
     return _ManagedProfileTracksTab(
@@ -748,9 +752,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   decoration: BoxDecoration(
-                    color: _isFollowing
-                        ? const Color(0xFF1A1A1A)
-                        : const Color(0xFFFF5500),
+                    color:
+                        _isFollowing ? Colors.black : const Color(0xFFFF5500),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: _isFollowing
@@ -1177,7 +1180,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       child: const Icon(Icons.play_arrow, color: Colors.black),
     );
   }
-
 }
 
 // ── Shared Sub-Widgets ──────────────────────────────────────────────────

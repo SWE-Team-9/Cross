@@ -44,6 +44,25 @@ class ProfileCubit extends Cubit<ProfileState> {
       );
 
       emit(ProfileLoaded(profile));
+
+      List<ManagedTrack> tracks = const <ManagedTrack>[];
+
+      try {
+        tracks = await _profileRepository.getUserTracks(profile.id).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Tracks request timed out. Please check your connection.',
+            );
+          },
+        );
+      } catch (_) {
+        tracks = const <ManagedTrack>[];
+      }
+
+      if (!isClosed) {
+        emit(ProfileLoaded(profile, tracks: tracks));
+      }
     } on Failure catch (failure) {
       emit(ProfileError(failure.message));
     } catch (_) {
