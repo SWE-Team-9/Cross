@@ -24,6 +24,8 @@ class _MockHomePageState extends State<MockHomePage> {
   String _selectedGenre = 'ELECTRONIC';
   bool _isLoadingTrending = false;
   String? _trendingError;
+  List<dynamic>? _trendingRawTrackPool;
+  Future<List<dynamic>>? _trendingRawTrackPoolRequest;
   List<Track> _trendingTracks = const <Track>[];
 
   final _genres = const [
@@ -48,27 +50,12 @@ class _MockHomePageState extends State<MockHomePage> {
     });
 
     try {
-      final rawList = await _fetchTrendingRawTracks();
-      final trackLikeRawList = rawList
-          .where(_looksLikeTrackPayload)
-          .where(_isDiscoverableTrackPayload)
-          .toList(
-            growable: false,
-          );
-      final genreMatched = trackLikeRawList
-          .where((raw) => _rawMatchesGenre(raw, _selectedGenre))
-          .toList(growable: false);
-      final filteredRawList =
-          genreMatched.isEmpty ? trackLikeRawList : genreMatched;
-
-      final tracks = filteredRawList
-          .map(_mapToTrack)
-          .whereType<Track>()
-          .toList(growable: false)
-        ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+      final rawList = await _getTrendingRawTrackPool();
+      final tracks = _buildTrendingTracksForSelectedGenre(rawList);
 
       if (!mounted) return;
       setState(() {
+        _trendingRawTrackPool = rawList;
         _trendingTracks = tracks;
       });
     } catch (_) {
@@ -83,6 +70,53 @@ class _MockHomePageState extends State<MockHomePage> {
         _isLoadingTrending = false;
       });
     }
+  }
+
+  void _filterCachedTrendingTracks() {
+    final rawList = _trendingRawTrackPool;
+    if (rawList == null) {
+      if (!_isLoadingTrending) {
+        _loadTrendingTracks();
+      }
+      return;
+    }
+
+    setState(() {
+      _trendingError = null;
+      _trendingTracks = _buildTrendingTracksForSelectedGenre(rawList);
+    });
+  }
+
+  List<Track> _buildTrendingTracksForSelectedGenre(List<dynamic> rawList) {
+    final trackLikeRawList = rawList
+        .where(_looksLikeTrackPayload)
+        .where(_isDiscoverableTrackPayload)
+        .toList(growable: false);
+    final genreMatched = trackLikeRawList
+        .where((raw) => _rawMatchesGenre(raw, _selectedGenre))
+        .toList(growable: false);
+    final filteredRawList =
+        genreMatched.isEmpty ? trackLikeRawList : genreMatched;
+
+    return filteredRawList
+        .map(_mapToTrack)
+        .whereType<Track>()
+        .toList(growable: false)
+      ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+  }
+
+  Future<List<dynamic>> _getTrendingRawTrackPool() {
+    final cached = _trendingRawTrackPool;
+    if (cached != null) return Future.value(cached);
+
+    final inFlight = _trendingRawTrackPoolRequest;
+    if (inFlight != null) return inFlight;
+
+    final request = _fetchTrendingRawTracks().whenComplete(() {
+      _trendingRawTrackPoolRequest = null;
+    });
+    _trendingRawTrackPoolRequest = request;
+    return request;
   }
 
   bool _looksLikeTrackPayload(dynamic raw) {
@@ -150,28 +184,19 @@ class _MockHomePageState extends State<MockHomePage> {
       } catch (_) {}
     }
 
-    if (userIdsToLoad.isNotEmpty) {
-      final userTracksLists = await Future.wait(
-        userIdsToLoad.take(25).map(
-          (userId) async {
-            try {
-              final response = await dioClient.get(
-                ApiConstants.userTracksPath(userId),
-                queryParameters: const <String, dynamic>{
-                  'page': 1,
-                  'limit': 50,
-                },
-              );
-              return _extractTracksList(response.data);
-            } catch (_) {
-              return const <dynamic>[];
-            }
+    for (final userId in userIdsToLoad.take(10)) {
+      try {
+        final response = await dioClient.get(
+          ApiConstants.userTracksPath(userId),
+          queryParameters: const <String, dynamic>{
+            'page': 1,
+            'limit': 20,
           },
-        ),
-      );
-      final aggregated =
-          userTracksLists.expand((tracks) => tracks).toList(growable: false);
-      addTracks(aggregated);
+        );
+        addTracks(_extractTracksList(response.data));
+      } catch (_) {}
+
+      await Future<void>.delayed(const Duration(milliseconds: 200));
     }
 
     return collected;
@@ -393,7 +418,7 @@ class _MockHomePageState extends State<MockHomePage> {
                           selected: _selectedGenre,
                           onSelect: (g) {
                             setState(() => _selectedGenre = g);
-                            _loadTrendingTracks();
+                            _filterCachedTrendingTracks();
                           },
                         ),
                         _TrendingByGenreTracks(
