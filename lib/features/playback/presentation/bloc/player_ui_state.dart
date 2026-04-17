@@ -40,6 +40,25 @@ class PlayerUIState {
   Duration get position => playerState.position;
   Duration? get duration => playerState.duration;
   double get volume => playerState.volume;
+  List<Track> get queue {
+    if (playerState.queue.isNotEmpty) return playerState.queue;
+    final track = currentTrack;
+    return track == null ? const <Track>[] : <Track>[track];
+  }
+
+  int get currentIndex {
+    final tracks = queue;
+    if (tracks.isEmpty) return -1;
+
+    final track = currentTrack;
+    if (track != null) {
+      final index = tracks.indexWhere((item) => item.id == track.id);
+      if (index >= 0) return index;
+    }
+
+    final index = playerState.currentIndex;
+    return index >= 0 && index < tracks.length ? index : 0;
+  }
 
   bool wasPlayed(String trackId) => playedTrackIds.contains(trackId);
 }
