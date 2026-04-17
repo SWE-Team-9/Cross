@@ -3,19 +3,24 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
+import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
+import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
+import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
 import '../../features/playback/presentation/widgets/add_to_playlist_sheet.dart';
 
 class TrackOptionsSheet extends StatelessWidget {
   final Track track;
   final ScrollController scrollController;
+  final BuildContext parentContext;
 
   const TrackOptionsSheet._({
     required this.track,
     required this.scrollController,
+    required this.parentContext,
   });
 
   static Future<void> show(BuildContext context, {required Track track}) {
@@ -53,6 +58,7 @@ class TrackOptionsSheet extends StatelessWidget {
           builder: (_, scrollController) => TrackOptionsSheet._(
             track: track,
             scrollController: scrollController,
+            parentContext: context,
           ),
         ),
       ),
@@ -212,12 +218,38 @@ class TrackOptionsSheet extends StatelessWidget {
                   _OptionTile(
                     icon: Icons.person_outline,
                     label: 'Go to artist profile',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context);
+
+                      if (track.handle != null && track.handle!.isNotEmpty) {
+                        ProfileRoutes.goToProfile(parentContext, track.handle!);
+                      } else {
+                        ScaffoldMessenger.of(parentContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('Artist profile not available'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
                   ),
                   _OptionTile(
                     icon: Icons.comment_outlined,
                     label: 'View comments',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context);
+
+                      Navigator.push(
+                        parentContext,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider(
+                            create: (_) =>
+                                getIt<CommentsCubit>()..load(track.id),
+                            child: TrackCommentsPage(trackId: track.id),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const Divider(color: Colors.white12, height: 1),
                   _OptionTile(

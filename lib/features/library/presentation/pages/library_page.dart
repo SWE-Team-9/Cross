@@ -5,21 +5,38 @@ import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/settings/presentation/page/settings_page.dart';
 
-class LibraryPage extends StatelessWidget {
+class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final historyCubit = GetIt.I<RecentlyPlayedCubit>()..loadListeningHistory();
+  State<LibraryPage> createState() => _LibraryPageState();
+}
 
+class _LibraryPageState extends State<LibraryPage> {
+  late final RecentlyPlayedCubit _historyCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _historyCubit = GetIt.I<RecentlyPlayedCubit>()..loadListeningHistory();
+  }
+
+  void _playTrack(Track track) {
+    _historyCubit.addTrack(track);
+    context.read<PlayerCubit>().play(track);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: historyCubit,
+      value: _historyCubit,
       child: Scaffold(
         backgroundColor: Colors.black,
         // ── Shared Bottom Nav (index 3 = Library) ──────────────────────────
@@ -152,7 +169,10 @@ class LibraryPage extends StatelessWidget {
                       ),
                     );
                   }
-                  return RecentlyPlayedRow(tracks: tracks);
+                  return RecentlyPlayedRow(
+                    tracks: tracks,
+                    onTrackTap: _playTrack,
+                  );
                 },
               ),
               const SizedBox(height: 20),
@@ -225,6 +245,7 @@ class LibraryPage extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            onTap: () => _playTrack(track),
                           ),
                         )
                         .toList(growable: false),

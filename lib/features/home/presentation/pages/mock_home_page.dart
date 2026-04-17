@@ -14,10 +14,6 @@ import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
-import 'package:soundcloud_clone/features/upload/presentation/models/apply_track_management_result.dart';
-import 'package:soundcloud_clone/features/upload/presentation/models/track_management_result.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -40,45 +36,6 @@ class _MockHomePageState extends State<MockHomePage> {
     'POP',
     'HIP-HOP',
   ];
-
-  List<ManagedTrack> _managedTracks = const [
-    ManagedTrack(
-      id: 'managed-track-1',
-      title: 'Midnight Echoes',
-      description: 'A temporary owner track for Sprint 2 testing.',
-      genreId: 1,
-      genreName: 'Ambient',
-      tags: <String>['owner', 'ambient'],
-      visibility: TrackManagementVisibility.publicTrack,
-      durationInSeconds: 212,
-    ),
-    ManagedTrack(
-      id: 'managed-track-2',
-      title: 'City Lights',
-      description: 'Second temporary owner track for edit/delete testing.',
-      genreId: 2,
-      genreName: 'Electronic',
-      tags: <String>['night', 'synth'],
-      visibility: TrackManagementVisibility.privateTrack,
-      durationInSeconds: 184,
-    ),
-  ];
-
-  Future<void> _openTrackManagement(ManagedTrack track) async {
-    final result = await context.pushNamed(
-      'track-management',
-      extra: track,
-    );
-
-    if (result is TrackManagementResult && mounted) {
-      setState(() {
-        _managedTracks = applyTrackManagementResult(
-          tracks: _managedTracks,
-          result: result,
-        );
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,12 +96,6 @@ class _MockHomePageState extends State<MockHomePage> {
                         const _RelatedTracksRow(),
                         const _SectionHeader(title: 'Mixed for you'),
                         _MixesRow(userHandle: currentHandle),
-                        const _SectionHeader(
-                            title: 'Your Tracks (Sprint 2 Test)'),
-                        _ManagedTracksSection(
-                          tracks: _managedTracks,
-                          onManageTap: _openTrackManagement,
-                        ),
                         const _SectionHeader(title: 'Trending by genre'),
                         _GenreChips(
                           genres: _genres,
@@ -413,7 +364,7 @@ class _RelatedTracksRow extends StatelessWidget {
     ];
 
     return SizedBox(
-      height: 192,
+      height: 200,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -458,6 +409,8 @@ class _RelatedTracksRow extends StatelessWidget {
                   ),
                   Text(
                     c.sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF999999),
                       fontSize: 12,
@@ -582,81 +535,6 @@ class _MixesRow extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _ManagedTracksSection extends StatelessWidget {
-  const _ManagedTracksSection({
-    required this.tracks,
-    required this.onManageTap,
-  });
-
-  final List<ManagedTrack> tracks;
-  final ValueChanged<ManagedTrack> onManageTap;
-
-  @override
-  Widget build(BuildContext context) {
-    if (tracks.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Text(
-          'No managed tracks remaining.',
-          style: TextStyle(color: Color(0xFF999999), fontSize: 13),
-        ),
-      );
-    }
-
-    return Column(
-      children: tracks.map((track) {
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          track.title,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${track.genreName ?? 'Unknown genre'} • ${track.visibility.displayLabel}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF999999),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton(
-                    onPressed: () => onManageTap(track),
-                    child: const Text('Manage'),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(
-              color: Color(0xFF1A1A1A),
-              height: 1,
-              indent: 14,
-              endIndent: 14,
-            ),
-          ],
-        );
-      }).toList(),
     );
   }
 }

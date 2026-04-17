@@ -77,3 +77,21 @@ class AuthError extends AuthState {
 
   AuthError(this.message, {this.isNotVerified = false});
 }
+
+class AuthOAuthDiagnostic extends AuthState {
+  final String stage;
+  final String title;
+  final String message;
+  final Map<String, String> details;
+  final bool isError;
+  final bool isSuccess;
+
+  AuthOAuthDiagnostic({
+    required this.stage,
+    required this.title,
+    required this.message,
+    this.details = const {},
+    this.isError = false,
+    this.isSuccess = false,
+  });
+}

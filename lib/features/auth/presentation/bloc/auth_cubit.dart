@@ -181,7 +181,8 @@ class AuthCubit extends Cubit<AuthState> {
         if (!launched) {
           await windowsOAuthCallbackServer.stop();
           emit(
-              AuthError('Could not open the browser to continue with Google.'));
+            AuthError('Could not open the browser to continue with Google.'),
+          );
           return;
         }
 
@@ -214,6 +215,11 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> handleOAuthCallbackDeepLink(
     OAuthCallbackDeepLink destination,
   ) async {
+    print('🔵 handleOAuthCallbackDeepLink entered');
+    print('🔵 destination.code = ${destination.code}');
+    print('🔵 destination.state = ${destination.state}');
+    print('🔵 destination.error = ${destination.error}');
+    print('🔵 destination.errorDescription = ${destination.errorDescription}');
     await handleOAuthCallback(
       code: destination.code,
       state: destination.state,
@@ -237,16 +243,41 @@ class AuthCubit extends Cubit<AuthState> {
     String? error,
     String? errorDescription,
   }) async {
-    emit(AuthLoading());
+    emit(
+      AuthOAuthDiagnostic(
+        stage: 'callback_received',
+        title: 'OAuth callback received',
+        message: 'The app received the return URL from Google.',
+        details: {
+          'code_present': '${code != null && code.trim().isNotEmpty}',
+          'returned_state': state?.trim() ?? 'null',
+          'provider_error': error?.trim() ?? 'null',
+          'provider_error_description': errorDescription?.trim() ?? 'null',
+        },
+      ),
+    );
 
     try {
       if (error != null && error.trim().isNotEmpty) {
         await _clearPendingOAuth();
-        emit(AuthError(
-          errorDescription?.trim().isNotEmpty == true
-              ? errorDescription!.trim()
-              : error.trim(),
-        ));
+        emit(
+          AuthOAuthDiagnostic(
+            stage: 'provider_error',
+            title: 'Google returned an error',
+            message: errorDescription?.trim().isNotEmpty == true
+                ? errorDescription!.trim()
+                : error.trim(),
+            details: {
+              'error': error.trim(),
+              'error_description': errorDescription?.trim() ?? 'null',
+              'likely_cause': _mapOAuthProviderErrorToCause(
+                error: error,
+                errorDescription: errorDescription,
+              ),
+            },
+            isError: true,
+          ),
+        );
         return;
       }
 
@@ -256,16 +287,57 @@ class AuthCubit extends Cubit<AuthState> {
       final codeVerifier = _pendingOAuthCodeVerifier ?? pending?.codeVerifier;
       final redirectUri = _pendingOAuthRedirectUri ?? pending?.redirectUri;
 
+      print('🟣 expectedState = $expectedState');
+      print('🟣 codeVerifier present = ${codeVerifier != null}');
+      print('🟣 redirectUri = $redirectUri');
+
+      emit(
+        AuthOAuthDiagnostic(
+          stage: 'validating_callback',
+          title: 'Validating callback',
+          message:
+              'Checking saved OAuth request, state value, and PKCE verifier.',
+          details: {
+            'expected_state': expectedState ?? 'null',
+            'returned_state': state?.trim() ?? 'null',
+            'redirect_uri': redirectUri ?? 'null',
+            'code_verifier_present': '${codeVerifier != null}',
+          },
+        ),
+      );
+
       if (expectedState == null ||
           codeVerifier == null ||
           redirectUri == null) {
-        emit(AuthError('No pending Google sign-in request was found.'));
+        emit(
+          AuthOAuthDiagnostic(
+            stage: 'missing_pending_request',
+            title: 'No pending OAuth request',
+            message: 'No saved Google sign-in request was found.',
+            details: {
+              'likely_cause':
+                  'The app may have restarted, local pending OAuth data was cleared, or this callback belongs to an old attempt.',
+            },
+            isError: true,
+          ),
+        );
         return;
       }
 
       if (code == null || code.trim().isEmpty) {
         await _clearPendingOAuth();
-        emit(AuthError('OAuth callback is missing the authorization code.'));
+        emit(
+          AuthOAuthDiagnostic(
+            stage: 'missing_code',
+            title: 'Authorization code is missing',
+            message: 'OAuth callback returned without an authorization code.',
+            details: {
+              'likely_cause':
+                  'The provider or backend redirected incorrectly, or the callback URL was incomplete.',
+            },
+            isError: true,
+          ),
+        );
         return;
       }
 
@@ -273,9 +345,40 @@ class AuthCubit extends Cubit<AuthState> {
           state.trim().isEmpty ||
           state.trim() != expectedState) {
         await _clearPendingOAuth();
-        emit(AuthError('OAuth state mismatch. Please try again.'));
+        emit(
+          AuthOAuthDiagnostic(
+            stage: 'state_mismatch',
+            title: 'OAuth state mismatch',
+            message:
+                'Returned state does not match the state saved before opening Google.',
+            details: {
+              'expected_state': expectedState,
+              'returned_state': state?.trim() ?? 'null',
+              'likely_cause':
+                  'This is usually caused by a stale callback, multiple sign-in attempts, wrong redirect target, or app state being reset.',
+            },
+            isError: true,
+          ),
+        );
         return;
       }
+
+      emit(
+        AuthOAuthDiagnostic(
+          stage: 'exchanging_code',
+          title: 'Exchanging code for session',
+          message:
+              'Sending authorization code and PKCE verifier to the backend.',
+          details: {
+            'redirect_uri': redirectUri,
+          },
+        ),
+      );
+
+      print('🚀 about to call exchangeOAuthCodeForSession');
+      print('🚀 code = ${code.trim()}');
+      print('🚀 redirectUri = $redirectUri');
+      print('🚀 codeVerifier length = ${codeVerifier.length}');
 
       await authRepository.exchangeOAuthCodeForSession(
         code: code.trim(),
@@ -283,24 +386,86 @@ class AuthCubit extends Cubit<AuthState> {
         codeVerifier: codeVerifier,
       );
 
+      print('✅ exchangeOAuthCodeForSession completed');
+      print('✅ about to call getCurrentUserUseCase');
+
+      emit(
+        AuthOAuthDiagnostic(
+          stage: 'loading_user',
+          title: 'Loading current user',
+          message:
+              'OAuth exchange completed. Trying to load the authenticated session user.',
+          details: {
+            'endpoint': '/api/v1/auth/me',
+          },
+        ),
+      );
+
       final user = await getCurrentUserUseCase();
       await _clearPendingOAuth();
 
       if (user == null) {
-        emit(AuthError(
-          'Google sign-in completed, but the session could not be loaded.',
-        ));
+        emit(
+          AuthOAuthDiagnostic(
+            stage: 'session_not_loaded',
+            title: 'Session could not be loaded',
+            message:
+                'Google sign-in completed, but no authenticated user was returned.',
+            details: {
+              'likely_cause':
+                  'The backend may not be setting cookies correctly, cookies were not persisted, or /auth/me failed after OAuth exchange.',
+            },
+            isError: true,
+          ),
+        );
         return;
       }
 
+      emit(
+        AuthOAuthDiagnostic(
+          stage: 'success',
+          title: 'OAuth completed successfully',
+          message: 'The backend created a session and the user was loaded.',
+          details: {
+            'user_id': user.id,
+            'email': user.email,
+          },
+          isSuccess: true,
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 450));
       emit(AuthAuthenticated(user));
     } on DioException catch (e) {
       await _clearPendingOAuth();
       final failure = ErrorMapper.mapDioErrorToFailure(e);
-      emit(AuthError(failure.message));
+
+      emit(
+        AuthOAuthDiagnostic(
+          stage: 'backend_error',
+          title: 'Backend exchange failed',
+          message: failure.message,
+          details: _buildBackendErrorDetails(
+            e: e,
+            failureMessage: failure.message,
+          ),
+          isError: true,
+        ),
+      );
     } catch (e) {
       await _clearPendingOAuth();
-      emit(AuthError('Google sign-in failed. Please try again.'));
+      emit(
+        AuthOAuthDiagnostic(
+          stage: 'unexpected_error',
+          title: 'Unexpected OAuth error',
+          message: e.toString(),
+          details: {
+            'likely_cause':
+                'Unhandled exception in app code, callback parsing failure, or runtime error during OAuth processing.',
+          },
+          isError: true,
+        ),
+      );
     }
   }
 
@@ -354,8 +519,11 @@ class AuthCubit extends Cubit<AuthState> {
       final difference = now.difference(_firstResendAttempt!);
       if (difference.inMinutes < 1) {
         if (_resendCount >= 3) {
-          emit(AuthError(
-              "Too many requests. Please wait a minute before trying again."));
+          emit(
+            AuthError(
+              "Too many requests. Please wait a minute before trying again.",
+            ),
+          );
           return;
         }
       } else {
@@ -459,39 +627,50 @@ class AuthCubit extends Cubit<AuthState> {
       _lastEmailChangeRequestAt = DateTime.now();
 
       if (currentUser != null) {
-        emit(AuthEmailChangeRequested(
-          user: currentUser,
-          newEmail: normalizedEmail,
-        ));
+        emit(
+          AuthEmailChangeRequested(
+            user: currentUser,
+            newEmail: normalizedEmail,
+          ),
+        );
         return;
       }
 
       final refreshedUser = await getCurrentUserUseCase();
       if (refreshedUser != null) {
-        emit(AuthEmailChangeRequested(
-          user: refreshedUser,
-          newEmail: normalizedEmail,
-        ));
+        emit(
+          AuthEmailChangeRequested(
+            user: refreshedUser,
+            newEmail: normalizedEmail,
+          ),
+        );
       } else {
-        emit(AuthError(
-            'Email change request succeeded, but user refresh failed.'));
+        emit(
+          AuthError(
+            'Email change request succeeded, but user refresh failed.',
+          ),
+        );
       }
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       if (currentUser != null) {
-        emit(AuthEmailChangeFailure(
-          user: currentUser,
-          message: failure.message,
-        ));
+        emit(
+          AuthEmailChangeFailure(
+            user: currentUser,
+            message: failure.message,
+          ),
+        );
       } else {
         emit(AuthError(failure.message));
       }
     } catch (e) {
       if (currentUser != null) {
-        emit(AuthEmailChangeFailure(
-          user: currentUser,
-          message: 'An unexpected error occurred.',
-        ));
+        emit(
+          AuthEmailChangeFailure(
+            user: currentUser,
+            message: 'An unexpected error occurred.',
+          ),
+        );
       } else {
         emit(AuthError('An unexpected error occurred.'));
       }
@@ -509,19 +688,23 @@ class AuthCubit extends Cubit<AuthState> {
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       if (currentUser != null) {
-        emit(AuthEmailChangeFailure(
-          user: currentUser,
-          message: failure.message,
-        ));
+        emit(
+          AuthEmailChangeFailure(
+            user: currentUser,
+            message: failure.message,
+          ),
+        );
       } else {
         emit(AuthError(failure.message));
       }
     } catch (e) {
       if (currentUser != null) {
-        emit(AuthEmailChangeFailure(
-          user: currentUser,
-          message: 'An unexpected error occurred.',
-        ));
+        emit(
+          AuthEmailChangeFailure(
+            user: currentUser,
+            message: 'An unexpected error occurred.',
+          ),
+        );
       } else {
         emit(AuthError('An unexpected error occurred.'));
       }
@@ -536,6 +719,69 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthAuthenticated(user));
       }
     } catch (_) {}
+  }
+
+  String _mapOAuthProviderErrorToCause({
+    String? error,
+    String? errorDescription,
+  }) {
+    switch (error) {
+      case 'access_denied':
+        return 'The user cancelled Google sign-in or denied the requested access.';
+      case 'invalid_request':
+        return 'The OAuth authorize request is malformed or missing required parameters.';
+      case 'unauthorized_client':
+        return 'This OAuth client is not allowed to use the requested flow or redirect URI.';
+      case 'server_error':
+        return 'The provider or backend encountered an internal error during sign-in.';
+      case 'temporarily_unavailable':
+        return 'The OAuth service is temporarily unavailable.';
+      default:
+        return errorDescription?.trim().isNotEmpty == true
+            ? errorDescription!.trim()
+            : 'Unknown OAuth provider error.';
+    }
+  }
+
+  Map<String, String> _buildBackendErrorDetails({
+    required DioException e,
+    required String failureMessage,
+  }) {
+    final statusCode = e.response?.statusCode;
+    final requestPath = e.requestOptions.path;
+    final responseData = e.response?.data?.toString() ?? 'null';
+
+    return {
+      'request_path': requestPath,
+      'status_code': statusCode?.toString() ?? 'null',
+      'failure_message': failureMessage,
+      'response_data': responseData,
+      'likely_cause': _mapBackendOAuthFailureCause(statusCode),
+    };
+  }
+
+  String _mapBackendOAuthFailureCause(int? statusCode) {
+    switch (statusCode) {
+      case 400:
+        return 'The authorization code may be invalid or expired, redirect_uri may not match exactly, PKCE code_verifier may be wrong, or the backend rejected the request payload.';
+      case 401:
+        return 'The OAuth client may be unauthorized, the backend may reject this client_id, or the resulting session is not considered valid.';
+      case 403:
+        return 'The backend or provider refused this OAuth client, redirect URI, or requested flow.';
+      case 404:
+        return 'The OAuth token endpoint may be wrong, missing, or routed incorrectly on the backend.';
+      case 409:
+        return 'The backend may have a conflict creating or linking the user account.';
+      case 422:
+        return 'The backend validation failed for one or more OAuth parameters.';
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return 'The backend encountered an internal or upstream server error during OAuth exchange.';
+      default:
+        return 'Possible causes include invalid code, expired code, redirect URI mismatch, PKCE mismatch, wrong client_id, cookies not being set, or a backend configuration problem.';
+    }
   }
 
   Future<void> _clearPendingOAuth() async {

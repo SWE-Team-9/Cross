@@ -12,8 +12,8 @@ import '../features/auth/presentation/routes/auth_routes.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/player_ui_state.dart';
 import '../features/playback/presentation/bloc/playback_cubit.dart';
-import '../features/social/data/repositories/social_repo.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
+import '../features/social/data/repositories/social_repo.dart';
 import 'router.dart';
 
 // Routes where the mini-player must stay hidden (auth/onboarding/full player).
@@ -26,9 +26,11 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.forgotPassword,
   AuthRoutes.resetPassword,
   AuthRoutes.verifyEmail,
+  AuthRoutes.oauthDebug,
   AppRoutes.player,
 };
-const double _miniPlayerReservedBottomSpace = 72;
+const double _miniPlayerReservedBottomSpace = 74;
+const double _miniPlayerBottomOffset = 70;
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -101,7 +103,7 @@ class App extends StatelessWidget {
                                   Positioned(
                                     left: 0,
                                     right: 0,
-                                    bottom: 0,
+                                    bottom: _miniPlayerBottomOffset,
                                     child: IgnorePointer(
                                       ignoring: !showMiniPlayer,
                                       child: AnimatedSlide(
@@ -171,7 +173,7 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
     if (!mounted) return;
 
     if (destination is OAuthCallbackDeepLink) {
-      context.read<AuthCubit>().handleOAuthCallbackDeepLink(destination);
+      router.go(AuthRoutes.oauthDebug, extra: destination);
     }
   }
 
