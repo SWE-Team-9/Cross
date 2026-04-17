@@ -29,7 +29,15 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.verifyEmail,
   AuthRoutes.oauthDebug,
   AppRoutes.player,
+  AppRoutes.uploadPicker,
+  AppRoutes.trackManagementDemo,
 };
+
+bool _shouldHideMiniPlayerForPath(String path) {
+  if (_miniPlayerHiddenRoutes.contains(path)) return true;
+
+  return path.startsWith('/upload') || path.startsWith('/track-management');
+}
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -80,7 +88,7 @@ class App extends StatelessWidget {
                           builder: (context, routeInfo, __) {
                             final currentPath = routeInfo.uri.path;
                             final showMiniPlayerOnRoute =
-                                !_miniPlayerHiddenRoutes.contains(currentPath);
+                                !_shouldHideMiniPlayerForPath(currentPath);
                             final showMiniPlayer = hasMiniPlayerTrack &&
                                 showMiniPlayerOnRoute &&
                                 !isPlayerOpen &&

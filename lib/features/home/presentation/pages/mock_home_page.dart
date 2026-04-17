@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/network/api_constants.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
@@ -18,6 +22,9 @@ class MockHomePage extends StatefulWidget {
 class _MockHomePageState extends State<MockHomePage> {
   int _selectedTab = 0;
   String _selectedGenre = 'ELECTRONIC';
+  bool _isLoadingTrending = false;
+  String? _trendingError;
+  List<Track> _trendingTracks = const <Track>[];
 
   final _genres = const [
     'ELECTRONIC',
@@ -27,6 +34,157 @@ class _MockHomePageState extends State<MockHomePage> {
     'POP',
     'HIP-HOP',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTrendingTracks();
+  }
+
+  Future<void> _loadTrendingTracks() async {
+    setState(() {
+      _isLoadingTrending = true;
+      _trendingError = null;
+    });
+
+    try {
+      final response = await GetIt.I<DioClient>().get(
+        ApiConstants.tracks,
+        queryParameters: <String, dynamic>{
+          'genre': _selectedGenre,
+          'sort': 'likes',
+          'order': 'desc',
+          'limit': 50,
+        },
+      );
+
+      final rawList = _extractTracksList(response.data);
+      final tracks = rawList
+          .where((raw) => _rawMatchesGenre(raw, _selectedGenre))
+          .map(_mapToTrack)
+          .whereType<Track>()
+          .toList(growable: false)
+        ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+
+      if (!mounted) return;
+      setState(() {
+        _trendingTracks = tracks;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _trendingError = 'Failed to load genre tracks';
+        _trendingTracks = const <Track>[];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingTrending = false;
+      });
+    }
+  }
+
+  List<dynamic> _extractTracksList(dynamic responseData) {
+    if (responseData is List) return responseData;
+    if (responseData is Map<String, dynamic>) {
+      final dynamic directTracks = responseData['tracks'] ??
+          responseData['items'] ??
+          responseData['results'] ??
+          responseData['collection'];
+      if (directTracks is List) return directTracks;
+
+      final dynamic data = responseData['data'];
+      if (data is List) return data;
+      if (data is Map<String, dynamic>) {
+        final dynamic nestedTracks = data['tracks'] ??
+            data['items'] ??
+            data['results'] ??
+            data['collection'];
+        if (nestedTracks is List) return nestedTracks;
+      }
+    }
+    return const <dynamic>[];
+  }
+
+  Track? _mapToTrack(dynamic raw) {
+    if (raw is! Map) return null;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source = nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final id = (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
+        .toString()
+        .trim();
+    if (id.isEmpty) return null;
+
+    final uploader = source['uploader'] ?? source['artist'] ?? source['owner'];
+    final uploaderMap =
+        uploader is Map ? Map<String, dynamic>.from(uploader) : <String, dynamic>{};
+
+    final statsRaw = source['stats'];
+    final stats = statsRaw is Map
+        ? Map<String, dynamic>.from(statsRaw)
+        : <String, dynamic>{};
+
+    final likesCount = _asInt(
+      source['likesCount'] ?? source['likes_count'] ?? stats['likesCount'],
+    );
+    final repostsCount = _asInt(
+      source['repostsCount'] ?? source['reposts_count'] ?? stats['repostsCount'],
+    );
+
+    return Track(
+      id: id,
+      title: (source['title'] ?? 'Untitled').toString(),
+      artist: (uploaderMap['displayName'] ??
+              uploaderMap['username'] ??
+              source['artistName'] ??
+              source['artist'] ??
+              'Unknown artist')
+          .toString(),
+      audioUrl: (source['streamUrl'] ?? source['audioUrl'] ?? '').toString(),
+      artworkUrl: (source['coverArtUrl'] ??
+              source['cover_art_url'] ??
+              source['artworkUrl'])
+          ?.toString(),
+      handle:
+          (uploaderMap['handle'] ?? uploaderMap['username'] ?? '').toString().trim(),
+      likesCount: likesCount,
+      repostsCount: repostsCount,
+    );
+  }
+
+  bool _rawMatchesGenre(dynamic raw, String selectedGenre) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final genreValue = source['genre'];
+    String resolvedGenre = '';
+    if (genreValue is String) {
+      resolvedGenre = genreValue;
+    } else if (genreValue is Map) {
+      final typedGenre = Map<String, dynamic>.from(genreValue);
+      resolvedGenre = (typedGenre['name'] ?? '').toString();
+    } else {
+      resolvedGenre =
+          (source['genreName'] ?? source['genre_name'] ?? '').toString();
+    }
+
+    if (resolvedGenre.trim().isEmpty) return false;
+
+    final normalizedResolved = resolvedGenre.trim().toUpperCase();
+    final normalizedSelected = selectedGenre.trim().toUpperCase();
+    return normalizedResolved == normalizedSelected;
+  }
+
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +249,15 @@ class _MockHomePageState extends State<MockHomePage> {
                         _GenreChips(
                           genres: _genres,
                           selected: _selectedGenre,
-                          onSelect: (g) => setState(() => _selectedGenre = g),
+                          onSelect: (g) {
+                            setState(() => _selectedGenre = g);
+                            _loadTrendingTracks();
+                          },
+                        ),
+                        _TrendingByGenreTracks(
+                          loading: _isLoadingTrending,
+                          error: _trendingError,
+                          tracks: _trendingTracks,
                         ),
                         const SizedBox(height: 100),
                       ],
@@ -103,6 +269,94 @@ class _MockHomePageState extends State<MockHomePage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _TrendingByGenreTracks extends StatelessWidget {
+  const _TrendingByGenreTracks({
+    required this.loading,
+    required this.error,
+    required this.tracks,
+  });
+
+  final bool loading;
+  final String? error;
+  final List<Track> tracks;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFFF5500)),
+        ),
+      );
+    }
+
+    if (error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Text(
+          error!,
+          style: const TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
+    if (tracks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Text(
+          'No tracks found for this genre',
+          style: TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
+    return Column(
+      children: tracks
+          .take(10)
+          .map(
+            (track) => ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+              leading: track.artworkUrl != null && track.artworkUrl!.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        track.artworkUrl!,
+                        width: 42,
+                        height: 42,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : const SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Color(0xFF222222),
+                          borderRadius: BorderRadius.all(Radius.circular(6)),
+                        ),
+                        child: Icon(Icons.music_note, color: Colors.white54),
+                      ),
+                    ),
+              title: Text(
+                track.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                '${track.artist} · ${track.likesCount} likes',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white54),
+              ),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }

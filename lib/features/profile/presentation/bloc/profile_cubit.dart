@@ -162,7 +162,15 @@ class ProfileCubit extends Cubit<ProfileState> {
       ProfileEntity workingProfile = currentProfile;
 
       if (params.hasBaseProfileChanges) {
-        workingProfile = await _updateProfileUseCase(params);
+        final updatedProfile = await _updateProfileUseCase(params);
+        workingProfile = updatedProfile.copyWith(
+          followersCount: updatedProfile.followersCount == 0
+              ? currentProfile.followersCount
+              : updatedProfile.followersCount,
+          followingCount: updatedProfile.followingCount == 0
+              ? currentProfile.followingCount
+              : updatedProfile.followingCount,
+        );
       }
 
       if (params.hasExternalLinksChanges) {

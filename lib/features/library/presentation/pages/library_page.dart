@@ -13,6 +13,7 @@ import 'package:soundcloud_clone/features/recently_played/presentation/widgets/r
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/settings/presentation/page/settings_page.dart';
+import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -23,6 +24,11 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   late final RecentlyPlayedCubit _historyCubit;
+
+  void _goToOwnProfile(AuthState state) {
+    if (state is! AuthAuthenticated || state.user.handle.isEmpty) return;
+    ProfileRoutes.goToProfile(context, state.user.handle);
+  }
 
   @override
   void initState() {
@@ -127,23 +133,26 @@ class _LibraryPageState extends State<LibraryPage> {
                 final normalizedAvatarUrl =
                     PlatformUrlUtils.normalizeBackendUrl(avatarUrl);
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: const Color(0xFFFF5500),
-                    backgroundImage: normalizedAvatarUrl != null
-                        ? NetworkImage(normalizedAvatarUrl)
-                        : null,
-                    child: normalizedAvatarUrl == null
-                        ? Text(
-                            fallbackText,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
+                return GestureDetector(
+                  onTap: () => _goToOwnProfile(state),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: const Color(0xFFFF5500),
+                      backgroundImage: normalizedAvatarUrl != null
+                          ? NetworkImage(normalizedAvatarUrl)
+                          : null,
+                      child: normalizedAvatarUrl == null
+                          ? Text(
+                              fallbackText,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
                 );
               },
@@ -156,7 +165,12 @@ class _LibraryPageState extends State<LibraryPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
-              _LibraryItem(title: 'Your likes', onTap: () {}),
+              BlocBuilder<AuthCubit, AuthState>(
+                builder: (context, state) => _LibraryItem(
+                  title: 'Your likes',
+                  onTap: () => _goToOwnProfile(state),
+                ),
+              ),
               _LibraryItem(title: 'Playlists', onTap: () {}),
               _LibraryItem(title: 'Albums', onTap: () {}),
               BlocBuilder<AuthCubit, AuthState>(
@@ -177,29 +191,12 @@ class _LibraryPageState extends State<LibraryPage> {
               ),
               _LibraryItem(title: 'Stations', onTap: () {}),
               _LibraryItem(title: 'Your insights', onTap: () {}),
-              _LibraryItem(title: 'Your uploads', onTap: () {}),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Recently played',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text('See all'),
-                    ),
-                  ],
+              BlocBuilder<AuthCubit, AuthState>(
+                builder: (context, state) => _LibraryItem(
+                  title: 'Your uploads',
+                  onTap: () => _goToOwnProfile(state),
                 ),
               ),
-              const SizedBox(height: 12),
               BlocBuilder<RecentlyPlayedCubit, List<Track>>(
                 builder: (context, tracks) {
                   if (tracks.isEmpty) {
