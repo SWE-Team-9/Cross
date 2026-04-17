@@ -122,10 +122,13 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
       ),
       builder: (_) {
         if (queue.isEmpty) {
-          return const Center(
-            child: Text(
-              'Queue is empty',
-              style: TextStyle(color: Colors.white70),
+          return const SizedBox(
+            height: 260,
+            child: Center(
+              child: Text(
+                'Queue is empty',
+                style: TextStyle(color: Colors.white70),
+              ),
             ),
           );
         }
