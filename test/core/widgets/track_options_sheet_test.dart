@@ -9,11 +9,16 @@ import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_state.dart';
+import 'package:soundcloud_clone/core/models/player_state.dart';
 
 class MockPlaybackCubit extends MockCubit<PlaybackState>
     implements PlaybackCubit {}
+
+class MockPlayerCubit extends MockCubit<PlayerUIState> implements PlayerCubit {}
 
 class MockTrackInteractionCubit extends MockCubit<TrackInteractionState>
     implements TrackInteractionCubit {}
@@ -29,11 +34,13 @@ void main() {
   );
 
   late MockPlaybackCubit playbackCubit;
+  late MockPlayerCubit playerCubit;
   late MockTrackInteractionCubit interactionCubit;
 
   Widget buildHost() {
     return MultiBlocProvider(
       providers: [
+        BlocProvider<PlayerCubit>.value(value: playerCubit),
         BlocProvider<PlaybackCubit>.value(value: playbackCubit),
       ],
       child: MaterialApp(
@@ -61,8 +68,22 @@ void main() {
 
   setUp(() async {
     await getIt.reset();
+    playerCubit = MockPlayerCubit();
     playbackCubit = MockPlaybackCubit();
     interactionCubit = MockTrackInteractionCubit();
+
+    when(() => playerCubit.state).thenReturn(
+      const PlayerUIState(
+        playerState: PlayerState(
+          status: PlayerStatus.idle,
+          position: Duration.zero,
+        ),
+      ),
+    );
+    when(() => playerCubit.stream)
+        .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+    when(() => playerCubit.addPlayNext(any())).thenReturn(null);
+    when(() => playerCubit.addPlayLast(any())).thenReturn(null);
 
     when(() => playbackCubit.state).thenReturn(const PlaybackState());
     when(() => playbackCubit.stream)
@@ -138,6 +159,7 @@ void main() {
     await tester.tap(find.text('Play Next'));
     await tester.pumpAndSettle();
     expect(find.text('"Track 1" will play next'), findsOneWidget);
+    verify(() => playerCubit.addPlayNext(track)).called(1);
     verify(() => playbackCubit.addPlayNext(track)).called(1);
     expect(isTrackSheetOpen.value, isFalse);
 
@@ -145,6 +167,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play Last'));
     await tester.pumpAndSettle();
+    verify(() => playerCubit.addPlayLast(track)).called(1);
     verify(() => playbackCubit.addPlayLast(track)).called(1);
   });
 }

@@ -12,7 +12,6 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_i
 import 'package:soundcloud_clone/features/interactions/presentation/pages/engagement_list_page.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 
 import '../widgets/player_actions.dart';
 import '../widgets/player_waveform.dart';
@@ -112,8 +111,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
   }
 
   void _showQueue(BuildContext context) {
-    final playback = context.read<PlaybackCubit>();
-    final queue = playback.state.queue;
+    final playerCubit = context.read<PlayerCubit>();
+    final queue = playerCubit.state.playerState.queue;
 
     showModalBottomSheet(
       context: context,
@@ -195,8 +194,11 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                       ),
                     ),
                     onTap: () {
-                      playback.playTrack(track, queue);
-                      context.read<PlayerCubit>().play(track);
+                      playerCubit.playFromContext(
+                        tracks: queue,
+                        startIndex: index,
+                        source: 'queue',
+                      );
                       Navigator.pop(context);
                     },
                   );
@@ -207,26 +209,6 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
         );
       },
     );
-  }
-
-  Future<void> _syncDisplayedTrackFromPlayback(BuildContext context) async {
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-
-    if (!mounted) return;
-
-    final playback = context.read<PlaybackCubit>();
-    final nextTrack = playback.state.currentTrack;
-
-    if (nextTrack != null) {
-      await context.read<PlayerCubit>().play(nextTrack);
-
-      _ensureTrackDataLoaded(
-        context,
-        trackId: nextTrack.id,
-        likesCount: nextTrack.likesCount,
-        repostsCount: nextTrack.repostsCount,
-      );
-    }
   }
 
   void _ensureTrackDataLoaded(
@@ -254,8 +236,6 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final playback = context.read<PlaybackCubit>();
-
     return Hero(
       tag: FullPlayerPage.playerHeroTag,
       transitionOnUserGestures: true,
@@ -431,8 +411,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                             Center(
-                               child: Container(
+                            Center(
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                   vertical: 4,
@@ -448,8 +428,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                     fontSize: 12,
                                   ),
                                 ),
-                               ),
-                             ),
+                              ),
+                            ),
                             const SizedBox(height: 10),
                             Padding(
                               padding:
@@ -522,11 +502,9 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                     color: Colors.white,
                                     size: 36,
                                   ),
-                                  onPressed: () async {
-                                    playback.playPrevious();
-                                    await _syncDisplayedTrackFromPlayback(
-                                        context);
-                                  },
+                                  onPressed: () => context
+                                      .read<PlayerCubit>()
+                                      .playPrevious(),
                                 ),
                                 const SizedBox(width: 20),
                                 GestureDetector(
@@ -556,11 +534,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                     color: Colors.white,
                                     size: 36,
                                   ),
-                                  onPressed: () async {
-                                    playback.playNext();
-                                    await _syncDisplayedTrackFromPlayback(
-                                        context);
-                                  },
+                                  onPressed: () =>
+                                      context.read<PlayerCubit>().playNext(),
                                 ),
                               ],
                             ),

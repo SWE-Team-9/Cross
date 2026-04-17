@@ -208,7 +208,10 @@ Future<void> setupDependencies() async {
 
   if (!getIt.isRegistered<PlayerCubit>()) {
     getIt.registerLazySingleton<PlayerCubit>(
-      () => PlayerCubit(getIt<AudioPlayerService>()),
+      () => PlayerCubit(
+        getIt<AudioPlayerService>(),
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+      ),
     );
   }
 
@@ -494,7 +497,8 @@ Future<void> setupDependencies() async {
 
     if (!getIt.isRegistered<RecentlyPlayedRepositoryImpl>()) {
       getIt.registerLazySingleton<RecentlyPlayedRepositoryImpl>(
-        () => RecentlyPlayedRepositoryImpl(getIt<RecentlyPlayedRemoteDataSource>()),
+        () => RecentlyPlayedRepositoryImpl(
+            getIt<RecentlyPlayedRemoteDataSource>()),
       );
     }
 
