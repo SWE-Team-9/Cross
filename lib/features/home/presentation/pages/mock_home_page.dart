@@ -1,18 +1,11 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
-import 'package:soundcloud_clone/core/di/injector.dart';
-import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/core/network/api_constants.dart';
-import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
-import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 
 class MockHomePage extends StatefulWidget {
@@ -23,8 +16,6 @@ class MockHomePage extends StatefulWidget {
 }
 
 class _MockHomePageState extends State<MockHomePage> {
-  static const String seededUserId = '6b376248-3f0b-4309-bbd6-d26f9da9a23d';
-
   int _selectedTab = 0;
   String _selectedGenre = 'ELECTRONIC';
 
@@ -101,10 +92,6 @@ class _MockHomePageState extends State<MockHomePage> {
                           genres: _genres,
                           selected: _selectedGenre,
                           onSelect: (g) => setState(() => _selectedGenre = g),
-                        ),
-                        const SizedBox(height: 8),
-                        const _SeededUserTracksSection(
-                          userId: seededUserId,
                         ),
                         const SizedBox(height: 100),
                       ],
@@ -587,193 +574,6 @@ class _GenreChips extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _SeededUserTracksSection extends StatefulWidget {
-  final String userId;
-
-  const _SeededUserTracksSection({required this.userId});
-
-  @override
-  State<_SeededUserTracksSection> createState() =>
-      _SeededUserTracksSectionState();
-}
-
-class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
-  late Future<List<Track>> _futureTracks;
-
-  @override
-  void initState() {
-    super.initState();
-    _futureTracks = _fetchTracks();
-  }
-
-  Future<List<Track>> _fetchTracks() async {
-    final response = await getIt<DioClient>().get(
-      ApiConstants.userTracksPath(widget.userId),
-      queryParameters: const {'page': 1, 'limit': 20},
-    );
-
-    final responseData =
-        response.data is String ? jsonDecode(response.data) : response.data;
-
-    final raw = responseData['data'] ?? responseData;
-    final List items;
-    if (raw is Map && raw['tracks'] is List) {
-      items = raw['tracks'] as List;
-    } else if (raw is Map && raw['items'] is List) {
-      items = raw['items'] as List;
-    } else if (responseData is Map && responseData['tracks'] is List) {
-      items = responseData['tracks'] as List;
-    } else if (responseData is List) {
-      items = responseData;
-    } else {
-      items = const [];
-    }
-
-    final List<Track> tracks = [];
-
-    for (var item in items) {
-      final trackJson = Map<String, dynamic>.from(item as Map);
-      final trackId =
-          (trackJson['id'] ?? trackJson['trackId'] ?? '').toString();
-
-      String finalAudioUrl = '';
-
-      try {
-        final sourceResponse = await getIt<DioClient>().get(
-          '/api/v1/player/tracks/$trackId/source',
-        );
-        final streamUrl = sourceResponse.data['streamUrl'];
-        if (streamUrl != null && streamUrl.toString().isNotEmpty) {
-          finalAudioUrl = streamUrl.toString();
-        }
-      } catch (e) {
-        debugPrint('Failed to fetch streamUrl for $trackId: $e');
-      }
-
-      if (finalAudioUrl.isEmpty) {
-        finalAudioUrl = PlatformUrlUtils.normalizeBackendUrl(
-                trackJson['audioUrl']?.toString() ??
-                    trackJson['streamUrl']?.toString() ??
-                    trackJson['fileUrl']?.toString()) ??
-            '';
-      }
-
-      if (finalAudioUrl.isEmpty) {
-        debugPrint('Skipped track $trackId because audioUrl is still empty.');
-        continue;
-      }
-
-      final track = _mapTrack(trackJson, finalAudioUrl);
-      if (track != null) tracks.add(track);
-    }
-
-    return tracks;
-  }
-
-  Track? _mapTrack(Map<String, dynamic> json, String validAudioUrl) {
-    final artistValue = json['artist'];
-    String artistName = 'Unknown Artist';
-    String? handle;
-
-    if (artistValue is String && artistValue.isNotEmpty) {
-      artistName = artistValue;
-    } else if (artistValue is Map) {
-      final artistMap = Map<String, dynamic>.from(artistValue);
-      artistName = (artistMap['display_name'] ??
-              artistMap['displayName'] ??
-              artistMap['name'] ??
-              artistMap['handle'] ??
-              'Unknown Artist')
-          .toString();
-      handle = artistMap['handle']?.toString();
-    }
-
-    final String trackId = (json['id'] ?? json['trackId'] ?? '').toString();
-    final artworkUrl = PlatformUrlUtils.normalizeBackendUrl(
-      json['artworkUrl']?.toString() ??
-          json['artwork_url']?.toString() ??
-          json['coverArtUrl']?.toString() ??
-          json['cover_art_url']?.toString(),
-    );
-
-    return Track(
-      id: trackId,
-      title: (json['title'] ?? 'Untitled Track').toString(),
-      artist: artistName,
-      audioUrl: validAudioUrl,
-      artworkUrl: artworkUrl,
-      handle: handle,
-      likesCount: _toInt(
-          json['likesCount'] ?? json['likes_count'] ?? json['like_count']),
-      repostsCount: _toInt(json['repostsCount'] ??
-          json['reposts_count'] ??
-          json['repost_count']),
-    );
-  }
-
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
-    return 0;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<Track>>(
-      future: _futureTracks,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: CircularProgressIndicator(color: Color(0xFFFF5500)),
-            ),
-          );
-        }
-        if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Text(
-              'Failed to load seeded user tracks:\n${snapshot.error}',
-              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-            ),
-          );
-        }
-
-        final tracks = snapshot.data ?? const <Track>[];
-
-        if (tracks.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Text(
-              'No playable tracks were found for this seeded user.',
-              style: TextStyle(color: Color(0xFF999999), fontSize: 13),
-            ),
-          );
-        }
-
-        return Column(
-          children: List.generate(
-            tracks.length,
-            (i) => Column(
-              children: [
-                TrackRow(track: tracks[i], queue: tracks),
-                if (i < tracks.length - 1)
-                  const Divider(
-                    color: Color(0xFF1A1A1A),
-                    height: 1,
-                    indent: 14,
-                    endIndent: 14,
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

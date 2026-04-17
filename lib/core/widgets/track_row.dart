@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
@@ -40,21 +38,16 @@ class TrackRow extends StatelessWidget {
               opacity: opacity,
               child: InkWell(
                 onTap: () {
-                  final playerService = getIt<AudioPlayerService>();
                   final playerCubit = context.read<PlayerCubit>();
 
                   final tracks = queue ?? [track];
                   final index = tracks.indexWhere((t) => t.id == track.id);
 
-                  // 🔥 PLAY USING CONTEXT (FIXED)
-                  playerService.playFromContext(
+                  playerCubit.playFromContext(
                     tracks: tracks,
                     startIndex: index >= 0 ? index : 0,
-                    source: source, // ✅ FIXED
+                    source: source,
                   );
-
-                  // 🔥 UPDATE UI
-                  playerCubit.play(track);
                 },
                 splashColor: Colors.white10,
                 child: Container(

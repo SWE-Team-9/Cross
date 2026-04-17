@@ -17,8 +17,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
 import '../../../../core/models/track.dart';
-import '../../../../core/services/audio_player_service.dart';
-import '../../../../core/di/injector.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/feed_cubit.dart';
 import '../bloc/feed_state.dart';
@@ -171,7 +169,6 @@ class _LoadedFeed extends StatelessWidget {
   }) async {
     final cubit = context.read<FeedCubit>();
     final playerCubit = context.read<PlayerCubit>();
-    final playerService = getIt<AudioPlayerService>();
 
     // 1. Resolve stream URL for tapped track + record play event
     final access = await cubit.handlePlay(tappedItem.track.trackId);
@@ -206,13 +203,11 @@ class _LoadedFeed extends StatelessWidget {
     );
 
     // 3. Load queue into audio engine + update player UI state
-    await playerService.playFromContext(
+    await playerCubit.playFromContext(
       tracks: tracks,
       startIndex: startIndex >= 0 ? startIndex : 0,
       source: 'feed',
     );
-
-    playerCubit.play(tracks[startIndex >= 0 ? startIndex : 0]);
   }
 
   @override

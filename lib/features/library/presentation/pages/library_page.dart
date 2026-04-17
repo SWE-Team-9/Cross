@@ -4,6 +4,8 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
+import 'package:soundcloud_clone/core/network/api_constants.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
@@ -28,9 +30,45 @@ class _LibraryPageState extends State<LibraryPage> {
     _historyCubit = GetIt.I<RecentlyPlayedCubit>()..loadListeningHistory();
   }
 
-  void _playTrack(Track track) {
-    _historyCubit.addTrack(track);
-    context.read<PlayerCubit>().play(track);
+  Future<Track> _ensurePlayableTrack(Track track) async {
+    if (track.audioUrl.trim().isNotEmpty) return track;
+
+    try {
+      final response = await GetIt.I<DioClient>().get(
+        ApiConstants.playerTrackSourcePath(track.id),
+      );
+      final dynamic data = response.data;
+
+      String? streamUrl;
+      if (data is Map<String, dynamic>) {
+        streamUrl = (data['streamUrl'] ??
+                (data['data'] is Map<String, dynamic>
+                    ? data['data']['streamUrl']
+                    : null))
+            ?.toString();
+      } else if (data is Map) {
+        final typed = Map<String, dynamic>.from(data);
+        streamUrl = (typed['streamUrl'] ??
+                (typed['data'] is Map ? typed['data']['streamUrl'] : null))
+            ?.toString();
+      }
+
+      if (streamUrl != null && streamUrl.trim().isNotEmpty) {
+        return track.copyWith(audioUrl: streamUrl.trim());
+      }
+    } catch (_) {
+      // fallback to original track when source lookup fails
+    }
+
+    return track;
+  }
+
+  Future<void> _playTrack(Track track) async {
+    final playableTrack = await _ensurePlayableTrack(track);
+    if (!mounted) return;
+
+    _historyCubit.addTrack(playableTrack);
+    await context.read<PlayerCubit>().play(playableTrack);
   }
 
   @override

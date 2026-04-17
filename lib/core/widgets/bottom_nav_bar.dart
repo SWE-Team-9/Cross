@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class BottomNavBar extends StatelessWidget {
+  static const double minHeight = 58;
+
   final int selected;
   final ValueChanged<int>? onTap; // optional — uses default routing if null
 
@@ -49,6 +51,7 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(minHeight: minHeight),
       decoration: const BoxDecoration(
         color: Colors.black,
         border: Border(top: BorderSide(color: Color(0xFF1F1F1F))),

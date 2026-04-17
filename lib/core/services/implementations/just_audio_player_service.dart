@@ -81,6 +81,11 @@ class JustAudioPlayerService implements AudioPlayerService {
     required String source,
   }) async {
     try {
+      if (tracks.isEmpty) return;
+      final safeIndex = startIndex.clamp(0, tracks.length - 1).toInt();
+
+      GetIt.I<RecentlyPlayedCubit>().addTrack(tracks[safeIndex]);
+
       final appHandler = _handler as AppAudioHandler;
 
       final mediaItems = tracks.map((track) {
@@ -97,19 +102,17 @@ class JustAudioPlayerService implements AudioPlayerService {
       }).toList();
 
       await appHandler.setQueue(mediaItems);
-      await appHandler.skipToQueueItem(startIndex);
+      await appHandler.skipToQueueItem(safeIndex);
       await appHandler.play();
 
       _updateState(
         _currentState.copyWith(
           queue: tracks,
-          currentIndex: startIndex,
+          currentIndex: safeIndex,
           source: source,
           volume: _volume,
         ),
       );
-
-      GetIt.I<RecentlyPlayedCubit>().addTrack(tracks[startIndex]);
     } catch (e) {
       _updateState(
         _currentState.copyWith(

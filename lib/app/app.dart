@@ -7,6 +7,7 @@ import '../core/deep_links/deep_link_destination.dart';
 import '../core/deep_links/deep_link_service.dart';
 import '../core/di/injector.dart';
 import '../core/notifiers/overlay_notifiers.dart';
+import '../core/widgets/bottom_nav_bar.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/auth/presentation/routes/auth_routes.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
@@ -29,8 +30,6 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.oauthDebug,
   AppRoutes.player,
 };
-const double _miniPlayerReservedBottomSpace = 74;
-const double _miniPlayerBottomOffset = 70;
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -86,24 +85,20 @@ class App extends StatelessWidget {
                                 showMiniPlayerOnRoute &&
                                 !isPlayerOpen &&
                                 !sheetOpen;
-                            final reservedBottom =
-                                showMiniPlayer ? _miniPlayerReservedBottomSpace : 0.0;
+                            final bottomInset = MediaQuery.paddingOf(context).bottom;
+                            final miniPlayerBottomOffset =
+                                bottomInset + BottomNavBar.minHeight + 8;
 
                             return Stack(
                               children: [
                                 Positioned.fill(
-                                  child: AnimatedPadding(
-                                    duration: const Duration(milliseconds: 200),
-                                    curve: Curves.easeOutCubic,
-                                    padding: EdgeInsets.only(bottom: reservedBottom),
-                                    child: child ?? const SizedBox.shrink(),
-                                  ),
+                                  child: child ?? const SizedBox.shrink(),
                                 ),
                                 if (hasMiniPlayerTrack && showMiniPlayerOnRoute)
                                   Positioned(
                                     left: 0,
                                     right: 0,
-                                    bottom: _miniPlayerBottomOffset,
+                                    bottom: miniPlayerBottomOffset,
                                     child: IgnorePointer(
                                       ignoring: !showMiniPlayer,
                                       child: AnimatedSlide(
