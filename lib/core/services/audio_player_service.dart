@@ -25,6 +25,10 @@ abstract class AudioPlayerService {
   /// Seek to a position in the track
   Future<void> seek(Duration position);
 
+  Future<void> setVolume(double volume);
+
+  double get currentVolume;
+
   /// Dispose resources
   Future<void> dispose();
 }

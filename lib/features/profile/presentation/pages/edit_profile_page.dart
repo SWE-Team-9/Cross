@@ -43,6 +43,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late ProfileEntity _initialProfile;
   late AccountTier _selectedAccountTier;
   late bool _isPrivate;
+  List<String> _selectedFavoriteGenres = <String>[];
   String? _pendingAvatarImagePath;
   String? _pendingCoverImagePath;
 
@@ -145,12 +146,37 @@ class _EditProfilePageState extends State<EditProfilePage> {
     'facebook': 'Facebook',
   };
 
+  static const List<String> _favoriteGenreOptions = [
+    'Ambient',
+    'Classical',
+    'Dance',
+    'Electronic',
+    'Hip Hop',
+    'House',
+    'Indie',
+    'Jazz',
+    'Pop',
+    'R&B',
+    'Rock',
+    'Techno',
+  ];
+
   bool get _hasUnsavedChanges {
     final currentLocation =
         LocationUtils.build(_cityController.text, _selectedCountry);
     final currentBio = _bioController.text.trim();
     final currentWebsite = _websiteController.text.trim();
     final currentLinks = _buildExternalLinksMap();
+    final normalizedFavoriteGenres = _selectedFavoriteGenres
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false)
+      ..sort();
+    final initialFavoriteGenres = _initialProfile.favoriteGenres
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false)
+      ..sort();
 
     return _displayNameController.text.trim() != _initialProfile.displayName ||
         currentBio != (_initialProfile.bio ?? '') ||
@@ -158,6 +184,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         currentWebsite != (_initialProfile.website ?? '') ||
         _selectedAccountTier != _initialProfile.accountTier ||
         _isPrivate != _initialProfile.isPrivate ||
+        !_listEquals(normalizedFavoriteGenres, initialFavoriteGenres) ||
         _pendingAvatarImagePath != null ||
         _pendingCoverImagePath != null ||
         !_mapEquals(currentLinks, _initialProfile.externalLinks);
@@ -226,6 +253,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _selectedCountry = parsed.country;
     _selectedAccountTier = profile.accountTier;
     _isPrivate = profile.isPrivate;
+    _selectedFavoriteGenres = profile.favoriteGenres
+        .map((genre) => genre.trim())
+        .where((genre) => genre.isNotEmpty)
+        .toList(growable: false);
     _pendingAvatarImagePath = null;
     _pendingCoverImagePath = null;
 
@@ -282,6 +313,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final String trimmedBio = _bioController.text.trim();
     final String trimmedWebsite = _normalizeUrl(_websiteController.text.trim());
     final normalizedLinks = _buildExternalLinksMap();
+    final normalizedFavoriteGenres = _selectedFavoriteGenres
+        .map((genre) => genre.trim())
+        .where((genre) => genre.isNotEmpty)
+        .toList(growable: false)
+      ..sort();
+    final initialFavoriteGenres = _initialProfile.favoriteGenres
+        .map((genre) => genre.trim())
+        .where((genre) => genre.isNotEmpty)
+        .toList(growable: false)
+      ..sort();
     final hadPendingImageChanges =
         _pendingAvatarImagePath != null || _pendingCoverImagePath != null;
 
@@ -305,6 +346,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       externalLinks: !_mapEquals(normalizedLinks, _initialProfile.externalLinks)
           ? normalizedLinks
           : null,
+      favoriteGenres:
+          !_listEquals(normalizedFavoriteGenres, initialFavoriteGenres)
+              ? normalizedFavoriteGenres
+              : null,
     );
 
     final profileCubit = context.read<ProfileCubit>();
@@ -1007,6 +1052,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     _divider(),
                     _buildAccountTypeSection(),
                     _divider(),
+                    _buildFavoriteGenresSection(),
+                    _divider(),
                     _buildPrivacySection(),
                     _divider(),
                     EditProfileTextField(
@@ -1094,6 +1141,60 @@ class _EditProfilePageState extends State<EditProfilePage> {
       subtitle: Text(
         _isPrivate ? 'Your profile is private.' : 'Your profile is public.',
         style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+      ),
+    );
+  }
+
+  Widget _buildFavoriteGenresSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Favorite Genres',
+            style: TextStyle(color: Color(0xFF888888), fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _favoriteGenreOptions.map((genre) {
+              final selected = _selectedFavoriteGenres.contains(genre);
+              return FilterChip(
+                label: Text(genre),
+                selected: selected,
+                onSelected: (value) {
+                  setState(() {
+                    if (value) {
+                      if (!_selectedFavoriteGenres.contains(genre)) {
+                        _selectedFavoriteGenres = [
+                          ..._selectedFavoriteGenres,
+                          genre,
+                        ];
+                      }
+                    } else {
+                      _selectedFavoriteGenres = _selectedFavoriteGenres
+                          .where((item) => item != genre)
+                          .toList(growable: false);
+                    }
+                  });
+                },
+                selectedColor: const Color(0x33FF5500),
+                checkmarkColor: const Color(0xFFFF5500),
+                labelStyle: TextStyle(
+                  color: selected ? const Color(0xFFFF5500) : Colors.white70,
+                ),
+                backgroundColor: const Color(0xFF1A1A1A),
+                side: BorderSide(
+                  color: selected
+                      ? const Color(0xFFFF5500)
+                      : const Color(0xFF333333),
+                ),
+              );
+            }).toList(growable: false),
+          ),
+        ],
       ),
     );
   }
@@ -1293,6 +1394,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
         indent: 16,
         endIndent: 16,
       );
+}
+
+bool _listEquals(List<String> first, List<String> second) {
+  if (first.length != second.length) return false;
+  for (int i = 0; i < first.length; i++) {
+    if (first[i] != second[i]) return false;
+  }
+  return true;
 }
 
 class _EditableExternalLink {

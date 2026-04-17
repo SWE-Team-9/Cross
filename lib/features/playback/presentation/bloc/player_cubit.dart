@@ -75,6 +75,10 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     await _audioService.seek(position);
   }
 
+  Future<void> setVolume(double volume) async {
+    await _audioService.setVolume(volume);
+  }
+
   Future<void> stop() async {
     await _audioService.stop();
   }

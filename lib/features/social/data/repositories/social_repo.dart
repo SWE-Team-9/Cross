@@ -77,6 +77,34 @@ class SocialRepo {
     }
   }
 
+  Future<List<User>> getSuggestedUsers({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await dio.get(
+        ApiConstants.suggestedUsersPath,
+        queryParameters: {'page': page, 'limit': limit},
+      );
+
+      return _parseUsersList(
+        response.data,
+        possibleKeys: const [
+          'suggestions',
+          'suggestedUsers',
+          'suggested_users',
+          'data',
+          'items',
+          'results',
+          'users',
+        ],
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return const <User>[];
+      rethrow;
+    }
+  }
+
   /// بيرجع [followersCount] و [isFollowing] الحقيقيين من الـ API
   Future<({bool isFollowing, int followersCount})> followUser(
       String userId) async {

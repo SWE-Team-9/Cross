@@ -778,6 +778,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
     final bio = (profile.bio ?? '').trim();
     final location = (profile.location ?? '').trim();
+    final favoriteGenres = profile.favoriteGenres
+        .map((genre) => genre.trim())
+        .where((genre) => genre.isNotEmpty)
+        .toList(growable: false);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
@@ -831,6 +835,33 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: () => ProfileRoutes.goToSuggestedUsers(context),
+            icon: const Icon(Icons.group_add_outlined, size: 16),
+            label: const Text('Suggested users'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white70,
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              minimumSize: const Size(0, 0),
+            ),
+          ),
+          if (favoriteGenres.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: favoriteGenres
+                  .map(
+                    (genre) => _buildInfoChip(
+                      genre,
+                      Icons.local_offer_outlined,
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
           if (location.isNotEmpty) ...[
             const SizedBox(height: 10),
             Row(

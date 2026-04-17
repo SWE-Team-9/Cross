@@ -19,6 +19,7 @@ import '../features/profile/presentation/pages/profile_page.dart';
 // Project — social
 import '../features/social/presentation/pages/followers_page.dart';
 import '../features/social/presentation/pages/following_page.dart';
+import '../features/social/presentation/pages/suggested_users_page.dart';
 
 // Project — upload
 import '../features/upload/domain/entities/managed_track.dart';
@@ -34,9 +35,6 @@ import '../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../features/playback/presentation/pages/full_player_page.dart';
 import '../features/playback/presentation/pages/track_deep_link_bridge_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
-
-// Project — recently played
-import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 // Project — library
 import '../features/library/presentation/pages/library_page.dart';
@@ -62,6 +60,7 @@ class AppRoutes {
   static const String profile = '/profile/:handle';
   static const String followers = '/followers/:handle';
   static const String following = '/following/:handle';
+  static const String suggestedUsers = '/suggested-users';
   static const String trackManagementDemo = '/track-management-demo';
   static const String player = '/player';
 
@@ -194,12 +193,8 @@ GoRouter _createRouter() {
       GoRoute(
         path: AppRoutes.library,
         name: 'library',
-        pageBuilder: (context, state) => NoTransitionPage(
-          child: BlocProvider(
-            create: (_) => RecentlyPlayedCubit(),
-            child: const LibraryPage(),
-          ),
-        ),
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: LibraryPage()),
       ),
 
       // ── Upload picker ────────────────────────────────────────────────────────
@@ -262,6 +257,16 @@ GoRouter _createRouter() {
         pageBuilder: (context, state) {
           final handle = state.pathParameters['handle'] ?? '';
           return MaterialPage(child: FollowingPage(handle: handle));
+        },
+      ),
+
+      // ── Suggested users ───────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.suggestedUsers,
+        name: 'suggested-users',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          return const MaterialPage(child: SuggestedUsersPage());
         },
       ),
 

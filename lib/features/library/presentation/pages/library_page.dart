@@ -16,8 +16,10 @@ class LibraryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final historyCubit = GetIt.I<RecentlyPlayedCubit>()..loadListeningHistory();
+
     return BlocProvider.value(
-      value: GetIt.I<RecentlyPlayedCubit>(),
+      value: historyCubit,
       child: Scaffold(
         backgroundColor: Colors.black,
         // ── Shared Bottom Nav (index 3 = Library) ──────────────────────────
@@ -110,6 +112,10 @@ class LibraryPage extends StatelessWidget {
                   );
                 },
               ),
+              _LibraryItem(
+                title: 'Suggested users',
+                onTap: () => context.push('/suggested-users'),
+              ),
               _LibraryItem(title: 'Stations', onTap: () {}),
               _LibraryItem(title: 'Your insights', onTap: () {}),
               _LibraryItem(title: 'Your uploads', onTap: () {}),
@@ -160,6 +166,70 @@ class LibraryPage extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              BlocBuilder<RecentlyPlayedCubit, List<Track>>(
+                builder: (context, tracks) {
+                  if (tracks.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 14),
+                      child: Text(
+                        'No listening history yet',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    );
+                  }
+
+                  final history = tracks.take(10).toList(growable: false);
+                  return Column(
+                    children: history
+                        .map(
+                          (track) => ListTile(
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 14),
+                            leading: track.artworkUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.network(
+                                      track.artworkUrl!,
+                                      width: 42,
+                                      height: 42,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const SizedBox(
+                                    width: 42,
+                                    height: 42,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFF222222),
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(6),
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.music_note,
+                                        color: Colors.white54,
+                                      ),
+                                    ),
+                                  ),
+                            title: Text(
+                              track.title,
+                              style: const TextStyle(color: Colors.white),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              track.artist,
+                              style: const TextStyle(color: Colors.white54),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  );
+                },
               ),
               const SizedBox(height: 100),
             ],

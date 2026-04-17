@@ -237,17 +237,21 @@ class FeedCubit extends Cubit<FeedState> {
 
   // ─── Play track ───────────────────────────────────────────────────────────
 
-  /// Returns stream URL (or null if blocked/not playable).
+  /// Returns playback access with stream URL (if allowed).
   /// Also fires recordPlay in parallel.
-  Future<String?> handlePlay(String trackId) async {
+  Future<PlaybackAccessResult> handlePlay(String trackId) async {
     try {
-      final results = await Future.wait([
-        _repository.getStreamUrl(trackId),
+      final access = await _repository.getPlaybackAccess(trackId);
+      if (!access.canPlay || access.streamUrl == null) {
+        return access;
+      }
+
+      await Future.wait([
         _repository.recordPlay(trackId).then((_) => null),
       ]);
-      return results.first;
+      return access;
     } catch (_) {
-      return null;
+      return const PlaybackAccessResult(accessState: 'BLOCKED');
     }
   }
 

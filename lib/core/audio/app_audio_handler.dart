@@ -151,6 +151,8 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   @override
   Future<void> seek(Duration position) => _player.seek(position);
 
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+
   @override
   Future<void> stop() => _player.stop();
 

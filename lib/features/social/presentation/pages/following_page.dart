@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
@@ -118,6 +119,12 @@ class _FollowingViewState extends State<_FollowingView> {
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.group_add_outlined, color: Colors.white70),
+            onPressed: () => context.push('/suggested-users'),
+          ),
+        ],
       ),
       body: BlocBuilder<FollowCubit, FollowState>(
         builder: (context, state) {

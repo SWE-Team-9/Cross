@@ -25,7 +25,9 @@ class JustAudioPlayerService implements AudioPlayerService {
     status: PlayerStatus.idle,
     position: Duration.zero,
     duration: null,
+    volume: 1.0,
   );
+  double _volume = 1.0;
 
   @override
   Stream<PlayerState> get playerStateStream => _playerStateController.stream;
@@ -103,6 +105,7 @@ class JustAudioPlayerService implements AudioPlayerService {
           queue: tracks,
           currentIndex: startIndex,
           source: source,
+          volume: _volume,
         ),
       );
 
@@ -138,6 +141,20 @@ class JustAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> seek(Duration position) => _handler.seek(position);
+
+  @override
+  Future<void> setVolume(double volume) async {
+    final normalized = volume.clamp(0.0, 1.0).toDouble();
+    _volume = normalized;
+    final handler = _handler;
+    if (handler is AppAudioHandler) {
+      await handler.setVolume(normalized);
+    }
+    _updateState(_currentState.copyWith(volume: _volume));
+  }
+
+  @override
+  double get currentVolume => _volume;
 
   void _updateState(PlayerState newState) {
     _currentState = newState;

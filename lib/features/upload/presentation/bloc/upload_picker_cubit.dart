@@ -95,6 +95,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
     String? genre,
     String? tagsInput,
     String? description,
+    DateTime? releaseDate,
     TrackManagementVisibility visibility =
         TrackManagementVisibility.privateTrack,
   }) async {
@@ -146,6 +147,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         title: normalizedTitle,
         genre: _normalizeOptional(genre),
         description: _normalizeOptional(description),
+        releaseDate: releaseDate,
         tags: _parseTagsInput(tagsInput),
         onProgress: (progress) {
           emit(

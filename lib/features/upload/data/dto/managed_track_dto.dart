@@ -15,6 +15,7 @@ class ManagedTrackDto {
     this.genreId,
     this.genreName,
     this.tags = const <String>[],
+    this.releaseDate,
     this.artworkUrl,
     this.durationInSeconds,
     this.secretToken,
@@ -29,6 +30,7 @@ class ManagedTrackDto {
       genreId: _parseGenreId(json),
       genreName: _parseGenreName(json),
       tags: _parseTags(_extractRawTags(json)),
+      releaseDate: _parseReleaseDate(json),
       visibility: trackManagementVisibilityFromApiValue(
         json['visibility']?.toString(),
       ),
@@ -58,6 +60,7 @@ class ManagedTrackDto {
   final int? genreId;
   final String? genreName;
   final List<String> tags;
+  final DateTime? releaseDate;
   final TrackManagementVisibility visibility;
   final String? artworkUrl;
   final int? durationInSeconds;
@@ -74,6 +77,7 @@ class ManagedTrackDto {
       genreId: genreId,
       genreName: genreName,
       tags: tags,
+      releaseDate: releaseDate,
       visibility: visibility,
       artworkUrl: artworkUrl,
       durationInSeconds: durationInSeconds,
@@ -190,4 +194,16 @@ Map<String, dynamic>? _extractMetadataMap(Map<String, dynamic> json) {
 int? _parseInt(dynamic value) {
   if (value == null) return null;
   return int.tryParse(value.toString());
+}
+
+DateTime? _parseReleaseDate(Map<String, dynamic> json) {
+  final Map<String, dynamic>? metadata = _extractMetadataMap(json);
+  final dynamic raw = json['releaseDate'] ??
+      json['release_date'] ??
+      json['releaseAt'] ??
+      json['releasedAt'] ??
+      metadata?['releaseDate'] ??
+      metadata?['release_date'];
+  if (raw == null) return null;
+  return DateTime.tryParse(raw.toString());
 }

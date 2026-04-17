@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
+import 'package:soundcloud_clone/features/social/domain/events/social_events.dart';
 
 part 'follow_state.dart';
 
@@ -80,6 +81,7 @@ class FollowCubit extends Cubit<FollowState> {
           );
         }).toList();
         emit(state.copyWith(users: confirmed));
+        SocialEvents.emitFollowChanged();
       } else {
         final result = await repo.unfollowUser(user.id);
         final confirmed = state.users.map((u) {
@@ -90,6 +92,7 @@ class FollowCubit extends Cubit<FollowState> {
           );
         }).toList();
         emit(state.copyWith(users: confirmed));
+        SocialEvents.emitFollowChanged();
       }
     } catch (_) {
       // 4️⃣ Rollback لو في exception
@@ -109,6 +112,8 @@ class FollowCubit extends Cubit<FollowState> {
       // لو الـ API قال إنه لسه following يرجعه
       if (result.isFollowing) {
         emit(state.copyWith(users: snapshot));
+      } else {
+        SocialEvents.emitFollowChanged();
       }
     } catch (_) {
       emit(state.copyWith(users: snapshot));
