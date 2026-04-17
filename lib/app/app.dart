@@ -16,6 +16,7 @@ import '../features/social/data/repositories/social_repo.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
 import 'router.dart';
 
+// Routes where the mini-player must stay hidden (auth/onboarding/full player).
 const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.splash,
   AuthRoutes.welcome,
