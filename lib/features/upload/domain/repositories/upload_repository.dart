@@ -22,6 +22,7 @@ abstract class UploadRepository {
     required String title,
     String? genre,
     String? description,
+    DateTime? releaseDate,
     List<String> tags = const <String>[],
     UploadProgressCallback? onProgress,
   });

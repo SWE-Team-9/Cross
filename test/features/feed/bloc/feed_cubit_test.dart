@@ -419,9 +419,10 @@ void main() {
 
       final cubit = buildCubit(repo);
       await cubit.initialize();
-      final url = await cubit.handlePlay('trk_001');
+      final access = await cubit.handlePlay('trk_001');
 
-      expect(url, 'https://cdn.com/audio.mp3');
+      expect(access.streamUrl, 'https://cdn.com/audio.mp3');
+      expect(access.accessState, 'PLAYABLE');
       cubit.close();
     });
 
@@ -431,9 +432,10 @@ void main() {
 
       final cubit = buildCubit(repo);
       await cubit.initialize();
-      final url = await cubit.handlePlay('trk_001');
+      final access = await cubit.handlePlay('trk_001');
 
-      expect(url, isNull);
+      expect(access.streamUrl, isNull);
+      expect(access.isBlocked, isTrue);
       cubit.close();
     });
 
@@ -455,9 +457,10 @@ void main() {
 
       final cubit = buildCubit(repo);
       await cubit.initialize();
-      final url = await cubit.handlePlay('trk_001');
+      final access = await cubit.handlePlay('trk_001');
 
-      expect(url, isNull);
+      expect(access.streamUrl, isNull);
+      expect(access.isBlocked, isTrue);
       cubit.close();
     });
   });

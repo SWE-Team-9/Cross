@@ -151,6 +151,10 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   @override
   Future<void> seek(Duration position) => _player.seek(position);
 
+  /// Sets the player output volume in the 0.0..1.0 range.
+  /// This takes effect immediately, including during active playback.
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+
   @override
   Future<void> stop() => _player.stop();
 
