@@ -59,7 +59,11 @@ void main() {
 
     when(() => playerCubit.stream).thenAnswer((_) => const Stream.empty());
 
-    when(() => playerCubit.play(any())).thenAnswer((_) async {});
+    when(() => playerCubit.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: any(named: 'startIndex'),
+          source: any(named: 'source'),
+        )).thenAnswer((_) async {});
 
     when(() => audioService.playFromContext(
           tracks: any(named: 'tracks'),
@@ -129,12 +133,10 @@ void main() {
     await tester.tap(find.byType(InkWell).first);
     await tester.pumpAndSettle();
 
-    verify(() => audioService.playFromContext(
+    verify(() => playerCubit.playFromContext(
           tracks: queue,
           startIndex: 1,
           source: "test",
         )).called(1);
-
-    verify(() => playerCubit.play(track)).called(1);
   });
 }

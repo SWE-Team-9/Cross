@@ -39,7 +39,14 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     emit(state.copyWith(showMiniPlayer: true));
   }
 
-  Future<void> play(Track track) async {
+  Future<void> playFromContext({
+    required List<Track> tracks,
+    required int startIndex,
+    String source = 'unknown',
+  }) async {
+    if (tracks.isEmpty) return;
+    final safeIndex = startIndex.clamp(0, tracks.length - 1).toInt();
+    final track = tracks[safeIndex];
     final played = Set<String>.from(state.playedTrackIds);
 
     if (state.currentTrack != null) {
@@ -52,7 +59,19 @@ class PlayerCubit extends Cubit<PlayerUIState> {
       showMiniPlayer: true,
     ));
 
-    await _audioService.play(track);
+    await _audioService.playFromContext(
+      tracks: tracks,
+      startIndex: safeIndex,
+      source: source,
+    );
+  }
+
+  Future<void> play(Track track) async {
+    await playFromContext(
+      tracks: [track],
+      startIndex: 0,
+      source: 'single',
+    );
   }
 
   Future<void> pause() async {
@@ -73,6 +92,10 @@ class PlayerCubit extends Cubit<PlayerUIState> {
 
   Future<void> seek(Duration position) async {
     await _audioService.seek(position);
+  }
+
+  Future<void> setVolume(double volume) async {
+    await _audioService.setVolume(volume);
   }
 
   Future<void> stop() async {

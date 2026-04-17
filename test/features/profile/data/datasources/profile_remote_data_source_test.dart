@@ -275,7 +275,12 @@ void main() {
 
   group('getUserTracks', () {
     test('parses track list from wrapped response body', () async {
-      when(() => mockDio.get('/api/v1/users/user-1/tracks')).thenAnswer(
+      when(
+        () => mockDio.get(
+          '/api/v1/users/user-1/tracks',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
           data: <String, dynamic>{
@@ -303,7 +308,12 @@ void main() {
     });
 
     test('parses track list from direct array response', () async {
-      when(() => mockDio.get('/api/v1/users/user-1/tracks')).thenAnswer(
+      when(
+        () => mockDio.get(
+          '/api/v1/users/user-1/tracks',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
           data: [
@@ -323,7 +333,12 @@ void main() {
     });
 
     test('parses nested track payload and preserves metadata fields', () async {
-      when(() => mockDio.get('/api/v1/users/user-1/tracks')).thenAnswer(
+      when(
+        () => mockDio.get(
+          '/api/v1/users/user-1/tracks',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
           data: <String, dynamic>{
@@ -350,8 +365,14 @@ void main() {
       expect(tracks.single.tags, const <String>['nested', 'profile']);
     });
 
-    test('hydrates missing metadata from track details endpoint', () async {
-      when(() => mockDio.get('/api/v1/users/user-1/tracks')).thenAnswer(
+    test('returns list payload without extra per-track detail requests',
+        () async {
+      when(
+        () => mockDio.get(
+          '/api/v1/users/user-1/tracks',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
           data: <String, dynamic>{
@@ -366,27 +387,13 @@ void main() {
         ),
       );
 
-      when(() => mockDio.get('/api/v1/tracks/track-9')).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(path: '/api/v1/tracks/track-9'),
-          data: <String, dynamic>{
-            'track': <String, dynamic>{
-              'id': 'track-9',
-              'title': 'Needs Hydration',
-              'visibility': 'PUBLIC',
-              'description': 'Hydrated description',
-              'tags': <String>['hydrated', 'metadata'],
-            },
-          },
-        ),
-      );
-
       final tracks = await dataSource.getUserTracks('user-1');
 
       expect(tracks, hasLength(1));
-      expect(tracks.single.description, 'Hydrated description');
-      expect(tracks.single.tags, const <String>['hydrated', 'metadata']);
-      verify(() => mockDio.get('/api/v1/tracks/track-9')).called(1);
+      expect(tracks.single.id, 'track-9');
+      expect(tracks.single.description, isNull);
+      expect(tracks.single.tags, isEmpty);
+      verifyNever(() => mockDio.get('/api/v1/tracks/track-9'));
     });
   });
 
