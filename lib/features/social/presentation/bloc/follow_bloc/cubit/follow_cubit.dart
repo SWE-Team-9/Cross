@@ -91,7 +91,7 @@ class FollowCubit extends Cubit<FollowState> {
           }
         }
 
-        if (chunk.length < limit || page >= 10) break;
+        if (chunk.length < limit) break;
         page++;
       }
     } catch (_) {}

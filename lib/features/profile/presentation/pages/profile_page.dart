@@ -191,7 +191,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           }
         }
 
-        if (users.length < limit || page >= 10) break;
+        if (users.length < limit) break;
         page++;
       }
     } catch (_) {}
