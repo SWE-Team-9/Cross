@@ -69,7 +69,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       List<ManagedTrack> repostedTracks = const <ManagedTrack>[];
 
       try {
-        tracks = await _profileRepository.getUserTracks(profile.id).timeout(
+        tracks = await _profileRepository.getUserTracks('me').timeout(
           const Duration(seconds: 10),
           onTimeout: () {
             throw const ServerFailure(

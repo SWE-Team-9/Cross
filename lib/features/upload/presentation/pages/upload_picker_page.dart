@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../auth/presentation/bloc/auth_cubit.dart';
+import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../bloc/upload_picker_cubit.dart';
 import '../bloc/upload_picker_state.dart';
@@ -384,9 +385,15 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
       }
     }
 
-    return Theme(
-      data: darkOrangeTheme,
-      child: pageContent,
+    return WillPopScope(
+      onWillPop: () async {
+        context.read<PlayerCubit>().showMiniPlayer();
+        return true;
+      },
+      child: Theme(
+        data: darkOrangeTheme,
+        child: pageContent,
+      ),
     );
   }
 
