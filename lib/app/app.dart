@@ -7,14 +7,14 @@ import '../core/deep_links/deep_link_destination.dart';
 import '../core/deep_links/deep_link_service.dart';
 import '../core/di/injector.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
+import '../features/auth/presentation/routes/auth_routes.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/player_ui_state.dart';
 import '../features/playback/presentation/bloc/playback_cubit.dart';
-import '../features/social/data/repositories/social_repo.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
+import '../features/social/data/repositories/social_repo.dart';
 import 'router.dart';
 
-// ← global notifier — track_options_sheet هيستخدمه
 final ValueNotifier<bool> isTrackSheetOpen = ValueNotifier(false);
 
 class App extends StatelessWidget {
@@ -59,7 +59,6 @@ class App extends StatelessWidget {
                     body: Stack(
                       children: [
                         child ?? const SizedBox.shrink(),
-                        // ── Mini player ──────────────────────────────────
                         ValueListenableBuilder<bool>(
                           valueListenable: isTrackSheetOpen,
                           builder: (context, sheetOpen, _) {
@@ -134,7 +133,7 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
     if (!mounted) return;
 
     if (destination is OAuthCallbackDeepLink) {
-      context.read<AuthCubit>().handleOAuthCallbackDeepLink(destination);
+      router.go(AuthRoutes.oauthDebug, extra: destination);
     }
   }
 
