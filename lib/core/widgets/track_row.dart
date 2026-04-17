@@ -7,6 +7,7 @@ import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cu
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
+import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
@@ -14,12 +15,14 @@ import 'package:soundcloud_clone/features/profile/presentation/routes/profile_ro
 class TrackRow extends StatelessWidget {
   final Track track;
   final List<Track>? queue;
+  final bool showLikesCount;
   final String source; // ✅ NEW
 
   const TrackRow({
     super.key,
     required this.track,
     this.queue,
+    this.showLikesCount = false,
     this.source = "unknown", // ✅ DEFAULT
   });
 
@@ -38,18 +41,7 @@ class TrackRow extends StatelessWidget {
             return Opacity(
               opacity: opacity,
               child: InkWell(
-                onTap: () {
-                  final playerCubit = context.read<PlayerCubit>();
-
-                  final tracks = queue ?? [track];
-                  final index = tracks.indexWhere((t) => t.id == track.id);
-
-                  playerCubit.playFromContext(
-                    tracks: tracks,
-                    startIndex: index >= 0 ? index : 0,
-                    source: source,
-                  );
-                },
+                onTap: () => _playTrack(context),
                 splashColor: Colors.white10,
                 child: Container(
                   color: isCurrentTrack
@@ -115,7 +107,9 @@ class TrackRow extends StatelessWidget {
                                 )
                               else
                                 Text(
-                                  track.artist,
+                                  showLikesCount
+                                      ? '${track.artist} - ${track.likesCount} likes'
+                                      : track.artist,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     color: Color(0xFF999999),
@@ -142,6 +136,52 @@ class TrackRow extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  Future<void> _playTrack(BuildContext context) async {
+    final playerCubit = context.read<PlayerCubit>();
+    final tracks = queue ?? [track];
+    final index = tracks.indexWhere((t) => t.id == track.id);
+    final safeIndex = index >= 0 ? index : 0;
+    final selectedTrack = tracks[safeIndex];
+
+    if (selectedTrack.audioUrl.trim().isNotEmpty) {
+      await playerCubit.playFromContext(
+        tracks: tracks,
+        startIndex: safeIndex,
+        source: source,
+      );
+      return;
+    }
+
+    if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Playback is not available right now')),
+      );
+      return;
+    }
+
+    final result = await getIt<GetTrackDetailUseCase>()(selectedTrack.id);
+    if (!context.mounted) return;
+
+    final detail = result.detail;
+    if (result.failure != null || detail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.failure?.message ?? 'Failed to load track for playback',
+          ),
+        ),
+      );
+      return;
+    }
+
+    await playerCubit.playFromContext(
+      tracks: [detail.toPlaybackTrack()],
+      startIndex: 0,
+      source: source,
     );
   }
 

@@ -10,6 +10,7 @@ import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
+import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 
 class MockHomePage extends StatefulWidget {
@@ -482,45 +483,16 @@ class _TrendingByGenreTracks extends StatelessWidget {
       );
     }
 
+    final visibleTracks = tracks.take(10).toList(growable: false);
+
     return Column(
-      children: tracks
-          .take(10)
+      children: visibleTracks
           .map(
-            (track) => ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-              leading: track.artworkUrl != null && track.artworkUrl!.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        track.artworkUrl!,
-                        width: 42,
-                        height: 42,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : const SizedBox(
-                      width: 42,
-                      height: 42,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Color(0xFF222222),
-                          borderRadius: BorderRadius.all(Radius.circular(6)),
-                        ),
-                        child: Icon(Icons.music_note, color: Colors.white54),
-                      ),
-                    ),
-              title: Text(
-                track.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white),
-              ),
-              subtitle: Text(
-                '${track.artist} · ${track.likesCount} likes',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white54),
-              ),
+            (track) => TrackRow(
+              track: track,
+              queue: visibleTracks,
+              source: 'home_trending',
+              showLikesCount: true,
             ),
           )
           .toList(growable: false),
