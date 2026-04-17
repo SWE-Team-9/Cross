@@ -7,6 +7,7 @@ import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cu
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
@@ -171,6 +172,7 @@ class TrackOptionsSheet extends StatelessWidget {
                     icon: Icons.playlist_play,
                     label: 'Play Next',
                     onTap: () {
+                      _addToActivePlayerQueue(playNext: true);
                       context.read<PlaybackCubit>().addPlayNext(track);
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -182,6 +184,7 @@ class TrackOptionsSheet extends StatelessWidget {
                     icon: Icons.queue_music,
                     label: 'Play Last',
                     onTap: () {
+                      _addToActivePlayerQueue(playNext: false);
                       context.read<PlaybackCubit>().addPlayLast(track);
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -265,6 +268,27 @@ class TrackOptionsSheet extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _addToActivePlayerQueue({required bool playNext}) {
+    try {
+      final playerCubit = parentContext.read<PlayerCubit>();
+      if (playNext) {
+        playerCubit.addPlayNext(track);
+      } else {
+        playerCubit.addPlayLast(track);
+      }
+      return;
+    } catch (_) {}
+
+    if (!getIt.isRegistered<PlayerCubit>()) return;
+
+    final playerCubit = getIt<PlayerCubit>();
+    if (playNext) {
+      playerCubit.addPlayNext(track);
+    } else {
+      playerCubit.addPlayLast(track);
+    }
   }
 
   SnackBar _snackBar(String message) {
