@@ -85,9 +85,9 @@ class App extends StatelessWidget {
                                 showMiniPlayerOnRoute &&
                                 !isPlayerOpen &&
                                 !sheetOpen;
-                            final bottomInset = MediaQuery.paddingOf(context).bottom;
+                            final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
                             final miniPlayerBottomOffset =
-                                bottomInset + BottomNavBar.minHeight + 8;
+                                safeAreaBottom + BottomNavBar.minHeight + 8;
 
                             return Stack(
                               children: [
