@@ -33,25 +33,24 @@ const List<String> supportedFavoriteGenreSlugs = [
 
 String normalizeFavoriteGenreSlug(String genre) {
   final normalized = genre.trim().toLowerCase();
-  switch (normalized) {
-    case 'hip hop':
-      return 'hip-hop';
-    case 'r&b':
-    case 'r&b / soul':
-    case 'r b soul':
-      return 'r-b-soul';
-    case 'drum & bass':
-      return 'drum-bass';
-    case 'deep house':
-      return 'deep-house';
-    case 'spoken word':
-      return 'spoken-word';
-    case 'folk / singer-songwriter':
-    case 'folk singer songwriter':
-      return 'folk-singer-songwriter';
-    default:
-      return normalized.replaceAll(' ', '-');
-  }
+  final mapped = switch (normalized) {
+    'hip hop' => 'hip-hop',
+    'r&b' || 'r&b / soul' || 'r b soul' => 'r-b-soul',
+    'drum & bass' => 'drum-bass',
+    'deep house' => 'deep-house',
+    'spoken word' => 'spoken-word',
+    'folk / singer-songwriter' || 'folk singer songwriter' =>
+      'folk-singer-songwriter',
+    _ => normalized.replaceAll(' ', '-'),
+  };
+
+  return supportedFavoriteGenreSlugs.contains(mapped) ? mapped : '';
+}
+
+String _capitalizeWord(String part) {
+  if (part.isEmpty) return '';
+  if (part.length == 1) return part.toUpperCase();
+  return '${part[0].toUpperCase()}${part.substring(1)}';
 }
 
 String favoriteGenreLabel(String value) {
@@ -75,7 +74,7 @@ String favoriteGenreLabel(String value) {
       return slug
           .split('-')
           .where((part) => part.isNotEmpty)
-          .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+          .map(_capitalizeWord)
           .join(' ');
   }
 }

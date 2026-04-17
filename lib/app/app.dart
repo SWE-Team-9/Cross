@@ -50,6 +50,7 @@ class App extends StatelessWidget {
             return BlocBuilder<PlayerCubit, PlayerUIState>(
               builder: (context, playerState) {
                 final isPlayerOpen = playerState.isFullScreen;
+                // Keep mini-player off non-home surfaces to avoid blocking forms/actions.
                 const miniPlayerVisibleRoutes = <String>{
                   AppRoutes.home,
                 };
