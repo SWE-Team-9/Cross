@@ -246,9 +246,7 @@ class FeedCubit extends Cubit<FeedState> {
         return access;
       }
 
-      await Future.wait([
-        _repository.recordPlay(trackId).then((_) => null),
-      ]);
+      await _repository.recordPlay(trackId);
       return access;
     } catch (_) {
       return const PlaybackAccessResult(accessState: 'BLOCKED');

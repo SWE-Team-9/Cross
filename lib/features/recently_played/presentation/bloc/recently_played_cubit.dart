@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 
@@ -41,7 +43,7 @@ class RecentlyPlayedCubit extends Cubit<List<Track>> {
 
     final recorder = recordRecentlyPlayed;
     if (recorder != null) {
-      recorder(track.id);
+      unawaited(recordTrackPlay(track.id));
     }
   }
 
