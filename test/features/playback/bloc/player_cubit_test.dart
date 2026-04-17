@@ -27,11 +27,23 @@ void main() {
     audioUrl: 'https://test.com/audio.mp3',
   );
 
+  final nextTrack = const Track(
+    id: '2',
+    title: 'Next Track',
+    artist: 'Next Artist',
+    audioUrl: 'https://test.com/next.mp3',
+  );
+
   setUp(() {
     mockService = MockAudioPlayerService();
 
     when(() => mockService.playerStateStream)
         .thenAnswer((_) => const Stream.empty());
+    when(() => mockService.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: any(named: 'startIndex'),
+          source: any(named: 'source'),
+        )).thenAnswer((_) async {});
 
     cubit = PlayerCubit(mockService);
   });
@@ -199,5 +211,25 @@ void main() {
         ),
       ],
     );
+
+    test('addPlayNext inserts into PlayerCubit queue and playNext plays it',
+        () async {
+      await cubit.play(testTrack);
+
+      cubit.addPlayNext(nextTrack);
+
+      expect(cubit.state.queue, [testTrack, nextTrack]);
+      expect(cubit.state.currentIndex, 0);
+
+      await cubit.playNext();
+
+      expect(cubit.state.currentTrack, nextTrack);
+      expect(cubit.state.currentIndex, 1);
+      verify(() => mockService.playFromContext(
+            tracks: any(named: 'tracks'),
+            startIndex: 1,
+            source: 'single',
+          )).called(1);
+    });
   });
 }
