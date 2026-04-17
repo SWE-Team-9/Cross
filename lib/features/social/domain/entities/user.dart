@@ -21,8 +21,13 @@ class User {
         json['displayName'] ??
         '';
 
-    final dynamic rawIsFollowing =
-        json['isFollowing'] ?? json['is_following'] ?? false;
+    final dynamic rawIsFollowing = json['isFollowing'] ??
+        json['is_following'] ??
+        json['followedByMe'] ??
+        json['followed_by_me'] ??
+        json['viewerFollows'] ??
+        json['viewer_follows'] ??
+        false;
 
     final dynamic rawFollowersCount =
         json['followersCount'] ?? json['followers_count'] ?? 0;

@@ -12,11 +12,11 @@
 //    ✓ Playback via PlayerCubit + AudioPlayerService (queue-aware)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
 import '../../../../core/models/track.dart';
-import '../../../../core/services/audio_player_service.dart';
-import '../../../../core/di/injector.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/feed_cubit.dart';
 import '../bloc/feed_state.dart';
@@ -30,6 +30,7 @@ import '../../domain/usecases/get_feed.dart';
 import '../../domain/usecases/toggle_like.dart';
 import '../../domain/usecases/toggle_repost.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
+import '../../../social/domain/events/social_events.dart';
 
 // ─── DI helper (replace with your DI solution: get_it, riverpod, etc.) ───────
 
@@ -61,8 +62,30 @@ class FeedPage extends StatelessWidget {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _FeedView extends StatelessWidget {
+class _FeedView extends StatefulWidget {
   const _FeedView();
+
+  @override
+  State<_FeedView> createState() => _FeedViewState();
+}
+
+class _FeedViewState extends State<_FeedView> {
+  StreamSubscription<void>? _followRefreshSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _followRefreshSubscription = SocialEvents.followRefreshStream.listen((_) {
+      if (!mounted) return;
+      context.read<FeedCubit>().refresh();
+    });
+  }
+
+  @override
+  void dispose() {
+    _followRefreshSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,15 +169,14 @@ class _LoadedFeed extends StatelessWidget {
   }) async {
     final cubit = context.read<FeedCubit>();
     final playerCubit = context.read<PlayerCubit>();
-    final playerService = getIt<AudioPlayerService>();
 
     // 1. Resolve stream URL for tapped track + record play event
-    final url = await cubit.handlePlay(tappedItem.track.trackId);
+    final access = await cubit.handlePlay(tappedItem.track.trackId);
 
-    if (url == null) {
+    if (!access.canPlay || access.streamUrl == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Track not available')),
+          const SnackBar(content: Text('Track is blocked for playback')),
         );
       }
       return;
@@ -162,10 +184,16 @@ class _LoadedFeed extends StatelessWidget {
 
     if (!context.mounted) return;
 
+    if (access.isPreview) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preview mode: limited playback')),
+      );
+    }
+
     // 2. Build queue — tapped track gets the resolved URL, others get placeholder
     final tracks = currentState.items.map((item) {
       if (item.track.trackId == tappedItem.track.trackId) {
-        return _toTrack(item, audioUrl: url);
+        return _toTrack(item, audioUrl: access.streamUrl!);
       }
       return _toTrack(item);
     }).toList();
@@ -175,13 +203,11 @@ class _LoadedFeed extends StatelessWidget {
     );
 
     // 3. Load queue into audio engine + update player UI state
-    await playerService.playFromContext(
+    await playerCubit.playFromContext(
       tracks: tracks,
       startIndex: startIndex >= 0 ? startIndex : 0,
       source: 'feed',
     );
-
-    playerCubit.play(tracks[startIndex >= 0 ? startIndex : 0]);
   }
 
   @override

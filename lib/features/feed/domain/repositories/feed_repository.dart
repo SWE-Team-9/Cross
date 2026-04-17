@@ -4,6 +4,20 @@
 
 import '../entities/feed_item.dart';
 
+class PlaybackAccessResult {
+  const PlaybackAccessResult({
+    required this.accessState,
+    this.streamUrl,
+  });
+
+  final String accessState; // PLAYABLE | PREVIEW | BLOCKED
+  final String? streamUrl;
+
+  bool get isBlocked => accessState == 'BLOCKED';
+  bool get isPreview => accessState == 'PREVIEW';
+  bool get canPlay => accessState == 'PLAYABLE' || accessState == 'PREVIEW';
+}
+
 abstract class FeedRepository {
   /// GET /api/v1/users/{userId}/tracks   (Following tab)
   /// GET /api/v1/social/suggestions      (Discover tab)
@@ -28,6 +42,9 @@ abstract class FeedRepository {
 
   /// GET  /api/v1/player/tracks/{trackId}/source
   Future<String?> getStreamUrl(String trackId);
+
+  /// GET /api/v1/player/tracks/{trackId}/source with access behavior
+  Future<PlaybackAccessResult> getPlaybackAccess(String trackId);
 
   /// POST /api/v1/player/tracks/{trackId}/play
   Future<void> recordPlay(String trackId);

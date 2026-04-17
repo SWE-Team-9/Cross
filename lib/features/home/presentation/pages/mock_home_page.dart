@@ -1,22 +1,16 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
-import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
-import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
-import 'package:soundcloud_clone/features/upload/presentation/models/apply_track_management_result.dart';
-import 'package:soundcloud_clone/features/upload/presentation/models/track_management_result.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -26,10 +20,13 @@ class MockHomePage extends StatefulWidget {
 }
 
 class _MockHomePageState extends State<MockHomePage> {
-  static const String seededUserId = '6b376248-3f0b-4309-bbd6-d26f9da9a23d';
-
   int _selectedTab = 0;
   String _selectedGenre = 'ELECTRONIC';
+  bool _isLoadingTrending = false;
+  String? _trendingError;
+  List<dynamic>? _trendingRawTrackPool;
+  Future<List<dynamic>>? _trendingRawTrackPoolRequest;
+  List<Track> _trendingTracks = const <Track>[];
 
   final _genres = const [
     'ELECTRONIC',
@@ -40,43 +37,320 @@ class _MockHomePageState extends State<MockHomePage> {
     'HIP-HOP',
   ];
 
-  List<ManagedTrack> _managedTracks = const [
-    ManagedTrack(
-      id: 'managed-track-1',
-      title: 'Midnight Echoes',
-      description: 'A temporary owner track for Sprint 2 testing.',
-      genreId: 1,
-      genreName: 'Ambient',
-      tags: <String>['owner', 'ambient'],
-      visibility: TrackManagementVisibility.publicTrack,
-      durationInSeconds: 212,
-    ),
-    ManagedTrack(
-      id: 'managed-track-2',
-      title: 'City Lights',
-      description: 'Second temporary owner track for edit/delete testing.',
-      genreId: 2,
-      genreName: 'Electronic',
-      tags: <String>['night', 'synth'],
-      visibility: TrackManagementVisibility.privateTrack,
-      durationInSeconds: 184,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadTrendingTracks();
+  }
 
-  Future<void> _openTrackManagement(ManagedTrack track) async {
-    final result = await context.pushNamed(
-      'track-management',
-      extra: track,
-    );
+  Future<void> _loadTrendingTracks() async {
+    setState(() {
+      _isLoadingTrending = true;
+      _trendingError = null;
+    });
 
-    if (result is TrackManagementResult && mounted) {
+    try {
+      final rawList = await _getTrendingRawTrackPool();
+      final tracks = _buildTrendingTracksForSelectedGenre(rawList);
+
+      if (!mounted) return;
       setState(() {
-        _managedTracks = applyTrackManagementResult(
-          tracks: _managedTracks,
-          result: result,
-        );
+        _trendingRawTrackPool = rawList;
+        _trendingTracks = tracks;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _trendingError = 'Failed to load genre tracks';
+        _trendingTracks = const <Track>[];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingTrending = false;
       });
     }
+  }
+
+  void _filterCachedTrendingTracks() {
+    final rawList = _trendingRawTrackPool;
+    if (rawList == null) {
+      if (!_isLoadingTrending) {
+        _loadTrendingTracks();
+      }
+      return;
+    }
+
+    setState(() {
+      _trendingError = null;
+      _trendingTracks = _buildTrendingTracksForSelectedGenre(rawList);
+    });
+  }
+
+  List<Track> _buildTrendingTracksForSelectedGenre(List<dynamic> rawList) {
+    final trackLikeRawList = rawList
+        .where(_looksLikeTrackPayload)
+        .where(_isDiscoverableTrackPayload)
+        .toList(growable: false);
+    final genreMatched = trackLikeRawList
+        .where((raw) => _rawMatchesGenre(raw, _selectedGenre))
+        .toList(growable: false);
+    final filteredRawList =
+        genreMatched.isEmpty ? trackLikeRawList : genreMatched;
+
+    return filteredRawList
+        .map(_mapToTrack)
+        .whereType<Track>()
+        .toList(growable: false)
+      ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+  }
+
+  Future<List<dynamic>> _getTrendingRawTrackPool() {
+    final cached = _trendingRawTrackPool;
+    if (cached != null) return Future.value(cached);
+
+    final inFlight = _trendingRawTrackPoolRequest;
+    if (inFlight != null) return inFlight;
+
+    final request = _fetchTrendingRawTracks().whenComplete(() {
+      _trendingRawTrackPoolRequest = null;
+    });
+    _trendingRawTrackPoolRequest = request;
+    return request;
+  }
+
+  bool _looksLikeTrackPayload(dynamic raw) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    if (nestedTrack is Map) return true;
+    return map.containsKey('title') ||
+        map.containsKey('genre') ||
+        map.containsKey('coverArtUrl') ||
+        map.containsKey('duration');
+  }
+
+  bool _isDiscoverableTrackPayload(dynamic raw) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final visibility = (source['visibility'] ?? '').toString().toUpperCase();
+    if (visibility == 'PRIVATE') return false;
+
+    final status = (source['status'] ?? '').toString().toUpperCase();
+    if (status == 'PROCESSING' || status == 'FAILED') return false;
+
+    return true;
+  }
+
+  Future<List<dynamic>> _fetchTrendingRawTracks() async {
+    final dioClient = GetIt.I<DioClient>();
+    final authState = context.read<AuthCubit>().state;
+    final String viewerId =
+        authState is AuthAuthenticated ? authState.user.id.trim() : '';
+    final List<dynamic> collected = <dynamic>[];
+    final Set<String> seenTrackIds = <String>{};
+    final Set<String> userIdsToLoad = <String>{};
+
+    void addTracks(Iterable<dynamic> tracks) {
+      for (final raw in tracks) {
+        if (raw is! Map) continue;
+        final map = Map<String, dynamic>.from(raw);
+        final nestedTrack = map['track'];
+        final source =
+            nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+        final id =
+            (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
+                .toString()
+                .trim();
+        if (id.isEmpty || seenTrackIds.contains(id)) continue;
+        seenTrackIds.add(id);
+        collected.add(raw);
+      }
+    }
+
+    if (viewerId.isNotEmpty) {
+      userIdsToLoad.add(viewerId);
+
+      try {
+        final followingResponse = await dioClient.get(
+          ApiConstants.followingPath(viewerId),
+          queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
+        );
+        userIdsToLoad.addAll(_extractUserIds(followingResponse.data));
+      } catch (_) {}
+    }
+
+    for (final userId in userIdsToLoad.take(10)) {
+      try {
+        final response = await dioClient.get(
+          ApiConstants.userTracksPath(userId),
+          queryParameters: const <String, dynamic>{
+            'page': 1,
+            'limit': 20,
+          },
+        );
+        addTracks(_extractTracksList(response.data));
+      } catch (_) {}
+
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+
+    return collected;
+  }
+
+  List<String> _extractUserIds(dynamic responseData) {
+    final List<dynamic> rawUsers = <dynamic>[
+      if (responseData is Map<String, dynamic>) ...[
+        ...(responseData['following'] is List
+            ? responseData['following'] as List
+            : const <dynamic>[]),
+        ...(responseData['followers'] is List
+            ? responseData['followers'] as List
+            : const <dynamic>[]),
+        ...(responseData['users'] is List
+            ? responseData['users'] as List
+            : const <dynamic>[]),
+        ...(responseData['items'] is List
+            ? responseData['items'] as List
+            : const <dynamic>[]),
+        ...(responseData['results'] is List
+            ? responseData['results'] as List
+            : const <dynamic>[]),
+        if (responseData['data'] is List) ...(responseData['data'] as List),
+      ] else if (responseData is List)
+        ...responseData,
+    ];
+
+    return rawUsers
+        .whereType<Map>()
+        .map((raw) => Map<String, dynamic>.from(raw))
+        .map(
+          (item) => (item['id'] ?? item['userId'] ?? item['user_id'] ?? '')
+              .toString(),
+        )
+        .where((id) => id.trim().isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
+  List<dynamic> _extractTracksList(dynamic responseData) {
+    if (responseData is List) return responseData;
+    if (responseData is Map<String, dynamic>) {
+      final dynamic directTracks = responseData['tracks'] ??
+          responseData['items'] ??
+          responseData['results'] ??
+          responseData['collection'];
+      if (directTracks is List) return directTracks;
+
+      final dynamic data = responseData['data'];
+      if (data is List) return data;
+      if (data is Map<String, dynamic>) {
+        final dynamic nestedTracks = data['tracks'] ??
+            data['items'] ??
+            data['results'] ??
+            data['collection'];
+        if (nestedTracks is List) return nestedTracks;
+      }
+    }
+    return const <dynamic>[];
+  }
+
+  Track? _mapToTrack(dynamic raw) {
+    if (raw is! Map) return null;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final id = (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
+        .toString()
+        .trim();
+    if (id.isEmpty) return null;
+
+    final uploader = source['uploader'] ?? source['artist'] ?? source['owner'];
+    final uploaderMap = uploader is Map
+        ? Map<String, dynamic>.from(uploader)
+        : <String, dynamic>{};
+
+    final statsRaw = source['stats'];
+    final stats = statsRaw is Map
+        ? Map<String, dynamic>.from(statsRaw)
+        : <String, dynamic>{};
+
+    final likesCount = _asInt(
+      source['likesCount'] ?? source['likes_count'] ?? stats['likesCount'],
+    );
+    final repostsCount = _asInt(
+      source['repostsCount'] ??
+          source['reposts_count'] ??
+          stats['repostsCount'],
+    );
+
+    return Track(
+      id: id,
+      title: (source['title'] ?? 'Untitled').toString(),
+      artist: (uploaderMap['displayName'] ??
+              uploaderMap['username'] ??
+              source['artistName'] ??
+              source['artist'] ??
+              'Unknown artist')
+          .toString(),
+      audioUrl: (source['streamUrl'] ?? source['audioUrl'] ?? '').toString(),
+      artworkUrl: (source['coverArtUrl'] ??
+              source['cover_art_url'] ??
+              source['artworkUrl'])
+          ?.toString(),
+      handle: (uploaderMap['handle'] ?? uploaderMap['username'] ?? '')
+          .toString()
+          .trim(),
+      likesCount: likesCount,
+      repostsCount: repostsCount,
+    );
+  }
+
+  bool _rawMatchesGenre(dynamic raw, String selectedGenre) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final genreValue = source['genre'];
+    String resolvedGenre = '';
+    if (genreValue is String) {
+      resolvedGenre = genreValue;
+    } else if (genreValue is Map) {
+      final typedGenre = Map<String, dynamic>.from(genreValue);
+      resolvedGenre = (typedGenre['name'] ?? '').toString();
+    } else {
+      resolvedGenre =
+          (source['genreName'] ?? source['genre_name'] ?? '').toString();
+    }
+
+    if (resolvedGenre.trim().isEmpty) return false;
+
+    final normalizedResolved = _normalizeGenreToken(resolvedGenre);
+    final normalizedSelected = _normalizeGenreToken(selectedGenre);
+    return normalizedResolved == normalizedSelected;
+  }
+
+  String _normalizeGenreToken(String value) {
+    final upper = value.trim().toUpperCase();
+    if (upper.isEmpty) return upper;
+
+    final compact = upper.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (compact == 'HIPHOP') return 'HIPHOP';
+    return compact;
+  }
+
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   @override
@@ -138,21 +412,19 @@ class _MockHomePageState extends State<MockHomePage> {
                         const _RelatedTracksRow(),
                         const _SectionHeader(title: 'Mixed for you'),
                         _MixesRow(userHandle: currentHandle),
-                        const _SectionHeader(
-                            title: 'Your Tracks (Sprint 2 Test)'),
-                        _ManagedTracksSection(
-                          tracks: _managedTracks,
-                          onManageTap: _openTrackManagement,
-                        ),
                         const _SectionHeader(title: 'Trending by genre'),
                         _GenreChips(
                           genres: _genres,
                           selected: _selectedGenre,
-                          onSelect: (g) => setState(() => _selectedGenre = g),
+                          onSelect: (g) {
+                            setState(() => _selectedGenre = g);
+                            _filterCachedTrendingTracks();
+                          },
                         ),
-                        const SizedBox(height: 8),
-                        const _SeededUserTracksSection(
-                          userId: seededUserId,
+                        _TrendingByGenreTracks(
+                          loading: _isLoadingTrending,
+                          error: _trendingError,
+                          tracks: _trendingTracks,
                         ),
                         const SizedBox(height: 100),
                       ],
@@ -168,6 +440,94 @@ class _MockHomePageState extends State<MockHomePage> {
   }
 }
 
+class _TrendingByGenreTracks extends StatelessWidget {
+  const _TrendingByGenreTracks({
+    required this.loading,
+    required this.error,
+    required this.tracks,
+  });
+
+  final bool loading;
+  final String? error;
+  final List<Track> tracks;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFFF5500)),
+        ),
+      );
+    }
+
+    if (error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Text(
+          error!,
+          style: const TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
+    if (tracks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Text(
+          'No tracks found for this genre',
+          style: TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
+    return Column(
+      children: tracks
+          .take(10)
+          .map(
+            (track) => ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+              leading: track.artworkUrl != null && track.artworkUrl!.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        track.artworkUrl!,
+                        width: 42,
+                        height: 42,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : const SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Color(0xFF222222),
+                          borderRadius: BorderRadius.all(Radius.circular(6)),
+                        ),
+                        child: Icon(Icons.music_note, color: Colors.white54),
+                      ),
+                    ),
+              title: Text(
+                track.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                '${track.artist} · ${track.likesCount} likes',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white54),
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
 // ── Top bar ───────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   final String currentUserHandle;
@@ -179,6 +539,7 @@ class _TopBar extends StatelessWidget {
   });
 
   void _showLogoutSheet(BuildContext context) {
+    isTrackSheetOpen.value = true;
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A1A),
@@ -232,7 +593,9 @@ class _TopBar extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      isTrackSheetOpen.value = false;
+    });
   }
 
   void _navigateToProfile(BuildContext context) {
@@ -409,7 +772,7 @@ class _RelatedTracksRow extends StatelessWidget {
     ];
 
     return SizedBox(
-      height: 192,
+      height: 200,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -454,6 +817,8 @@ class _RelatedTracksRow extends StatelessWidget {
                   ),
                   Text(
                     c.sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF999999),
                       fontSize: 12,
@@ -582,81 +947,6 @@ class _MixesRow extends StatelessWidget {
   }
 }
 
-class _ManagedTracksSection extends StatelessWidget {
-  const _ManagedTracksSection({
-    required this.tracks,
-    required this.onManageTap,
-  });
-
-  final List<ManagedTrack> tracks;
-  final ValueChanged<ManagedTrack> onManageTap;
-
-  @override
-  Widget build(BuildContext context) {
-    if (tracks.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Text(
-          'No managed tracks remaining.',
-          style: TextStyle(color: Color(0xFF999999), fontSize: 13),
-        ),
-      );
-    }
-
-    return Column(
-      children: tracks.map((track) {
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          track.title,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${track.genreName ?? 'Unknown genre'} • ${track.visibility.displayLabel}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF999999),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton(
-                    onPressed: () => onManageTap(track),
-                    child: const Text('Manage'),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(
-              color: Color(0xFF1A1A1A),
-              height: 1,
-              indent: 14,
-              endIndent: 14,
-            ),
-          ],
-        );
-      }).toList(),
-    );
-  }
-}
-
 class _GenreChips extends StatelessWidget {
   final List<String> genres;
   final String selected;
@@ -705,193 +995,6 @@ class _GenreChips extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _SeededUserTracksSection extends StatefulWidget {
-  final String userId;
-
-  const _SeededUserTracksSection({required this.userId});
-
-  @override
-  State<_SeededUserTracksSection> createState() =>
-      _SeededUserTracksSectionState();
-}
-
-class _SeededUserTracksSectionState extends State<_SeededUserTracksSection> {
-  late Future<List<Track>> _futureTracks;
-
-  @override
-  void initState() {
-    super.initState();
-    _futureTracks = _fetchTracks();
-  }
-
-  Future<List<Track>> _fetchTracks() async {
-    final response = await getIt<DioClient>().get(
-      ApiConstants.userTracksPath(widget.userId),
-      queryParameters: const {'page': 1, 'limit': 20},
-    );
-
-    final responseData =
-        response.data is String ? jsonDecode(response.data) : response.data;
-
-    final raw = responseData['data'] ?? responseData;
-    final List items;
-    if (raw is Map && raw['tracks'] is List) {
-      items = raw['tracks'] as List;
-    } else if (raw is Map && raw['items'] is List) {
-      items = raw['items'] as List;
-    } else if (responseData is Map && responseData['tracks'] is List) {
-      items = responseData['tracks'] as List;
-    } else if (responseData is List) {
-      items = responseData;
-    } else {
-      items = const [];
-    }
-
-    final List<Track> tracks = [];
-
-    for (var item in items) {
-      final trackJson = Map<String, dynamic>.from(item as Map);
-      final trackId =
-          (trackJson['id'] ?? trackJson['trackId'] ?? '').toString();
-
-      String finalAudioUrl = '';
-
-      try {
-        final sourceResponse = await getIt<DioClient>().get(
-          '/api/v1/player/tracks/$trackId/source',
-        );
-        final streamUrl = sourceResponse.data['streamUrl'];
-        if (streamUrl != null && streamUrl.toString().isNotEmpty) {
-          finalAudioUrl = streamUrl.toString();
-        }
-      } catch (e) {
-        debugPrint('Failed to fetch streamUrl for $trackId: $e');
-      }
-
-      if (finalAudioUrl.isEmpty) {
-        finalAudioUrl = PlatformUrlUtils.normalizeBackendUrl(
-                trackJson['audioUrl']?.toString() ??
-                    trackJson['streamUrl']?.toString() ??
-                    trackJson['fileUrl']?.toString()) ??
-            '';
-      }
-
-      if (finalAudioUrl.isEmpty) {
-        debugPrint('Skipped track $trackId because audioUrl is still empty.');
-        continue;
-      }
-
-      final track = _mapTrack(trackJson, finalAudioUrl);
-      if (track != null) tracks.add(track);
-    }
-
-    return tracks;
-  }
-
-  Track? _mapTrack(Map<String, dynamic> json, String validAudioUrl) {
-    final artistValue = json['artist'];
-    String artistName = 'Unknown Artist';
-    String? handle;
-
-    if (artistValue is String && artistValue.isNotEmpty) {
-      artistName = artistValue;
-    } else if (artistValue is Map) {
-      final artistMap = Map<String, dynamic>.from(artistValue);
-      artistName = (artistMap['display_name'] ??
-              artistMap['displayName'] ??
-              artistMap['name'] ??
-              artistMap['handle'] ??
-              'Unknown Artist')
-          .toString();
-      handle = artistMap['handle']?.toString();
-    }
-
-    final String trackId = (json['id'] ?? json['trackId'] ?? '').toString();
-    final artworkUrl = PlatformUrlUtils.normalizeBackendUrl(
-      json['artworkUrl']?.toString() ??
-          json['artwork_url']?.toString() ??
-          json['coverArtUrl']?.toString() ??
-          json['cover_art_url']?.toString(),
-    );
-
-    return Track(
-      id: trackId,
-      title: (json['title'] ?? 'Untitled Track').toString(),
-      artist: artistName,
-      audioUrl: validAudioUrl,
-      artworkUrl: artworkUrl,
-      handle: handle,
-      likesCount: _toInt(
-          json['likesCount'] ?? json['likes_count'] ?? json['like_count']),
-      repostsCount: _toInt(json['repostsCount'] ??
-          json['reposts_count'] ??
-          json['repost_count']),
-    );
-  }
-
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
-    return 0;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<Track>>(
-      future: _futureTracks,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: CircularProgressIndicator(color: Color(0xFFFF5500)),
-            ),
-          );
-        }
-        if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Text(
-              'Failed to load seeded user tracks:\n${snapshot.error}',
-              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-            ),
-          );
-        }
-
-        final tracks = snapshot.data ?? const <Track>[];
-
-        if (tracks.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Text(
-              'No playable tracks were found for this seeded user.',
-              style: TextStyle(color: Color(0xFF999999), fontSize: 13),
-            ),
-          );
-        }
-
-        return Column(
-          children: List.generate(
-            tracks.length,
-            (i) => Column(
-              children: [
-                TrackRow(track: tracks[i], queue: tracks),
-                if (i < tracks.length - 1)
-                  const Divider(
-                    color: Color(0xFF1A1A1A),
-                    height: 1,
-                    indent: 14,
-                    endIndent: 14,
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

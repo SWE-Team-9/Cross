@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/social/presentation/bloc/follow_bloc/cubit/follow_cubit.dart';
@@ -44,6 +46,9 @@ class FollowersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repo = context.read<SocialRepo>();
+    final authState = context.read<AuthCubit>().state;
+    final viewerUserId =
+        authState is AuthAuthenticated ? authState.user.id : null;
 
     return FutureBuilder<String?>(
       future: _resolveTargetUserId(context, repo),
@@ -75,6 +80,7 @@ class FollowersPage extends StatelessWidget {
             repo: repo,
             userId: resolvedId,
             mode: FollowListMode.followers,
+            viewerUserId: viewerUserId,
           )..loadInitial(),
           child: const _FollowersView(),
         );
@@ -127,6 +133,12 @@ class _FollowersViewState extends State<_FollowersView> {
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.group_add_outlined, color: Colors.white70),
+            onPressed: () => context.push('/suggested-users'),
+          ),
+        ],
       ),
       body: BlocBuilder<FollowCubit, FollowState>(
         builder: (context, state) {
@@ -217,6 +229,9 @@ class _FollowerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      onTap: user.username.trim().isEmpty
+          ? null
+          : () => ProfileRoutes.goToProfile(context, user.username.trim()),
       leading: CircleAvatar(
         backgroundColor: Colors.grey[800],
         child: Text(

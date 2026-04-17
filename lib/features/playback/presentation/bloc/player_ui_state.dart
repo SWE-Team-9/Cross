@@ -39,6 +39,7 @@ class PlayerUIState {
   bool get isBuffering => playerState.status == PlayerStatus.buffering;
   Duration get position => playerState.position;
   Duration? get duration => playerState.duration;
+  double get volume => playerState.volume;
 
   bool wasPlayed(String trackId) => playedTrackIds.contains(trackId);
 }

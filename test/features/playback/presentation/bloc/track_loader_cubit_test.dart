@@ -40,6 +40,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(FakeTrack());
+    registerFallbackValue(<Track>[]);
   });
 
   setUp(() {
@@ -49,7 +50,11 @@ void main() {
 
     when(() => audioService.playerStateStream)
         .thenAnswer((_) => const Stream<PlayerState>.empty());
-    when(() => audioService.play(any())).thenAnswer((_) async {});
+    when(() => audioService.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: any(named: 'startIndex'),
+          source: any(named: 'source'),
+        )).thenAnswer((_) async {});
 
     playerCubit = PlayerCubit(audioService);
   });
@@ -89,7 +94,11 @@ void main() {
             .having((s) => s.detail.trackId, 'trackId', 't1'),
       ],
       verify: (_) {
-        verify(() => audioService.play(any())).called(1);
+        verify(() => audioService.playFromContext(
+              tracks: any(named: 'tracks'),
+              startIndex: 0,
+              source: 'single',
+            )).called(1);
       },
     );
 
