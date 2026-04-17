@@ -30,12 +30,12 @@ class _OAuthDebugPageState extends State<OAuthDebugPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-       print('🟢 OAuthDebugPage mounted');
-  print('🟢 destination.code = ${widget.destination.code}');
-  print('🟢 destination.state = ${widget.destination.state}');
-  print('🟢 calling AuthCubit.handleOAuthCallbackDeepLink...');
+      print('🟢 OAuthDebugPage mounted');
+      print('🟢 destination.code = ${widget.destination.code}');
+      print('🟢 destination.state = ${widget.destination.state}');
+      print('🟢 calling AuthCubit.handleOAuthCallbackDeepLink...');
       context.read<AuthCubit>().handleOAuthCallbackDeepLink(widget.destination);
-        print('🟢 handleOAuthCallbackDeepLink invoked');
+      print('🟢 handleOAuthCallbackDeepLink invoked');
     });
   }
 
@@ -141,7 +141,7 @@ class _DiagnosticView extends StatelessWidget {
           const SizedBox(height: 12),
           Chip(
             label: Text(state.stage),
-            backgroundColor: color.withOpacity(0.18),
+            backgroundColor: color.withValues(alpha: 0.18),
             labelStyle: TextStyle(color: color),
           ),
           const SizedBox(height: 16),
