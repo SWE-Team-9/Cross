@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
@@ -19,6 +20,8 @@ class LibraryPage extends StatelessWidget {
       value: GetIt.I<RecentlyPlayedCubit>(),
       child: Scaffold(
         backgroundColor: Colors.black,
+        // ── Shared Bottom Nav (index 3 = Library) ──────────────────────────
+        bottomNavigationBar: const BottomNavBar(selected: 3),
         appBar: AppBar(
           backgroundColor: Colors.black,
           elevation: 0,
@@ -34,7 +37,6 @@ class LibraryPage extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Icon(Icons.cast, color: Colors.white70),
             ),
-            // ✅ زرار settings بيفتح الـ SettingsPage
             IconButton(
               icon: const Icon(Icons.settings, color: Colors.white70),
               onPressed: () {
@@ -96,7 +98,6 @@ class LibraryPage extends StatelessWidget {
               _LibraryItem(title: 'Your likes', onTap: () {}),
               _LibraryItem(title: 'Playlists', onTap: () {}),
               _LibraryItem(title: 'Albums', onTap: () {}),
-              // ✅ Following بيفتح الـ FollowingPage بتاع اليوزر الحالي
               BlocBuilder<AuthCubit, AuthState>(
                 builder: (context, state) {
                   return _LibraryItem(
@@ -164,7 +165,6 @@ class LibraryPage extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: const _BottomNav(selected: 3),
       ),
     );
   }
@@ -186,116 +186,6 @@ class _LibraryItem extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.white54),
       onTap: onTap,
-    );
-  }
-}
-
-class _BottomNav extends StatelessWidget {
-  final int selected;
-
-  const _BottomNav({required this.selected});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(top: BorderSide(color: Color(0xFF1F1F1F))),
-      ),
-      child: Row(
-        children: [
-          _NavItem(
-            icon: Icons.home_outlined,
-            activeIcon: Icons.home,
-            label: 'Home',
-            index: 0,
-            selected: selected,
-            onTap: () => context.go('/home'),
-          ),
-          _NavItem(
-            icon: Icons.grid_view_outlined,
-            activeIcon: Icons.grid_view,
-            label: 'Feed',
-            index: 1,
-            selected: selected,
-            onTap: () => context.go('/feed'),
-          ),
-          _NavItem(
-            icon: Icons.search,
-            activeIcon: Icons.search,
-            label: 'Search',
-            index: 2,
-            selected: selected,
-            onTap: () => context.go('/search'),
-          ),
-          _NavItem(
-            icon: Icons.library_music_outlined,
-            activeIcon: Icons.library_music,
-            label: 'Library',
-            index: 3,
-            selected: selected,
-            onTap: () => context.go('/library'),
-          ),
-          _NavItem(
-            icon: Icons.bar_chart_outlined,
-            activeIcon: Icons.bar_chart,
-            label: 'Upgrade',
-            index: 4,
-            selected: selected,
-            onTap: () => context.go('/upgrade'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final int index;
-  final int selected;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.index,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final active = selected == index;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                active ? activeIcon : icon,
-                color: active ? Colors.white : const Color(0xFF555555),
-                size: 22,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  color: active ? Colors.white : const Color(0xFF555555),
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
