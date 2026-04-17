@@ -8,12 +8,26 @@ import '../core/deep_links/deep_link_service.dart';
 import '../core/di/injector.dart';
 import '../core/notifiers/overlay_notifiers.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
+import '../features/auth/presentation/routes/auth_routes.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/player_ui_state.dart';
 import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/social/data/repositories/social_repo.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
 import 'router.dart';
+
+const Set<String> _miniPlayerHiddenRoutes = <String>{
+  AuthRoutes.splash,
+  AuthRoutes.welcome,
+  AuthRoutes.login,
+  AuthRoutes.register,
+  AuthRoutes.completeProfile,
+  AuthRoutes.forgotPassword,
+  AuthRoutes.resetPassword,
+  AuthRoutes.verifyEmail,
+  AppRoutes.player,
+};
+const double _miniPlayerReservedBottomSpace = 72;
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -50,57 +64,65 @@ class App extends StatelessWidget {
             return BlocBuilder<PlayerCubit, PlayerUIState>(
               builder: (context, playerState) {
                 final isPlayerOpen = playerState.isFullScreen;
-                // Keep mini-player off non-home surfaces to avoid blocking forms/actions.
-                const miniPlayerVisibleRoutes = <String>{
-                  AppRoutes.home,
-                };
+                final hasMiniPlayerTrack =
+                    playerState.currentTrack != null && playerState.showMiniPlayer;
 
                 return _DeepLinkBridge(
                   child: Scaffold(
                     backgroundColor: Colors.black,
-                    body: Stack(
-                      children: [
-                        child ?? const SizedBox.shrink(),
-                        // ── Mini player ──────────────────────────────────
-                        ValueListenableBuilder<bool>(
-                          valueListenable: isTrackSheetOpen,
-                          builder: (context, sheetOpen, _) {
-                            return ValueListenableBuilder<RouteInformation>(
-                              valueListenable: router.routeInformationProvider,
-                              builder: (context, routeInfo, __) {
-                                final currentPath = routeInfo.uri.path;
-                                final showMiniPlayerOnRoute =
-                                    miniPlayerVisibleRoutes.contains(currentPath);
-                                final hide =
-                                    isPlayerOpen || sheetOpen || !showMiniPlayerOnRoute;
-                                return Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 70,
-                                  child: IgnorePointer(
-                                    ignoring: hide,
-                                    child: AnimatedSlide(
-                                      duration:
-                                          const Duration(milliseconds: 220),
-                                      curve: Curves.easeOutCubic,
-                                      offset: hide
-                                          ? const Offset(0, 1.2)
-                                          : Offset.zero,
-                                      child: AnimatedOpacity(
-                                        duration:
-                                            const Duration(milliseconds: 180),
-                                        curve: Curves.easeOut,
-                                        opacity: hide ? 0 : 1,
-                                        child: const MiniPlayer(),
+                    body: ValueListenableBuilder<bool>(
+                      valueListenable: isTrackSheetOpen,
+                      builder: (context, sheetOpen, _) {
+                        return ValueListenableBuilder<RouteInformation>(
+                          valueListenable: router.routeInformationProvider,
+                          builder: (context, routeInfo, __) {
+                            final currentPath = routeInfo.uri.path;
+                            final showMiniPlayerOnRoute =
+                                !_miniPlayerHiddenRoutes.contains(currentPath);
+                            final showMiniPlayer = hasMiniPlayerTrack &&
+                                showMiniPlayerOnRoute &&
+                                !isPlayerOpen &&
+                                !sheetOpen;
+                            final reservedBottom =
+                                showMiniPlayer ? _miniPlayerReservedBottomSpace : 0.0;
+
+                            return Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: AnimatedPadding(
+                                    duration: const Duration(milliseconds: 200),
+                                    curve: Curves.easeOutCubic,
+                                    padding: EdgeInsets.only(bottom: reservedBottom),
+                                    child: child ?? const SizedBox.shrink(),
+                                  ),
+                                ),
+                                if (hasMiniPlayerTrack && showMiniPlayerOnRoute)
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    child: IgnorePointer(
+                                      ignoring: !showMiniPlayer,
+                                      child: AnimatedSlide(
+                                        duration: const Duration(milliseconds: 220),
+                                        curve: Curves.easeOutCubic,
+                                        offset: showMiniPlayer
+                                            ? Offset.zero
+                                            : const Offset(0, 1.2),
+                                        child: AnimatedOpacity(
+                                          duration: const Duration(milliseconds: 180),
+                                          curve: Curves.easeOut,
+                                          opacity: showMiniPlayer ? 1 : 0,
+                                          child: const MiniPlayer(),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                );
-                              },
+                              ],
                             );
                           },
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 );

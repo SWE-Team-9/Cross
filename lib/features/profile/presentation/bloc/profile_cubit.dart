@@ -172,6 +172,12 @@ class ProfileCubit extends Cubit<ProfileState> {
         workingProfile = workingProfile.copyWith(externalLinks: updatedLinks);
       }
 
+      if (params.favoriteGenres != null) {
+        workingProfile = workingProfile.copyWith(
+          favoriteGenres: List<String>.from(params.favoriteGenres!),
+        );
+      }
+
       emit(
         ProfileUpdateSuccess(
           workingProfile,
