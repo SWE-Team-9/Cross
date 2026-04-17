@@ -4,10 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/complete_profile_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/login_page.dart';
+import 'package:soundcloud_clone/features/auth/presentation/pages/oauth_debug_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/register_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/splash_page.dart';
@@ -19,6 +21,12 @@ class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 void main() {
   late MockAuthCubit authCubit;
+
+  setUpAll(() {
+    // استخدمنا نسخة حقيقية من الكلاس بدل الـ Fake عشان نتفادى مشكلة الـ final class
+    registerFallbackValue(
+        const OAuthCallbackDeepLink(code: 'dummy', state: 'dummy'));
+  });
 
   setUp(() {
     authCubit = MockAuthCubit();
@@ -39,6 +47,9 @@ void main() {
     when(() => authCubit.sendEmailVerification(email: any(named: 'email')))
         .thenAnswer((_) async {});
     when(() => authCubit.remainingResendSeconds).thenReturn(0);
+
+    when(() => authCubit.handleOAuthCallbackDeepLink(any()))
+        .thenAnswer((_) async {});
   });
 
   Widget buildApp(String initialLocation, {Object? extra}) {
@@ -64,10 +75,11 @@ void main() {
       expect(AuthRoutes.forgotPassword, '/forgot-password');
       expect(AuthRoutes.resetPassword, '/reset-password');
       expect(AuthRoutes.verifyEmail, '/verify-email');
+      expect(AuthRoutes.oauthDebug, '/oauth-debug');
     });
 
     test('contains expected number of routes', () {
-      expect(AuthRoutes.routes.length, 8);
+      expect(AuthRoutes.routes.length, 9);
     });
   });
 
@@ -146,6 +158,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(VerifyEmailPage), findsOneWidget);
+    });
+
+    testWidgets('builds oauth debug page with destination extra',
+        (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          AuthRoutes.oauthDebug,
+          extra: const OAuthCallbackDeepLink(code: 'test', state: 'test'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OAuthDebugPage), findsOneWidget);
     });
   });
 }
