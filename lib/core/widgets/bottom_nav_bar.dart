@@ -53,35 +53,38 @@ class BottomNavBar extends StatelessWidget {
         color: Colors.black,
         border: Border(top: BorderSide(color: Color(0xFF1F1F1F))),
       ),
-      child: Row(
-        children: List.generate(
-          _items.length,
-          (i) => Expanded(
-            child: GestureDetector(
-              onTap: () => _handleTap(context, i),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      selected == i ? _items[i].activeIcon : _items[i].icon,
-                      color: selected == i
-                          ? Colors.white
-                          : const Color(0xFF555555),
-                      size: 23,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      _items[i].label,
-                      style: TextStyle(
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: List.generate(
+            _items.length,
+            (i) => Expanded(
+              child: GestureDetector(
+                onTap: () => _handleTap(context, i),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        selected == i ? _items[i].activeIcon : _items[i].icon,
                         color: selected == i
                             ? Colors.white
                             : const Color(0xFF555555),
-                        fontSize: 12,
+                        size: 23,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 3),
+                      Text(
+                        _items[i].label,
+                        style: TextStyle(
+                          color: selected == i
+                              ? Colors.white
+                              : const Color(0xFF555555),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

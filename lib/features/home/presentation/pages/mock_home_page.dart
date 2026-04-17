@@ -9,6 +9,7 @@ import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
@@ -179,6 +180,7 @@ class _TopBar extends StatelessWidget {
   });
 
   void _showLogoutSheet(BuildContext context) {
+    isTrackSheetOpen.value = true;
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A1A),
@@ -232,7 +234,9 @@ class _TopBar extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      isTrackSheetOpen.value = false;
+    });
   }
 
   void _navigateToProfile(BuildContext context) {

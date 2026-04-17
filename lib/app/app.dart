@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/deep_links/deep_link_destination.dart';
 import '../core/deep_links/deep_link_service.dart';
 import '../core/di/injector.dart';
+import '../core/notifiers/overlay_notifiers.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/player_ui_state.dart';
@@ -13,9 +14,6 @@ import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/social/data/repositories/social_repo.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
 import 'router.dart';
-
-// ← global notifier — track_options_sheet هيستخدمه
-final ValueNotifier<bool> isTrackSheetOpen = ValueNotifier(false);
 
 class App extends StatelessWidget {
   const App({super.key});
