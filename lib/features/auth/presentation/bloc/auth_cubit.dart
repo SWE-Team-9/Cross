@@ -216,10 +216,10 @@ class AuthCubit extends Cubit<AuthState> {
     OAuthCallbackDeepLink destination,
   ) async {
     print('🔵 handleOAuthCallbackDeepLink entered');
-print('🔵 destination.code = ${destination.code}');
-print('🔵 destination.state = ${destination.state}');
-print('🔵 destination.error = ${destination.error}');
-print('🔵 destination.errorDescription = ${destination.errorDescription}');
+    print('🔵 destination.code = ${destination.code}');
+    print('🔵 destination.state = ${destination.state}');
+    print('🔵 destination.error = ${destination.error}');
+    print('🔵 destination.errorDescription = ${destination.errorDescription}');
     await handleOAuthCallback(
       code: destination.code,
       state: destination.state,
@@ -287,9 +287,9 @@ print('🔵 destination.errorDescription = ${destination.errorDescription}');
       final codeVerifier = _pendingOAuthCodeVerifier ?? pending?.codeVerifier;
       final redirectUri = _pendingOAuthRedirectUri ?? pending?.redirectUri;
 
-     print('🟣 expectedState = $expectedState');
-print('🟣 codeVerifier present = ${codeVerifier != null}');
-print('🟣 redirectUri = $redirectUri');
+      print('🟣 expectedState = $expectedState');
+      print('🟣 codeVerifier present = ${codeVerifier != null}');
+      print('🟣 redirectUri = $redirectUri');
 
       emit(
         AuthOAuthDiagnostic(
@@ -375,10 +375,10 @@ print('🟣 redirectUri = $redirectUri');
         ),
       );
 
-print('🚀 about to call exchangeOAuthCodeForSession');
-print('🚀 code = ${code?.trim()}');
-print('🚀 redirectUri = $redirectUri');
-print('🚀 codeVerifier length = ${codeVerifier?.length}');
+      print('🚀 about to call exchangeOAuthCodeForSession');
+      print('🚀 code = ${code.trim()}');
+      print('🚀 redirectUri = $redirectUri');
+      print('🚀 codeVerifier length = ${codeVerifier.length}');
 
       await authRepository.exchangeOAuthCodeForSession(
         code: code.trim(),
@@ -387,7 +387,7 @@ print('🚀 codeVerifier length = ${codeVerifier?.length}');
       );
 
       print('✅ exchangeOAuthCodeForSession completed');
-print('✅ about to call getCurrentUserUseCase');
+      print('✅ about to call getCurrentUserUseCase');
 
       emit(
         AuthOAuthDiagnostic(
