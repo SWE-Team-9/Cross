@@ -12,6 +12,15 @@ class AudioFilePickerDataSourceImpl implements AudioFilePickerDataSource {
   AudioFilePickerDataSourceImpl(this._permissionService);
 
   final AudioPickerPermissionService _permissionService;
+  static const List<String> _supportedExtensions = [
+    'mp3',
+    'wav',
+    'flac',
+    'aiff',
+    'm4a',
+    'aac',
+    'ogg',
+  ];
 
   @override
   Future<PickedAudioFileDto?> pickAudioFile() async {
@@ -20,7 +29,7 @@ class AudioFilePickerDataSourceImpl implements AudioFilePickerDataSource {
 
       final FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: const ['mp3', 'wav'],
+        allowedExtensions: _supportedExtensions,
         allowMultiple: false,
       );
 
@@ -36,7 +45,9 @@ class AudioFilePickerDataSourceImpl implements AudioFilePickerDataSource {
       );
 
       if (!_isSupportedExtension(extension)) {
-        throw Exception('Only MP3 and WAV files are allowed.');
+        throw Exception(
+          'Unsupported audio format. Allowed: ${_supportedExtensions.join(', ').toUpperCase()}.',
+        );
       }
 
       return PickedAudioFileDto(
@@ -75,6 +86,6 @@ class AudioFilePickerDataSourceImpl implements AudioFilePickerDataSource {
   }
 
   bool _isSupportedExtension(String extension) {
-    return extension == 'mp3' || extension == 'wav';
+    return _supportedExtensions.contains(extension.toLowerCase());
   }
 }

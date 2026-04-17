@@ -431,8 +431,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Center(
-                              child: Container(
+                             Center(
+                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                   vertical: 4,
@@ -448,6 +448,29 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                     fontSize: 12,
                                   ),
                                 ),
+                               ),
+                             ),
+                            const SizedBox(height: 10),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.volume_up,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                  Expanded(
+                                    child: Slider(
+                                      value: state.volume,
+                                      activeColor: const Color(0xFFFF5500),
+                                      onChanged: (value) => context
+                                          .read<PlayerCubit>()
+                                          .setVolume(value),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 16),

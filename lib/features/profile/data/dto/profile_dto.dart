@@ -16,6 +16,7 @@ class ProfileDto {
   final int trackCount;
   final int? followersCount;
   final int? followingCount;
+  final bool isFollowing;
 
   const ProfileDto({
     this.id,
@@ -33,9 +34,13 @@ class ProfileDto {
     required this.trackCount,
     this.followersCount,
     this.followingCount,
+    this.isFollowing = false,
   });
 
   factory ProfileDto.fromJson(Map<String, dynamic> json) {
+    final dynamic rawUser = json['user'];
+    final Map<String, dynamic> userMap =
+        rawUser is Map ? Map<String, dynamic>.from(rawUser) : const {};
     final rawLinks =
         json['social_links'] ?? json['socialLinks'] ?? json['links'];
     final Map<String, String> links = _parseLinks(rawLinks);
@@ -55,7 +60,16 @@ class ProfileDto {
         isPrivate ? 'PRIVATE' : ((json['visibility']) as String? ?? 'PUBLIC');
 
     return ProfileDto(
-      id: (json['id'] ?? json['userId'])?.toString(),
+      id: _firstString([
+        json['id'],
+        json['_id'],
+        json['userId'],
+        json['user_id'],
+        userMap['id'],
+        userMap['_id'],
+        userMap['userId'],
+        userMap['user_id'],
+      ]),
       displayName:
           (json['display_name'] ?? json['displayName']) as String? ?? '',
       handle: (json['handle']) as String? ?? '',
@@ -75,6 +89,13 @@ class ProfileDto {
           (json['followers_count'] ?? json['followersCount']) as int?,
       followingCount:
           (json['following_count'] ?? json['followingCount']) as int?,
+      isFollowing: _toBool(
+        json['isFollowing'] ??
+            json['is_following'] ??
+            json['followedByMe'] ??
+            json['followed_by_me'] ??
+            false,
+      ),
     );
   }
 
@@ -100,7 +121,21 @@ class ProfileDto {
           : ProfileVisibility.PUBLIC,
       followersCount: followersCount ?? 0,
       followingCount: followingCount ?? 0,
+      isFollowing: isFollowing,
     );
+  }
+
+  static bool _toBool(dynamic value) {
+    if (value is bool) return value;
+    return value?.toString().toLowerCase() == 'true';
+  }
+
+  static String? _firstString(List<dynamic> values) {
+    for (final value in values) {
+      final normalized = value?.toString().trim() ?? '';
+      if (normalized.isNotEmpty) return normalized;
+    }
+    return null;
   }
 
   static Map<String, String> _parseLinks(dynamic rawLinks) {

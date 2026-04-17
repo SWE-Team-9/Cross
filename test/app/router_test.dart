@@ -40,6 +40,8 @@ import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart
 import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
+  double _currentVolume = 1;
+
   @override
   Stream<PlayerState> get playerStateStream => const Stream.empty();
 
@@ -56,6 +58,14 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> seek(Duration position) async {}
+
+  @override
+  Future<void> setVolume(double volume) async {
+    _currentVolume = volume;
+  }
+
+  @override
+  double get currentVolume => _currentVolume;
 
   @override
   Future<void> dispose() async {}
