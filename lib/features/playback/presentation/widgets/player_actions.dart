@@ -77,6 +77,7 @@ class PlayerActions extends StatelessWidget {
               icon: const Icon(Icons.share, color: Colors.white70),
             ),
             IconButton(
+              key: const Key('player_queue_button'),
               onPressed: onQueueTap,
               icon: const Icon(Icons.queue_music, color: Colors.white70),
             ),
