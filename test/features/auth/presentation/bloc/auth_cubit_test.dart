@@ -1134,12 +1134,12 @@ void main() {
         errorDescription: 'User cancelled sign in',
       ),
       expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having(
-          (s) => s.message,
-          'message',
-          'User cancelled sign in',
-        ),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'provider_error')
+            .having((s) => s.isError, 'isError', true)
+            .having((s) => s.message, 'message', 'User cancelled sign in'),
       ],
       verify: (_) {
         verify(() => mockOAuthPendingRequestStore.clear()).called(1);
@@ -1157,12 +1157,13 @@ void main() {
         state: 'state-123',
       ),
       expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having(
-          (s) => s.message,
-          'message',
-          'No pending Google sign-in request was found.',
-        ),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'missing_pending_request')
+            .having((s) => s.isError, 'isError', true),
       ],
     );
 
@@ -1179,12 +1180,13 @@ void main() {
         state: 'state-123',
       ),
       expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having(
-          (s) => s.message,
-          'message',
-          'OAuth callback is missing the authorization code.',
-        ),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'missing_code')
+            .having((s) => s.isError, 'isError', true),
       ],
       verify: (_) {
         verify(() => mockOAuthPendingRequestStore.clear()).called(1);
@@ -1204,12 +1206,13 @@ void main() {
         state: 'wrong-state',
       ),
       expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having(
-          (s) => s.message,
-          'message',
-          'OAuth state mismatch. Please try again.',
-        ),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'state_mismatch')
+            .having((s) => s.isError, 'isError', true),
       ],
       verify: (_) {
         verify(() => mockOAuthPendingRequestStore.clear()).called(1);
@@ -1237,7 +1240,17 @@ void main() {
         state: pending.state,
       ),
       expect: () => [
-        isA<AuthLoading>(),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'exchanging_code'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'loading_user'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'success')
+            .having((s) => s.isSuccess, 'isSuccess', true),
         isA<AuthAuthenticated>().having((s) => s.user.id, 'user id', user.id),
       ],
       verify: (_) {
@@ -1266,12 +1279,17 @@ void main() {
         state: pending.state,
       ),
       expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having(
-          (s) => s.message,
-          'message',
-          'Google sign-in completed, but the session could not be loaded.',
-        ),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'exchanging_code'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'loading_user'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'session_not_loaded')
+            .having((s) => s.isError, 'isError', true),
       ],
     );
 
@@ -1304,12 +1322,17 @@ void main() {
         state: pending.state,
       ),
       expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having(
-          (s) => s.message,
-          'message',
-          'Something went wrong. Please try again.',
-        ),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'exchanging_code'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'backend_error')
+            .having((s) => s.isError, 'isError', true)
+            .having((s) => s.message, 'message',
+                'Something went wrong. Please try again.'),
       ],
       verify: (_) {
         verify(() => mockOAuthPendingRequestStore.clear()).called(1);
@@ -1336,12 +1359,15 @@ void main() {
         state: pending.state,
       ),
       expect: () => [
-        isA<AuthLoading>(),
-        isA<AuthError>().having(
-          (s) => s.message,
-          'message',
-          'Google sign-in failed. Please try again.',
-        ),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'exchanging_code'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'unexpected_error')
+            .having((s) => s.isError, 'isError', true),
       ],
       verify: (_) {
         verify(() => mockOAuthPendingRequestStore.clear()).called(1);
@@ -1370,7 +1396,17 @@ void main() {
         ),
       ),
       expect: () => [
-        isA<AuthLoading>(),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'exchanging_code'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'loading_user'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'success')
+            .having((s) => s.isSuccess, 'isSuccess', true),
         isA<AuthAuthenticated>(),
       ],
     );
@@ -1398,7 +1434,17 @@ void main() {
         ),
       ),
       expect: () => [
-        isA<AuthLoading>(),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'callback_received'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'validating_callback'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'exchanging_code'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'loading_user'),
+        isA<AuthOAuthDiagnostic>()
+            .having((s) => s.stage, 'stage', 'success')
+            .having((s) => s.isSuccess, 'isSuccess', true),
         isA<AuthAuthenticated>(),
       ],
     );

@@ -243,10 +243,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String codeVerifier,
   }) async {
     print('🔥 POST ${ApiConstants.oauthToken}');
-print('🔥 clientId = $clientId');
-print('🔥 code = $code');
-print('🔥 redirectUri = $redirectUri');
-print('🔥 codeVerifier length = ${codeVerifier.length}');
+    print('🔥 clientId = $clientId');
+    print('🔥 code = $code');
+    print('🔥 redirectUri = $redirectUri');
+    print('🔥 codeVerifier length = ${codeVerifier.length}');
     await dioClient.dio.post(
       ApiConstants.oauthToken,
       data: {
@@ -257,10 +257,10 @@ print('🔥 codeVerifier length = ${codeVerifier.length}');
         'code_verifier': codeVerifier,
       },
       //options: Options(
-        //contentType: Headers.formUrlEncodedContentType,
-        //headers: const {
-          //'Content-Type': Headers.formUrlEncodedContentType,
-        //},
+      //contentType: Headers.formUrlEncodedContentType,
+      //headers: const {
+      //'Content-Type': Headers.formUrlEncodedContentType,
+      //},
       //),
     );
 
