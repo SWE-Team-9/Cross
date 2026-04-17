@@ -4,15 +4,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
+import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 
 import 'player_ui_state.dart';
 
 class PlayerCubit extends Cubit<PlayerUIState> {
   final AudioPlayerService _audioService;
+  final GetTrackDetailUseCase? _getTrackDetail;
   StreamSubscription<PlayerState>? _subscription;
 
-  PlayerCubit(this._audioService)
-      : super(
+  PlayerCubit(
+    this._audioService, {
+    GetTrackDetailUseCase? getTrackDetail,
+  })  : _getTrackDetail = getTrackDetail,
+        super(
           PlayerUIState(
             playerState: const PlayerState(
               status: PlayerStatus.idle,
@@ -25,7 +30,13 @@ class PlayerCubit extends Cubit<PlayerUIState> {
 
   void _listenToPlayer() {
     _subscription = _audioService.playerStateStream.listen((playerState) {
-      emit(state.copyWith(playerState: playerState));
+      final serviceTrack = _trackFromServiceState(playerState);
+      emit(
+        state.copyWith(
+          playerState: playerState,
+          currentTrack: serviceTrack ?? state.currentTrack,
+        ),
+      );
     });
   }
 
@@ -46,7 +57,10 @@ class PlayerCubit extends Cubit<PlayerUIState> {
   }) async {
     if (tracks.isEmpty) return;
     final safeIndex = startIndex.clamp(0, tracks.length - 1).toInt();
-    final track = tracks[safeIndex];
+    final playableTracks = await _resolvePlayableTrackAt(tracks, safeIndex);
+    if (playableTracks == null) return;
+
+    final track = playableTracks[safeIndex];
     final played = Set<String>.from(state.playedTrackIds);
 
     if (state.currentTrack != null) {
@@ -54,13 +68,18 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     }
 
     emit(state.copyWith(
+      playerState: state.playerState.copyWith(
+        queue: playableTracks,
+        currentIndex: safeIndex,
+        source: source,
+      ),
       currentTrack: track,
       playedTrackIds: played,
       showMiniPlayer: true,
     ));
 
     await _audioService.playFromContext(
-      tracks: tracks,
+      tracks: playableTracks,
       startIndex: safeIndex,
       source: source,
     );
@@ -100,6 +119,114 @@ class PlayerCubit extends Cubit<PlayerUIState> {
 
   Future<void> stop() async {
     await _audioService.stop();
+  }
+
+  Future<void> playNext() async {
+    final tracks = state.queue;
+    final currentIndex = state.currentIndex;
+    if (tracks.isEmpty || currentIndex < 0) return;
+    if (currentIndex >= tracks.length - 1) return;
+
+    await playFromContext(
+      tracks: tracks,
+      startIndex: currentIndex + 1,
+      source: state.playerState.source ?? 'queue',
+    );
+  }
+
+  Future<void> playPrevious() async {
+    final tracks = state.queue;
+    final currentIndex = state.currentIndex;
+    if (tracks.isEmpty || currentIndex <= 0) return;
+
+    await playFromContext(
+      tracks: tracks,
+      startIndex: currentIndex - 1,
+      source: state.playerState.source ?? 'queue',
+    );
+  }
+
+  void addPlayNext(Track track) {
+    final queue = List<Track>.from(state.queue);
+    final currentTrack = state.currentTrack;
+    if (currentTrack?.id == track.id) return;
+
+    final currentId = currentTrack?.id;
+    queue.removeWhere((item) => item.id == track.id);
+
+    var currentIndex = currentId == null
+        ? state.currentIndex
+        : queue.indexWhere((item) => item.id == currentId);
+    if (currentIndex < 0 || currentIndex >= queue.length) {
+      currentIndex =
+          queue.isEmpty ? -1 : state.currentIndex.clamp(0, queue.length - 1);
+    }
+
+    final insertAt = currentIndex < 0
+        ? 0
+        : (currentIndex + 1).clamp(0, queue.length).toInt();
+    queue.insert(insertAt, track);
+
+    emit(
+      state.copyWith(
+        playerState: state.playerState.copyWith(
+          queue: queue,
+          currentIndex: currentIndex < 0 ? 0 : currentIndex,
+        ),
+        showMiniPlayer: true,
+      ),
+    );
+  }
+
+  void addPlayLast(Track track) {
+    final queue = List<Track>.from(state.queue);
+    final currentTrack = state.currentTrack;
+    if (currentTrack?.id == track.id) return;
+
+    queue.removeWhere((item) => item.id == track.id);
+    queue.add(track);
+
+    final currentIndex = currentTrack == null
+        ? state.currentIndex
+        : queue.indexWhere((item) => item.id == currentTrack.id);
+
+    emit(
+      state.copyWith(
+        playerState: state.playerState.copyWith(
+          queue: queue,
+          currentIndex: currentIndex >= 0 ? currentIndex : state.currentIndex,
+        ),
+        showMiniPlayer: true,
+      ),
+    );
+  }
+
+  Future<List<Track>?> _resolvePlayableTrackAt(
+    List<Track> tracks,
+    int index,
+  ) async {
+    final resolvedTracks = List<Track>.from(tracks);
+    final selected = resolvedTracks[index];
+    if (selected.audioUrl.trim().isNotEmpty) {
+      return resolvedTracks;
+    }
+
+    final getTrackDetail = _getTrackDetail;
+    if (getTrackDetail == null) return null;
+
+    final result = await getTrackDetail(selected.id);
+    final detail = result.detail;
+    if (result.failure != null || detail == null) return null;
+
+    resolvedTracks[index] = detail.toPlaybackTrack();
+    return resolvedTracks;
+  }
+
+  Track? _trackFromServiceState(PlayerState playerState) {
+    final queue = playerState.queue;
+    final index = playerState.currentIndex;
+    if (queue.isEmpty || index < 0 || index >= queue.length) return null;
+    return queue[index];
   }
 
   void openFullPlayer() {

@@ -318,6 +318,15 @@ void main() {
       when(() => playerCubit.togglePlayPause()).thenAnswer((_) async {});
       when(() => playerCubit.seek(any())).thenAnswer((_) async {});
       when(() => playerCubit.play(any())).thenAnswer((_) async {});
+      when(() => playerCubit.playNext()).thenAnswer((_) async {});
+      when(() => playerCubit.playPrevious()).thenAnswer((_) async {});
+      when(
+        () => playerCubit.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: any(named: 'startIndex'),
+          source: any(named: 'source'),
+        ),
+      ).thenAnswer((_) async {});
 
       when(() => playbackCubit.state).thenReturn(emptyPlaybackState);
       when(() => playbackCubit.stream)
@@ -475,10 +484,11 @@ void main() {
 
     testWidgets('opens empty queue sheet when queue is empty', (tester) async {
       when(() => playerCubit.state).thenReturn(PlayerUIState(
-        playerState: const PlayerState(
+        playerState: PlayerState(
           status: PlayerStatus.paused,
           position: Duration(seconds: 10),
           duration: Duration(seconds: 120),
+          queue: [track, queueTrack],
         ),
         currentTrack: track,
       ));
@@ -508,14 +518,6 @@ void main() {
       ));
       when(() => playerCubit.stream)
           .thenAnswer((_) => const Stream<PlayerUIState>.empty());
-      when(() => playbackCubit.state).thenReturn(
-        emptyPlaybackState.copyWith(
-          currentTrack: track,
-          queue: [track, queueTrack],
-        ),
-      );
-      when(() => playbackCubit.playTrack(queueTrack, any()))
-          .thenAnswer((_) async {});
 
       await tester.pumpWidget(buildFullPlayer());
       await tester.pump();
@@ -525,30 +527,27 @@ void main() {
       await tester.tap(find.text('Song 2'));
       await tester.pumpAndSettle();
 
-      verify(() => playbackCubit.playTrack(queueTrack, any())).called(1);
-      verify(() => playerCubit.play(queueTrack)).called(1);
+      verify(
+        () => playerCubit.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: 1,
+          source: 'queue',
+        ),
+      ).called(1);
     });
 
-    testWidgets('skip next syncs displayed track from playback',
-        (tester) async {
+    testWidgets('skip next delegates to player queue', (tester) async {
       when(() => playerCubit.state).thenReturn(PlayerUIState(
-        playerState: const PlayerState(
+        playerState: PlayerState(
           status: PlayerStatus.playing,
           position: Duration(seconds: 10),
           duration: Duration(seconds: 120),
+          queue: [track, queueTrack],
         ),
         currentTrack: track,
       ));
       when(() => playerCubit.stream)
           .thenAnswer((_) => const Stream<PlayerUIState>.empty());
-      when(() => playbackCubit.state).thenReturn(
-        emptyPlaybackState.copyWith(
-          currentTrack: queueTrack,
-          queue: [track, queueTrack],
-        ),
-      );
-      when(() => getTrackCommentsUseCase('t2'))
-          .thenAnswer((_) async => const []);
 
       await tester.pumpWidget(buildFullPlayer());
       await tester.pump();
@@ -556,15 +555,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.skip_next));
       await tester.pump(const Duration(milliseconds: 20));
 
-      verify(() => playbackCubit.playNext()).called(1);
-      verify(() => playerCubit.play(queueTrack)).called(1);
-      verify(
-        () => trackInteractionCubit.load(
-          trackId: 't2',
-          likesCount: 4,
-          repostsCount: 1,
-        ),
-      ).called(1);
+      verify(() => playerCubit.playNext()).called(1);
+      verifyNever(() => playbackCubit.playNext());
     });
 
     testWidgets('opens comments page and triggers comments cubit load',
