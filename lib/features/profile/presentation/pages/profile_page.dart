@@ -749,13 +749,13 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   decoration: BoxDecoration(
                     color: _isFollowing
-                        ? const Color(0xFFFF5500)
-                        : Colors.transparent,
+                        ? const Color(0xFF1A1A1A)
+                        : const Color(0xFFFF5500),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: _isFollowing
-                          ? const Color(0xFFFF5500)
-                          : const Color(0xFF555555),
+                          ? const Color(0xFF555555)
+                          : const Color(0xFFFF5500),
                     ),
                   ),
                   alignment: Alignment.center,

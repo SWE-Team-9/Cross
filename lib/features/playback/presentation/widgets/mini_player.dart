@@ -48,7 +48,7 @@ class MiniPlayer extends StatelessWidget {
     return BlocBuilder<PlayerCubit, PlayerUIState>(
       builder: (context, state) {
         final track = state.currentTrack;
-        if (track == null || !state.showMiniPlayer) {
+        if (track == null) {
           return const SizedBox.shrink();
         }
 

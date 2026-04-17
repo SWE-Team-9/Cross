@@ -74,8 +74,7 @@ class App extends StatelessWidget {
             return BlocBuilder<PlayerCubit, PlayerUIState>(
               builder: (context, playerState) {
                 final isPlayerOpen = playerState.isFullScreen;
-                final hasMiniPlayerTrack =
-                    playerState.currentTrack != null && playerState.showMiniPlayer;
+                final hasMiniPlayerTrack = playerState.currentTrack != null;
 
                 return _DeepLinkBridge(
                   child: Scaffold(

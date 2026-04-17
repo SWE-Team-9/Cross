@@ -95,18 +95,43 @@ class _MockHomePageState extends State<MockHomePage> {
 
   Future<List<dynamic>> _fetchTrendingRawTracks() async {
     final dioClient = GetIt.I<DioClient>();
-    List<String> suggestionUserIds = const <String>[];
+    final List<dynamic> collected = <dynamic>[];
+    final Set<String> seenTrackIds = <String>{};
+    final Set<String> suggestionUserIds = <String>{};
+
+    void addTracks(Iterable<dynamic> tracks) {
+      for (final raw in tracks) {
+        if (raw is! Map) continue;
+        final map = Map<String, dynamic>.from(raw);
+        final nestedTrack = map['track'];
+        final source =
+            nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+        final id = (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
+            .toString()
+            .trim();
+        if (id.isEmpty || seenTrackIds.contains(id)) continue;
+        seenTrackIds.add(id);
+        collected.add(raw);
+      }
+    }
+
+    try {
+      final globalTracksResponse = await dioClient.get(
+        ApiConstants.tracks,
+        queryParameters: const <String, dynamic>{'page': 1, 'limit': 50},
+      );
+      addTracks(_extractTracksList(globalTracksResponse.data));
+    } catch (_) {}
+
     try {
       final suggestionsResponse = await dioClient.get(
         ApiConstants.suggestedUsersPath,
         queryParameters: const <String, dynamic>{'limit': 50},
       );
       final suggestionsTracks = _extractTracksList(suggestionsResponse.data);
-      if (suggestionsTracks.isNotEmpty) return suggestionsTracks;
-      suggestionUserIds = _extractSuggestedUserIds(suggestionsResponse.data);
-    } catch (_) {
-      suggestionUserIds = const <String>[];
-    }
+      addTracks(suggestionsTracks);
+      suggestionUserIds.addAll(_extractSuggestedUserIds(suggestionsResponse.data));
+    } catch (_) {}
 
     if (suggestionUserIds.isNotEmpty) {
       final userTracksLists = await Future.wait(
@@ -130,7 +155,7 @@ class _MockHomePageState extends State<MockHomePage> {
       final aggregated = userTracksLists
           .expand((tracks) => tracks)
           .toList(growable: false);
-      if (aggregated.isNotEmpty) return aggregated;
+      addTracks(aggregated);
     }
 
     try {
@@ -138,10 +163,10 @@ class _MockHomePageState extends State<MockHomePage> {
         ApiConstants.userTracksPath('me'),
         queryParameters: const <String, dynamic>{'page': 1, 'limit': 50},
       );
-      return _extractTracksList(fallbackResponse.data);
-    } catch (_) {
-      return const <dynamic>[];
-    }
+      addTracks(_extractTracksList(fallbackResponse.data));
+    } catch (_) {}
+
+    return collected;
   }
 
   List<String> _extractSuggestedUserIds(dynamic responseData) {
@@ -263,9 +288,18 @@ class _MockHomePageState extends State<MockHomePage> {
 
     if (resolvedGenre.trim().isEmpty) return false;
 
-    final normalizedResolved = resolvedGenre.trim().toUpperCase();
-    final normalizedSelected = selectedGenre.trim().toUpperCase();
+    final normalizedResolved = _normalizeGenreToken(resolvedGenre);
+    final normalizedSelected = _normalizeGenreToken(selectedGenre);
     return normalizedResolved == normalizedSelected;
+  }
+
+  String _normalizeGenreToken(String value) {
+    final upper = value.trim().toUpperCase();
+    if (upper.isEmpty) return upper;
+
+    final compact = upper.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (compact == 'HIPHOP') return 'HIPHOP';
+    return compact;
   }
 
   int _asInt(dynamic value) {
