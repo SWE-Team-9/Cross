@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -184,7 +185,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         currentWebsite != (_initialProfile.website ?? '') ||
         _selectedAccountTier != _initialProfile.accountTier ||
         _isPrivate != _initialProfile.isPrivate ||
-        !_listEquals(normalizedFavoriteGenres, initialFavoriteGenres) ||
+        !listEquals(normalizedFavoriteGenres, initialFavoriteGenres) ||
         _pendingAvatarImagePath != null ||
         _pendingCoverImagePath != null ||
         !_mapEquals(currentLinks, _initialProfile.externalLinks);
@@ -347,7 +348,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ? normalizedLinks
           : null,
       favoriteGenres:
-          !_listEquals(normalizedFavoriteGenres, initialFavoriteGenres)
+          !listEquals(normalizedFavoriteGenres, initialFavoriteGenres)
               ? normalizedFavoriteGenres
               : null,
     );
@@ -1394,14 +1395,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         indent: 16,
         endIndent: 16,
       );
-}
-
-bool _listEquals(List<String> first, List<String> second) {
-  if (first.length != second.length) return false;
-  for (int i = 0; i < first.length; i++) {
-    if (first[i] != second[i]) return false;
-  }
-  return true;
 }
 
 class _EditableExternalLink {
