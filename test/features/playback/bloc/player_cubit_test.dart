@@ -216,7 +216,7 @@ void main() {
         () async {
       await cubit.play(testTrack);
 
-      cubit.addPlayNext(nextTrack);
+      await cubit.addPlayNext(nextTrack);
 
       expect(cubit.state.queue, [testTrack, nextTrack]);
       expect(cubit.state.currentIndex, 0);
@@ -229,6 +229,18 @@ void main() {
             tracks: any(named: 'tracks'),
             startIndex: 1,
             source: 'single',
+          )).called(1);
+    });
+
+    test('addPlayNext starts playback when queue is empty', () async {
+      await cubit.addPlayNext(testTrack);
+
+      expect(cubit.state.currentTrack, testTrack);
+      expect(cubit.state.currentIndex, 0);
+      verify(() => mockService.playFromContext(
+            tracks: [testTrack],
+            startIndex: 0,
+            source: 'queue',
           )).called(1);
     });
   });
