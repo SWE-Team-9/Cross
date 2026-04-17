@@ -168,16 +168,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final currentBio = _bioController.text.trim();
     final currentWebsite = _websiteController.text.trim();
     final currentLinks = _buildExternalLinksMap();
-    final normalizedFavoriteGenres = _selectedFavoriteGenres
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false)
-      ..sort();
-    final initialFavoriteGenres = _initialProfile.favoriteGenres
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false)
-      ..sort();
+    final normalizedFavoriteGenres =
+        _normalizeSortedGenres(_selectedFavoriteGenres);
+    final initialFavoriteGenres =
+        _normalizeSortedGenres(_initialProfile.favoriteGenres);
 
     return _displayNameController.text.trim() != _initialProfile.displayName ||
         currentBio != (_initialProfile.bio ?? '') ||
@@ -314,16 +308,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final String trimmedBio = _bioController.text.trim();
     final String trimmedWebsite = _normalizeUrl(_websiteController.text.trim());
     final normalizedLinks = _buildExternalLinksMap();
-    final normalizedFavoriteGenres = _selectedFavoriteGenres
-        .map((genre) => genre.trim())
-        .where((genre) => genre.isNotEmpty)
-        .toList(growable: false)
-      ..sort();
-    final initialFavoriteGenres = _initialProfile.favoriteGenres
-        .map((genre) => genre.trim())
-        .where((genre) => genre.isNotEmpty)
-        .toList(growable: false)
-      ..sort();
+    final normalizedFavoriteGenres =
+        _normalizeSortedGenres(_selectedFavoriteGenres);
+    final initialFavoriteGenres =
+        _normalizeSortedGenres(_initialProfile.favoriteGenres);
     final hadPendingImageChanges =
         _pendingAvatarImagePath != null || _pendingCoverImagePath != null;
 
@@ -1395,6 +1383,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
         indent: 16,
         endIndent: 16,
       );
+
+  List<String> _normalizeSortedGenres(List<String> genres) {
+    final result = genres
+        .map((genre) => genre.trim())
+        .where((genre) => genre.isNotEmpty)
+        .toList(growable: false);
+    result.sort();
+    return result;
+  }
 }
 
 class _EditableExternalLink {

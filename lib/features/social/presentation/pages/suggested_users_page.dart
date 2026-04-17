@@ -11,7 +11,7 @@ class SuggestedUsersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => SuggestedUsersCubit(context.read<SocialRepo>())..loadInitial(),
+      create: (_) => SuggestedUsersCubit(context.read<SocialRepo>()),
       child: const _SuggestedUsersView(),
     );
   }
@@ -30,6 +30,7 @@ class _SuggestedUsersViewState extends State<_SuggestedUsersView> {
   @override
   void initState() {
     super.initState();
+    context.read<SuggestedUsersCubit>().loadInitial();
     _scrollController.addListener(_onScroll);
   }
 
