@@ -16,6 +16,7 @@ class ProfileDto {
   final int trackCount;
   final int? followersCount;
   final int? followingCount;
+  final bool isFollowing;
 
   const ProfileDto({
     this.id,
@@ -33,6 +34,7 @@ class ProfileDto {
     required this.trackCount,
     this.followersCount,
     this.followingCount,
+    this.isFollowing = false,
   });
 
   factory ProfileDto.fromJson(Map<String, dynamic> json) {
@@ -75,6 +77,13 @@ class ProfileDto {
           (json['followers_count'] ?? json['followersCount']) as int?,
       followingCount:
           (json['following_count'] ?? json['followingCount']) as int?,
+      isFollowing: _toBool(
+        json['isFollowing'] ??
+            json['is_following'] ??
+            json['followedByMe'] ??
+            json['followed_by_me'] ??
+            false,
+      ),
     );
   }
 
@@ -100,7 +109,13 @@ class ProfileDto {
           : ProfileVisibility.PUBLIC,
       followersCount: followersCount ?? 0,
       followingCount: followingCount ?? 0,
+      isFollowing: isFollowing,
     );
+  }
+
+  static bool _toBool(dynamic value) {
+    if (value is bool) return value;
+    return value?.toString().toLowerCase() == 'true';
   }
 
   static Map<String, String> _parseLinks(dynamic rawLinks) {

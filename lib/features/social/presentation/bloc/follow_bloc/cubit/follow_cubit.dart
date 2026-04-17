@@ -11,6 +11,8 @@ class FollowCubit extends Cubit<FollowState> {
   final SocialRepo repo;
   final String userId;
   final FollowListMode mode;
+  final String? viewerUserId;
+  Set<String>? _viewerFollowingIds;
 
   static const int _pageLimit = 20;
 
@@ -18,9 +20,11 @@ class FollowCubit extends Cubit<FollowState> {
     required this.repo,
     required this.userId,
     required this.mode,
+    this.viewerUserId,
   }) : super(const FollowState(users: []));
 
   Future<void> loadInitial() async {
+    _viewerFollowingIds = null;
     emit(state.copyWith(
         loading: true, users: [], currentPage: 0, hasMore: true));
     await _fetchPage(1);
@@ -37,19 +41,63 @@ class FollowCubit extends Cubit<FollowState> {
       final List<User> fetched = mode == FollowListMode.followers
           ? await repo.getFollowers(userId, page, limit: _pageLimit)
           : await repo.getFollowing(userId, page, limit: _pageLimit);
+      final normalizedFetched = await _applyViewerFollowingState(fetched);
 
-      final allUsers = page == 1 ? fetched : [...state.users, ...fetched];
+      final allUsers =
+          page == 1 ? normalizedFetched : [...state.users, ...normalizedFetched];
 
       emit(state.copyWith(
         users: allUsers,
         loading: false,
         currentPage: page,
-        hasMore: fetched.length >= _pageLimit,
+        hasMore: normalizedFetched.length >= _pageLimit,
         error: null,
       ));
     } catch (e) {
       emit(state.copyWith(loading: false, error: e.toString()));
     }
+  }
+
+  Future<List<User>> _applyViewerFollowingState(List<User> users) async {
+    if (users.isEmpty || viewerUserId == null || viewerUserId!.trim().isEmpty) {
+      return users;
+    }
+
+    final followingIds = await _loadViewerFollowingIds();
+    if (followingIds.isEmpty) return users;
+
+    return users
+        .map(
+          (user) => user.copyWith(
+            isFollowing: followingIds.contains(user.id),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<Set<String>> _loadViewerFollowingIds() async {
+    if (_viewerFollowingIds != null) return _viewerFollowingIds!;
+
+    final resolved = <String>{};
+    var page = 1;
+    const limit = 100;
+
+    try {
+      while (true) {
+        final chunk = await repo.getFollowing(viewerUserId!, page, limit: limit);
+        for (final user in chunk) {
+          if (user.id.trim().isNotEmpty) {
+            resolved.add(user.id);
+          }
+        }
+
+        if (chunk.length < limit || page >= 10) break;
+        page++;
+      }
+    } catch (_) {}
+
+    _viewerFollowingIds = resolved;
+    return _viewerFollowingIds!;
   }
 
   Future<void> toggleFollow(User user) async {
@@ -80,6 +128,11 @@ class FollowCubit extends Cubit<FollowState> {
             followersCount: result.followersCount,
           );
         }).toList();
+        if (result.isFollowing) {
+          _viewerFollowingIds?.add(user.id);
+        } else {
+          _viewerFollowingIds?.remove(user.id);
+        }
         emit(state.copyWith(users: confirmed));
         SocialEvents.emitFollowChanged();
       } else {
@@ -91,6 +144,11 @@ class FollowCubit extends Cubit<FollowState> {
             followersCount: result.followersCount ?? u.followersCount,
           );
         }).toList();
+        if (result.isFollowing) {
+          _viewerFollowingIds?.add(user.id);
+        } else {
+          _viewerFollowingIds?.remove(user.id);
+        }
         emit(state.copyWith(users: confirmed));
         SocialEvents.emitFollowChanged();
       }
@@ -113,6 +171,7 @@ class FollowCubit extends Cubit<FollowState> {
       if (result.isFollowing) {
         emit(state.copyWith(users: snapshot));
       } else {
+        _viewerFollowingIds?.remove(user.id);
         SocialEvents.emitFollowChanged();
       }
     } catch (_) {

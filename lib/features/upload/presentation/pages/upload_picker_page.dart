@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../auth/presentation/bloc/auth_cubit.dart';
-import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../bloc/upload_picker_cubit.dart';
 import '../bloc/upload_picker_state.dart';
@@ -31,7 +30,6 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
   @override
   void initState() {
     super.initState();
-    context.read<PlayerCubit>().hideMiniPlayer();
     _titleController = TextEditingController();
     _tagsController = TextEditingController();
     _descriptionController = TextEditingController();
@@ -39,7 +37,6 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
 
   @override
   void dispose() {
-    context.read<PlayerCubit>().showMiniPlayer();
     _titleController.dispose();
     _tagsController.dispose();
     _descriptionController.dispose();

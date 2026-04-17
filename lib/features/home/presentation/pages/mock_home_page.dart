@@ -95,15 +95,19 @@ class _MockHomePageState extends State<MockHomePage> {
 
   Future<List<dynamic>> _fetchTrendingRawTracks() async {
     final dioClient = GetIt.I<DioClient>();
+    List<String> suggestionUserIds = const <String>[];
+    try {
+      final suggestionsResponse = await dioClient.get(
+        ApiConstants.suggestedUsersPath,
+        queryParameters: const <String, dynamic>{'limit': 50},
+      );
+      final suggestionsTracks = _extractTracksList(suggestionsResponse.data);
+      if (suggestionsTracks.isNotEmpty) return suggestionsTracks;
+      suggestionUserIds = _extractSuggestedUserIds(suggestionsResponse.data);
+    } catch (_) {
+      suggestionUserIds = const <String>[];
+    }
 
-    final suggestionsResponse = await dioClient.get(
-      ApiConstants.suggestedUsersPath,
-      queryParameters: const <String, dynamic>{'limit': 100},
-    );
-    final suggestionsTracks = _extractTracksList(suggestionsResponse.data);
-    if (suggestionsTracks.isNotEmpty) return suggestionsTracks;
-
-    final suggestionUserIds = _extractSuggestedUserIds(suggestionsResponse.data);
     if (suggestionUserIds.isNotEmpty) {
       final userTracksLists = await Future.wait(
         suggestionUserIds.take(12).map(
@@ -129,11 +133,15 @@ class _MockHomePageState extends State<MockHomePage> {
       if (aggregated.isNotEmpty) return aggregated;
     }
 
-    final fallbackResponse = await dioClient.get(
-      ApiConstants.userTracksPath('me'),
-      queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
-    );
-    return _extractTracksList(fallbackResponse.data);
+    try {
+      final fallbackResponse = await dioClient.get(
+        ApiConstants.userTracksPath('me'),
+        queryParameters: const <String, dynamic>{'page': 1, 'limit': 50},
+      );
+      return _extractTracksList(fallbackResponse.data);
+    } catch (_) {
+      return const <dynamic>[];
+    }
   }
 
   List<String> _extractSuggestedUserIds(dynamic responseData) {

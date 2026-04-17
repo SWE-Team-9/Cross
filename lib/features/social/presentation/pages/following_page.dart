@@ -37,6 +37,9 @@ class FollowingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repo = context.read<SocialRepo>();
+    final authState = context.read<AuthCubit>().state;
+    final viewerUserId =
+        authState is AuthAuthenticated ? authState.user.id : null;
 
     return FutureBuilder<String?>(
       future: _resolveTargetUserId(context, repo),
@@ -68,6 +71,7 @@ class FollowingPage extends StatelessWidget {
             repo: repo,
             userId: resolvedId,
             mode: FollowListMode.following,
+            viewerUserId: viewerUserId,
           )..loadInitial(),
           child: const _FollowingView(),
         );

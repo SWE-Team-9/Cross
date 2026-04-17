@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +12,8 @@ import '../../../../core/utils/platform_url_utils.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
+import '../../../social/data/repositories/social_repo.dart';
+import '../../../social/domain/events/social_events.dart';
 import '../../../upload/domain/entities/managed_track.dart';
 import '../../../upload/presentation/models/apply_track_management_result.dart';
 import '../../../upload/presentation/models/track_management_result.dart';
@@ -69,7 +73,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   bool _isFollowing = false;
+  bool _isFollowActionInFlight = false;
   bool _didSeedInitialTracks = false;
+  Set<String>? _viewerFollowingIds;
 
   List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
@@ -122,6 +128,114 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         _managedTracks = state.tracks;
         _likedTracks = state.likedTracks;
         _repostedTracks = state.repostedTracks;
+      });
+    }
+  }
+
+  void _syncFollowState(ProfileState state) {
+    if (!mounted || _isOwnProfile || _isFollowActionInFlight) return;
+
+    final profile = switch (state) {
+      ProfileLoaded s => s.profile,
+      ProfileUpdating s => s.currentProfile,
+      ProfileUpdateSuccess s => s.updatedProfile,
+      ProfileUpdateError s => s.currentProfile,
+      ProfileImageUploading s => s.currentProfile,
+      ProfileImageUploadError s => s.currentProfile,
+      _ => null,
+    };
+
+    if (profile == null) return;
+
+    unawaited(_syncFollowStateFromProfile(profile));
+  }
+
+  Future<void> _syncFollowStateFromProfile(ProfileEntity profile) async {
+    var resolved = profile.isFollowing;
+
+    if (!resolved) {
+      resolved = await _viewerFollowsUser(profile.id);
+    }
+
+    if (!mounted || _isFollowActionInFlight) return;
+    if (_isFollowing != resolved) {
+      setState(() {
+        _isFollowing = resolved;
+      });
+    }
+  }
+
+  Future<bool> _viewerFollowsUser(String userId) async {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! AuthAuthenticated || userId.trim().isEmpty) return false;
+    if (authState.user.id == userId.trim()) return false;
+
+    final followingIds = await _loadViewerFollowingIds(authState.user.id);
+    return followingIds.contains(userId.trim());
+  }
+
+  Future<Set<String>> _loadViewerFollowingIds(String viewerId) async {
+    if (_viewerFollowingIds != null) return _viewerFollowingIds!;
+
+    final repo = getIt<SocialRepo>();
+    final resolved = <String>{};
+    var page = 1;
+    const limit = 100;
+
+    try {
+      while (true) {
+        final users = await repo.getFollowing(viewerId, page, limit: limit);
+        for (final user in users) {
+          if (user.id.trim().isNotEmpty) {
+            resolved.add(user.id.trim());
+          }
+        }
+
+        if (users.length < limit || page >= 10) break;
+        page++;
+      }
+    } catch (_) {}
+
+    _viewerFollowingIds = resolved;
+    return _viewerFollowingIds!;
+  }
+
+  Future<void> _toggleFollow(ProfileEntity profile) async {
+    if (_isOwnProfile || _isFollowActionInFlight || profile.id.trim().isEmpty) {
+      return;
+    }
+
+    final previous = _isFollowing;
+    setState(() {
+      _isFollowActionInFlight = true;
+      _isFollowing = !previous;
+    });
+
+    try {
+      final repo = getIt<SocialRepo>();
+      if (previous) {
+        final result = await repo.unfollowUser(profile.id);
+        setState(() {
+          _isFollowing = result.isFollowing;
+          _viewerFollowingIds?.remove(profile.id);
+        });
+      } else {
+        final result = await repo.followUser(profile.id);
+        setState(() {
+          _isFollowing = result.isFollowing;
+          _viewerFollowingIds?.add(profile.id);
+        });
+      }
+      SocialEvents.emitFollowChanged();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isFollowing = previous;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isFollowActionInFlight = false;
       });
     }
   }
@@ -438,7 +552,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return BlocListener<AuthCubit, AuthState>(
       listener: _handleAuthStateChanges,
       child: BlocListener<ProfileCubit, ProfileState>(
-        listener: (context, state) => _syncManagedTracks(state),
+        listener: (context, state) {
+          _syncManagedTracks(state);
+          _syncFollowState(state);
+        },
         child: BlocBuilder<ProfileCubit, ProfileState>(
           builder: (context, state) {
             if (state is ProfileLoading) {
@@ -625,7 +742,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           else
             Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => _isFollowing = !_isFollowing),
+                onTap: _isFollowActionInFlight
+                    ? null
+                    : () => _toggleFollow(profile),
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   decoration: BoxDecoration(
@@ -641,7 +760,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    _isFollowing ? 'Following' : 'Follow',
+                    _isFollowActionInFlight
+                        ? '...'
+                        : (_isFollowing ? 'Following' : 'Follow'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
