@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:get_it/get_it.dart';
+
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
+import 'package:soundcloud_clone/core/services/audio_player_service.dart';
+
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_state.dart';
 
 class MockPlayerCubit extends MockCubit<PlayerUIState> implements PlayerCubit {}
 
-class MockPlaybackCubit extends MockCubit<PlaybackState>
-    implements PlaybackCubit {}
+class MockAudioPlayerService extends Mock implements AudioPlayerService {}
 
 void main() {
   final track = const Track(
@@ -22,48 +23,30 @@ void main() {
     title: 'Track 1',
     artist: 'Artist 1',
     audioUrl: 'https://cdn/1.mp3',
-    handle: 'artist1',
   );
+
   final nextTrack = const Track(
     id: 't2',
     title: 'Track 2',
     artist: 'Artist 2',
     audioUrl: 'https://cdn/2.mp3',
-    handle: 'artist2',
   );
 
   late MockPlayerCubit playerCubit;
-  late MockPlaybackCubit playbackCubit;
+  late MockAudioPlayerService audioService;
 
   setUpAll(() {
-    registerFallbackValue(
-      const Track(
-          id: 'fallback',
-          title: 'fallback',
-          artist: 'fallback',
-          audioUrl: 'fallback'),
-    );
+    registerFallbackValue(track);
     registerFallbackValue(<Track>[]);
   });
 
-  Widget buildSubject({List<Track>? queue}) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<PlayerCubit>.value(value: playerCubit),
-        BlocProvider<PlaybackCubit>.value(value: playbackCubit),
-      ],
-      child: MaterialApp(
-        home: Scaffold(
-          backgroundColor: Colors.black,
-          body: TrackRow(track: track, queue: queue),
-        ),
-      ),
-    );
-  }
+  setUp(() async {
+    await GetIt.I.reset();
 
-  setUp(() {
     playerCubit = MockPlayerCubit();
-    playbackCubit = MockPlaybackCubit();
+    audioService = MockAudioPlayerService();
+
+    GetIt.I.registerSingleton<AudioPlayerService>(audioService);
 
     when(() => playerCubit.state).thenReturn(
       const PlayerUIState(
@@ -73,19 +56,44 @@ void main() {
         ),
       ),
     );
-    when(() => playerCubit.stream)
-        .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+
+    when(() => playerCubit.stream).thenAnswer((_) => const Stream.empty());
+
     when(() => playerCubit.play(any())).thenAnswer((_) async {});
 
-    when(() => playbackCubit.state).thenReturn(const PlaybackState());
-    when(() => playbackCubit.stream)
-        .thenAnswer((_) => const Stream<PlaybackState>.empty());
-    when(() => playbackCubit.playTrack(any(), any())).thenAnswer((_) async {});
+    when(() => audioService.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: any(named: 'startIndex'),
+          source: any(named: 'source'),
+        )).thenAnswer((_) async {});
   });
+
+  Widget buildSubject({List<Track>? queue}) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<PlayerCubit>.value(value: playerCubit),
+      ],
+      child: MaterialApp(
+        home: Scaffold(
+          backgroundColor: Colors.black,
+          body: Builder(
+            builder: (context) {
+              return TrackRow(
+                track: track,
+                queue: queue ?? [track],
+                source: "test",
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 
   testWidgets('renders title and artist when track is not playing',
       (tester) async {
     await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
 
     expect(find.text('Track 1'), findsOneWidget);
     expect(find.text('Artist 1'), findsOneWidget);
@@ -106,20 +114,27 @@ void main() {
     );
 
     await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
 
     expect(find.text('Now Playing'), findsOneWidget);
     expect(find.text('Artist 1'), findsNothing);
   });
 
-  testWidgets('tap plays track and remaining queue from current index',
-      (tester) async {
+  testWidgets('tap plays track using context queue', (tester) async {
     final queue = [nextTrack, track];
 
     await tester.pumpWidget(buildSubject(queue: queue));
-    await tester.tap(find.byType(InkWell).first);
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    verify(() => playbackCubit.playTrack(track, [track])).called(1);
+    await tester.tap(find.byType(InkWell).first);
+    await tester.pumpAndSettle();
+
+    verify(() => audioService.playFromContext(
+          tracks: queue,
+          startIndex: 1,
+          source: "test",
+        )).called(1);
+
     verify(() => playerCubit.play(track)).called(1);
   });
 }

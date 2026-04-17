@@ -32,6 +32,12 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> dispose() async {}
+  @override
+  Future<void> playFromContext({
+    required List<Track> tracks,
+    required int startIndex,
+    required String source,
+  }) async {}
 }
 
 void main() {
