@@ -81,16 +81,24 @@ void _handleDeepLinkDestination(
     case TrackDeepLink(:final trackId):
       path = _trackPath(trackId);
       debugPrint('[DeepLink] TrackDeepLink — path: $path');
+
     case SecretTrackDeepLink(:final secretToken):
       path = _secretPath(secretToken);
+
     case ProfileDeepLink(:final handle):
       path = _profilePath(handle);
+
     case PlaylistDeepLink(:final playlistId):
       path = _playlistPath(playlistId);
+
     case SearchDeepLink(:final query):
       path = _searchPath(query);
+
     case OAuthCallbackDeepLink():
+      debugPrint('[DeepLink] OAuth callback received');
+      router.go('/oauth-debug', extra: destination);
       return;
+
     case InvalidDeepLink(:final reason):
       debugPrint('[DeepLink] Invalid link ignored: $reason');
       return;
