@@ -50,6 +50,9 @@ class App extends StatelessWidget {
             return BlocBuilder<PlayerCubit, PlayerUIState>(
               builder: (context, playerState) {
                 final isPlayerOpen = playerState.isFullScreen;
+                const miniPlayerVisibleRoutes = <String>{
+                  AppRoutes.home,
+                };
 
                 return _DeepLinkBridge(
                   child: Scaffold(
@@ -65,10 +68,10 @@ class App extends StatelessWidget {
                               valueListenable: router.routeInformationProvider,
                               builder: (context, routeInfo, __) {
                                 final currentPath = routeInfo.uri.path;
-                                final showOnlyOnHome =
-                                    currentPath == AppRoutes.home;
+                                final showMiniPlayerOnRoute =
+                                    miniPlayerVisibleRoutes.contains(currentPath);
                                 final hide =
-                                    isPlayerOpen || sheetOpen || !showOnlyOnHome;
+                                    isPlayerOpen || sheetOpen || !showMiniPlayerOnRoute;
                                 return Positioned(
                                   left: 0,
                                   right: 0,

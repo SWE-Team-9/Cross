@@ -18,7 +18,8 @@ class SuggestedUsersCubit extends Cubit<SuggestedUsersState> {
       state.copyWith(
         isLoading: true,
         users: const <User>[],
-        hasMore: true,
+        // Backend suggestions endpoint currently returns a single limited page.
+        hasMore: false,
         currentPage: 0,
         clearError: true,
       ),
@@ -41,7 +42,6 @@ class SuggestedUsersCubit extends Cubit<SuggestedUsersState> {
           users: merged,
           isLoading: false,
           currentPage: page,
-          hasMore: false,
           clearError: true,
         ),
       );

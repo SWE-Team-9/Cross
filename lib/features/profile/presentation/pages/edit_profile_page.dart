@@ -14,6 +14,7 @@ import '../../domain/repositories/profile_repository.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
 import '../bloc/profile_cubit.dart';
 import '../bloc/profile_state.dart';
+import '../utils/genre_utils.dart';
 import '../widgets/edit_profile_country_picker.dart';
 import '../widgets/edit_profile_image_section.dart';
 import '../widgets/edit_profile_text_field.dart';
@@ -147,39 +148,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     'facebook': 'Facebook',
   };
 
-  static const List<String> _favoriteGenreOptions = [
-    'electronic',
-    'hip-hop',
-    'pop',
-    'rock',
-    'alternative',
-    'ambient',
-    'classical',
-    'jazz',
-    'r-b-soul',
-    'metal',
-    'folk-singer-songwriter',
-    'country',
-    'reggaeton',
-    'dancehall',
-    'drum-bass',
-    'house',
-    'techno',
-    'deep-house',
-    'trance',
-    'lo-fi',
-    'indie',
-    'punk',
-    'blues',
-    'latin',
-    'afrobeat',
-    'trap',
-    'experimental',
-    'world',
-    'gospel',
-    'spoken-word',
-  ];
-
   bool get _hasUnsavedChanges {
     final currentLocation =
         LocationUtils.build(_cityController.text, _selectedCountry);
@@ -267,8 +235,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _selectedAccountTier = profile.accountTier;
     _isPrivate = profile.isPrivate;
     _selectedFavoriteGenres = profile.favoriteGenres
-        .map(_toGenreSlug)
-        .where(_favoriteGenreOptions.contains)
+        .map(normalizeFavoriteGenreSlug)
+        .where(supportedFavoriteGenreSlugs.contains)
         .toList(growable: false);
     _pendingAvatarImagePath = null;
     _pendingCoverImagePath = null;
@@ -1166,10 +1134,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _favoriteGenreOptions.map((genre) {
+            children: supportedFavoriteGenreSlugs.map((genre) {
               final selected = _selectedFavoriteGenres.contains(genre);
               return FilterChip(
-                label: Text(_genreLabel(genre)),
+                label: Text(favoriteGenreLabel(genre)),
                 selected: selected,
                 onSelected: (value) {
                   setState(() {
@@ -1404,60 +1372,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   List<String> _normalizeSortedGenres(List<String> genres) {
     final result = genres
-        .map(_toGenreSlug)
-        .where(_favoriteGenreOptions.contains)
+        .map(normalizeFavoriteGenreSlug)
+        .where(supportedFavoriteGenreSlugs.contains)
         .toSet()
         .toList(growable: false);
     result.sort();
     return result;
-  }
-
-  String _toGenreSlug(String genre) {
-    final normalized = genre.trim().toLowerCase();
-    switch (normalized) {
-      case 'hip hop':
-        return 'hip-hop';
-      case 'r&b':
-      case 'r&b / soul':
-      case 'r b soul':
-        return 'r-b-soul';
-      case 'drum & bass':
-        return 'drum-bass';
-      case 'deep house':
-        return 'deep-house';
-      case 'spoken word':
-        return 'spoken-word';
-      case 'folk / singer-songwriter':
-      case 'folk singer songwriter':
-        return 'folk-singer-songwriter';
-      default:
-        return normalized.replaceAll(' ', '-');
-    }
-  }
-
-  String _genreLabel(String slug) {
-    switch (slug) {
-      case 'hip-hop':
-        return 'Hip Hop';
-      case 'r-b-soul':
-        return 'R&B / Soul';
-      case 'drum-bass':
-        return 'Drum & Bass';
-      case 'deep-house':
-        return 'Deep House';
-      case 'lo-fi':
-        return 'Lo-fi';
-      case 'spoken-word':
-        return 'Spoken Word';
-      case 'folk-singer-songwriter':
-        return 'Folk / Singer-Songwriter';
-      default:
-        return slug
-            .split('-')
-            .where((part) => part.isNotEmpty)
-            .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-            .join(' ');
-    }
   }
 }
 
