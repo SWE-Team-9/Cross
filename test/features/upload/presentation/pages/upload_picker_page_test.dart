@@ -131,7 +131,7 @@ void main() {
         find.text('Please sign in first to access audio uploads.'),
         findsOneWidget,
       );
-      expect(find.text('Select MP3 / WAV'), findsNothing);
+      expect(find.text('Select audio file'), findsNothing);
     });
 
     testWidgets(
@@ -148,7 +148,7 @@ void main() {
         find.textContaining('Your current account type is LISTENER'),
         findsOneWidget,
       );
-      expect(find.text('Select MP3 / WAV'), findsNothing);
+      expect(find.text('Select audio file'), findsNothing);
     });
 
     testWidgets('falls back to email when display name is empty',
@@ -175,9 +175,9 @@ void main() {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('Select MP3 / WAV'), findsOneWidget);
+      expect(find.text('Select audio file'), findsOneWidget);
 
-      await tester.tap(find.text('Select MP3 / WAV'));
+      await tester.tap(find.text('Select audio file'));
       await tester.pump();
 
       verify(() => mockUploadPickerCubit.pickAudioFile()).called(1);
@@ -200,7 +200,9 @@ void main() {
       expect(selectButton.onPressed, isNull);
       expect(find.text('Selecting file'), findsOneWidget);
       expect(
-        find.text('Please choose a supported MP3 or WAV file.'),
+        find.text(
+          'Please choose a supported audio file (MP3, WAV, FLAC, AIFF, M4A, AAC, OGG).',
+        ),
         findsOneWidget,
       );
     });

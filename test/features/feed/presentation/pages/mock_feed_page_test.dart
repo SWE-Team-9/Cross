@@ -56,7 +56,11 @@ void main() {
           source: any(named: 'source'),
         )).thenAnswer((_) async {});
 
-    when(() => playerCubit.play(any())).thenAnswer((_) async {});
+    when(() => playerCubit.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: any(named: 'startIndex'),
+          source: any(named: 'source'),
+        )).thenAnswer((_) async {});
   });
 
   Widget buildSubject() {
@@ -84,12 +88,10 @@ void main() {
     await tester.tap(find.byType(GestureDetector).first);
     await tester.pumpAndSettle();
 
-    verify(() => audioService.playFromContext(
+    verify(() => playerCubit.playFromContext(
           tracks: any(named: 'tracks'),
           startIndex: any(named: 'startIndex'),
           source: "feed",
         )).called(1);
-
-    verify(() => playerCubit.play(any())).called(1);
   });
 }

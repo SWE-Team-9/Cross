@@ -16,6 +16,7 @@ void main() {
   late PlayerCubit cubit;
   setUpAll(() {
     registerFallbackValue(FakeTrack());
+    registerFallbackValue(<Track>[]);
     registerFallbackValue(Duration.zero);
   });
 
@@ -48,7 +49,11 @@ void main() {
     blocTest<PlayerCubit, dynamic>(
       'play() sets current track and calls service',
       build: () {
-        when(() => mockService.play(any())).thenAnswer((_) async {});
+        when(() => mockService.playFromContext(
+              tracks: any(named: 'tracks'),
+              startIndex: any(named: 'startIndex'),
+              source: any(named: 'source'),
+            )).thenAnswer((_) async {});
         return PlayerCubit(mockService);
       },
       act: (cubit) => cubit.play(testTrack),
@@ -60,7 +65,11 @@ void main() {
         ),
       ],
       verify: (_) {
-        verify(() => mockService.play(testTrack)).called(1);
+        verify(() => mockService.playFromContext(
+              tracks: [testTrack],
+              startIndex: 0,
+              source: 'single',
+            )).called(1);
       },
     );
 

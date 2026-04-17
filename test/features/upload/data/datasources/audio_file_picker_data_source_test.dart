@@ -13,6 +13,16 @@ class MockFilePicker extends Mock
 class MockAudioPickerPermissionService extends Mock
     implements AudioPickerPermissionService {}
 
+const supportedAudioExtensions = <String>[
+  'mp3',
+  'wav',
+  'flac',
+  'aiff',
+  'm4a',
+  'aac',
+  'ogg',
+];
+
 void main() {
   late MockFilePicker mockFilePicker;
   late MockAudioPickerPermissionService mockPermissionService;
@@ -32,7 +42,7 @@ void main() {
     test('requests permission before opening picker', () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenAnswer(
         (_) async => FilePickerResult(
@@ -52,7 +62,7 @@ void main() {
         () => mockPermissionService.ensurePermissionGranted(),
         () => mockFilePicker.pickFiles(
               type: FileType.custom,
-              allowedExtensions: const ['mp3', 'wav'],
+              allowedExtensions: supportedAudioExtensions,
               allowMultiple: false,
             ),
       ]);
@@ -61,7 +71,7 @@ void main() {
     test('returns null when picker result is null', () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenAnswer((_) async => null);
 
@@ -73,7 +83,7 @@ void main() {
     test('returns null when picker result has no files', () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenAnswer(
         (_) async => FilePickerResult(const <PlatformFile>[]),
@@ -87,7 +97,7 @@ void main() {
     test('returns dto when mp3 file is selected', () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenAnswer(
         (_) async => FilePickerResult(
@@ -114,7 +124,7 @@ void main() {
         () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenAnswer(
         (_) async => FilePickerResult(
@@ -137,14 +147,14 @@ void main() {
     test('throws when extension is unsupported', () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenAnswer(
         (_) async => FilePickerResult(
           <PlatformFile>[
             PlatformFile(
-              name: 'track.aac',
-              path: '/tmp/track.aac',
+              name: 'track.txt',
+              path: '/tmp/track.txt',
               size: 2048,
             ),
           ],
@@ -157,7 +167,7 @@ void main() {
           isA<Exception>().having(
             (e) => e.toString(),
             'message',
-            contains('Only MP3 and WAV files are allowed.'),
+            contains('Unsupported audio format.'),
           ),
         ),
       );
@@ -185,7 +195,7 @@ void main() {
 
       verifyNever(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           ));
     });
@@ -193,7 +203,7 @@ void main() {
     test('wraps picker exceptions', () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenThrow(Exception('picker crashed'));
 
@@ -214,7 +224,7 @@ void main() {
         () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenAnswer(
         (_) async => FilePickerResult(
@@ -234,7 +244,7 @@ void main() {
           isA<Exception>().having(
             (e) => e.toString(),
             'message',
-            contains('Only MP3 and WAV files are allowed.'),
+            contains('Unsupported audio format.'),
           ),
         ),
       );
@@ -243,7 +253,7 @@ void main() {
     test('normalizes extension from file name when casing is mixed', () async {
       when(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           )).thenAnswer(
         (_) async => FilePickerResult(
@@ -282,7 +292,7 @@ void main() {
 
       verifyNever(() => mockFilePicker.pickFiles(
             type: FileType.custom,
-            allowedExtensions: const ['mp3', 'wav'],
+            allowedExtensions: supportedAudioExtensions,
             allowMultiple: false,
           ));
     });
