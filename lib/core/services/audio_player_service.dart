@@ -25,8 +25,12 @@ abstract class AudioPlayerService {
   /// Seek to a position in the track
   Future<void> seek(Duration position);
 
+  /// Sets playback output volume.
+  ///
+  /// Expected range is 0.0 (mute) to 1.0 (max).
   Future<void> setVolume(double volume);
 
+  /// Current playback volume in the 0.0..1.0 range.
   double get currentVolume;
 
   /// Dispose resources
