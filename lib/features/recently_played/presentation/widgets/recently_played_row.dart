@@ -5,11 +5,13 @@ import 'recently_played_card.dart';
 class RecentlyPlayedRow extends StatelessWidget {
   final List<Track> tracks;
   final VoidCallback? onSeeAll;
+  final ValueChanged<Track>? onTrackTap;
 
   const RecentlyPlayedRow({
     super.key,
     required this.tracks,
     this.onSeeAll,
+    this.onTrackTap,
   });
 
   @override
@@ -70,6 +72,7 @@ class RecentlyPlayedRow extends StatelessWidget {
             itemBuilder: (context, index) {
               return RecentlyPlayedCard(
                 track: tracks[index],
+                onTap: onTrackTap != null ? () => onTrackTap!(tracks[index]) : null,
               );
             },
           ),

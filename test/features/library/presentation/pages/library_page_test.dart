@@ -15,6 +15,8 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubi
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
+  double _currentVolume = 1;
+
   @override
   Stream<PlayerState> get playerStateStream =>
       const Stream<PlayerState>.empty();
@@ -33,6 +35,14 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> seek(Duration position) async {}
+
+  @override
+  Future<void> setVolume(double volume) async {
+    _currentVolume = volume;
+  }
+
+  @override
+  double get currentVolume => _currentVolume;
 
   @override
   Future<void> dispose() async {}

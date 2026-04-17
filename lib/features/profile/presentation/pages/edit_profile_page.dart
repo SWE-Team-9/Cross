@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,6 +14,7 @@ import '../../domain/repositories/profile_repository.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
 import '../bloc/profile_cubit.dart';
 import '../bloc/profile_state.dart';
+import '../utils/genre_utils.dart';
 import '../widgets/edit_profile_country_picker.dart';
 import '../widgets/edit_profile_image_section.dart';
 import '../widgets/edit_profile_text_field.dart';
@@ -43,6 +45,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late ProfileEntity _initialProfile;
   late AccountTier _selectedAccountTier;
   late bool _isPrivate;
+  List<String> _selectedFavoriteGenres = <String>[];
   String? _pendingAvatarImagePath;
   String? _pendingCoverImagePath;
 
@@ -151,6 +154,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final currentBio = _bioController.text.trim();
     final currentWebsite = _websiteController.text.trim();
     final currentLinks = _buildExternalLinksMap();
+    final normalizedFavoriteGenres =
+        _normalizeSortedGenres(_selectedFavoriteGenres);
+    final initialFavoriteGenres =
+        _normalizeSortedGenres(_initialProfile.favoriteGenres);
 
     return _displayNameController.text.trim() != _initialProfile.displayName ||
         currentBio != (_initialProfile.bio ?? '') ||
@@ -158,6 +165,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         currentWebsite != (_initialProfile.website ?? '') ||
         _selectedAccountTier != _initialProfile.accountTier ||
         _isPrivate != _initialProfile.isPrivate ||
+        !listEquals(normalizedFavoriteGenres, initialFavoriteGenres) ||
         _pendingAvatarImagePath != null ||
         _pendingCoverImagePath != null ||
         !_mapEquals(currentLinks, _initialProfile.externalLinks);
@@ -226,6 +234,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _selectedCountry = parsed.country;
     _selectedAccountTier = profile.accountTier;
     _isPrivate = profile.isPrivate;
+    _selectedFavoriteGenres = profile.favoriteGenres
+        .map(normalizeFavoriteGenreSlug)
+        .where(supportedFavoriteGenreSlugs.contains)
+        .toList(growable: false);
     _pendingAvatarImagePath = null;
     _pendingCoverImagePath = null;
 
@@ -282,6 +294,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final String trimmedBio = _bioController.text.trim();
     final String trimmedWebsite = _normalizeUrl(_websiteController.text.trim());
     final normalizedLinks = _buildExternalLinksMap();
+    final normalizedFavoriteGenres =
+        _normalizeSortedGenres(_selectedFavoriteGenres);
+    final initialFavoriteGenres =
+        _normalizeSortedGenres(_initialProfile.favoriteGenres);
     final hadPendingImageChanges =
         _pendingAvatarImagePath != null || _pendingCoverImagePath != null;
 
@@ -305,6 +321,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       externalLinks: !_mapEquals(normalizedLinks, _initialProfile.externalLinks)
           ? normalizedLinks
           : null,
+      favoriteGenres:
+          !listEquals(normalizedFavoriteGenres, initialFavoriteGenres)
+              ? normalizedFavoriteGenres
+              : null,
     );
 
     final profileCubit = context.read<ProfileCubit>();
@@ -1007,6 +1027,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     _divider(),
                     _buildAccountTypeSection(),
                     _divider(),
+                    _buildFavoriteGenresSection(),
+                    _divider(),
                     _buildPrivacySection(),
                     _divider(),
                     EditProfileTextField(
@@ -1094,6 +1116,60 @@ class _EditProfilePageState extends State<EditProfilePage> {
       subtitle: Text(
         _isPrivate ? 'Your profile is private.' : 'Your profile is public.',
         style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+      ),
+    );
+  }
+
+  Widget _buildFavoriteGenresSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Favorite Genres',
+            style: TextStyle(color: Color(0xFF888888), fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: supportedFavoriteGenreSlugs.map((genre) {
+              final selected = _selectedFavoriteGenres.contains(genre);
+              return FilterChip(
+                label: Text(favoriteGenreLabel(genre)),
+                selected: selected,
+                onSelected: (value) {
+                  setState(() {
+                    if (value) {
+                      if (!_selectedFavoriteGenres.contains(genre)) {
+                        _selectedFavoriteGenres = [
+                          ..._selectedFavoriteGenres,
+                          genre,
+                        ];
+                      }
+                    } else {
+                      _selectedFavoriteGenres = _selectedFavoriteGenres
+                          .where((item) => item != genre)
+                          .toList(growable: false);
+                    }
+                  });
+                },
+                selectedColor: const Color(0x33FF5500),
+                checkmarkColor: const Color(0xFFFF5500),
+                labelStyle: TextStyle(
+                  color: selected ? const Color(0xFFFF5500) : Colors.white70,
+                ),
+                backgroundColor: const Color(0xFF1A1A1A),
+                side: BorderSide(
+                  color: selected
+                      ? const Color(0xFFFF5500)
+                      : const Color(0xFF333333),
+                ),
+              );
+            }).toList(growable: false),
+          ),
+        ],
       ),
     );
   }
@@ -1293,6 +1369,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
         indent: 16,
         endIndent: 16,
       );
+
+  List<String> _normalizeSortedGenres(List<String> genres) {
+    final result = genres
+        .map(normalizeFavoriteGenreSlug)
+        .where(supportedFavoriteGenreSlugs.contains)
+        .toSet()
+        .toList(growable: false);
+    result.sort();
+    return result;
+  }
 }
 
 class _EditableExternalLink {

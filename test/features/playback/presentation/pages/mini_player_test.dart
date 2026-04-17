@@ -66,6 +66,13 @@ class _StubPlayerCubit extends Cubit<PlayerUIState> implements PlayerCubit {
   Future<void> play(Track track) async {}
 
   @override
+  Future<void> playFromContext({
+    required List<Track> tracks,
+    required int startIndex,
+    String source = 'unknown',
+  }) async {}
+
+  @override
   Future<void> pause() async {}
 
   @override
@@ -73,6 +80,9 @@ class _StubPlayerCubit extends Cubit<PlayerUIState> implements PlayerCubit {
 
   @override
   Future<void> seek(Duration position) async {}
+
+  @override
+  Future<void> setVolume(double volume) async {}
 
   @override
   Future<void> stop() async {}

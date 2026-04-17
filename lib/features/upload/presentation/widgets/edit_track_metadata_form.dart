@@ -21,6 +21,7 @@ class EditTrackMetadataForm extends StatelessWidget {
     required this.onTitleChanged,
     required this.onDescriptionChanged,
     required this.onTagsChanged,
+    required this.onReleaseDateChanged,
     required this.onGenreChanged,
     required this.onSave,
     required this.onReset,
@@ -34,6 +35,7 @@ class EditTrackMetadataForm extends StatelessWidget {
   final ValueChanged<String> onTitleChanged;
   final ValueChanged<String> onDescriptionChanged;
   final ValueChanged<String> onTagsChanged;
+  final ValueChanged<DateTime?> onReleaseDateChanged;
   final ValueChanged<String> onGenreChanged;
   final VoidCallback onSave;
   final VoidCallback onReset;
@@ -116,6 +118,33 @@ class EditTrackMetadataForm extends StatelessWidget {
                 helperText: 'Up to 10 tags. Each tag should be under 50 chars.',
                 errorText: form.tagsValidationError,
                 border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: (state.isBusy || state.isDeleted)
+                  ? null
+                  : () async {
+                      final DateTime now = DateTime.now();
+                      final DateTime initialDate = form.releaseDate ?? now;
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: initialDate,
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime(now.year + 10),
+                      );
+                      onReleaseDateChanged(pickedDate);
+                    },
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Release date',
+                  border: OutlineInputBorder(),
+                ),
+                child: Text(
+                  form.releaseDate == null
+                      ? 'Pick date (optional)'
+                      : '${form.releaseDate!.year.toString().padLeft(4, '0')}-${form.releaseDate!.month.toString().padLeft(2, '0')}-${form.releaseDate!.day.toString().padLeft(2, '0')}',
+                ),
               ),
             ),
             const SizedBox(height: 16),

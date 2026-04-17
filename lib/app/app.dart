@@ -6,6 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/deep_links/deep_link_destination.dart';
 import '../core/deep_links/deep_link_service.dart';
 import '../core/di/injector.dart';
+import '../core/notifiers/overlay_notifiers.dart';
+import '../core/widgets/bottom_nav_bar.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/auth/presentation/routes/auth_routes.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
@@ -15,7 +17,26 @@ import '../features/playback/presentation/widgets/mini_player.dart';
 import '../features/social/data/repositories/social_repo.dart';
 import 'router.dart';
 
-final ValueNotifier<bool> isTrackSheetOpen = ValueNotifier(false);
+// Routes where the mini-player must stay hidden (auth/onboarding/full player).
+const Set<String> _miniPlayerHiddenRoutes = <String>{
+  AuthRoutes.splash,
+  AuthRoutes.welcome,
+  AuthRoutes.login,
+  AuthRoutes.register,
+  AuthRoutes.completeProfile,
+  AuthRoutes.forgotPassword,
+  AuthRoutes.resetPassword,
+  AuthRoutes.verifyEmail,
+  AuthRoutes.oauthDebug,
+  AppRoutes.player,
+  AppRoutes.trackManagementDemo,
+};
+
+bool _shouldHideMiniPlayerForPath(String path) {
+  if (_miniPlayerHiddenRoutes.contains(path)) return true;
+
+  return path.startsWith('/track-management');
+}
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -52,40 +73,63 @@ class App extends StatelessWidget {
             return BlocBuilder<PlayerCubit, PlayerUIState>(
               builder: (context, playerState) {
                 final isPlayerOpen = playerState.isFullScreen;
+                final hasMiniPlayerTrack = playerState.currentTrack != null;
 
                 return _DeepLinkBridge(
                   child: Scaffold(
                     backgroundColor: Colors.black,
-                    body: Stack(
-                      children: [
-                        child ?? const SizedBox.shrink(),
-                        ValueListenableBuilder<bool>(
-                          valueListenable: isTrackSheetOpen,
-                          builder: (context, sheetOpen, _) {
-                            final hide = isPlayerOpen || sheetOpen;
-                            return Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 70,
-                              child: IgnorePointer(
-                                ignoring: hide,
-                                child: AnimatedSlide(
-                                  duration: const Duration(milliseconds: 220),
-                                  curve: Curves.easeOutCubic,
-                                  offset:
-                                      hide ? const Offset(0, 1.2) : Offset.zero,
-                                  child: AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 180),
-                                    curve: Curves.easeOut,
-                                    opacity: hide ? 0 : 1,
-                                    child: const MiniPlayer(),
-                                  ),
+                    body: ValueListenableBuilder<bool>(
+                      valueListenable: isTrackSheetOpen,
+                      builder: (context, sheetOpen, _) {
+                        return ValueListenableBuilder<RouteInformation>(
+                          valueListenable: router.routeInformationProvider,
+                          builder: (context, routeInfo, __) {
+                            final currentPath = routeInfo.uri.path;
+                            final showMiniPlayerOnRoute =
+                                !_shouldHideMiniPlayerForPath(currentPath);
+                            final showMiniPlayer = hasMiniPlayerTrack &&
+                                showMiniPlayerOnRoute &&
+                                !isPlayerOpen &&
+                                !sheetOpen;
+                            final safeAreaBottom =
+                                MediaQuery.paddingOf(context).bottom;
+                            final miniPlayerBottomOffset =
+                                safeAreaBottom + BottomNavBar.minHeight + 8;
+
+                            return Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: child ?? const SizedBox.shrink(),
                                 ),
-                              ),
+                                if (hasMiniPlayerTrack && showMiniPlayerOnRoute)
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: miniPlayerBottomOffset,
+                                    child: IgnorePointer(
+                                      ignoring: !showMiniPlayer,
+                                      child: AnimatedSlide(
+                                        duration:
+                                            const Duration(milliseconds: 220),
+                                        curve: Curves.easeOutCubic,
+                                        offset: showMiniPlayer
+                                            ? Offset.zero
+                                            : const Offset(0, 1.2),
+                                        child: AnimatedOpacity(
+                                          duration:
+                                              const Duration(milliseconds: 180),
+                                          curve: Curves.easeOut,
+                                          opacity: showMiniPlayer ? 1 : 0,
+                                          child: const MiniPlayer(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             );
                           },
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 );

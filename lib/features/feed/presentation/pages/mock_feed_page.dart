@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 
 class MockFeedPage extends StatelessWidget {
@@ -85,16 +83,13 @@ class _FeedTrackCard extends StatelessWidget {
         Center(
           child: GestureDetector(
             onTap: () {
-              final playerService = GetIt.I<AudioPlayerService>();
               final playerCubit = context.read<PlayerCubit>();
 
-              playerService.playFromContext(
+              playerCubit.playFromContext(
                 tracks: tracks,
                 startIndex: index,
                 source: "feed",
               );
-
-              playerCubit.play(track);
             },
             child: const Icon(
               Icons.play_circle_fill,
