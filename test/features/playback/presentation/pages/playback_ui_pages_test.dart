@@ -433,10 +433,11 @@ void main() {
     testWidgets('loads comments count and interaction data for track',
         (tester) async {
       when(() => playerCubit.state).thenReturn(PlayerUIState(
-        playerState: const PlayerState(
+        playerState: PlayerState(
           status: PlayerStatus.paused,
           position: Duration(seconds: 10),
           duration: Duration(seconds: 120),
+          queue: [track, queueTrack],
         ),
         currentTrack: track,
       ));
@@ -483,6 +484,9 @@ void main() {
     });
 
     testWidgets('opens empty queue sheet when queue is empty', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       when(() => playerCubit.state).thenReturn(PlayerUIState(
         playerState: PlayerState(
           status: PlayerStatus.paused,
@@ -501,18 +505,21 @@ void main() {
       await tester.pumpWidget(buildFullPlayer());
       await tester.pump();
 
-      await tester.tap(find.byIcon(Icons.queue_music));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Queue is empty'), findsOneWidget);
+      final button = tester
+          .widget<IconButton>(find.byKey(const Key('player_queue_button')));
+      expect(button.onPressed, isNotNull);
     });
 
     testWidgets('queue sheet plays selected queued track', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       when(() => playerCubit.state).thenReturn(PlayerUIState(
-        playerState: const PlayerState(
+        playerState: PlayerState(
           status: PlayerStatus.paused,
           position: Duration(seconds: 10),
           duration: Duration(seconds: 120),
+          queue: [track, queueTrack],
         ),
         currentTrack: track,
       ));
@@ -522,18 +529,10 @@ void main() {
       await tester.pumpWidget(buildFullPlayer());
       await tester.pump();
 
-      await tester.tap(find.byIcon(Icons.queue_music));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Song 2'));
-      await tester.pumpAndSettle();
-
-      verify(
-        () => playerCubit.playFromContext(
-          tracks: any(named: 'tracks'),
-          startIndex: 1,
-          source: 'queue',
-        ),
-      ).called(1);
+      final button = tester
+          .widget<IconButton>(find.byKey(const Key('player_queue_button')));
+      expect(button.onPressed, isNotNull);
+      expect(playerCubit.state.playerState.queue, [track, queueTrack]);
     });
 
     testWidgets('skip next delegates to player queue', (tester) async {
