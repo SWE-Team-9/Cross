@@ -41,15 +41,19 @@ class _LibraryPageState extends State<LibraryPage> {
 
       String? streamUrl;
       if (data is Map<String, dynamic>) {
+        final nestedData = data['data'];
+        final nestedMap =
+            nestedData is Map ? Map<String, dynamic>.from(nestedData) : null;
         streamUrl = (data['streamUrl'] ??
-                (data['data'] is Map<String, dynamic>
-                    ? data['data']['streamUrl']
-                    : null))
+                nestedMap?['streamUrl'])
             ?.toString();
       } else if (data is Map) {
         final typed = Map<String, dynamic>.from(data);
+        final nestedData = typed['data'];
+        final nestedMap =
+            nestedData is Map ? Map<String, dynamic>.from(nestedData) : null;
         streamUrl = (typed['streamUrl'] ??
-                (typed['data'] is Map ? typed['data']['streamUrl'] : null))
+                nestedMap?['streamUrl'])
             ?.toString();
       }
 
