@@ -41,7 +41,7 @@ class SuggestedUsersCubit extends Cubit<SuggestedUsersState> {
           users: merged,
           isLoading: false,
           currentPage: page,
-          hasMore: fetched.length >= _pageLimit,
+          hasMore: false,
           clearError: true,
         ),
       );

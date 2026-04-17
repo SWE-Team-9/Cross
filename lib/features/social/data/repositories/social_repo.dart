@@ -84,7 +84,7 @@ class SocialRepo {
     try {
       final response = await dio.get(
         ApiConstants.suggestedUsersPath,
-        queryParameters: {'page': page, 'limit': limit},
+        queryParameters: {'limit': limit},
       );
 
       return _parseUsersList(

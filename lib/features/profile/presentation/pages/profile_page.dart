@@ -779,7 +779,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     final bio = (profile.bio ?? '').trim();
     final location = (profile.location ?? '').trim();
     final favoriteGenres = profile.favoriteGenres
-        .map((genre) => genre.trim())
+        .map((genre) => _genreLabelFromSlug(genre.trim()))
         .where((genre) => genre.isNotEmpty)
         .toList(growable: false);
 
@@ -1056,6 +1056,32 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       ),
       child: const Icon(Icons.play_arrow, color: Colors.black),
     );
+  }
+
+  String _genreLabelFromSlug(String value) {
+    final slug = value.trim().toLowerCase();
+    switch (slug) {
+      case 'hip-hop':
+        return 'Hip Hop';
+      case 'r-b-soul':
+        return 'R&B / Soul';
+      case 'drum-bass':
+        return 'Drum & Bass';
+      case 'deep-house':
+        return 'Deep House';
+      case 'lo-fi':
+        return 'Lo-fi';
+      case 'spoken-word':
+        return 'Spoken Word';
+      case 'folk-singer-songwriter':
+        return 'Folk / Singer-Songwriter';
+      default:
+        return slug
+            .split('-')
+            .where((part) => part.isNotEmpty)
+            .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+            .join(' ');
+    }
   }
 }
 

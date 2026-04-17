@@ -61,26 +61,38 @@ class App extends StatelessWidget {
                         ValueListenableBuilder<bool>(
                           valueListenable: isTrackSheetOpen,
                           builder: (context, sheetOpen, _) {
-                            final hide = isPlayerOpen || sheetOpen;
-                            return Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 70,
-                              child: IgnorePointer(
-                                ignoring: hide,
-                                child: AnimatedSlide(
-                                  duration: const Duration(milliseconds: 220),
-                                  curve: Curves.easeOutCubic,
-                                  offset:
-                                      hide ? const Offset(0, 1.2) : Offset.zero,
-                                  child: AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 180),
-                                    curve: Curves.easeOut,
-                                    opacity: hide ? 0 : 1,
-                                    child: const MiniPlayer(),
+                            return ValueListenableBuilder<RouteInformation>(
+                              valueListenable: router.routeInformationProvider,
+                              builder: (context, routeInfo, __) {
+                                final currentPath = routeInfo.uri.path;
+                                final showOnlyOnHome =
+                                    currentPath == AppRoutes.home;
+                                final hide =
+                                    isPlayerOpen || sheetOpen || !showOnlyOnHome;
+                                return Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 70,
+                                  child: IgnorePointer(
+                                    ignoring: hide,
+                                    child: AnimatedSlide(
+                                      duration:
+                                          const Duration(milliseconds: 220),
+                                      curve: Curves.easeOutCubic,
+                                      offset: hide
+                                          ? const Offset(0, 1.2)
+                                          : Offset.zero,
+                                      child: AnimatedOpacity(
+                                        duration:
+                                            const Duration(milliseconds: 180),
+                                        curve: Curves.easeOut,
+                                        opacity: hide ? 0 : 1,
+                                        child: const MiniPlayer(),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             );
                           },
                         ),
