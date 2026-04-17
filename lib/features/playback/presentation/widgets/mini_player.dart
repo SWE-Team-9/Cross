@@ -11,12 +11,44 @@ class MiniPlayer extends StatelessWidget {
 
   static const String _playerHeroTag = 'player_shell_hero';
 
+  void _showVolumeSheet(BuildContext context, double currentVolume) {
+    double localVolume = currentVolume;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+              child: Row(
+                children: [
+                  const Icon(Icons.volume_up, color: Colors.white70),
+                  Expanded(
+                    child: Slider(
+                      value: localVolume,
+                      activeColor: const Color(0xFFFF5500),
+                      onChanged: (value) {
+                        setModalState(() => localVolume = value);
+                        context.read<PlayerCubit>().setVolume(value);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PlayerCubit, PlayerUIState>(
       builder: (context, state) {
         final track = state.currentTrack;
-        if (track == null || !state.showMiniPlayer) {
+        if (track == null) {
           return const SizedBox.shrink();
         }
 
@@ -136,11 +168,11 @@ class MiniPlayer extends StatelessWidget {
 
                         // ── Follow ────────────────────────────────────
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () => _showVolumeSheet(context, state.volume),
                           child: const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8),
                             child: Icon(
-                              Icons.person_add_outlined,
+                              Icons.volume_up_outlined,
                               color: Colors.white70,
                               size: 20,
                             ),

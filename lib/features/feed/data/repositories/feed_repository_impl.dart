@@ -59,10 +59,19 @@ class FeedRepositoryImpl implements FeedRepository {
 
   @override
   Future<String?> getStreamUrl(String trackId) async {
+    final source = await getPlaybackAccess(trackId);
+    if (!source.canPlay) return null;
+    return source.streamUrl;
+  }
+
+  @override
+  Future<PlaybackAccessResult> getPlaybackAccess(String trackId) async {
     final res = await dataSource.getTrackSource(trackId);
-    final accessState = res['accessState'] as String?;
-    if (accessState != 'PLAYABLE') return null;
-    return res['streamUrl'] as String?;
+    final accessState = (res['accessState'] as String?) ?? 'BLOCKED';
+    return PlaybackAccessResult(
+      accessState: accessState,
+      streamUrl: res['streamUrl'] as String?,
+    );
   }
 
   @override

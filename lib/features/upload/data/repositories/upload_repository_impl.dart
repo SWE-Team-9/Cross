@@ -27,6 +27,7 @@ class UploadRepositoryImpl implements UploadRepository {
     required String title,
     String? genre,
     String? description,
+    DateTime? releaseDate,
     List<String> tags = const <String>[],
     UploadProgressCallback? onProgress,
   }) async {
@@ -56,6 +57,14 @@ class UploadRepositoryImpl implements UploadRepository {
     }
     if (normalizedDescription != null) {
       formData.fields.add(MapEntry('description', normalizedDescription));
+    }
+    if (releaseDate != null) {
+      formData.fields.add(
+        MapEntry(
+          'releaseDate',
+          releaseDate.toIso8601String().split('T').first,
+        ),
+      );
     }
     for (final tag in sanitizedTags) {
       formData.fields.add(MapEntry('tags[]', tag));

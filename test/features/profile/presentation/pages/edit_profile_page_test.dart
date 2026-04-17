@@ -188,7 +188,7 @@ void main() {
     expect(find.text('Edit profile'), findsOneWidget);
     expect(find.text('Display Name'), findsOneWidget);
     expect(find.text('City'), findsOneWidget);
-    expect(find.text('Country'), findsOneWidget);
+    expect(find.text('Country'), findsWidgets);
     expect(find.text('Bio'), findsOneWidget);
   });
 

@@ -26,6 +26,7 @@ class ProfileEntity {
   final ProfileVisibility visibility;
   final int followersCount;
   final int followingCount;
+  final bool isFollowing;
 
   const ProfileEntity({
     required this.id,
@@ -42,6 +43,7 @@ class ProfileEntity {
     required this.visibility,
     required this.followersCount,
     required this.followingCount,
+    this.isFollowing = false,
   });
 
   bool get isPrivate => visibility == ProfileVisibility.PRIVATE;
@@ -59,6 +61,7 @@ class ProfileEntity {
     ProfileVisibility? visibility,
     int? followersCount,
     int? followingCount,
+    bool? isFollowing,
   }) {
     return ProfileEntity(
       id: id,
@@ -75,6 +78,7 @@ class ProfileEntity {
       visibility: visibility ?? this.visibility,
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,
+      isFollowing: isFollowing ?? this.isFollowing,
     );
   }
 }

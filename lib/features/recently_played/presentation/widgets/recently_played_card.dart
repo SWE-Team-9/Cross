@@ -5,10 +5,12 @@ import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 
 class RecentlyPlayedCard extends StatelessWidget {
   final Track track;
+  final VoidCallback? onTap;
 
   const RecentlyPlayedCard({
     super.key,
     required this.track,
+    this.onTap,
   });
 
   @override
@@ -16,9 +18,10 @@ class RecentlyPlayedCard extends StatelessWidget {
     final player = GetIt.I<AudioPlayerService>();
 
     return GestureDetector(
-      onTap: () async {
-        await player.play(track);
-      },
+      onTap: onTap ??
+          () async {
+            await player.play(track);
+          },
       child: SizedBox(
         width: 140,
         child: Column(
