@@ -7,6 +7,7 @@ class Track {
   final String? handle;
   final int likesCount;
   final int repostsCount;
+  final int? durationMs;
 
   const Track({
     required this.id,
@@ -17,7 +18,14 @@ class Track {
     this.handle,
     this.likesCount = 0,
     this.repostsCount = 0,
+    this.durationMs,
   });
+
+  Duration? get duration {
+    final value = durationMs;
+    if (value == null || value <= 0) return null;
+    return Duration(milliseconds: value);
+  }
 
   Track copyWith({
     String? id,
@@ -28,6 +36,7 @@ class Track {
     String? handle,
     int? likesCount,
     int? repostsCount,
+    int? durationMs,
   }) {
     return Track(
       id: id ?? this.id,
@@ -38,6 +47,7 @@ class Track {
       handle: handle ?? this.handle,
       likesCount: likesCount ?? this.likesCount,
       repostsCount: repostsCount ?? this.repostsCount,
+      durationMs: durationMs ?? this.durationMs,
     );
   }
 }

@@ -40,6 +40,7 @@ class TrackDetail extends Equatable {
       handle: artistHandle,
       likesCount: likesCount,
       repostsCount: repostsCount,
+      durationMs: durationMs,
     );
   }
 

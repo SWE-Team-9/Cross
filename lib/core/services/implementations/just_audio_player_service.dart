@@ -95,10 +95,12 @@ class JustAudioPlayerService implements AudioPlayerService {
           id: track.id,
           title: track.title,
           artist: track.artist,
+          duration: track.duration,
           artUri:
               track.artworkUrl != null ? Uri.parse(track.artworkUrl!) : null,
           extras: {
             'url': track.audioUrl,
+            if (track.durationMs != null) 'durationMs': track.durationMs,
           },
         );
       }).toList();
