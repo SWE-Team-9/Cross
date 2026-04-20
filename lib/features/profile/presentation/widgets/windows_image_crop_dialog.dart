@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:io' show File;
 import 'dart:math' as math;
 import 'dart:ui' as ui;

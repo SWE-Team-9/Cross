@@ -72,7 +72,9 @@ class RecentlyPlayedRow extends StatelessWidget {
             itemBuilder: (context, index) {
               return RecentlyPlayedCard(
                 track: tracks[index],
-                onTap: onTrackTap != null ? () => onTrackTap!(tracks[index]) : null,
+                onTap: onTrackTap != null
+                    ? () => onTrackTap!(tracks[index])
+                    : null,
               );
             },
           ),

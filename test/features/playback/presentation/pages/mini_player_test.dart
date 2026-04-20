@@ -88,6 +88,18 @@ class _StubPlayerCubit extends Cubit<PlayerUIState> implements PlayerCubit {
   Future<void> stop() async {}
 
   @override
+  Future<void> playNext() async {}
+
+  @override
+  Future<void> playPrevious() async {}
+
+  @override
+  Future<void> addPlayNext(Track track) async {}
+
+  @override
+  Future<void> addPlayLast(Track track) async {}
+
+  @override
   void closeFullPlayer() {}
   @override
   void hideMiniPlayer() {}
