@@ -1,4 +1,4 @@
-package com.SWETeam9.Iqa3
+package com.SWETeam9.my_app
 
 import com.ryanheise.audioservice.AudioServiceActivity
 
