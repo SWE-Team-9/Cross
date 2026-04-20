@@ -9,6 +9,8 @@ import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_det
 import 'player_ui_state.dart';
 
 class PlayerCubit extends Cubit<PlayerUIState> {
+  static const String _queueSource = 'queue';
+
   final AudioPlayerService _audioService;
   final GetTrackDetailUseCase? _getTrackDetail;
   StreamSubscription<PlayerState>? _subscription;
@@ -144,7 +146,7 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     await playFromContext(
       tracks: tracks,
       startIndex: currentIndex + 1,
-      source: state.playerState.source ?? 'queue',
+      source: state.playerState.source ?? _queueSource,
     );
   }
 
@@ -156,7 +158,7 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     await playFromContext(
       tracks: tracks,
       startIndex: currentIndex - 1,
-      source: state.playerState.source ?? 'queue',
+      source: state.playerState.source ?? _queueSource,
     );
   }
 
@@ -169,7 +171,7 @@ class PlayerCubit extends Cubit<PlayerUIState> {
       await playFromContext(
         tracks: [track],
         startIndex: 0,
-        source: state.playerState.source ?? 'queue',
+        source: _queueSource,
       );
       return;
     }
@@ -210,7 +212,7 @@ class PlayerCubit extends Cubit<PlayerUIState> {
       await playFromContext(
         tracks: [track],
         startIndex: 0,
-        source: state.playerState.source ?? 'queue',
+        source: _queueSource,
       );
       return;
     }
