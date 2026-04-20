@@ -35,10 +35,16 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
     _titleController = TextEditingController();
     _tagsController = TextEditingController();
     _descriptionController = TextEditingController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<PlayerCubit>().hideMiniPlayer();
+    });
   }
 
   @override
   void dispose() {
+    context.read<PlayerCubit>().showMiniPlayer();
     _titleController.dispose();
     _tagsController.dispose();
     _descriptionController.dispose();
