@@ -153,7 +153,7 @@ void main() {
     build: () {
       when(() => mockProfileRepository.getMyProfile())
           .thenAnswer((_) async => profile);
-      when(() => mockProfileRepository.getUserTracks('me'))
+      when(() => mockProfileRepository.getUserTracks(profile.id))
           .thenAnswer((_) async => [ownTrack]);
       when(() => mockGetMyLikedTracksUseCase())
           .thenAnswer((_) async => const <ManagedTrack>[]);
