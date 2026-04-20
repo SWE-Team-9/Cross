@@ -69,6 +69,7 @@ class JustAudioPlayerService implements AudioPlayerService {
       _updateState(
         _currentState.copyWith(
           duration: mediaItem?.duration,
+          currentTrackId: mediaItem?.id,
         ),
       );
     });
@@ -110,6 +111,7 @@ class JustAudioPlayerService implements AudioPlayerService {
         _currentState.copyWith(
           queue: tracks,
           currentIndex: safeIndex,
+          currentTrackId: tracks[safeIndex].id,
           source: source,
           volume: _volume,
         ),

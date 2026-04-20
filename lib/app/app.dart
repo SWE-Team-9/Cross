@@ -30,6 +30,7 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.oauthDebug,
   AppRoutes.player,
   AppRoutes.trackManagementDemo,
+  AppRoutes.uploadPicker,
 };
 
 bool _shouldHideMiniPlayerForPath(String path) {
@@ -81,14 +82,16 @@ class App extends StatelessWidget {
                     body: ValueListenableBuilder<bool>(
                       valueListenable: isTrackSheetOpen,
                       builder: (context, sheetOpen, _) {
-                        return ValueListenableBuilder<RouteInformation>(
-                          valueListenable: router.routeInformationProvider,
-                          builder: (context, routeInfo, __) {
-                            final currentPath = routeInfo.uri.path;
+                        return AnimatedBuilder(
+                          animation: router.routerDelegate,
+                          builder: (context, __) {
+                            final currentPath = router
+                                .routerDelegate.currentConfiguration.uri.path;
                             final showMiniPlayerOnRoute =
                                 !_shouldHideMiniPlayerForPath(currentPath);
                             final showMiniPlayer = hasMiniPlayerTrack &&
                                 showMiniPlayerOnRoute &&
+                                playerState.showMiniPlayer &&
                                 !isPlayerOpen &&
                                 !sheetOpen;
                             final safeAreaBottom =
