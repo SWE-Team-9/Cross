@@ -36,7 +36,6 @@ class _SplashPageState extends State<SplashPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // يمكنك تغيير الأيقونة بلوجو التطبيق الخاص بك
               Icon(Icons.music_note, size: 80, color: Colors.orange),
               SizedBox(height: 20),
               CircularProgressIndicator(),

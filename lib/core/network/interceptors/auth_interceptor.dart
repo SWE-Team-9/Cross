@@ -15,7 +15,9 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) {
-    if (options.data is! FormData) {
+    final existingContentType = options.headers['Content-Type'];
+
+    if (options.data is! FormData && existingContentType == null) {
       options.headers['Content-Type'] = 'application/json';
     }
 

@@ -1,16 +1,18 @@
+// coverage:ignore-file
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/network/api_constants.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
+import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
-import 'package:soundcloud_clone/features/upload/presentation/models/applyTrackManagementResult.dart';
-import 'package:soundcloud_clone/features/upload/presentation/models/trackManagementResult.dart';
-import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -22,6 +24,11 @@ class MockHomePage extends StatefulWidget {
 class _MockHomePageState extends State<MockHomePage> {
   int _selectedTab = 0;
   String _selectedGenre = 'ELECTRONIC';
+  bool _isLoadingTrending = false;
+  String? _trendingError;
+  List<dynamic>? _trendingRawTrackPool;
+  Future<List<dynamic>>? _trendingRawTrackPoolRequest;
+  List<Track> _trendingTracks = const <Track>[];
 
   final _genres = const [
     'ELECTRONIC',
@@ -32,43 +39,320 @@ class _MockHomePageState extends State<MockHomePage> {
     'HIP-HOP',
   ];
 
-  List<ManagedTrack> _managedTracks = const [
-    ManagedTrack(
-      id: 'managed-track-1',
-      title: 'Midnight Echoes',
-      description: 'A temporary owner track for Sprint 2 testing.',
-      genreId: 1,
-      genreName: 'Ambient',
-      tags: <String>['owner', 'ambient'],
-      visibility: TrackManagementVisibility.publicTrack,
-      durationInSeconds: 212,
-    ),
-    ManagedTrack(
-      id: 'managed-track-2',
-      title: 'City Lights',
-      description: 'Second temporary owner track for edit/delete testing.',
-      genreId: 2,
-      genreName: 'Electronic',
-      tags: <String>['night', 'synth'],
-      visibility: TrackManagementVisibility.privateTrack,
-      durationInSeconds: 184,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadTrendingTracks();
+  }
 
-  Future<void> _openTrackManagement(ManagedTrack track) async {
-    final result = await context.pushNamed(
-      'track-management',
-      extra: track,
-    );
+  Future<void> _loadTrendingTracks() async {
+    setState(() {
+      _isLoadingTrending = true;
+      _trendingError = null;
+    });
 
-    if (result is TrackManagementResult && mounted) {
+    try {
+      final rawList = await _getTrendingRawTrackPool();
+      final tracks = _buildTrendingTracksForSelectedGenre(rawList);
+
+      if (!mounted) return;
       setState(() {
-        _managedTracks = applyTrackManagementResult(
-          tracks: _managedTracks,
-          result: result,
-        );
+        _trendingRawTrackPool = rawList;
+        _trendingTracks = tracks;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _trendingError = 'Failed to load genre tracks';
+        _trendingTracks = const <Track>[];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingTrending = false;
       });
     }
+  }
+
+  void _filterCachedTrendingTracks() {
+    final rawList = _trendingRawTrackPool;
+    if (rawList == null) {
+      if (!_isLoadingTrending) {
+        _loadTrendingTracks();
+      }
+      return;
+    }
+
+    setState(() {
+      _trendingError = null;
+      _trendingTracks = _buildTrendingTracksForSelectedGenre(rawList);
+    });
+  }
+
+  List<Track> _buildTrendingTracksForSelectedGenre(List<dynamic> rawList) {
+    final trackLikeRawList = rawList
+        .where(_looksLikeTrackPayload)
+        .where(_isDiscoverableTrackPayload)
+        .toList(growable: false);
+    final genreMatched = trackLikeRawList
+        .where((raw) => _rawMatchesGenre(raw, _selectedGenre))
+        .toList(growable: false);
+    final filteredRawList =
+        genreMatched.isEmpty ? trackLikeRawList : genreMatched;
+
+    return filteredRawList
+        .map(_mapToTrack)
+        .whereType<Track>()
+        .toList(growable: false)
+      ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+  }
+
+  Future<List<dynamic>> _getTrendingRawTrackPool() {
+    final cached = _trendingRawTrackPool;
+    if (cached != null) return Future.value(cached);
+
+    final inFlight = _trendingRawTrackPoolRequest;
+    if (inFlight != null) return inFlight;
+
+    final request = _fetchTrendingRawTracks().whenComplete(() {
+      _trendingRawTrackPoolRequest = null;
+    });
+    _trendingRawTrackPoolRequest = request;
+    return request;
+  }
+
+  bool _looksLikeTrackPayload(dynamic raw) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    if (nestedTrack is Map) return true;
+    return map.containsKey('title') ||
+        map.containsKey('genre') ||
+        map.containsKey('coverArtUrl') ||
+        map.containsKey('duration');
+  }
+
+  bool _isDiscoverableTrackPayload(dynamic raw) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final visibility = (source['visibility'] ?? '').toString().toUpperCase();
+    if (visibility == 'PRIVATE') return false;
+
+    final status = (source['status'] ?? '').toString().toUpperCase();
+    if (status == 'PROCESSING' || status == 'FAILED') return false;
+
+    return true;
+  }
+
+  Future<List<dynamic>> _fetchTrendingRawTracks() async {
+    final dioClient = GetIt.I<DioClient>();
+    final authState = context.read<AuthCubit>().state;
+    final String viewerId =
+        authState is AuthAuthenticated ? authState.user.id.trim() : '';
+    final List<dynamic> collected = <dynamic>[];
+    final Set<String> seenTrackIds = <String>{};
+    final Set<String> userIdsToLoad = <String>{};
+
+    void addTracks(Iterable<dynamic> tracks) {
+      for (final raw in tracks) {
+        if (raw is! Map) continue;
+        final map = Map<String, dynamic>.from(raw);
+        final nestedTrack = map['track'];
+        final source =
+            nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+        final id =
+            (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
+                .toString()
+                .trim();
+        if (id.isEmpty || seenTrackIds.contains(id)) continue;
+        seenTrackIds.add(id);
+        collected.add(raw);
+      }
+    }
+
+    if (viewerId.isNotEmpty) {
+      userIdsToLoad.add(viewerId);
+
+      try {
+        final followingResponse = await dioClient.get(
+          ApiConstants.followingPath(viewerId),
+          queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
+        );
+        userIdsToLoad.addAll(_extractUserIds(followingResponse.data));
+      } catch (_) {}
+    }
+
+    for (final userId in userIdsToLoad.take(10)) {
+      try {
+        final response = await dioClient.get(
+          ApiConstants.userTracksPath(userId),
+          queryParameters: const <String, dynamic>{
+            'page': 1,
+            'limit': 20,
+          },
+        );
+        addTracks(_extractTracksList(response.data));
+      } catch (_) {}
+
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+
+    return collected;
+  }
+
+  List<String> _extractUserIds(dynamic responseData) {
+    final List<dynamic> rawUsers = <dynamic>[
+      if (responseData is Map<String, dynamic>) ...[
+        ...(responseData['following'] is List
+            ? responseData['following'] as List
+            : const <dynamic>[]),
+        ...(responseData['followers'] is List
+            ? responseData['followers'] as List
+            : const <dynamic>[]),
+        ...(responseData['users'] is List
+            ? responseData['users'] as List
+            : const <dynamic>[]),
+        ...(responseData['items'] is List
+            ? responseData['items'] as List
+            : const <dynamic>[]),
+        ...(responseData['results'] is List
+            ? responseData['results'] as List
+            : const <dynamic>[]),
+        if (responseData['data'] is List) ...(responseData['data'] as List),
+      ] else if (responseData is List)
+        ...responseData,
+    ];
+
+    return rawUsers
+        .whereType<Map>()
+        .map((raw) => Map<String, dynamic>.from(raw))
+        .map(
+          (item) => (item['id'] ?? item['userId'] ?? item['user_id'] ?? '')
+              .toString(),
+        )
+        .where((id) => id.trim().isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
+  List<dynamic> _extractTracksList(dynamic responseData) {
+    if (responseData is List) return responseData;
+    if (responseData is Map<String, dynamic>) {
+      final dynamic directTracks = responseData['tracks'] ??
+          responseData['items'] ??
+          responseData['results'] ??
+          responseData['collection'];
+      if (directTracks is List) return directTracks;
+
+      final dynamic data = responseData['data'];
+      if (data is List) return data;
+      if (data is Map<String, dynamic>) {
+        final dynamic nestedTracks = data['tracks'] ??
+            data['items'] ??
+            data['results'] ??
+            data['collection'];
+        if (nestedTracks is List) return nestedTracks;
+      }
+    }
+    return const <dynamic>[];
+  }
+
+  Track? _mapToTrack(dynamic raw) {
+    if (raw is! Map) return null;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final id = (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
+        .toString()
+        .trim();
+    if (id.isEmpty) return null;
+
+    final uploader = source['uploader'] ?? source['artist'] ?? source['owner'];
+    final uploaderMap = uploader is Map
+        ? Map<String, dynamic>.from(uploader)
+        : <String, dynamic>{};
+
+    final statsRaw = source['stats'];
+    final stats = statsRaw is Map
+        ? Map<String, dynamic>.from(statsRaw)
+        : <String, dynamic>{};
+
+    final likesCount = _asInt(
+      source['likesCount'] ?? source['likes_count'] ?? stats['likesCount'],
+    );
+    final repostsCount = _asInt(
+      source['repostsCount'] ??
+          source['reposts_count'] ??
+          stats['repostsCount'],
+    );
+
+    return Track(
+      id: id,
+      title: (source['title'] ?? 'Untitled').toString(),
+      artist: (uploaderMap['displayName'] ??
+              uploaderMap['username'] ??
+              source['artistName'] ??
+              source['artist'] ??
+              'Unknown artist')
+          .toString(),
+      audioUrl: (source['streamUrl'] ?? source['audioUrl'] ?? '').toString(),
+      artworkUrl: (source['coverArtUrl'] ??
+              source['cover_art_url'] ??
+              source['artworkUrl'])
+          ?.toString(),
+      handle: (uploaderMap['handle'] ?? uploaderMap['username'] ?? '')
+          .toString()
+          .trim(),
+      likesCount: likesCount,
+      repostsCount: repostsCount,
+    );
+  }
+
+  bool _rawMatchesGenre(dynamic raw, String selectedGenre) {
+    if (raw is! Map) return false;
+    final map = Map<String, dynamic>.from(raw);
+    final nestedTrack = map['track'];
+    final source =
+        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
+
+    final genreValue = source['genre'];
+    String resolvedGenre = '';
+    if (genreValue is String) {
+      resolvedGenre = genreValue;
+    } else if (genreValue is Map) {
+      final typedGenre = Map<String, dynamic>.from(genreValue);
+      resolvedGenre = (typedGenre['name'] ?? '').toString();
+    } else {
+      resolvedGenre =
+          (source['genreName'] ?? source['genre_name'] ?? '').toString();
+    }
+
+    if (resolvedGenre.trim().isEmpty) return false;
+
+    final normalizedResolved = _normalizeGenreToken(resolvedGenre);
+    final normalizedSelected = _normalizeGenreToken(selectedGenre);
+    return normalizedResolved == normalizedSelected;
+  }
+
+  String _normalizeGenreToken(String value) {
+    final upper = value.trim().toUpperCase();
+    if (upper.isEmpty) return upper;
+
+    final compact = upper.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (compact == 'HIPHOP') return 'HIPHOP';
+    return compact;
+  }
+
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   @override
@@ -91,6 +375,29 @@ class _MockHomePageState extends State<MockHomePage> {
 
         return Scaffold(
           backgroundColor: Colors.black,
+          // ── Bottom Nav ──────────────────────────────────────────────────
+          bottomNavigationBar: BottomNavBar(
+            selected: _selectedTab,
+            onTap: (i) {
+              setState(() => _selectedTab = i);
+              switch (i) {
+                case 0:
+                  break;
+                case 1:
+                  context.go('/feed');
+                  break;
+                case 2:
+                  context.go('/search');
+                  break;
+                case 3:
+                  context.go('/library');
+                  break;
+                case 4:
+                  context.go('/upgrade');
+                  break;
+              }
+            },
+          ),
           body: SafeArea(
             child: Column(
               children: [
@@ -107,51 +414,89 @@ class _MockHomePageState extends State<MockHomePage> {
                         const _RelatedTracksRow(),
                         const _SectionHeader(title: 'Mixed for you'),
                         _MixesRow(userHandle: currentHandle),
-                        const _SectionHeader(
-                            title: 'Your Tracks (Sprint 2 Test)'),
-                        _ManagedTracksSection(
-                          tracks: _managedTracks,
-                          onManageTap: _openTrackManagement,
-                        ),
                         const _SectionHeader(title: 'Trending by genre'),
                         _GenreChips(
                           genres: _genres,
                           selected: _selectedGenre,
-                          onSelect: (g) => setState(() => _selectedGenre = g),
+                          onSelect: (g) {
+                            setState(() => _selectedGenre = g);
+                            _filterCachedTrendingTracks();
+                          },
                         ),
-                        const _TrendingTracks(),
-                        const SizedBox(height: 16),
+                        _TrendingByGenreTracks(
+                          loading: _isLoadingTrending,
+                          error: _trendingError,
+                          tracks: _trendingTracks,
+                        ),
+                        const SizedBox(height: 100),
                       ],
                     ),
                   ),
-                ),
-                _BottomNav(
-                  selected: _selectedTab,
-                  onTap: (i) {
-                    setState(() => _selectedTab = i);
-                    switch (i) {
-                      case 0:
-                        break;
-                      case 1:
-                        context.go('/feed');
-                        break;
-                      case 2:
-                        context.go('/search');
-                        break;
-                      case 3:
-                        context.go('/library');
-                        break;
-                      case 4:
-                        context.go('/upgrade');
-                        break;
-                    }
-                  },
                 ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _TrendingByGenreTracks extends StatelessWidget {
+  const _TrendingByGenreTracks({
+    required this.loading,
+    required this.error,
+    required this.tracks,
+  });
+
+  final bool loading;
+  final String? error;
+  final List<Track> tracks;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFFF5500)),
+        ),
+      );
+    }
+
+    if (error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Text(
+          error!,
+          style: const TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
+    if (tracks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Text(
+          'No tracks found for this genre',
+          style: TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
+    final visibleTracks = tracks.take(10).toList(growable: false);
+
+    return Column(
+      children: visibleTracks
+          .map(
+            (track) => TrackRow(
+              track: track,
+              queue: visibleTracks,
+              source: 'home_trending',
+              showLikesCount: true,
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }
@@ -167,6 +512,7 @@ class _TopBar extends StatelessWidget {
   });
 
   void _showLogoutSheet(BuildContext context) {
+    isTrackSheetOpen.value = true;
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A1A),
@@ -220,7 +566,9 @@ class _TopBar extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      isTrackSheetOpen.value = false;
+    });
   }
 
   void _navigateToProfile(BuildContext context) {
@@ -233,7 +581,6 @@ class _TopBar extends StatelessWidget {
       );
       return;
     }
-
     ProfileRoutes.goToProfile(context, currentUserHandle);
   }
 
@@ -398,7 +745,7 @@ class _RelatedTracksRow extends StatelessWidget {
     ];
 
     return SizedBox(
-      height: 192,
+      height: 200,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -443,6 +790,8 @@ class _RelatedTracksRow extends StatelessWidget {
                   ),
                   Text(
                     c.sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF999999),
                       fontSize: 12,
@@ -571,81 +920,6 @@ class _MixesRow extends StatelessWidget {
   }
 }
 
-class _ManagedTracksSection extends StatelessWidget {
-  const _ManagedTracksSection({
-    required this.tracks,
-    required this.onManageTap,
-  });
-
-  final List<ManagedTrack> tracks;
-  final ValueChanged<ManagedTrack> onManageTap;
-
-  @override
-  Widget build(BuildContext context) {
-    if (tracks.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Text(
-          'No managed tracks remaining.',
-          style: TextStyle(color: Color(0xFF999999), fontSize: 13),
-        ),
-      );
-    }
-
-    return Column(
-      children: tracks.map((track) {
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          track.title,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${track.genreName ?? 'Unknown genre'} • ${track.visibility.displayLabel}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF999999),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton(
-                    onPressed: () => onManageTap(track),
-                    child: const Text('Manage'),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(
-              color: Color(0xFF1A1A1A),
-              height: 1,
-              indent: 14,
-              endIndent: 14,
-            ),
-          ],
-        );
-      }).toList(),
-    );
-  }
-}
-
 class _GenreChips extends StatelessWidget {
   final List<String> genres;
   final String selected;
@@ -698,140 +972,7 @@ class _GenreChips extends StatelessWidget {
   }
 }
 
-class _TrendingTracks extends StatelessWidget {
-  const _TrendingTracks();
-
-  @override
-  Widget build(BuildContext context) {
-    final tracks = [
-      Track(
-        id: '1',
-        title: 'Bunker - Balthazar',
-        artist: 'Balthazar',
-        audioUrl:
-            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        artworkUrl: 'https://picsum.photos/200?1',
-        handle: 'balthazar',
-      ),
-      Track(
-        id: '2',
-        title: 'Take It or Leave It',
-        artist: 'Cage the Elephant',
-        audioUrl:
-            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        artworkUrl: 'https://picsum.photos/200?2',
-        handle: 'cagetheelephant',
-      ),
-      Track(
-        id: '3',
-        title: 'Take Me Out',
-        artist: 'Franz Ferdinand',
-        audioUrl:
-            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-        artworkUrl: 'https://picsum.photos/200?3',
-        handle: 'franzferdinand',
-      ),
-    ];
-
-    return Column(
-      children: List.generate(
-        tracks.length,
-        (i) => Column(
-          children: [
-            TrackRow(track: tracks[i]),
-            if (i < tracks.length - 1)
-              const Divider(
-                color: Color(0xFF1A1A1A),
-                height: 1,
-                indent: 14,
-                endIndent: 14,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomNav extends StatelessWidget {
-  final int selected;
-  final ValueChanged<int> onTap;
-
-  const _BottomNav({required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    const items = [
-      _NavItem(
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home,
-        label: 'Home',
-      ),
-      _NavItem(
-        icon: Icons.grid_view_outlined,
-        activeIcon: Icons.grid_view,
-        label: 'Feed',
-      ),
-      _NavItem(
-        icon: Icons.search,
-        activeIcon: Icons.search,
-        label: 'Search',
-      ),
-      _NavItem(
-        icon: Icons.library_music_outlined,
-        activeIcon: Icons.library_music,
-        label: 'Library',
-      ),
-      _NavItem(
-        icon: Icons.equalizer_outlined,
-        activeIcon: Icons.equalizer,
-        label: 'Upgrade',
-      ),
-    ];
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(top: BorderSide(color: Color(0xFF1F1F1F))),
-      ),
-      child: Row(
-        children: List.generate(
-          items.length,
-          (i) => Expanded(
-            child: GestureDetector(
-              onTap: () => onTap(i),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      selected == i ? items[i].activeIcon : items[i].icon,
-                      color: selected == i
-                          ? Colors.white
-                          : const Color(0xFF555555),
-                      size: 22,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      items[i].label,
-                      style: TextStyle(
-                        color: selected == i
-                            ? Colors.white
-                            : const Color(0xFF555555),
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// ── Data classes ──────────────────────────────────────────────────────────────
 
 class _AlbumData {
   final String label, sub, handle, topText;
@@ -857,16 +998,5 @@ class _MixData {
     required this.badgeColor,
     required this.color1,
     required this.color2,
-  });
-}
-
-class _NavItem {
-  final IconData icon, activeIcon;
-  final String label;
-
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
   });
 }

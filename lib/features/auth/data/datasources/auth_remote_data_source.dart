@@ -1,13 +1,11 @@
-// Dart SDK
 import 'dart:convert';
 
-// Flutter
-// Third-party
-// Project
+//import 'package:dio/dio.dart';
+
+import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../dto/auth_response_dto.dart';
 import '../dto/user_dto.dart';
-import '../../../../core/network/api_constants.dart';
 
 abstract class AuthRemoteDataSource {
   Future<AuthResponseDto> login({
@@ -28,15 +26,44 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<void> forgotPassword({required String email});
+
   Future<void> resetPassword({
     required String code,
     required String newPassword,
     required String newPasswordConfirm,
   });
+
   Future<void> sendEmailVerification({required String email});
+
   Future<void> verifyEmail({required String code});
+
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  });
+
+  Future<void> confirmEmailChange({
+    required String token,
+  });
+
   Future<UserDto> getCurrentUser();
+
   Future<void> logout();
+
+  Uri buildGoogleAuthorizeUri({
+    required String clientId,
+    required String redirectUri,
+    required String scope,
+    required String state,
+    required String codeChallenge,
+  });
+
+  Future<void> exchangeOAuthCodeForSession({
+    required String clientId,
+    required String code,
+    required String redirectUri,
+    required String codeVerifier,
+  });
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -51,6 +78,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required bool rememberMe,
     required String captchaToken,
   }) async {
+    print('API BASE URL => ${ApiConstants.baseUrl}');
+    print('LOGIN URL => ${ApiConstants.baseUrl}${ApiConstants.login}');
     final response = await dioClient.dio.post(
       ApiConstants.login,
       data: {
@@ -64,14 +93,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
-    // CookieManager automatically stores the httpOnly access_token and
-    // refresh_token cookies from the Set-Cookie header.
-    // We must NOT extract them manually here — doing so would save them
-    // to SecureStorage, which causes AuthInterceptor to add them as a
-    // Bearer header on every subsequent request, resulting in double auth.
     return AuthResponseDto(
-      accessToken: '', // intentionally empty — managed by CookieManager
-      refreshToken: '', // intentionally empty — managed by CookieManager
+      accessToken: '',
+      refreshToken: '',
       user: UserDto.fromJson(responseData['user']),
     );
   }
@@ -102,7 +126,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
-    // Same as login — no manual cookie extraction.
     return AuthResponseDto(
       accessToken: '',
       refreshToken: '',
@@ -151,6 +174,32 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  }) async {
+    await dioClient.dio.post(
+      ApiConstants.emailChange,
+      data: {
+        'new_email': newEmail,
+        'current_password': currentPassword,
+      },
+    );
+  }
+
+  @override
+  Future<void> confirmEmailChange({
+    required String token,
+  }) async {
+    await dioClient.dio.post(
+      ApiConstants.confirmEmailChange,
+      data: {
+        'token': token,
+      },
+    );
+  }
+
+  @override
   Future<UserDto> getCurrentUser() async {
     final response = await dioClient.dio.get(ApiConstants.currentUser);
     final responseData =
@@ -161,5 +210,60 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout() async {
     await dioClient.dio.post(ApiConstants.logout);
+  }
+
+  @override
+  Uri buildGoogleAuthorizeUri({
+    required String clientId,
+    required String redirectUri,
+    required String scope,
+    required String state,
+    required String codeChallenge,
+  }) {
+    final base =
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.oauthAuthorize}');
+    return base.replace(
+      queryParameters: {
+        'client_id': clientId,
+        'redirect_uri': redirectUri,
+        'response_type': 'code',
+        'scope': scope,
+        'state': state,
+        'code_challenge': codeChallenge,
+        'code_challenge_method': 'S256',
+      },
+    );
+  }
+
+  @override
+  Future<void> exchangeOAuthCodeForSession({
+    required String clientId,
+    required String code,
+    required String redirectUri,
+    required String codeVerifier,
+  }) async {
+    print('🔥 POST ${ApiConstants.oauthToken}');
+    print('🔥 clientId = $clientId');
+    print('🔥 code = $code');
+    print('🔥 redirectUri = $redirectUri');
+    print('🔥 codeVerifier length = ${codeVerifier.length}');
+    await dioClient.dio.post(
+      ApiConstants.oauthToken,
+      data: {
+        'grant_type': 'authorization_code',
+        'client_id': clientId,
+        'code': code,
+        'redirect_uri': redirectUri,
+        'code_verifier': codeVerifier,
+      },
+      //options: Options(
+      //contentType: Headers.formUrlEncodedContentType,
+      //headers: const {
+      //'Content-Type': Headers.formUrlEncodedContentType,
+      //},
+      //),
+    );
+
+    print('🔥 /oauth/token completed successfully');
   }
 }

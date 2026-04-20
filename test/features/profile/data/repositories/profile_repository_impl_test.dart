@@ -5,6 +5,8 @@ import 'package:soundcloud_clone/features/profile/data/dto/profile_dto.dart';
 import 'package:soundcloud_clone/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
+import 'package:soundcloud_clone/features/upload/data/dto/managed_track_dto.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 
 class MockProfileRemoteDataSource extends Mock
     implements ProfileRemoteDataSource {}
@@ -45,6 +47,37 @@ void main() {
     expect(result, isA<ProfileEntity>());
     expect(result.displayName, 'Ali');
     verify(() => mockRemoteDataSource.getProfile('ali')).called(1);
+  });
+
+  test('getMyProfile delegates to remote source and maps dto to entity',
+      () async {
+    when(() => mockRemoteDataSource.getMyProfile())
+        .thenAnswer((_) async => dto);
+
+    final result = await repository.getMyProfile();
+
+    expect(result, isA<ProfileEntity>());
+    expect(result.handle, 'ali');
+    verify(() => mockRemoteDataSource.getMyProfile()).called(1);
+  });
+
+  test('getUserTracks delegates to remote source and maps dto to entities',
+      () async {
+    when(() => mockRemoteDataSource.getUserTracks('user-1')).thenAnswer(
+      (_) async => [
+        const ManagedTrackDto(
+          id: 'track-1',
+          title: 'Midnight Echoes',
+          visibility: TrackManagementVisibility.publicTrack,
+        ),
+      ],
+    );
+
+    final result = await repository.getUserTracks('user-1');
+
+    expect(result, hasLength(1));
+    expect(result.single.id, 'track-1');
+    verify(() => mockRemoteDataSource.getUserTracks('user-1')).called(1);
   });
 
   test('updateProfile sends only provided displayName', () async {
@@ -90,7 +123,8 @@ void main() {
       () => mockRemoteDataSource.updateProfile(captureAny()),
     ).captured.single as Map<String, dynamic>;
 
-    expect(captured['visibility'], 'PUBLIC');
+    expect(captured['is_private'], false);
+    expect(captured.length, 1);
   });
 
   test('updateProfile maps PRIVATE visibility correctly', () async {
@@ -105,7 +139,8 @@ void main() {
       () => mockRemoteDataSource.updateProfile(captureAny()),
     ).captured.single as Map<String, dynamic>;
 
-    expect(captured['visibility'], 'PRIVATE');
+    expect(captured['is_private'], true);
+    expect(captured.length, 1);
   });
 
   test('updateProfile sends favoriteGenres when provided', () async {
@@ -123,6 +158,64 @@ void main() {
     expect(captured['favorite_genres'], ['Rock', 'Jazz']);
   });
 
+  test('updateProfile sends website when provided', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile(
+      website: 'https://example.com',
+    );
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['website'], 'https://example.com');
+  });
+
+  test('updateProfile maps ARTIST account tier correctly', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile(
+      accountTier: AccountTier.ARTIST,
+    );
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['account_type'], 'ARTIST');
+  });
+
+  test('updateProfile maps LISTENER account tier correctly', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile(
+      accountTier: AccountTier.LISTENER,
+    );
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['account_type'], 'LISTENER');
+  });
+
+  test('updateProfile sends empty body when no values are provided', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile();
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured, isEmpty);
+  });
+
   test('updateProfile returns mapped entity from remote dto', () async {
     when(() => mockRemoteDataSource.updateProfile(any()))
         .thenAnswer((_) async => dto);
@@ -137,6 +230,25 @@ void main() {
 
     expect(result.handle, 'ali');
     expect(result.favoriteGenres, ['Rock']);
+  });
+
+  test('updateExternalLinks delegates to remote source', () async {
+    when(
+      () => mockRemoteDataSource.updateExternalLinks(
+        {'instagram': 'https://instagram.com/ali'},
+      ),
+    ).thenAnswer((_) async => {'instagram': 'https://instagram.com/ali'});
+
+    final result = await repository.updateExternalLinks(
+      externalLinks: {'instagram': 'https://instagram.com/ali'},
+    );
+
+    expect(result, {'instagram': 'https://instagram.com/ali'});
+    verify(
+      () => mockRemoteDataSource.updateExternalLinks(
+        {'instagram': 'https://instagram.com/ali'},
+      ),
+    ).called(1);
   });
 
   test('uploadProfileImage delegates to remote source', () async {
@@ -161,6 +273,29 @@ void main() {
     ).called(1);
   });
 
+  test('uploadProfileImage delegates to remote source for COVER image',
+      () async {
+    when(
+      () => mockRemoteDataSource.uploadProfileImage(
+        imageType: ProfileImageType.COVER,
+        filePath: '/tmp/cover.png',
+      ),
+    ).thenAnswer((_) async => 'uploaded-cover-url');
+
+    final result = await repository.uploadProfileImage(
+      imageType: ProfileImageType.COVER,
+      filePath: '/tmp/cover.png',
+    );
+
+    expect(result, 'uploaded-cover-url');
+    verify(
+      () => mockRemoteDataSource.uploadProfileImage(
+        imageType: ProfileImageType.COVER,
+        filePath: '/tmp/cover.png',
+      ),
+    ).called(1);
+  });
+
   test('checkHandleAvailable delegates to remote source', () async {
     when(() => mockRemoteDataSource.checkHandleAvailable('ali'))
         .thenAnswer((_) async => true);
@@ -169,5 +304,33 @@ void main() {
 
     expect(result, true);
     verify(() => mockRemoteDataSource.checkHandleAvailable('ali')).called(1);
+  });
+
+  test('updateProfile sends multiple fields combined', () async {
+    when(() => mockRemoteDataSource.updateProfile(any()))
+        .thenAnswer((_) async => dto);
+
+    await repository.updateProfile(
+      displayName: 'New Name',
+      bio: 'New bio',
+      location: 'New Location',
+      website: 'https://newwebsite.com',
+      favoriteGenres: const ['Pop', 'Rock'],
+      visibility: ProfileVisibility.PRIVATE,
+      accountTier: AccountTier.ARTIST,
+    );
+
+    final captured = verify(
+      () => mockRemoteDataSource.updateProfile(captureAny()),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['display_name'], 'New Name');
+    expect(captured['bio'], 'New bio');
+    expect(captured['location'], 'New Location');
+    expect(captured['website'], 'https://newwebsite.com');
+    expect(captured['favorite_genres'], ['Pop', 'Rock']);
+    expect(captured['is_private'], true);
+    expect(captured['account_type'], 'ARTIST');
+    expect(captured.length, 7);
   });
 }

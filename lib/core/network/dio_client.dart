@@ -22,6 +22,7 @@ class DioClient {
             connectTimeout: const Duration(seconds: 30),
             receiveTimeout: const Duration(seconds: 30),
             headers: const {'Content-Type': 'application/json'},
+            extra: {'withCredentials': true},
           ),
         ) {
     final authInterceptor = AuthInterceptor(secureStorage: secureStorage);
@@ -56,6 +57,7 @@ class DioClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
+    ProgressCallback? onSendProgress,
   }) async {
     try {
       return await dio.post<T>(
@@ -63,6 +65,7 @@ class DioClient {
         data: data,
         queryParameters: queryParameters,
         options: options,
+        onSendProgress: onSendProgress,
       );
     } on DioException catch (e) {
       throw ErrorMapper.mapDioErrorToFailure(e);

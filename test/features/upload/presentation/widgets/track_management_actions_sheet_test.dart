@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/presentation/widgets/TrackManagementActionsSheet.dart';
+import 'package:soundcloud_clone/features/upload/presentation/widgets/track_management_actions_sheet.dart';
 
 void main() {
   group('TrackManagementActionsSheet', () {

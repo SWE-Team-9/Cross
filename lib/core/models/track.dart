@@ -5,6 +5,8 @@ class Track {
   final String audioUrl;
   final String? artworkUrl;
   final String? handle;
+  final int likesCount;
+  final int repostsCount;
 
   const Track({
     required this.id,
@@ -13,5 +15,29 @@ class Track {
     required this.audioUrl,
     this.artworkUrl,
     this.handle,
+    this.likesCount = 0,
+    this.repostsCount = 0,
   });
+
+  Track copyWith({
+    String? id,
+    String? title,
+    String? artist,
+    String? audioUrl,
+    String? artworkUrl,
+    String? handle,
+    int? likesCount,
+    int? repostsCount,
+  }) {
+    return Track(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      artist: artist ?? this.artist,
+      audioUrl: audioUrl ?? this.audioUrl,
+      artworkUrl: artworkUrl ?? this.artworkUrl,
+      handle: handle ?? this.handle,
+      likesCount: likesCount ?? this.likesCount,
+      repostsCount: repostsCount ?? this.repostsCount,
+    );
+  }
 }

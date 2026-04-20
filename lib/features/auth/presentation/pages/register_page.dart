@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:async';
 import 'dart:io' show Platform;
 
@@ -15,8 +16,17 @@ import '../widgets/auth_screen_wrapper.dart';
 import '../widgets/auth_text_field.dart';
 import '../../../../core/config/app_config.dart';
 
+typedef RegisterCaptchaTokenProvider = Future<String> Function(
+  BuildContext context,
+);
+
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  const RegisterPage({
+    super.key,
+    this.captchaTokenProvider,
+  });
+
+  final RegisterCaptchaTokenProvider? captchaTokenProvider;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -166,15 +176,19 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       String token = "";
 
-      if (Platform.isAndroid || Platform.isIOS) {
-        if (_recaptchaClient == null) {
-          _recaptchaClient =
-              await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
+      if (widget.captchaTokenProvider != null) {
+        token = await widget.captchaTokenProvider!(context);
+      } else {
+        if (Platform.isAndroid || Platform.isIOS) {
+          if (_recaptchaClient == null) {
+            _recaptchaClient =
+                await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
+          }
+          token =
+              await _recaptchaClient!.execute(RecaptchaAction.custom('signup'));
+        } else if (Platform.isWindows) {
+          token = await _getWindowsCaptchaToken(context);
         }
-        token =
-            await _recaptchaClient!.execute(RecaptchaAction.custom('signup'));
-      } else if (Platform.isWindows) {
-        token = await _getWindowsCaptchaToken(context);
       }
 
       if (token.isNotEmpty && mounted) {
