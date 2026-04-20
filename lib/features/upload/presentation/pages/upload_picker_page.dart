@@ -38,17 +38,28 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<PlayerCubit>().hideMiniPlayer();
+      _setMiniPlayerVisible(false);
     });
   }
 
   @override
   void dispose() {
-    context.read<PlayerCubit>().showMiniPlayer();
+    _setMiniPlayerVisible(true);
     _titleController.dispose();
     _tagsController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  void _setMiniPlayerVisible(bool visible) {
+    try {
+      final playerCubit = context.read<PlayerCubit>();
+      if (visible) {
+        playerCubit.showMiniPlayer();
+      } else {
+        playerCubit.hideMiniPlayer();
+      }
+    } catch (_) {}
   }
 
   void _resetForm(UploadPickerCubit cubit) {
