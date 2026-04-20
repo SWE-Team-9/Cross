@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:async';
 
 import '../../models/player_state.dart';

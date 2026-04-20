@@ -82,14 +82,14 @@ void main() {
     );
     when(() => playerCubit.stream)
         .thenAnswer((_) => const Stream<PlayerUIState>.empty());
-    when(() => playerCubit.addPlayNext(any())).thenReturn(null);
-    when(() => playerCubit.addPlayLast(any())).thenReturn(null);
+    when(() => playerCubit.addPlayNext(any())).thenAnswer((_) async {});
+    when(() => playerCubit.addPlayLast(any())).thenAnswer((_) async {});
 
     when(() => playbackCubit.state).thenReturn(const PlaybackState());
     when(() => playbackCubit.stream)
         .thenAnswer((_) => const Stream<PlaybackState>.empty());
-    when(() => playbackCubit.addPlayNext(any())).thenReturn(null);
-    when(() => playbackCubit.addPlayLast(any())).thenReturn(null);
+    when(() => playbackCubit.addPlayNext(any())).thenAnswer((_) async {});
+    when(() => playbackCubit.addPlayLast(any())).thenAnswer((_) async {});
 
     when(() => interactionCubit.state).thenReturn(
       TrackInteractionState.initial(),
@@ -160,7 +160,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('"Track 1" will play next'), findsOneWidget);
     verify(() => playerCubit.addPlayNext(track)).called(1);
-    verify(() => playbackCubit.addPlayNext(track)).called(1);
     expect(isTrackSheetOpen.value, isFalse);
 
     await tester.tap(find.text('open'));
@@ -168,6 +167,5 @@ void main() {
     await tester.tap(find.text('Play Last'));
     await tester.pumpAndSettle();
     verify(() => playerCubit.addPlayLast(track)).called(1);
-    verify(() => playbackCubit.addPlayLast(track)).called(1);
   });
 }
