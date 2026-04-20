@@ -1,4 +1,19 @@
 class User {
+  static const List<String> _avatarUrlKeys = <String>[
+    'avatarUrl',
+    'avatar_url',
+    'profileImageUrl',
+    'profile_image_url',
+    'profileImage',
+    'profile_image',
+    'imageUrl',
+    'image_url',
+    'photoUrl',
+    'photo_url',
+    'picture',
+    'avatar',
+  ];
+
   final String id;
   final String username;
   final String? avatarUrl;
@@ -33,24 +48,12 @@ class User {
 
     final dynamic rawFollowersCount =
         json['followersCount'] ?? json['followers_count'] ?? 0;
-    final dynamic rawAvatarUrl = json['avatarUrl'] ??
-        json['avatar_url'] ??
-        json['profileImageUrl'] ??
-        json['profile_image_url'] ??
-        json['profileImage'] ??
-        json['profile_image'] ??
-        json['imageUrl'] ??
-        json['image_url'] ??
-        json['photoUrl'] ??
-        json['photo_url'] ??
-        json['picture'] ??
-        json['avatar'];
-    final avatar = rawAvatarUrl?.toString().trim();
+    final avatar = _firstNonEmptyString(json, _avatarUrlKeys);
 
     return User(
       id: rawId?.toString() ?? '',
       username: rawUsername?.toString() ?? '',
-      avatarUrl: (avatar == null || avatar.isEmpty) ? null : avatar,
+      avatarUrl: avatar,
       isFollowing: rawIsFollowing is bool
           ? rawIsFollowing
           : rawIsFollowing.toString().toLowerCase() == 'true',
@@ -81,5 +84,18 @@ class User {
       isFollowing: isFollowing ?? this.isFollowing,
       followersCount: followersCount ?? this.followersCount,
     );
+  }
+
+  static String? _firstNonEmptyString(
+    Map<String, dynamic> json,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = json[key];
+      if (value == null) continue;
+      final parsed = value.toString().trim();
+      if (parsed.isNotEmpty) return parsed;
+    }
+    return null;
   }
 }
