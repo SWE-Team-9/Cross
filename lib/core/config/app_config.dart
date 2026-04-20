@@ -34,10 +34,15 @@ class AppConfig {
   );
 
   static String get recaptchaAndroidSiteKey {
-    if (isProduction) {
-      return '6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7';
+    const override = String.fromEnvironment(
+      'RECAPTCHA_ANDROID_SITE_KEY',
+      defaultValue: '',
+    );
+    if (override.isNotEmpty) {
+      return override;
     }
-    return '6LcPd5EsAAAAAO8YOCSJJJr3PmX_lBzPaF-SvxR7';
+
+    return '6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5';
   }
 
   static const String recaptchaWindowsWebUrl = String.fromEnvironment(
