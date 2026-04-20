@@ -30,10 +30,24 @@ class PlayerCubit extends Cubit<PlayerUIState> {
 
   void _listenToPlayer() {
     _subscription = _audioService.playerStateStream.listen((playerState) {
-      final serviceTrack = _trackFromServiceState(playerState);
+      final localQueue = state.playerState.queue;
+      final incomingTrack = _trackFromServiceState(playerState);
+      final hasQueueMismatch =
+          localQueue.isNotEmpty && !_sameQueue(localQueue, playerState.queue);
+      final sameCurrentTrack =
+          incomingTrack != null && incomingTrack.id == state.currentTrack?.id;
+      final shouldKeepLocalQueue = hasQueueMismatch && sameCurrentTrack;
+      final mergedPlayerState = shouldKeepLocalQueue
+          ? playerState.copyWith(
+              queue: localQueue,
+              currentIndex: state.currentIndex,
+            )
+          : playerState;
+
+      final serviceTrack = _trackFromServiceState(mergedPlayerState);
       emit(
         state.copyWith(
-          playerState: playerState,
+          playerState: mergedPlayerState,
           currentTrack: serviceTrack ?? state.currentTrack,
         ),
       );
@@ -146,10 +160,19 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     );
   }
 
-  void addPlayNext(Track track) {
+  Future<void> addPlayNext(Track track) async {
     final queue = List<Track>.from(state.queue);
     final currentTrack = state.currentTrack;
     if (currentTrack?.id == track.id) return;
+
+    if (queue.isEmpty || state.currentIndex < 0) {
+      await playFromContext(
+        tracks: [track],
+        startIndex: 0,
+        source: state.playerState.source ?? 'queue',
+      );
+      return;
+    }
 
     final currentId = currentTrack?.id;
     queue.removeWhere((item) => item.id == track.id);
@@ -178,10 +201,19 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     );
   }
 
-  void addPlayLast(Track track) {
+  Future<void> addPlayLast(Track track) async {
     final queue = List<Track>.from(state.queue);
     final currentTrack = state.currentTrack;
     if (currentTrack?.id == track.id) return;
+
+    if (queue.isEmpty || state.currentIndex < 0) {
+      await playFromContext(
+        tracks: [track],
+        startIndex: 0,
+        source: state.playerState.source ?? 'queue',
+      );
+      return;
+    }
 
     queue.removeWhere((item) => item.id == track.id);
     queue.add(track);
@@ -227,6 +259,15 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     final index = playerState.currentIndex;
     if (queue.isEmpty || index < 0 || index >= queue.length) return null;
     return queue[index];
+  }
+
+  bool _sameQueue(List<Track> left, List<Track> right) {
+    if (identical(left, right)) return true;
+    if (left.length != right.length) return false;
+    for (var i = 0; i < left.length; i++) {
+      if (left[i].id != right[i].id) return false;
+    }
+    return true;
   }
 
   void openFullPlayer() {
