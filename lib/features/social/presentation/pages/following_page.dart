@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
@@ -217,6 +218,8 @@ class _FollowingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(user.avatarUrl);
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: user.username.trim().isEmpty
@@ -224,6 +227,7 @@ class _FollowingTile extends StatelessWidget {
           : () => ProfileRoutes.goToProfile(context, user.username.trim()),
       leading: CircleAvatar(
         backgroundColor: Colors.grey[800],
+        foregroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
         child: Text(
           user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
           style:
