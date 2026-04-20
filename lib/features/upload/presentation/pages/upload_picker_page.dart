@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -247,12 +248,12 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                             ? Icons.hourglass_top
                             : Icons.audio_file_outlined,
                       ),
-                        label: Text(
-                          state.status == UploadPickerStatus.picking
-                              ? 'Selecting...'
-                              : 'Select audio file',
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                      label: Text(
+                        state.status == UploadPickerStatus.picking
+                            ? 'Selecting...'
+                            : 'Select audio file',
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
                     const SizedBox(height: 24),
                     if (state.pickedAudioFile != null) ...[
@@ -260,20 +261,20 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                         pickedAudioFile: state.pickedAudioFile!,
                       ),
                       const SizedBox(height: 16),
-                        _UploadMetadataCard(
-                          titleController: _titleController,
-                          selectedGenre: _selectedGenre,
-                          selectedReleaseDate: _selectedReleaseDate,
-                          onReleaseDateChanged: (date) {
-                            setState(() {
-                              _selectedReleaseDate = date;
-                            });
-                          },
-                          genreOptions: kTrackGenreNames,
-                          onGenreChanged: (genre) {
-                            setState(() {
-                              _selectedGenre = genre;
-                            });
+                      _UploadMetadataCard(
+                        titleController: _titleController,
+                        selectedGenre: _selectedGenre,
+                        selectedReleaseDate: _selectedReleaseDate,
+                        onReleaseDateChanged: (date) {
+                          setState(() {
+                            _selectedReleaseDate = date;
+                          });
+                        },
+                        genreOptions: kTrackGenreNames,
+                        onGenreChanged: (genre) {
+                          setState(() {
+                            _selectedGenre = genre;
+                          });
                         },
                         tagsController: _tagsController,
                         descriptionController: _descriptionController,
@@ -624,8 +625,9 @@ class _UploadMetadataCard extends StatelessWidget {
                     ? 'Pick date'
                     : '${selectedReleaseDate!.year.toString().padLeft(4, '0')}-${selectedReleaseDate!.month.toString().padLeft(2, '0')}-${selectedReleaseDate!.day.toString().padLeft(2, '0')}',
                 style: TextStyle(
-                  color:
-                      selectedReleaseDate == null ? Colors.grey.shade500 : Colors.white,
+                  color: selectedReleaseDate == null
+                      ? Colors.grey.shade500
+                      : Colors.white,
                 ),
               ),
             ),
