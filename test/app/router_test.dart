@@ -65,6 +65,9 @@ class FakeAudioPlayerService implements AudioPlayerService {
   }
 
   @override
+  Future<void> setRepeatMode(AppRepeatMode mode) async {}
+
+  @override
   double get currentVolume => _currentVolume;
 
   @override

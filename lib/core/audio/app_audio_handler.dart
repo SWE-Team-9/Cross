@@ -3,8 +3,11 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 
+import '../models/player_state.dart' as app_player;
+
 class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player = AudioPlayer();
+  app_player.AppRepeatMode _repeatMode = app_player.AppRepeatMode.off;
 
   AppAudioHandler() {
     _init();
@@ -82,6 +85,7 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         bufferedPosition: _player.bufferedPosition,
         speed: _player.speed,
         queueIndex: _player.currentIndex,
+        repeatMode: _audioServiceRepeatMode(_repeatMode),
       ),
     );
   }
@@ -211,6 +215,17 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   /// This takes effect immediately, including during active playback.
   Future<void> setVolume(double volume) => _player.setVolume(volume);
 
+  Future<void> setAppRepeatMode(app_player.AppRepeatMode mode) async {
+    _repeatMode = mode;
+    await _player.setLoopMode(_loopModeFor(mode));
+
+    playbackState.add(
+      playbackState.value.copyWith(
+        repeatMode: _audioServiceRepeatMode(mode),
+      ),
+    );
+  }
+
   @override
   Future<void> stop() => _player.stop();
 
@@ -233,6 +248,30 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         return AudioProcessingState.ready;
       case ProcessingState.completed:
         return AudioProcessingState.completed;
+    }
+  }
+
+  LoopMode _loopModeFor(app_player.AppRepeatMode mode) {
+    switch (mode) {
+      case app_player.AppRepeatMode.off:
+        return LoopMode.off;
+      case app_player.AppRepeatMode.one:
+        return LoopMode.one;
+      case app_player.AppRepeatMode.all:
+        return LoopMode.all;
+    }
+  }
+
+  AudioServiceRepeatMode _audioServiceRepeatMode(
+    app_player.AppRepeatMode mode,
+  ) {
+    switch (mode) {
+      case app_player.AppRepeatMode.off:
+        return AudioServiceRepeatMode.none;
+      case app_player.AppRepeatMode.one:
+        return AudioServiceRepeatMode.one;
+      case app_player.AppRepeatMode.all:
+        return AudioServiceRepeatMode.all;
     }
   }
 }
