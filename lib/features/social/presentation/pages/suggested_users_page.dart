@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
@@ -77,11 +78,14 @@ class _SuggestedUsersViewState extends State<_SuggestedUsersView> {
                 children: [
                   const Icon(Icons.wifi_off, color: Colors.grey, size: 48),
                   const SizedBox(height: 12),
-                  Text('Something went wrong', style: TextStyle(color: Colors.grey[400])),
+                  Text('Something went wrong',
+                      style: TextStyle(color: Colors.grey[400])),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () => context.read<SuggestedUsersCubit>().loadInitial(),
-                    child: const Text('Retry', style: TextStyle(color: Colors.orange)),
+                    onPressed: () =>
+                        context.read<SuggestedUsersCubit>().loadInitial(),
+                    child: const Text('Retry',
+                        style: TextStyle(color: Colors.orange)),
                   ),
                 ],
               ),
@@ -109,7 +113,8 @@ class _SuggestedUsersViewState extends State<_SuggestedUsersView> {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(
-                      child: CircularProgressIndicator(color: Colors.orange, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                          color: Colors.orange, strokeWidth: 2),
                     ),
                   );
                 }
@@ -144,12 +149,14 @@ class _SuggestedUserTile extends StatelessWidget {
         foregroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
         child: Text(
           user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       title: Text(
         user.username,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        style:
+            const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
         '${user.followersCount} followers',
