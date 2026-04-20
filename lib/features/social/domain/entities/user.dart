@@ -1,4 +1,6 @@
 class User {
+  // Social endpoints return avatar fields with different names across
+  // followers/following/suggested responses, so we normalize them here.
   static const List<String> _avatarUrlKeys = <String>[
     'avatarUrl',
     'avatar_url',
@@ -48,7 +50,7 @@ class User {
 
     final dynamic rawFollowersCount =
         json['followersCount'] ?? json['followers_count'] ?? 0;
-    final avatar = _firstNonEmptyString(json, _avatarUrlKeys);
+    final avatar = _extractAvatarUrl(json);
 
     return User(
       id: rawId?.toString() ?? '',
@@ -84,6 +86,12 @@ class User {
       isFollowing: isFollowing ?? this.isFollowing,
       followersCount: followersCount ?? this.followersCount,
     );
+  }
+
+  static String? _extractAvatarUrl(
+    Map<String, dynamic> json,
+  ) {
+    return _firstNonEmptyString(json, _avatarUrlKeys);
   }
 
   static String? _firstNonEmptyString(
