@@ -10,10 +10,13 @@ import 'player_ui_state.dart';
 
 class PlayerCubit extends Cubit<PlayerUIState> {
   static const String _queueSource = 'queue';
+  static const Duration _pendingSwitchMaxAge = Duration(seconds: 8);
 
   final AudioPlayerService _audioService;
   final GetTrackDetailUseCase? _getTrackDetail;
   StreamSubscription<PlayerState>? _subscription;
+  String? _pendingRequestedTrackId;
+  DateTime? _pendingRequestedAt;
 
   PlayerCubit(
     this._audioService, {
@@ -33,12 +36,22 @@ class PlayerCubit extends Cubit<PlayerUIState> {
   void _listenToPlayer() {
     _subscription = _audioService.playerStateStream.listen((playerState) {
       final localQueue = state.playerState.queue;
-      final incomingTrack = _trackFromServiceState(playerState);
+      final incomingTrack = _trackFromServiceState(playerState) ??
+          _trackById(playerState.currentTrackId, playerState.queue) ??
+          _trackById(playerState.currentTrackId, localQueue);
+
+      if (_pendingRequestedTrackId != null &&
+          incomingTrack?.id == _pendingRequestedTrackId) {
+        _clearPendingTrackSwitch();
+      }
+
       final hasQueueMismatch =
           localQueue.isNotEmpty && !_sameQueue(localQueue, playerState.queue);
       final sameCurrentTrack =
           incomingTrack != null && incomingTrack.id == state.currentTrack?.id;
-      final shouldKeepLocalQueue = hasQueueMismatch && sameCurrentTrack;
+      final hasPendingSwitch = _hasPendingTrackSwitch;
+      final shouldKeepLocalQueue =
+          hasQueueMismatch && (sameCurrentTrack || hasPendingSwitch);
       final mergedPlayerState = shouldKeepLocalQueue
           ? playerState.copyWith(
               queue: localQueue,
@@ -46,11 +59,21 @@ class PlayerCubit extends Cubit<PlayerUIState> {
             )
           : playerState;
 
-      final serviceTrack = _trackFromServiceState(mergedPlayerState);
+      final serviceTrack = _trackFromServiceState(mergedPlayerState) ??
+          _trackById(
+            mergedPlayerState.currentTrackId,
+            mergedPlayerState.queue,
+          ) ??
+          _trackById(
+            mergedPlayerState.currentTrackId,
+            localQueue,
+          );
+
+      final nextTrack = serviceTrack ?? state.currentTrack;
       emit(
         state.copyWith(
           playerState: mergedPlayerState,
-          currentTrack: serviceTrack ?? state.currentTrack,
+          currentTrack: nextTrack,
         ),
       );
     });
@@ -77,6 +100,7 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     if (playableTracks == null) return;
 
     final track = playableTracks[safeIndex];
+    _markPendingTrackSwitch(track.id);
     final played = Set<String>.from(state.playedTrackIds);
 
     if (state.currentTrack != null) {
@@ -133,6 +157,24 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     await _audioService.setVolume(volume);
   }
 
+  Future<void> setRepeatMode(AppRepeatMode mode) async {
+    emit(
+      state.copyWith(
+        playerState: state.playerState.copyWith(repeatMode: mode),
+      ),
+    );
+    await _audioService.setRepeatMode(mode);
+  }
+
+  Future<void> cycleRepeatMode() async {
+    final nextMode = switch (state.repeatMode) {
+      AppRepeatMode.off => AppRepeatMode.one,
+      AppRepeatMode.one => AppRepeatMode.all,
+      AppRepeatMode.all => AppRepeatMode.off,
+    };
+    await setRepeatMode(nextMode);
+  }
+
   Future<void> stop() async {
     await _audioService.stop();
   }
@@ -141,11 +183,13 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     final tracks = state.queue;
     final currentIndex = state.currentIndex;
     if (tracks.isEmpty || currentIndex < 0) return;
-    if (currentIndex >= tracks.length - 1) return;
+    final isLastTrack = currentIndex >= tracks.length - 1;
+    if (isLastTrack && state.repeatMode != AppRepeatMode.all) return;
+    final nextIndex = isLastTrack ? 0 : currentIndex + 1;
 
     await playFromContext(
       tracks: tracks,
-      startIndex: currentIndex + 1,
+      startIndex: nextIndex,
       source: state.playerState.source ?? _queueSource,
     );
   }
@@ -153,11 +197,14 @@ class PlayerCubit extends Cubit<PlayerUIState> {
   Future<void> playPrevious() async {
     final tracks = state.queue;
     final currentIndex = state.currentIndex;
-    if (tracks.isEmpty || currentIndex <= 0) return;
+    if (tracks.isEmpty || currentIndex < 0) return;
+    final isFirstTrack = currentIndex <= 0;
+    if (isFirstTrack && state.repeatMode != AppRepeatMode.all) return;
+    final previousIndex = isFirstTrack ? tracks.length - 1 : currentIndex - 1;
 
     await playFromContext(
       tracks: tracks,
-      startIndex: currentIndex - 1,
+      startIndex: previousIndex,
       source: state.playerState.source ?? _queueSource,
     );
   }
@@ -263,6 +310,36 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     return queue[index];
   }
 
+  Track? _trackById(String? trackId, List<Track> tracks) {
+    if (trackId == null || tracks.isEmpty) return null;
+    for (final track in tracks) {
+      if (track.id == trackId) return track;
+    }
+    return null;
+  }
+
+  bool get _hasPendingTrackSwitch {
+    final pendingAt = _pendingRequestedAt;
+    if (_pendingRequestedTrackId == null || pendingAt == null) return false;
+
+    if (DateTime.now().difference(pendingAt) > _pendingSwitchMaxAge) {
+      _clearPendingTrackSwitch();
+      return false;
+    }
+
+    return true;
+  }
+
+  void _markPendingTrackSwitch(String trackId) {
+    _pendingRequestedTrackId = trackId;
+    _pendingRequestedAt = DateTime.now();
+  }
+
+  void _clearPendingTrackSwitch() {
+    _pendingRequestedTrackId = null;
+    _pendingRequestedAt = null;
+  }
+
   bool _sameQueue(List<Track> left, List<Track> right) {
     if (identical(left, right)) return true;
     if (left.length != right.length) return false;
@@ -282,6 +359,7 @@ class PlayerCubit extends Cubit<PlayerUIState> {
 
   @override
   Future<void> close() {
+    _clearPendingTrackSwitch();
     _subscription?.cancel();
     return super.close();
   }
