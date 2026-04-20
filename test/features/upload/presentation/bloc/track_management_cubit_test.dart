@@ -1,12 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/data/repositories/trackManagementRepositoryFake.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/ManagedTrack.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/deleteTrackUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/updateTrackMetadataUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/updateTrackVisibilityUseCase.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/trackManagementCubit.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/trackManagementState.dart';
+import 'package:soundcloud_clone/features/upload/data/repositories/track_management_repository_fake.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_form.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
+import 'package:soundcloud_clone/features/upload/domain/repositories/track_management_repository.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/delete_track_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_metadata_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_visibility_usecase.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_cubit.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_state.dart';
 
 class TestTrackManagementCubit extends TrackManagementCubit {
   TestTrackManagementCubit(
@@ -17,6 +19,40 @@ class TestTrackManagementCubit extends TrackManagementCubit {
 
   void seed(TrackManagementState state) {
     emit(state);
+  }
+}
+
+class _StaleMetadataRepository implements TrackManagementRepository {
+  const _StaleMetadataRepository();
+
+  @override
+  Future<void> deleteTrack({required String trackId}) async {}
+
+  @override
+  Future<ManagedTrack> updateTrackMetadata({
+    required String trackId,
+    required TrackManagementForm form,
+  }) async {
+    return ManagedTrack(
+      id: trackId,
+      title: 'stale-title',
+      description: null,
+      genreName: 'Ambient',
+      tags: const <String>['stale'],
+      visibility: TrackManagementVisibility.publicTrack,
+    );
+  }
+
+  @override
+  Future<ManagedTrack> updateTrackVisibility({
+    required String trackId,
+    required TrackManagementVisibility visibility,
+  }) async {
+    return ManagedTrack(
+      id: trackId,
+      title: 'unchanged',
+      visibility: visibility,
+    );
   }
 }
 
@@ -85,7 +121,7 @@ void main() {
       cubit.initialize(track);
       cubit.updateTitle('Edited Track');
       cubit.updateDescription('Edited Description');
-      cubit.updateGenre(genreId: 2, genreName: 'Electronic');
+      cubit.updateGenre('Electronic');
       cubit.updateTagsFromInput('edited, demo');
 
       await cubit.saveMetadata();
@@ -96,6 +132,30 @@ void main() {
         cubit.state.successMessage,
         'Track details updated successfully.',
       );
+
+      await cubit.close();
+    });
+
+    test('saveMetadata keeps submitted metadata when API responds stale',
+        () async {
+      final cubit = TestTrackManagementCubit(
+        UpdateTrackMetadataUseCase(const _StaleMetadataRepository()),
+        UpdateTrackVisibilityUseCase(const _StaleMetadataRepository()),
+        DeleteTrackUseCase(const _StaleMetadataRepository()),
+      );
+      cubit.initialize(track);
+      cubit.updateTitle('Edited Track');
+      cubit.updateDescription('Edited Description');
+      cubit.updateGenre('Electronic');
+      cubit.updateTagsFromInput('edited, demo');
+
+      await cubit.saveMetadata();
+
+      expect(cubit.state.status, TrackManagementStatus.success);
+      expect(cubit.state.currentTrack!.title, 'Edited Track');
+      expect(cubit.state.currentTrack!.description, 'Edited Description');
+      expect(cubit.state.currentTrack!.genreName, 'Electronic');
+      expect(cubit.state.currentTrack!.tags, const <String>['edited', 'demo']);
 
       await cubit.close();
     });

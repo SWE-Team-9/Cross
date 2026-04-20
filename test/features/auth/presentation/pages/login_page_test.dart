@@ -13,6 +13,7 @@ class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 void main() {
   late MockAuthCubit authCubit;
+  Future<String> defaultCaptchaProvider(BuildContext _) async => 'test-captcha';
 
   setUp(() {
     authCubit = MockAuthCubit();
@@ -27,7 +28,9 @@ void main() {
         )).thenAnswer((_) async {});
   });
 
-  Widget buildTestWidget() {
+  Widget buildTestWidget({
+    LoginCaptchaTokenProvider? captchaProvider,
+  }) {
     final router = GoRouter(
       initialLocation: AuthRoutes.login,
       routes: [
@@ -35,7 +38,9 @@ void main() {
           path: AuthRoutes.login,
           builder: (_, __) => BlocProvider<AuthCubit>.value(
             value: authCubit,
-            child: const LoginPage(),
+            child: LoginPage(
+              captchaTokenProvider: captchaProvider ?? defaultCaptchaProvider,
+            ),
           ),
         ),
         GoRoute(
@@ -80,6 +85,27 @@ void main() {
 
       expect(find.text('Please enter your email'), findsOneWidget);
       expect(find.text('Please enter your password'), findsOneWidget);
+
+      verifyNever(() => authCubit.login(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            rememberMe: any(named: 'rememberMe'),
+            captchaToken: any(named: 'captchaToken'),
+          ));
+    });
+
+    testWidgets('toggles remember me checkbox', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      Checkbox checkbox = tester.widget(find.byType(Checkbox));
+      expect(checkbox.value, isFalse);
+
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
+
+      checkbox = tester.widget(find.byType(Checkbox));
+      expect(checkbox.value, isTrue);
     });
 
     testWidgets('toggles password visibility', (tester) async {
@@ -170,6 +196,99 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('home-page'), findsOneWidget);
+    });
+
+    testWidgets('does not submit when password is empty', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'valid@example.com',
+      );
+
+      await tester.tap(find.text('Log in'));
+      await tester.pump();
+
+      expect(find.text('Please enter your password'), findsOneWidget);
+      verifyNever(() => authCubit.login(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            rememberMe: any(named: 'rememberMe'),
+            captchaToken: any(named: 'captchaToken'),
+          ));
+    });
+
+    testWidgets('submits login with captcha token when form is valid',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'valid@example.com',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'ValidPass123!',
+      );
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
+
+      await tester.tap(find.text('Log in'));
+      await tester.pump();
+
+      verify(() => authCubit.login(
+            email: 'valid@example.com',
+            password: 'ValidPass123!',
+            rememberMe: true,
+            captchaToken: 'test-captcha',
+          )).called(1);
+    });
+
+    testWidgets('shows snackbar when captcha fetching fails', (tester) async {
+      Future<String> failingCaptchaProvider(BuildContext _) async {
+        throw Exception('captcha failed');
+      }
+
+      await tester.pumpWidget(
+        buildTestWidget(captchaProvider: failingCaptchaProvider),
+      );
+      await tester.pump();
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'valid@example.com',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'ValidPass123!',
+      );
+      await tester.tap(find.text('Log in'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Security verification failed. Please try again.'),
+        findsOneWidget,
+      );
+      verifyNever(() => authCubit.login(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            rememberMe: any(named: 'rememberMe'),
+            captchaToken: any(named: 'captchaToken'),
+          ));
+    });
+
+    testWidgets('shows loading indicator when auth state is loading',
+        (tester) async {
+      when(() => authCubit.state).thenReturn(AuthLoading());
+      when(() => authCubit.stream)
+          .thenAnswer((_) => const Stream<AuthState>.empty());
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
   });
 }

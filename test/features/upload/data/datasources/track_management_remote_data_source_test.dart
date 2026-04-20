@@ -2,9 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
-import 'package:soundcloud_clone/features/upload/data/datasources/trackManagementRemoteDataSource.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementForm.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
+import 'package:soundcloud_clone/features/upload/data/datasources/track_management_remote_data_source.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_form.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 
 class MockDioClient extends Mock implements DioClient {}
 
@@ -15,7 +15,7 @@ void main() {
   const form = TrackManagementForm(
     title: 'City Lights',
     description: 'Updated description',
-    genreId: 2,
+    genreName: 'Electronic',
     tags: <String>['night', 'synth'],
     visibility: TrackManagementVisibility.privateTrack,
   );
@@ -50,11 +50,11 @@ void main() {
   group('updateTrackMetadata', () {
     test('parses payload from response.data.track', () async {
       when(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
           data: <String, dynamic>{
             'track': trackJson(),
           },
@@ -72,18 +72,18 @@ void main() {
       expect(result.genreName, 'Electronic');
 
       verify(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).called(1);
     });
 
     test('parses payload from response.data.data', () async {
       when(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
           data: <String, dynamic>{
             'data': trackJson(title: 'New Title'),
           },
@@ -100,23 +100,30 @@ void main() {
 
     test('parses payload from direct map response', () async {
       when(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
           data: trackJson(title: 'Direct Map'),
         ),
       );
+
+      final result = await dataSource.updateTrackMetadata(
+        trackId: 'track-1',
+        form: form,
+      );
+
+      expect(result.title, 'Direct Map');
     });
 
     test('throws FormatException on unexpected response shape', () async {
       when(() => mockDioClient.put(
-            '/tracks/track-1',
+            '/api/v1/tracks/track-1',
             data: form.toMetadataRequestBody(),
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
           data: 'bad-response',
         ),
       );
@@ -131,12 +138,13 @@ void main() {
   group('updateTrackVisibility', () {
     test('updateTrackVisibility sends visibility api value and parses entity',
         () async {
-      when(() => mockDioClient.put(
-            '/tracks/track-1',
+      when(() => mockDioClient.patch(
+            '/api/v1/tracks/track-1/visibility',
             data: <String, dynamic>{'visibility': 'PUBLIC'},
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/tracks/track-1'),
+          requestOptions:
+              RequestOptions(path: '/api/v1/tracks/track-1/visibility'),
           data: <String, dynamic>{
             'track': trackJson(visibility: 'PUBLIC'),
           },
@@ -150,8 +158,8 @@ void main() {
 
       expect(result.visibility, TrackManagementVisibility.publicTrack);
 
-      verify(() => mockDioClient.put(
-            '/tracks/track-1',
+      verify(() => mockDioClient.patch(
+            '/api/v1/tracks/track-1/visibility',
             data: <String, dynamic>{'visibility': 'PUBLIC'},
           )).called(1);
     });
@@ -159,14 +167,14 @@ void main() {
 
   group('deleteTrack', () {
     test('delegates delete to dio client', () async {
-      when(() => mockDioClient.delete('/tracks/track-1'))
+      when(() => mockDioClient.delete('/api/v1/tracks/track-1'))
           .thenAnswer((_) async => Response<void>(
-                requestOptions: RequestOptions(path: '/tracks/track-1'),
+                requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
               ));
 
       await dataSource.deleteTrack(trackId: 'track-1');
 
-      verify(() => mockDioClient.delete('/tracks/track-1')).called(1);
+      verify(() => mockDioClient.delete('/api/v1/tracks/track-1')).called(1);
     });
   });
 }

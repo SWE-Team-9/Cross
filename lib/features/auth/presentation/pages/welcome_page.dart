@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
+import '../bloc/auth_cubit.dart';
 import '../routes/auth_routes.dart';
 import '../widgets/auth_button.dart';
+import '../widgets/social_auth_button.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -10,69 +14,132 @@ class WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              color: const Color(0xFF111111),
-            ),
-          ),
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _WelcomeBackgroundPainter(),
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(28, 36, 28, 36),
-              decoration: const BoxDecoration(
-                color: Color(0xFF5D8EF2),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(34),
+      body: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthAuthenticated) {
+            context.go('/home');
+          }
+
+          if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          final bool isGoogleLoading =
+              state is AuthLoading || state is AuthOAuthInProgress;
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  color: const Color(0xFF111111),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.cloud,
-                    color: Colors.black,
-                    size: 44,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "We lead what’s next in music.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      height: 1.15,
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _WelcomeBackgroundPainter(),
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(28, 36, 28, 36),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF5D8EF2),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(34),
                     ),
                   ),
-                  const SizedBox(height: 28),
-                  AuthButton(
-                    text: 'Create an account',
-                    onPressed: () {
-                      context.push(AuthRoutes.register);
-                    },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.cloud,
+                        color: Colors.black,
+                        size: 44,
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "We lead what’s next in music.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      AuthButton(
+                        text: 'Create an account',
+                        onPressed: () {
+                          context.push(AuthRoutes.register);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      SocialAuthButton(
+                        text: 'Continue with Google',
+                        isLoading: isGoogleLoading,
+                        backgroundColor: Colors.white,
+                        textColor: Colors.black,
+                        onPressed: () {
+                          context.read<AuthCubit>().continueWithGoogle();
+                        },
+                        leading: Container(
+                          width: 22,
+                          height: 22,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: Colors.black,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Text(
+                            'G',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      AuthButton(
+                        text: 'Log in',
+                        backgroundColor: const Color(0xFFDCE4F7),
+                        textColor: Colors.black,
+                        onPressed: () {
+                          context.push(AuthRoutes.login);
+                        },
+                      ),
+                      if (state is AuthOAuthInProgress) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Waiting for Google sign-in to complete...',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  AuthButton(
-                    text: 'Log in',
-                    backgroundColor: const Color(0xFFDCE4F7),
-                    textColor: Colors.black,
-                    onPressed: () {
-                      context.push(AuthRoutes.login);
-                    },
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

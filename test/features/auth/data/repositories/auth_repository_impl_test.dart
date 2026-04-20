@@ -252,4 +252,94 @@ void main() {
       verify(() => mockRemoteDataSource.getCurrentUser()).called(1);
     });
   });
+
+  group('forgotPassword', () {
+    test('should delegate to remote data source', () async {
+      when(() =>
+              mockRemoteDataSource.forgotPassword(email: any(named: 'email')))
+          .thenAnswer((_) async => Future.value());
+
+      await repository.forgotPassword(email: 'reset@test.com');
+
+      verify(() => mockRemoteDataSource.forgotPassword(email: 'reset@test.com'))
+          .called(1);
+    });
+  });
+
+  group('resetPassword', () {
+    test('should delegate to remote data source with all params', () async {
+      when(() => mockRemoteDataSource.resetPassword(
+            code: any(named: 'code'),
+            newPassword: any(named: 'newPassword'),
+            newPasswordConfirm: any(named: 'newPasswordConfirm'),
+          )).thenAnswer((_) async => Future.value());
+
+      await repository.resetPassword(
+        code: '123456',
+        newPassword: 'NewPass@123',
+        newPasswordConfirm: 'NewPass@123',
+      );
+
+      verify(() => mockRemoteDataSource.resetPassword(
+            code: '123456',
+            newPassword: 'NewPass@123',
+            newPasswordConfirm: 'NewPass@123',
+          )).called(1);
+    });
+  });
+
+  group('email verification flow', () {
+    test('should delegate sendEmailVerification to remote data source',
+        () async {
+      when(() => mockRemoteDataSource.sendEmailVerification(
+            email: any(named: 'email'),
+          )).thenAnswer((_) async => Future.value());
+
+      await repository.sendEmailVerification(email: 'verify@test.com');
+
+      verify(() => mockRemoteDataSource.sendEmailVerification(
+            email: 'verify@test.com',
+          )).called(1);
+    });
+
+    test('should delegate verifyEmail and pass only code to remote', () async {
+      when(() => mockRemoteDataSource.verifyEmail(code: any(named: 'code')))
+          .thenAnswer((_) async => Future.value());
+
+      await repository.verifyEmail(email: 'ignored@test.com', code: '654321');
+
+      verify(() => mockRemoteDataSource.verifyEmail(code: '654321')).called(1);
+    });
+  });
+
+  group('email change flow', () {
+    test('should delegate requestEmailChange to remote data source', () async {
+      when(() => mockRemoteDataSource.requestEmailChange(
+            newEmail: any(named: 'newEmail'),
+            currentPassword: any(named: 'currentPassword'),
+          )).thenAnswer((_) async => Future.value());
+
+      await repository.requestEmailChange(
+        newEmail: 'new@mail.com',
+        currentPassword: 'Current@123',
+      );
+
+      verify(() => mockRemoteDataSource.requestEmailChange(
+            newEmail: 'new@mail.com',
+            currentPassword: 'Current@123',
+          )).called(1);
+    });
+
+    test('should delegate confirmEmailChange to remote data source', () async {
+      when(() => mockRemoteDataSource.confirmEmailChange(
+            token: any(named: 'token'),
+          )).thenAnswer((_) async => Future.value());
+
+      await repository.confirmEmailChange(token: 'confirm-token-123');
+
+      verify(() => mockRemoteDataSource.confirmEmailChange(
+            token: 'confirm-token-123',
+          )).called(1);
+    });
+  });
 }

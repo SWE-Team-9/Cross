@@ -16,33 +16,36 @@ dependencies:
   get_it: ^9.2.1
   injectable: ^2.3.0
   cached_network_image: ^3.3.0
-  
+  crypto: ^3.0.3
+
   # Navigation
   go_router: ^17.1.0
-  
+  app_links: ^6.4.0
+
   # Networking
   dio: ^5.4.0
   cookie_jar: ^4.0.8
   dio_cookie_manager: ^3.1.1
-  
+
   # State Management
   flutter_bloc: ^9.1.1
-  
+
   # Serialization
   freezed_annotation: ^3.1.0
   json_annotation: ^4.8.1
-  
+
   # Storage
   flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.2.2
-  
+
   # Utilities
   path_provider: ^2.1.1
   connectivity_plus: ^7.0.0
   file_picker: ^10.3.10
   permission_handler: ^11.3.1
   image_picker: ^1.2.1
-  
+  url_launcher: ^6.3.2
+
   # Media
   just_audio: ^0.10.5
   recaptcha_enterprise_flutter: ^18.8.2
@@ -50,19 +53,21 @@ dependencies:
   image_cropper: ^11.0.0
   flutter_image_compress: ^2.4.0
   webview_windows: ^0.4.0
+  audio_service: ^0.18.12
+  audio_session: ^0.1.16
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  http_mock_adapter: ^0.6.0  # For mocking Dio responses
-  
+  http_mock_adapter: ^0.6.0
+
   # Code generation
   build_runner: ^2.4.8
   freezed: ^3.2.5
   json_serializable: ^6.7.1
   injectable_generator: ^2.4.0
-  
+
   # Testing
   bloc_test: ^10.0.0
   mocktail: ^1.0.4

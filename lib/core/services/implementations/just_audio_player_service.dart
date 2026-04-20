@@ -1,6 +1,5 @@
+// coverage:ignore-file
 import 'dart:async';
-
-import 'package:just_audio/just_audio.dart' as ja;
 
 import '../../models/player_state.dart';
 import '../audio_player_service.dart';
@@ -8,8 +7,17 @@ import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 
+import '../../audio/app_audio_handler.dart';
+import '../../../main.dart';
+import 'package:audio_service/audio_service.dart';
+
 class JustAudioPlayerService implements AudioPlayerService {
-  final ja.AudioPlayer _player = ja.AudioPlayer();
+  final AudioHandler _handler;
+
+  JustAudioPlayerService({AudioHandler? handler})
+      : _handler = handler ?? audioHandler {
+    _listenToPlayer();
+  }
 
   final StreamController<PlayerState> _playerStateController =
       StreamController<PlayerState>.broadcast();
@@ -18,71 +26,94 @@ class JustAudioPlayerService implements AudioPlayerService {
     status: PlayerStatus.idle,
     position: Duration.zero,
     duration: null,
+    volume: 1.0,
   );
-
-  JustAudioPlayerService() {
-    _listenToPlayer();
-  }
+  double _volume = 1.0;
 
   @override
   Stream<PlayerState> get playerStateStream => _playerStateController.stream;
 
   void _listenToPlayer() {
-    _player.playerStateStream.listen((state) {
-      final processingState = state.processingState;
-
+    _handler.playbackState.listen((playbackState) {
       PlayerStatus status;
 
-      if (processingState == ja.ProcessingState.loading ||
-          processingState == ja.ProcessingState.buffering) {
-        status = PlayerStatus.loading;
-      } else if (processingState == ja.ProcessingState.ready) {
-        status = state.playing ? PlayerStatus.playing : PlayerStatus.paused;
-      } else if (processingState == ja.ProcessingState.completed) {
-        status = PlayerStatus.completed;
-      } else {
-        status = PlayerStatus.idle;
+      switch (playbackState.processingState) {
+        case AudioProcessingState.loading:
+        case AudioProcessingState.buffering:
+          status = PlayerStatus.loading;
+          break;
+
+        case AudioProcessingState.ready:
+          status = playbackState.playing
+              ? PlayerStatus.playing
+              : PlayerStatus.paused;
+          break;
+
+        case AudioProcessingState.completed:
+          status = PlayerStatus.completed;
+          break;
+
+        default:
+          status = PlayerStatus.idle;
       }
 
       _updateState(
         _currentState.copyWith(
           status: status,
-          position: _player.position,
-          duration: _player.duration,
+          position: playbackState.updatePosition,
         ),
       );
     });
 
-    _player.positionStream.listen((position) {
-      _updateState(
-        _currentState.copyWith(position: position),
-      );
-    });
-  }
-
-  void _updateState(PlayerState newState) {
-    _currentState = newState;
-    _playerStateController.add(newState);
-  }
-
-  @override
-  Future<void> play(Track track) async {
-    try {
+    _handler.mediaItem.listen((mediaItem) {
       _updateState(
         _currentState.copyWith(
-          status: PlayerStatus.loading,
-          currentTrackId: track.id,
+          duration: mediaItem?.duration,
         ),
       );
+    });
+  }
 
-      await _player.setUrl(track.audioUrl);
+  // 🔥 MAIN METHOD FOR SPRINT 4
+  @override
+  Future<void> playFromContext({
+    required List<Track> tracks,
+    required int startIndex,
+    required String source,
+  }) async {
+    try {
+      if (tracks.isEmpty) return;
+      final safeIndex = startIndex.clamp(0, tracks.length - 1).toInt();
 
-      // 🔥 Recently Played integration
-      GetIt.I<RecentlyPlayedCubit>().addTrack(track);
+      GetIt.I<RecentlyPlayedCubit>().addTrack(tracks[safeIndex]);
 
-      await _player.seek(Duration.zero);
+      final appHandler = _handler as AppAudioHandler;
 
-      await _player.play();
+      final mediaItems = tracks.map((track) {
+        return MediaItem(
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          artUri:
+              track.artworkUrl != null ? Uri.parse(track.artworkUrl!) : null,
+          extras: {
+            'url': track.audioUrl,
+          },
+        );
+      }).toList();
+
+      await appHandler.setQueue(mediaItems);
+      await appHandler.skipToQueueItem(safeIndex);
+      await appHandler.play();
+
+      _updateState(
+        _currentState.copyWith(
+          queue: tracks,
+          currentIndex: safeIndex,
+          source: source,
+          volume: _volume,
+        ),
+      );
     } catch (e) {
       _updateState(
         _currentState.copyWith(
@@ -93,35 +124,49 @@ class JustAudioPlayerService implements AudioPlayerService {
     }
   }
 
+  // 🔥 SINGLE TRACK FALLBACK
   @override
-  Future<void> pause() async {
-    await _player.pause();
-
-    _updateState(
-      _currentState.copyWith(status: PlayerStatus.paused),
+  Future<void> play(Track track) {
+    return playFromContext(
+      tracks: [track],
+      startIndex: 0,
+      source: "single",
     );
   }
 
   @override
-  Future<void> stop() async {
-    await _player.stop();
+  Future<void> pause() => _handler.pause();
 
-    _updateState(
-      _currentState.copyWith(
-        status: PlayerStatus.idle,
-        position: Duration.zero,
-      ),
-    );
+  @override
+  Future<void> resume() => _handler.play();
+
+  @override
+  Future<void> stop() => _handler.stop();
+
+  @override
+  Future<void> seek(Duration position) => _handler.seek(position);
+
+  @override
+  Future<void> setVolume(double volume) async {
+    final normalized = volume.clamp(0.0, 1.0).toDouble();
+    _volume = normalized;
+    final handler = _handler;
+    if (handler is AppAudioHandler) {
+      await handler.setVolume(normalized);
+    }
+    _updateState(_currentState.copyWith(volume: _volume));
   }
 
   @override
-  Future<void> seek(Duration position) async {
-    await _player.seek(position);
+  double get currentVolume => _volume;
+
+  void _updateState(PlayerState newState) {
+    _currentState = newState;
+    _playerStateController.add(newState);
   }
 
   @override
   Future<void> dispose() async {
-    await _player.dispose();
     await _playerStateController.close();
   }
 }

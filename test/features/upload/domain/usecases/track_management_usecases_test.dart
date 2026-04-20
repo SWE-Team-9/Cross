@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soundcloud_clone/features/upload/data/repositories/trackManagementRepositoryFake.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementForm.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/TrackManagementVisibility.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/deleteTrackUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/updateTrackMetadataUseCase.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/updateTrackVisibilityUseCase.dart';
+import 'package:soundcloud_clone/features/upload/data/repositories/track_management_repository_fake.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_form.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/delete_track_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_metadata_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_visibility_usecase.dart';
 
 void main() {
   group('Track Management UseCases', () {
