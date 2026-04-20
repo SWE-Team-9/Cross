@@ -17,6 +17,7 @@ abstract class ProfileRoutes {
   static const String editProfile = '/profile/edit';
   static const String followers = '/followers/:handle';
   static const String following = '/following/:handle';
+  static const String suggestedUsers = '/suggested-users';
 
   // ── Navigation helpers ────────────────────────────────────────────────────
   // Use these instead of hardcoding path strings across the app.
@@ -34,4 +35,7 @@ abstract class ProfileRoutes {
 
   static void goToFollowing(BuildContext context, String handle) =>
       context.push('/following/$handle');
+
+  static void goToSuggestedUsers(BuildContext context) =>
+      context.push('/suggested-users');
 }

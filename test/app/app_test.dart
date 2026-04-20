@@ -9,6 +9,7 @@ import 'package:soundcloud_clone/app/app.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_service.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart' as app_state;
+import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
@@ -21,6 +22,8 @@ import 'package:soundcloud_clone/core/models/track.dart';
 // ── Fakes / Mocks ─────────────────────────────────────────────────────────────
 
 class FakeAudioPlayerService implements AudioPlayerService {
+  double _currentVolume = 1;
+
   @override
   Stream<app_state.PlayerState> get playerStateStream => const Stream.empty();
   @override
@@ -33,6 +36,14 @@ class FakeAudioPlayerService implements AudioPlayerService {
   Future<void> stop() async {}
   @override
   Future<void> seek(Duration position) async {}
+  @override
+  Future<void> setVolume(double volume) async {
+    _currentVolume = volume;
+  }
+
+  @override
+  double get currentVolume => _currentVolume;
+
   @override
   Future<void> dispose() async {}
   @override

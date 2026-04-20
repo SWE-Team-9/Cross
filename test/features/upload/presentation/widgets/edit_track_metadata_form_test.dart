@@ -54,6 +54,7 @@ void main() {
               onTitleChanged: (_) {},
               onDescriptionChanged: (_) {},
               onTagsChanged: (_) {},
+              onReleaseDateChanged: (_) {},
               onGenreChanged: (_) {},
               onSave: () => saveCount++,
               onReset: () => resetCount++,

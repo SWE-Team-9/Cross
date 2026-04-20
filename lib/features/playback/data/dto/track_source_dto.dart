@@ -32,4 +32,6 @@ class TrackSourceDto {
   }
 
   bool get isPlayable => accessState == 'PLAYABLE';
+  bool get isPreview => accessState == 'PREVIEW';
+  bool get isBlocked => accessState == 'BLOCKED';
 }

@@ -43,7 +43,22 @@ class ProfileCubit extends Cubit<ProfileState> {
         },
       );
 
-      emit(ProfileLoaded(profile));
+      List<ManagedTrack> tracks = const <ManagedTrack>[];
+
+      try {
+        tracks = await _profileRepository.getUserTracks(profile.id).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Tracks request timed out. Please check your connection.',
+            );
+          },
+        );
+      } catch (_) {
+        tracks = const <ManagedTrack>[];
+      }
+
+      emit(ProfileLoaded(profile, tracks: tracks));
     } on Failure catch (failure) {
       emit(ProfileError(failure.message));
     } catch (_) {
@@ -162,7 +177,15 @@ class ProfileCubit extends Cubit<ProfileState> {
       ProfileEntity workingProfile = currentProfile;
 
       if (params.hasBaseProfileChanges) {
-        workingProfile = await _updateProfileUseCase(params);
+        final updatedProfile = await _updateProfileUseCase(params);
+        workingProfile = updatedProfile.copyWith(
+          followersCount: updatedProfile.followersCount == 0
+              ? currentProfile.followersCount
+              : updatedProfile.followersCount,
+          followingCount: updatedProfile.followingCount == 0
+              ? currentProfile.followingCount
+              : updatedProfile.followingCount,
+        );
       }
 
       if (params.hasExternalLinksChanges) {
@@ -170,6 +193,12 @@ class ProfileCubit extends Cubit<ProfileState> {
           externalLinks: params.externalLinks ?? {},
         );
         workingProfile = workingProfile.copyWith(externalLinks: updatedLinks);
+      }
+
+      if (params.favoriteGenres != null) {
+        workingProfile = workingProfile.copyWith(
+          favoriteGenres: List<String>.from(params.favoriteGenres!),
+        );
       }
 
       emit(

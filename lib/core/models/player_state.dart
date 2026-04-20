@@ -21,6 +21,7 @@ class PlayerState {
   final List<Track> queue;
   final int currentIndex;
   final String? source;
+  final double volume;
 
   const PlayerState({
     required this.status,
@@ -33,6 +34,7 @@ class PlayerState {
     this.queue = const [],
     this.currentIndex = 0,
     this.source,
+    this.volume = 1.0,
   });
 
   PlayerState copyWith({
@@ -44,6 +46,7 @@ class PlayerState {
     List<Track>? queue,
     int? currentIndex,
     String? source,
+    double? volume,
   }) {
     return PlayerState(
       status: status ?? this.status,
@@ -54,6 +57,7 @@ class PlayerState {
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
       source: source ?? this.source,
+      volume: volume ?? this.volume,
     );
   }
 }

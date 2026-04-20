@@ -100,6 +100,24 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
     );
   }
 
+  void updateReleaseDate(DateTime? value) {
+    if (!state.hasTrack) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        status: TrackManagementStatus.ready,
+        form: state.form!.copyWith(
+          releaseDate: value,
+          clearReleaseDate: value == null,
+        ),
+        clearSuccessMessage: true,
+        clearErrorMessage: true,
+      ),
+    );
+  }
+
   void updateVisibility(TrackManagementVisibility visibility) {
     if (!state.hasTrack) {
       return;
@@ -157,6 +175,8 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
         genreName: form.normalizedGenreName,
         clearGenreName: form.normalizedGenreName == null,
         tags: form.sanitizedTags,
+        releaseDate: form.releaseDate,
+        clearReleaseDate: form.releaseDate == null,
       );
 
       emit(
