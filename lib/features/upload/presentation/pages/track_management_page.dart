@@ -271,6 +271,9 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                                 onTagsChanged: context
                                     .read<TrackManagementCubit>()
                                     .updateTagsFromInput,
+                                onReleaseDateChanged: context
+                                    .read<TrackManagementCubit>()
+                                    .updateReleaseDate,
                                 onGenreChanged: context
                                     .read<TrackManagementCubit>()
                                     .updateGenre,

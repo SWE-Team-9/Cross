@@ -11,6 +11,7 @@ class TrackManagementForm extends Equatable {
     this.genreId,
     this.genreName,
     this.tags = const <String>[],
+    this.releaseDate,
   });
 
   factory TrackManagementForm.fromTrack(ManagedTrack track) {
@@ -20,6 +21,7 @@ class TrackManagementForm extends Equatable {
       genreId: track.genreId,
       genreName: track.genreName,
       tags: track.tags,
+      releaseDate: track.releaseDate,
       visibility: track.visibility,
     );
   }
@@ -29,6 +31,7 @@ class TrackManagementForm extends Equatable {
   final int? genreId;
   final String? genreName;
   final List<String> tags;
+  final DateTime? releaseDate;
   final TrackManagementVisibility visibility;
 
   String get normalizedTitle => title.trim();
@@ -121,6 +124,8 @@ class TrackManagementForm extends Equatable {
     return normalizedTitle != track.title.trim() ||
         normalizedDescription != _normalizeNullable(track.description) ||
         normalizedGenreName != _normalizeNullable(track.genreName) ||
+        _normalizeDateOnly(releaseDate) !=
+            _normalizeDateOnly(track.releaseDate) ||
         !_sameTags(sanitizedTags, track.tags);
   }
 
@@ -137,6 +142,9 @@ class TrackManagementForm extends Equatable {
 
     if (normalizedDescription != null) {
       body['description'] = normalizedDescription;
+    }
+    if (releaseDate != null) {
+      body['releaseDate'] = releaseDate!.toIso8601String().split('T').first;
     }
 
     return body;
@@ -157,6 +165,8 @@ class TrackManagementForm extends Equatable {
     String? genreName,
     bool clearGenreName = false,
     List<String>? tags,
+    DateTime? releaseDate,
+    bool clearReleaseDate = false,
     TrackManagementVisibility? visibility,
   }) {
     return TrackManagementForm(
@@ -165,6 +175,7 @@ class TrackManagementForm extends Equatable {
       genreId: clearGenreId ? null : (genreId ?? this.genreId),
       genreName: clearGenreName ? null : (genreName ?? this.genreName),
       tags: tags ?? this.tags,
+      releaseDate: clearReleaseDate ? null : (releaseDate ?? this.releaseDate),
       visibility: visibility ?? this.visibility,
     );
   }
@@ -176,6 +187,7 @@ class TrackManagementForm extends Equatable {
         genreId,
         genreName,
         tags,
+        releaseDate,
         visibility,
       ];
 }
@@ -207,4 +219,9 @@ bool _sameTags(List<String> first, List<String> second) {
   }
 
   return true;
+}
+
+String? _normalizeDateOnly(DateTime? value) {
+  if (value == null) return null;
+  return value.toIso8601String().split('T').first;
 }

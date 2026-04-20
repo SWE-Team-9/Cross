@@ -366,7 +366,10 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pump();
 
-      await tester.tap(find.text('Tracks'));
+      final tracksTab = find.widgetWithText(Tab, 'Tracks');
+      await tester.ensureVisible(tracksTab);
+      await tester.pumpAndSettle();
+      await tester.tap(tracksTab);
       await tester.pumpAndSettle();
 
       expect(find.text('No tracks yet'), findsOneWidget);
@@ -401,9 +404,11 @@ void main() {
       await tester.pump();
 
       // Tap the Tracks tab
-      await tester.tap(find.text('Tracks'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      final tracksTab = find.widgetWithText(Tab, 'Tracks');
+      await tester.ensureVisible(tracksTab);
+      await tester.pumpAndSettle();
+      await tester.tap(tracksTab);
+      await tester.pumpAndSettle();
 
       // NestedScrollView + TabBarView — scroll to make list items visible
       await tester.drag(
@@ -567,7 +572,10 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pump();
 
-      await tester.tap(find.text('Tracks'));
+      final tracksTab = find.widgetWithText(Tab, 'Tracks');
+      await tester.ensureVisible(tracksTab);
+      await tester.pumpAndSettle();
+      await tester.tap(tracksTab);
       await tester.pumpAndSettle();
 
       expect(find.text('No tracks yet.'), findsOneWidget);

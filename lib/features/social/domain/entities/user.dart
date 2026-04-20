@@ -1,12 +1,31 @@
 class User {
+  // Social endpoints return avatar fields with different names across
+  // followers/following/suggested responses, so we normalize them here.
+  static const List<String> _avatarUrlKeys = <String>[
+    'avatarUrl',
+    'avatar_url',
+    'profileImageUrl',
+    'profile_image_url',
+    'profileImage',
+    'profile_image',
+    'imageUrl',
+    'image_url',
+    'photoUrl',
+    'photo_url',
+    'picture',
+    'avatar',
+  ];
+
   final String id;
   final String username;
+  final String? avatarUrl;
   final bool isFollowing;
   final int followersCount;
 
   User({
     required this.id,
     required this.username,
+    this.avatarUrl,
     this.isFollowing = false,
     this.followersCount = 0,
   });
@@ -21,15 +40,22 @@ class User {
         json['displayName'] ??
         '';
 
-    final dynamic rawIsFollowing =
-        json['isFollowing'] ?? json['is_following'] ?? false;
+    final dynamic rawIsFollowing = json['isFollowing'] ??
+        json['is_following'] ??
+        json['followedByMe'] ??
+        json['followed_by_me'] ??
+        json['viewerFollows'] ??
+        json['viewer_follows'] ??
+        false;
 
     final dynamic rawFollowersCount =
         json['followersCount'] ?? json['followers_count'] ?? 0;
+    final avatar = _extractAvatarUrl(json);
 
     return User(
       id: rawId?.toString() ?? '',
       username: rawUsername?.toString() ?? '',
+      avatarUrl: avatar,
       isFollowing: rawIsFollowing is bool
           ? rawIsFollowing
           : rawIsFollowing.toString().toLowerCase() == 'true',
@@ -43,6 +69,7 @@ class User {
     return {
       'id': id,
       'username': username,
+      'avatarUrl': avatarUrl,
       'isFollowing': isFollowing,
       'followersCount': followersCount,
     };
@@ -55,8 +82,28 @@ class User {
     return User(
       id: id,
       username: username,
+      avatarUrl: avatarUrl,
       isFollowing: isFollowing ?? this.isFollowing,
       followersCount: followersCount ?? this.followersCount,
     );
+  }
+
+  static String? _extractAvatarUrl(
+    Map<String, dynamic> json,
+  ) {
+    return _firstNonEmptyString(json, _avatarUrlKeys);
+  }
+
+  static String? _firstNonEmptyString(
+    Map<String, dynamic> json,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = json[key];
+      if (value == null) continue;
+      final parsed = value.toString().trim();
+      if (parsed.isNotEmpty) return parsed;
+    }
+    return null;
   }
 }

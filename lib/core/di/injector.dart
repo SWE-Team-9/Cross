@@ -8,6 +8,9 @@ import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+import 'package:soundcloud_clone/features/recently_played/data/datasources/recently_played_remote_datasource.dart';
+import 'package:soundcloud_clone/features/recently_played/data/repositories/recently_played_repository_impl.dart';
+import 'package:soundcloud_clone/features/recently_played/domain/usecases/get_recently_played.dart';
 
 // Project
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
@@ -205,7 +208,10 @@ Future<void> setupDependencies() async {
 
   if (!getIt.isRegistered<PlayerCubit>()) {
     getIt.registerLazySingleton<PlayerCubit>(
-      () => PlayerCubit(getIt<AudioPlayerService>()),
+      () => PlayerCubit(
+        getIt<AudioPlayerService>(),
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+      ),
     );
   }
 
@@ -483,8 +489,36 @@ Future<void> setupDependencies() async {
   }
 
   if (!getIt.isRegistered<RecentlyPlayedCubit>()) {
+    if (!getIt.isRegistered<RecentlyPlayedRemoteDataSource>()) {
+      getIt.registerLazySingleton<RecentlyPlayedRemoteDataSource>(
+        () => RecentlyPlayedRemoteDataSourceImpl(getIt<DioClient>()),
+      );
+    }
+
+    if (!getIt.isRegistered<RecentlyPlayedRepositoryImpl>()) {
+      getIt.registerLazySingleton<RecentlyPlayedRepositoryImpl>(
+        () => RecentlyPlayedRepositoryImpl(
+            getIt<RecentlyPlayedRemoteDataSource>()),
+      );
+    }
+
+    if (!getIt.isRegistered<GetRecentlyPlayed>()) {
+      getIt.registerLazySingleton<GetRecentlyPlayed>(
+        () => GetRecentlyPlayed(getIt<RecentlyPlayedRepositoryImpl>()),
+      );
+    }
+
+    if (!getIt.isRegistered<RecordRecentlyPlayed>()) {
+      getIt.registerLazySingleton<RecordRecentlyPlayed>(
+        () => RecordRecentlyPlayed(getIt<RecentlyPlayedRepositoryImpl>()),
+      );
+    }
+
     getIt.registerLazySingleton<RecentlyPlayedCubit>(
-      () => RecentlyPlayedCubit(),
+      () => RecentlyPlayedCubit(
+        getRecentlyPlayed: getIt<GetRecentlyPlayed>(),
+        recordRecentlyPlayed: getIt<RecordRecentlyPlayed>(),
+      ),
     );
   }
 

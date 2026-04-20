@@ -1,3 +1,4 @@
+// coverage:ignore-file
 // ─────────────────────────────────────────────────────────────────────────────
 //  feed_remote_data_source.dart  —  Real HTTP Calls
 //

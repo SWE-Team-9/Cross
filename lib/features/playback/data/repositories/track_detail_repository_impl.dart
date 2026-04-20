@@ -31,7 +31,7 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
       // Step 2 — fetch stream URL
       final sourceDto = await _dataSource.fetchStreamSource(trackDto.trackId);
 
-      if (!sourceDto.isPlayable) {
+      if (sourceDto.isBlocked) {
         return (
           detail: null,
           failure:
@@ -74,7 +74,7 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
       // Step 2 — fetch stream URL using resolved trackId
       final sourceDto = await _dataSource.fetchStreamSource(trackDto.trackId);
 
-      if (!sourceDto.isPlayable) {
+      if (sourceDto.isBlocked) {
         return (
           detail: null,
           failure:

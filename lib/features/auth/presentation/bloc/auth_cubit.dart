@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';

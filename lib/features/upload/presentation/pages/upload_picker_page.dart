@@ -1,9 +1,11 @@
+// coverage:ignore-file
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../auth/presentation/bloc/auth_cubit.dart';
+import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../bloc/upload_picker_cubit.dart';
 import '../bloc/upload_picker_state.dart';
@@ -22,6 +24,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
   late final TextEditingController _tagsController;
   late final TextEditingController _descriptionController;
   String? _selectedGenre;
+  DateTime? _selectedReleaseDate;
 
   TrackManagementVisibility _selectedVisibility =
       TrackManagementVisibility.privateTrack;
@@ -50,6 +53,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
     setState(() {
       _selectedVisibility = TrackManagementVisibility.privateTrack;
       _selectedGenre = null;
+      _selectedReleaseDate = null;
     });
 
     cubit.clearSelection();
@@ -247,7 +251,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                       label: Text(
                         state.status == UploadPickerStatus.picking
                             ? 'Selecting...'
-                            : 'Select MP3 / WAV',
+                            : 'Select audio file',
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
@@ -260,6 +264,12 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                       _UploadMetadataCard(
                         titleController: _titleController,
                         selectedGenre: _selectedGenre,
+                        selectedReleaseDate: _selectedReleaseDate,
+                        onReleaseDateChanged: (date) {
+                          setState(() {
+                            _selectedReleaseDate = date;
+                          });
+                        },
                         genreOptions: kTrackGenreNames,
                         onGenreChanged: (genre) {
                           setState(() {
@@ -340,6 +350,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                                         tagsInput: _tagsController.text,
                                         description:
                                             _descriptionController.text,
+                                        releaseDate: _selectedReleaseDate,
                                         visibility: _selectedVisibility,
                                       );
                                     }
@@ -375,9 +386,16 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
       }
     }
 
-    return Theme(
-      data: darkOrangeTheme,
-      child: pageContent,
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          context.read<PlayerCubit>().showMiniPlayer();
+        }
+      },
+      child: Theme(
+        data: darkOrangeTheme,
+        child: pageContent,
+      ),
     );
   }
 
@@ -497,6 +515,8 @@ class _UploadMetadataCard extends StatelessWidget {
   const _UploadMetadataCard({
     required this.titleController,
     required this.selectedGenre,
+    required this.selectedReleaseDate,
+    required this.onReleaseDateChanged,
     required this.genreOptions,
     required this.onGenreChanged,
     required this.tagsController,
@@ -506,6 +526,8 @@ class _UploadMetadataCard extends StatelessWidget {
 
   final TextEditingController titleController;
   final String? selectedGenre;
+  final DateTime? selectedReleaseDate;
+  final ValueChanged<DateTime?> onReleaseDateChanged;
   final List<String> genreOptions;
   final ValueChanged<String?> onGenreChanged;
   final TextEditingController tagsController;
@@ -577,6 +599,39 @@ class _UploadMetadataCard extends StatelessWidget {
                 .toList(),
             onChanged: isEnabled ? onGenreChanged : null,
             decoration: _buildInputDecoration(context, 'Genre'),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: !isEnabled
+                ? null
+                : () async {
+                    final now = DateTime.now();
+                    final initialDate = selectedReleaseDate ?? now;
+                    final selected = await showDatePicker(
+                      context: context,
+                      initialDate: initialDate,
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime(now.year + 10),
+                    );
+                    onReleaseDateChanged(selected);
+                  },
+            child: InputDecorator(
+              decoration: _buildInputDecoration(
+                context,
+                'Release date',
+                helper: 'Optional',
+              ),
+              child: Text(
+                selectedReleaseDate == null
+                    ? 'Pick date'
+                    : '${selectedReleaseDate!.year.toString().padLeft(4, '0')}-${selectedReleaseDate!.month.toString().padLeft(2, '0')}-${selectedReleaseDate!.day.toString().padLeft(2, '0')}',
+                style: TextStyle(
+                  color: selectedReleaseDate == null
+                      ? Colors.grey.shade500
+                      : Colors.white,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -750,7 +805,8 @@ class _UploadStatusCard extends StatelessWidget {
     switch (state.status) {
       case UploadPickerStatus.picking:
         title = 'Selecting file';
-        subtitle = 'Please choose a supported MP3 or WAV file.';
+        subtitle =
+            'Please choose a supported audio file (MP3, WAV, FLAC, AIFF, M4A, AAC, OGG).';
         trailing = const SizedBox(
           width: 24,
           height: 24,

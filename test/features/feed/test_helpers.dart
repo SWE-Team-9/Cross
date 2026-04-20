@@ -63,6 +63,15 @@ class FakeFeedRepository implements FeedRepository {
   }
 
   @override
+  Future<PlaybackAccessResult> getPlaybackAccess(String trackId) async {
+    if (streamUrlError != null) throw streamUrlError!;
+    return PlaybackAccessResult(
+      accessState: streamUrlResult == null ? 'BLOCKED' : 'PLAYABLE',
+      streamUrl: streamUrlResult,
+    );
+  }
+
+  @override
   Future<void> recordPlay(String trackId) async {
     playCalls.add(trackId);
   }
