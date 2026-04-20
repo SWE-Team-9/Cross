@@ -34,6 +34,13 @@ void main() {
     audioUrl: 'https://test.com/next.mp3',
   );
 
+  final thirdTrack = const Track(
+    id: '3',
+    title: 'Third Track',
+    artist: 'Third Artist',
+    audioUrl: 'https://test.com/third.mp3',
+  );
+
   setUp(() {
     mockService = MockAudioPlayerService();
 
@@ -242,6 +249,127 @@ void main() {
             startIndex: 0,
             source: 'queue',
           )).called(1);
+    });
+
+    test('playNext returns early when already at last track', () async {
+      await cubit.playFromContext(
+        tracks: [testTrack, nextTrack],
+        startIndex: 1,
+        source: 'queue',
+      );
+      clearInteractions(mockService);
+
+      await cubit.playNext();
+
+      verifyNever(() => mockService.playFromContext(
+            tracks: any(named: 'tracks'),
+            startIndex: any(named: 'startIndex'),
+            source: any(named: 'source'),
+          ));
+      expect(cubit.state.currentTrack, nextTrack);
+      expect(cubit.state.currentIndex, 1);
+    });
+
+    test('playPrevious plays previous track when available', () async {
+      await cubit.playFromContext(
+        tracks: [testTrack, nextTrack],
+        startIndex: 1,
+        source: 'queue',
+      );
+      clearInteractions(mockService);
+
+      await cubit.playPrevious();
+
+      expect(cubit.state.currentTrack, testTrack);
+      expect(cubit.state.currentIndex, 0);
+      verify(() => mockService.playFromContext(
+            tracks: [testTrack, nextTrack],
+            startIndex: 0,
+            source: 'queue',
+          )).called(1);
+    });
+
+    test('playPrevious returns early when current index is zero', () async {
+      await cubit.playFromContext(
+        tracks: [testTrack, nextTrack],
+        startIndex: 0,
+        source: 'queue',
+      );
+      clearInteractions(mockService);
+
+      await cubit.playPrevious();
+
+      verifyNever(() => mockService.playFromContext(
+            tracks: any(named: 'tracks'),
+            startIndex: any(named: 'startIndex'),
+            source: any(named: 'source'),
+          ));
+      expect(cubit.state.currentTrack, testTrack);
+      expect(cubit.state.currentIndex, 0);
+    });
+
+    test('addPlayLast appends track without restarting playback', () async {
+      await cubit.playFromContext(
+        tracks: [testTrack, nextTrack],
+        startIndex: 0,
+        source: 'queue',
+      );
+      clearInteractions(mockService);
+
+      await cubit.addPlayLast(thirdTrack);
+
+      expect(cubit.state.queue, [testTrack, nextTrack, thirdTrack]);
+      expect(cubit.state.currentIndex, 0);
+      verifyNever(() => mockService.playFromContext(
+            tracks: any(named: 'tracks'),
+            startIndex: any(named: 'startIndex'),
+            source: any(named: 'source'),
+          ));
+    });
+
+    test('addPlayLast does nothing when adding currently playing track',
+        () async {
+      await cubit.play(testTrack);
+      clearInteractions(mockService);
+
+      await cubit.addPlayLast(testTrack);
+
+      expect(cubit.state.queue, [testTrack]);
+      expect(cubit.state.currentIndex, 0);
+      verifyNever(() => mockService.playFromContext(
+            tracks: any(named: 'tracks'),
+            startIndex: any(named: 'startIndex'),
+            source: any(named: 'source'),
+          ));
+    });
+
+    test('hideMiniPlayer and showMiniPlayer toggle mini-player visibility', () {
+      expect(cubit.state.showMiniPlayer, isTrue);
+
+      cubit.hideMiniPlayer();
+      expect(cubit.state.showMiniPlayer, isFalse);
+
+      cubit.showMiniPlayer();
+      expect(cubit.state.showMiniPlayer, isTrue);
+    });
+
+    test('setVolume delegates to audio service', () async {
+      when(() => mockService.setVolume(any())).thenAnswer((_) async {});
+
+      await cubit.setVolume(0.25);
+
+      verify(() => mockService.setVolume(0.25)).called(1);
+    });
+
+    test('playFromContext returns early on empty track list', () async {
+      await cubit.playFromContext(tracks: const [], startIndex: 0);
+
+      verifyNever(() => mockService.playFromContext(
+            tracks: any(named: 'tracks'),
+            startIndex: any(named: 'startIndex'),
+            source: any(named: 'source'),
+          ));
+      expect(cubit.state.currentTrack, isNull);
     });
   });
 }

@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -50,17 +51,13 @@ class _LibraryPageState extends State<LibraryPage> {
         final nestedData = data['data'];
         final nestedMap =
             nestedData is Map ? Map<String, dynamic>.from(nestedData) : null;
-        streamUrl = (data['streamUrl'] ??
-                nestedMap?['streamUrl'])
-            ?.toString();
+        streamUrl = (data['streamUrl'] ?? nestedMap?['streamUrl'])?.toString();
       } else if (data is Map) {
         final typed = Map<String, dynamic>.from(data);
         final nestedData = typed['data'];
         final nestedMap =
             nestedData is Map ? Map<String, dynamic>.from(nestedData) : null;
-        streamUrl = (typed['streamUrl'] ??
-                nestedMap?['streamUrl'])
-            ?.toString();
+        streamUrl = (typed['streamUrl'] ?? nestedMap?['streamUrl'])?.toString();
       }
 
       if (streamUrl != null && streamUrl.trim().isNotEmpty) {

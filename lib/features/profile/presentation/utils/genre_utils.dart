@@ -39,7 +39,8 @@ String normalizeFavoriteGenreSlug(String genre) {
     'drum & bass' => 'drum-bass',
     'deep house' => 'deep-house',
     'spoken word' => 'spoken-word',
-    'folk / singer-songwriter' || 'folk singer songwriter' =>
+    'folk / singer-songwriter' ||
+    'folk singer songwriter' =>
       'folk-singer-songwriter',
     _ => normalized.replaceAll(' ', '-'),
   };
