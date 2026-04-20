@@ -124,7 +124,8 @@ class TrackManagementForm extends Equatable {
     return normalizedTitle != track.title.trim() ||
         normalizedDescription != _normalizeNullable(track.description) ||
         normalizedGenreName != _normalizeNullable(track.genreName) ||
-        _normalizeDateOnly(releaseDate) != _normalizeDateOnly(track.releaseDate) ||
+        _normalizeDateOnly(releaseDate) !=
+            _normalizeDateOnly(track.releaseDate) ||
         !_sameTags(sanitizedTags, track.tags);
   }
 
