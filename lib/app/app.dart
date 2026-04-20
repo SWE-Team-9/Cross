@@ -30,12 +30,15 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.oauthDebug,
   AppRoutes.player,
   AppRoutes.trackManagementDemo,
+  AppRoutes.uploadPicker,
 };
 
 bool _shouldHideMiniPlayerForPath(String path) {
   if (_miniPlayerHiddenRoutes.contains(path)) return true;
 
-  return path.startsWith('/track-management');
+  return path.startsWith('/track-management') ||
+      path.startsWith('/followers/') ||
+      path.startsWith('/following/');
 }
 
 class App extends StatelessWidget {
@@ -81,53 +84,49 @@ class App extends StatelessWidget {
                     body: ValueListenableBuilder<bool>(
                       valueListenable: isTrackSheetOpen,
                       builder: (context, sheetOpen, _) {
-                        return ValueListenableBuilder<RouteInformation>(
-                          valueListenable: router.routeInformationProvider,
-                          builder: (context, routeInfo, __) {
-                            final currentPath = routeInfo.uri.path;
-                            final showMiniPlayerOnRoute =
-                                !_shouldHideMiniPlayerForPath(currentPath);
-                            final showMiniPlayer = hasMiniPlayerTrack &&
-                                showMiniPlayerOnRoute &&
-                                !isPlayerOpen &&
-                                !sheetOpen;
-                            final safeAreaBottom =
-                                MediaQuery.paddingOf(context).bottom;
-                            final miniPlayerBottomOffset =
-                                safeAreaBottom + BottomNavBar.minHeight + 8;
+                        final currentPath =
+                            router.routerDelegate.currentConfiguration.uri.path;
+                        final showMiniPlayerOnRoute =
+                            !_shouldHideMiniPlayerForPath(currentPath);
+                        final showMiniPlayer = hasMiniPlayerTrack &&
+                            showMiniPlayerOnRoute &&
+                            playerState.showMiniPlayer &&
+                            !isPlayerOpen &&
+                            !sheetOpen;
+                        final safeAreaBottom =
+                            MediaQuery.paddingOf(context).bottom;
+                        final miniPlayerBottomOffset =
+                            safeAreaBottom + BottomNavBar.minHeight + 8;
 
-                            return Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: child ?? const SizedBox.shrink(),
-                                ),
-                                if (hasMiniPlayerTrack && showMiniPlayerOnRoute)
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: miniPlayerBottomOffset,
-                                    child: IgnorePointer(
-                                      ignoring: !showMiniPlayer,
-                                      child: AnimatedSlide(
-                                        duration:
-                                            const Duration(milliseconds: 220),
-                                        curve: Curves.easeOutCubic,
-                                        offset: showMiniPlayer
-                                            ? Offset.zero
-                                            : const Offset(0, 1.2),
-                                        child: AnimatedOpacity(
-                                          duration:
-                                              const Duration(milliseconds: 180),
-                                          curve: Curves.easeOut,
-                                          opacity: showMiniPlayer ? 1 : 0,
-                                          child: const MiniPlayer(),
-                                        ),
-                                      ),
+                        return Stack(
+                          children: [
+                            Positioned.fill(
+                              child: child ?? const SizedBox.shrink(),
+                            ),
+                            if (hasMiniPlayerTrack && showMiniPlayerOnRoute)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: miniPlayerBottomOffset,
+                                child: IgnorePointer(
+                                  ignoring: !showMiniPlayer,
+                                  child: AnimatedSlide(
+                                    duration: const Duration(milliseconds: 220),
+                                    curve: Curves.easeOutCubic,
+                                    offset: showMiniPlayer
+                                        ? Offset.zero
+                                        : const Offset(0, 1.2),
+                                    child: AnimatedOpacity(
+                                      duration:
+                                          const Duration(milliseconds: 180),
+                                      curve: Curves.easeOut,
+                                      opacity: showMiniPlayer ? 1 : 0,
+                                      child: const MiniPlayer(),
                                     ),
                                   ),
-                              ],
-                            );
-                          },
+                                ),
+                              ),
+                          ],
                         );
                       },
                     ),

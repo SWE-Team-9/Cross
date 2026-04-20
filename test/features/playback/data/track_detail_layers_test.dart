@@ -59,6 +59,7 @@ void main() {
       expect(playbackTrack, isA<Track>());
       expect(playbackTrack.audioUrl, 'https://cdn/audio.mp3');
       expect(playbackTrack.handle, 'ali');
+      expect(playbackTrack.durationMs, 123000);
     });
   });
 
