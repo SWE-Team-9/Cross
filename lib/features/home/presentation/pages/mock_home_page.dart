@@ -291,6 +291,7 @@ class _MockHomePageState extends State<MockHomePage> {
           source['reposts_count'] ??
           stats['repostsCount'],
     );
+    final durationMs = _asInt(source['durationMs'] ?? source['duration_ms']);
 
     return Track(
       id: id,
@@ -311,6 +312,7 @@ class _MockHomePageState extends State<MockHomePage> {
           .trim(),
       likesCount: likesCount,
       repostsCount: repostsCount,
+      durationMs: durationMs > 0 ? durationMs : null,
     );
   }
 

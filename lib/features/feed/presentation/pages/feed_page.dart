@@ -160,6 +160,7 @@ class _LoadedFeed extends StatelessWidget {
       handle: item.track.artist.handle,
       likesCount: item.track.stats.likesCount,
       repostsCount: item.track.stats.repostsCount,
+      durationMs: item.track.durationMs,
     );
   }
 
