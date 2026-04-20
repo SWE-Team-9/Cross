@@ -6,6 +6,7 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_s
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/playback/presentation/widgets/repeat_mode_button.dart';
 
 import '../../../../core/di/injector.dart';
 
@@ -266,7 +267,19 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           ),
                         ),
 
-                        // ── Follow ────────────────────────────────────
+                        // Playback options
+                        RepeatModeButton(
+                          mode: state.repeatMode,
+                          iconSize: 20,
+                          showOptions: false,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 10,
+                          ),
+                          onChanged: (mode) =>
+                              context.read<PlayerCubit>().setRepeatMode(mode),
+                        ),
+
                         GestureDetector(
                           onTap: () => _toggleMute(state),
                           onLongPress: () =>

@@ -109,10 +109,18 @@ class SocialRepo {
   Future<({bool isFollowing, int followersCount})> followUser(
       String userId) async {
     final response = await dio.post(ApiConstants.followUserPath(userId));
-    final data = _asMap(response.data);
+    final data = _actionData(response.data);
     return (
-      isFollowing: (data['isFollowing'] ?? true) as bool,
-      followersCount: (data['followersCount'] ?? 0) as int,
+      isFollowing: _asBool(
+        data['isFollowing'] ??
+            data['is_following'] ??
+            data['followedByMe'] ??
+            data['followed_by_me'],
+        fallback: true,
+      ),
+      followersCount: _asInt(
+        data['followersCount'] ?? data['followers_count'] ?? data['count'],
+      ),
     );
   }
 
@@ -120,10 +128,17 @@ class SocialRepo {
   Future<({bool isFollowing, int? followersCount})> unfollowUser(
       String userId) async {
     final response = await dio.delete(ApiConstants.followUserPath(userId));
-    final data = _asMap(response.data);
+    final data = _actionData(response.data);
     return (
-      isFollowing: (data['isFollowing'] ?? false) as bool,
-      followersCount: data['followersCount'] as int?,
+      isFollowing: _asBool(
+        data['isFollowing'] ??
+            data['is_following'] ??
+            data['followedByMe'] ??
+            data['followed_by_me'],
+        fallback: false,
+      ),
+      followersCount:
+          _asNullableInt(data['followersCount'] ?? data['followers_count']),
     );
   }
 
@@ -192,5 +207,32 @@ class SocialRepo {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
     throw StateError('Expected a JSON object but got ${value.runtimeType}');
+  }
+
+  Map<String, dynamic> _actionData(dynamic value) {
+    final data = _asMap(value);
+    final nested = data['data'] ?? data['user'] ?? data['result'];
+    return nested is Map ? _asMap(nested) : data;
+  }
+
+  bool _asBool(dynamic value, {required bool fallback}) {
+    if (value == null) return fallback;
+    if (value is bool) return value;
+
+    final normalized = value.toString().trim().toLowerCase();
+    if (normalized == 'true' || normalized == '1') return true;
+    if (normalized == 'false' || normalized == '0') return false;
+    return fallback;
+  }
+
+  int _asInt(dynamic value) {
+    return _asNullableInt(value) ?? 0;
+  }
+
+  int? _asNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.round();
+    return int.tryParse(value.toString());
   }
 }

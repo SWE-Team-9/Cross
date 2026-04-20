@@ -157,6 +157,24 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     await _audioService.setVolume(volume);
   }
 
+  Future<void> setRepeatMode(AppRepeatMode mode) async {
+    emit(
+      state.copyWith(
+        playerState: state.playerState.copyWith(repeatMode: mode),
+      ),
+    );
+    await _audioService.setRepeatMode(mode);
+  }
+
+  Future<void> cycleRepeatMode() async {
+    final nextMode = switch (state.repeatMode) {
+      AppRepeatMode.off => AppRepeatMode.one,
+      AppRepeatMode.one => AppRepeatMode.all,
+      AppRepeatMode.all => AppRepeatMode.off,
+    };
+    await setRepeatMode(nextMode);
+  }
+
   Future<void> stop() async {
     await _audioService.stop();
   }
@@ -165,11 +183,13 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     final tracks = state.queue;
     final currentIndex = state.currentIndex;
     if (tracks.isEmpty || currentIndex < 0) return;
-    if (currentIndex >= tracks.length - 1) return;
+    final isLastTrack = currentIndex >= tracks.length - 1;
+    if (isLastTrack && state.repeatMode != AppRepeatMode.all) return;
+    final nextIndex = isLastTrack ? 0 : currentIndex + 1;
 
     await playFromContext(
       tracks: tracks,
-      startIndex: currentIndex + 1,
+      startIndex: nextIndex,
       source: state.playerState.source ?? _queueSource,
     );
   }
@@ -177,11 +197,14 @@ class PlayerCubit extends Cubit<PlayerUIState> {
   Future<void> playPrevious() async {
     final tracks = state.queue;
     final currentIndex = state.currentIndex;
-    if (tracks.isEmpty || currentIndex <= 0) return;
+    if (tracks.isEmpty || currentIndex < 0) return;
+    final isFirstTrack = currentIndex <= 0;
+    if (isFirstTrack && state.repeatMode != AppRepeatMode.all) return;
+    final previousIndex = isFirstTrack ? tracks.length - 1 : currentIndex - 1;
 
     await playFromContext(
       tracks: tracks,
-      startIndex: currentIndex - 1,
+      startIndex: previousIndex,
       source: state.playerState.source ?? _queueSource,
     );
   }

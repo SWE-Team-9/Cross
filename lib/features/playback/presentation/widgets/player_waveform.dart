@@ -5,12 +5,14 @@ class PlayerWaveform extends StatelessWidget {
   final Duration position;
   final Duration? duration;
   final Function(Duration) onSeek;
+  final List<int> commentTimestampsSeconds;
 
   const PlayerWaveform({
     super.key,
     required this.position,
     required this.duration,
     required this.onSeek,
+    this.commentTimestampsSeconds = const [],
   });
 
   @override
@@ -47,48 +49,83 @@ class PlayerWaveform extends StatelessWidget {
       },
       child: SizedBox(
         height: 72,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: List.generate(bars.length, (index) {
-            final barProgress = index / bars.length;
-            final isPlayed = barProgress <= progress;
-            final barHeight = bars[index] * 60;
+        child: Stack(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: List.generate(bars.length, (index) {
+                final barProgress = index / bars.length;
+                final isPlayed = barProgress <= progress;
+                final barHeight = bars[index] * 60;
 
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 0.8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Top half
-                    Container(
-                      height: barHeight * 0.65,
-                      decoration: BoxDecoration(
-                        color:
-                            isPlayed ? const Color(0xFFFF5500) : Colors.white24,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(1),
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 0.8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Top half
+                        Container(
+                          height: barHeight * 0.65,
+                          decoration: BoxDecoration(
+                            color: isPlayed
+                                ? const Color(0xFFFF5500)
+                                : Colors.white24,
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(1),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        // Bottom reflection (mirrored, dimmer)
+                        Container(
+                          height: barHeight * 0.25,
+                          decoration: BoxDecoration(
+                            color: isPlayed
+                                ? const Color(0xFFFF5500).withValues(alpha: 0.3)
+                                : Colors.white12,
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(1),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (duration == null || duration!.inSeconds <= 0) {
+                  return const SizedBox.shrink();
+                }
+
+                return Stack(
+                  children: commentTimestampsSeconds.map((seconds) {
+                    final ratio = (seconds / duration!.inSeconds)
+                        .clamp(0.0, 1.0)
+                        .toDouble();
+
+                    return Positioned(
+                      left: (constraints.maxWidth * ratio - 3)
+                          .clamp(0.0, constraints.maxWidth - 6),
+                      top: 4,
+                      child: Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD166),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.black, width: 1),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 1),
-                    // Bottom reflection (mirrored, dimmer)
-                    Container(
-                      height: barHeight * 0.25,
-                      decoration: BoxDecoration(
-                        color: isPlayed
-                            ? const Color(0xFFFF5500).withValues(alpha: 0.3)
-                            : Colors.white12,
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(1),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
+                    );
+                  }).toList(growable: false),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

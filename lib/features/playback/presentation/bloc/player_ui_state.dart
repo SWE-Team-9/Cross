@@ -40,6 +40,7 @@ class PlayerUIState {
   Duration get position => playerState.position;
   Duration? get duration => playerState.duration;
   double get volume => playerState.volume;
+  AppRepeatMode get repeatMode => playerState.repeatMode;
   List<Track> get queue {
     if (playerState.queue.isNotEmpty) return playerState.queue;
     final track = currentTrack;

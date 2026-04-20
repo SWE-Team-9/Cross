@@ -38,6 +38,7 @@ class TrackDetail extends Equatable {
       audioUrl: streamUrl,
       artworkUrl: artworkUrl,
       handle: artistHandle,
+      artistId: artistId,
       likesCount: likesCount,
       repostsCount: repostsCount,
       durationMs: durationMs,

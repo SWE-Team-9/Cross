@@ -310,6 +310,12 @@ class _MockHomePageState extends State<MockHomePage> {
       handle: (uploaderMap['handle'] ?? uploaderMap['username'] ?? '')
           .toString()
           .trim(),
+      artistId: (uploaderMap['id'] ??
+              uploaderMap['userId'] ??
+              uploaderMap['user_id'] ??
+              source['artistId'] ??
+              source['artist_id'])
+          ?.toString(),
       likesCount: likesCount,
       repostsCount: repostsCount,
       durationMs: durationMs > 0 ? durationMs : null,

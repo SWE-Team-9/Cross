@@ -78,6 +78,12 @@ class RecentlyPlayedRemoteDataSourceImpl
           (json['coverArtUrl'] ?? json['cover_art_url'] ?? json['artworkUrl'])
               ?.toString(),
       handle: handle.isEmpty ? null : handle,
+      artistId: (uploaderMap['id'] ??
+              uploaderMap['userId'] ??
+              uploaderMap['user_id'] ??
+              json['artistId'] ??
+              json['artist_id'])
+          ?.toString(),
       likesCount: (json['likesCount'] as int?) ?? 0,
       repostsCount: (json['repostsCount'] as int?) ?? 0,
       durationMs: _asInt(json['durationMs'] ?? json['duration_ms']),

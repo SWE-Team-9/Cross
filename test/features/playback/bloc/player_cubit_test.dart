@@ -18,6 +18,7 @@ void main() {
     registerFallbackValue(FakeTrack());
     registerFallbackValue(<Track>[]);
     registerFallbackValue(Duration.zero);
+    registerFallbackValue(AppRepeatMode.off);
   });
 
   final testTrack = const Track(
@@ -51,6 +52,7 @@ void main() {
           startIndex: any(named: 'startIndex'),
           source: any(named: 'source'),
         )).thenAnswer((_) async {});
+    when(() => mockService.setRepeatMode(any())).thenAnswer((_) async {});
 
     cubit = PlayerCubit(mockService);
   });
@@ -270,6 +272,35 @@ void main() {
       expect(cubit.state.currentIndex, 1);
     });
 
+    test('setRepeatMode updates state and delegates to audio service',
+        () async {
+      await cubit.setRepeatMode(AppRepeatMode.one);
+
+      expect(cubit.state.repeatMode, AppRepeatMode.one);
+      verify(() => mockService.setRepeatMode(AppRepeatMode.one)).called(1);
+    });
+
+    test('playNext wraps to first track when repeat queue is enabled',
+        () async {
+      await cubit.playFromContext(
+        tracks: [testTrack, nextTrack],
+        startIndex: 1,
+        source: 'queue',
+      );
+      await cubit.setRepeatMode(AppRepeatMode.all);
+      clearInteractions(mockService);
+
+      await cubit.playNext();
+
+      expect(cubit.state.currentTrack, testTrack);
+      expect(cubit.state.currentIndex, 0);
+      verify(() => mockService.playFromContext(
+            tracks: [testTrack, nextTrack],
+            startIndex: 0,
+            source: 'queue',
+          )).called(1);
+    });
+
     test('playPrevious plays previous track when available', () async {
       await cubit.playFromContext(
         tracks: [testTrack, nextTrack],
@@ -306,6 +337,27 @@ void main() {
           ));
       expect(cubit.state.currentTrack, testTrack);
       expect(cubit.state.currentIndex, 0);
+    });
+
+    test('playPrevious wraps to last track when repeat queue is enabled',
+        () async {
+      await cubit.playFromContext(
+        tracks: [testTrack, nextTrack],
+        startIndex: 0,
+        source: 'queue',
+      );
+      await cubit.setRepeatMode(AppRepeatMode.all);
+      clearInteractions(mockService);
+
+      await cubit.playPrevious();
+
+      expect(cubit.state.currentTrack, nextTrack);
+      expect(cubit.state.currentIndex, 1);
+      verify(() => mockService.playFromContext(
+            tracks: [testTrack, nextTrack],
+            startIndex: 1,
+            source: 'queue',
+          )).called(1);
     });
 
     test('addPlayLast appends track without restarting playback', () async {

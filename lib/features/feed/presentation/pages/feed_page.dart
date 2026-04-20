@@ -158,6 +158,7 @@ class _LoadedFeed extends StatelessWidget {
       audioUrl: audioUrl,
       artworkUrl: item.track.coverArtUrl,
       handle: item.track.artist.handle,
+      artistId: item.track.artist.userId,
       likesCount: item.track.stats.likesCount,
       repostsCount: item.track.stats.repostsCount,
       durationMs: item.track.durationMs,
