@@ -15,6 +15,7 @@ class ManagedTrack extends Equatable {
     this.genreId,
     this.genreName,
     this.tags = const <String>[],
+    this.releaseDate,
     this.artworkUrl,
     this.durationInSeconds,
     this.secretToken,
@@ -27,6 +28,7 @@ class ManagedTrack extends Equatable {
   final int? genreId;
   final String? genreName;
   final List<String> tags;
+  final DateTime? releaseDate;
   final TrackManagementVisibility visibility;
   final String? artworkUrl;
   final int? durationInSeconds;
@@ -46,6 +48,8 @@ class ManagedTrack extends Equatable {
     String? genreName,
     bool clearGenreName = false,
     List<String>? tags,
+    DateTime? releaseDate,
+    bool clearReleaseDate = false,
     TrackManagementVisibility? visibility,
     String? artworkUrl,
     bool clearArtworkUrl = false,
@@ -64,6 +68,7 @@ class ManagedTrack extends Equatable {
       genreId: clearGenreId ? null : (genreId ?? this.genreId),
       genreName: clearGenreName ? null : (genreName ?? this.genreName),
       tags: tags ?? this.tags,
+      releaseDate: clearReleaseDate ? null : (releaseDate ?? this.releaseDate),
       visibility: visibility ?? this.visibility,
       artworkUrl: clearArtworkUrl ? null : (artworkUrl ?? this.artworkUrl),
       durationInSeconds: clearDurationInSeconds
@@ -84,6 +89,7 @@ class ManagedTrack extends Equatable {
         genreId,
         genreName,
         tags,
+        releaseDate,
         visibility,
         artworkUrl,
         durationInSeconds,

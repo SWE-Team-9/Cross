@@ -1,13 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:soundcloud_clone/app/app.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
 import '../../features/playback/presentation/widgets/add_to_playlist_sheet.dart';
@@ -36,9 +38,6 @@ class TrackOptionsSheet extends StatelessWidget {
       ),
       builder: (_) => MultiBlocProvider(
         providers: [
-          BlocProvider.value(
-            value: context.read<PlaybackCubit>(),
-          ),
           BlocProvider(
             create: (_) => getIt<TrackInteractionCubit>()
               ..load(
@@ -171,7 +170,7 @@ class TrackOptionsSheet extends StatelessWidget {
                     icon: Icons.playlist_play,
                     label: 'Play Next',
                     onTap: () {
-                      context.read<PlaybackCubit>().addPlayNext(track);
+                      _addToActivePlayerQueue(playNext: true);
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         _snackBar('"${track.title}" will play next'),
@@ -182,7 +181,7 @@ class TrackOptionsSheet extends StatelessWidget {
                     icon: Icons.queue_music,
                     label: 'Play Last',
                     onTap: () {
-                      context.read<PlaybackCubit>().addPlayLast(track);
+                      _addToActivePlayerQueue(playNext: false);
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         _snackBar('"${track.title}" added to end of queue'),
@@ -265,6 +264,27 @@ class TrackOptionsSheet extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _addToActivePlayerQueue({required bool playNext}) {
+    try {
+      final playerCubit = parentContext.read<PlayerCubit>();
+      if (playNext) {
+        unawaited(playerCubit.addPlayNext(track));
+      } else {
+        unawaited(playerCubit.addPlayLast(track));
+      }
+      return;
+    } catch (_) {}
+
+    if (!getIt.isRegistered<PlayerCubit>()) return;
+
+    final playerCubit = getIt<PlayerCubit>();
+    if (playNext) {
+      unawaited(playerCubit.addPlayNext(track));
+    } else {
+      unawaited(playerCubit.addPlayLast(track));
+    }
   }
 
   SnackBar _snackBar(String message) {

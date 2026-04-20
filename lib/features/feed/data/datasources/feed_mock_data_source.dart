@@ -1,3 +1,4 @@
+// coverage:ignore-file
 // ─────────────────────────────────────────────────────────────────────────────
 //  feed_mock_data_source.dart  —  Mock Data Source
 //  Used while backend is not ready.

@@ -104,13 +104,16 @@ void main() {
     'loadProfile emits [ProfileLoading, ProfileLoaded] on success',
     build: () {
       when(() => mockGetProfileUseCase('ali')).thenAnswer((_) async => profile);
+      when(() => mockProfileRepository.getUserTracks('1'))
+          .thenAnswer((_) async => [ownTrack]);
       return buildCubit();
     },
     act: (cubit) => cubit.loadProfile('ali'),
     expect: () => [
       isA<ProfileLoading>(),
       isA<ProfileLoaded>()
-          .having((s) => s.profile.displayName, 'displayName', 'Ali'),
+          .having((s) => s.profile.displayName, 'displayName', 'Ali')
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
     ],
   );
 
@@ -150,8 +153,12 @@ void main() {
     build: () {
       when(() => mockProfileRepository.getMyProfile())
           .thenAnswer((_) async => profile);
-      when(() => mockProfileRepository.getUserTracks('1'))
+      when(() => mockProfileRepository.getUserTracks(profile.id))
           .thenAnswer((_) async => [ownTrack]);
+      when(() => mockGetMyLikedTracksUseCase())
+          .thenAnswer((_) async => const <ManagedTrack>[]);
+      when(() => mockGetMyRepostedTracksUseCase())
+          .thenAnswer((_) async => const <ManagedTrack>[]);
       return buildCubit();
     },
     act: (cubit) => cubit.loadOwnProfile(),
