@@ -68,8 +68,7 @@ class ManagedTrack extends Equatable {
       genreId: clearGenreId ? null : (genreId ?? this.genreId),
       genreName: clearGenreName ? null : (genreName ?? this.genreName),
       tags: tags ?? this.tags,
-      releaseDate:
-          clearReleaseDate ? null : (releaseDate ?? this.releaseDate),
+      releaseDate: clearReleaseDate ? null : (releaseDate ?? this.releaseDate),
       visibility: visibility ?? this.visibility,
       artworkUrl: clearArtworkUrl ? null : (artworkUrl ?? this.artworkUrl),
       durationInSeconds: clearDurationInSeconds

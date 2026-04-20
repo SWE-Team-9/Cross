@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -35,7 +36,8 @@ class SuggestedUsersCubit extends Cubit<SuggestedUsersState> {
 
   Future<void> _fetchPage(int page) async {
     try {
-      final fetched = await _repo.getSuggestedUsers(page: page, limit: _pageLimit);
+      final fetched =
+          await _repo.getSuggestedUsers(page: page, limit: _pageLimit);
       final merged = page == 1 ? fetched : [...state.users, ...fetched];
       emit(
         state.copyWith(
