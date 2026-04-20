@@ -1,43 +1,60 @@
 import 'package:flutter/widgets.dart';
 import '../config/app_config.dart';
+
 // Third-party
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+import 'package:soundcloud_clone/features/recently_played/data/datasources/recently_played_remote_datasource.dart';
+import 'package:soundcloud_clone/features/recently_played/data/repositories/recently_played_repository_impl.dart';
+import 'package:soundcloud_clone/features/recently_played/domain/usecases/get_recently_played.dart';
+
 // Project
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/confirm_email_change_usecase.dart';
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
 import '../../features/auth/domain/usecases/is_logged_in_usecase.dart';
 import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
+import '../../features/auth/domain/usecases/request_email_change_usecase.dart';
 import '../../features/auth/domain/usecases/reset_password_usecase.dart';
 import '../../features/auth/domain/usecases/send_email_verification_usecase.dart';
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_cubit.dart';
 
-// Upload
-import '../../features/upload/data/datasources/audioFilePickerDataSource.dart';
-import '../../features/upload/data/datasources/trackManagementRemoteDataSource.dart';
-import '../../features/upload/data/repositories/trackManagementRepositoryFake.dart';
-import '../../features/upload/data/repositories/trackManagementRepositoryImpl.dart';
-import '../../features/upload/data/repositories/uploadRepositoryImpl.dart';
-import '../../features/upload/domain/repositories/trackManagementRepository.dart';
-import '../../features/upload/domain/repositories/uploadRepository.dart';
-import '../../features/upload/domain/usecases/deleteTrackUseCase.dart';
-import '../../features/upload/domain/usecases/pickAudioFileUseCase.dart';
-import '../../features/upload/domain/usecases/updateTrackMetadataUseCase.dart';
-import '../../features/upload/domain/usecases/updateTrackVisibilityUseCase.dart';
-import '../../features/upload/presentation/bloc/trackManagementCubit.dart';
-import '../../features/upload/presentation/bloc/uploadPickerCubit.dart';
+// Playback
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 
-// Profile feature from dev
+// Upload
+import '../../features/upload/data/datasources/audio_file_picker_data_source.dart';
+import '../../features/upload/data/datasources/track_management_remote_data_source.dart';
+import '../../features/upload/data/repositories/track_management_repository_fake.dart';
+import '../../features/upload/data/repositories/track_management_repository_impl.dart';
+import '../../features/upload/data/repositories/upload_repository_impl.dart';
+import '../../features/upload/domain/repositories/track_management_repository.dart';
+import '../../features/upload/domain/repositories/upload_repository.dart';
+import '../../features/upload/domain/usecases/delete_track_usecase.dart';
+import '../../features/upload/domain/usecases/pick_audi_file_usecase.dart';
+import '../../features/upload/domain/usecases/update_track_metadata_usecase.dart';
+import '../../features/upload/domain/usecases/update_track_visibility_usecase.dart';
+import '../../features/upload/presentation/bloc/track_management_cubit.dart';
+import '../../features/upload/presentation/bloc/upload_picker_cubit.dart';
+import '../../features/upload/data/services/audio_picker_permission_service.dart';
+import '../../features/upload/data/datasources/track_status_remote_data_source.dart';
+import '../../features/upload/data/repositories/track_status_repository_impl.dart';
+import '../../features/upload/domain/repositories/i_track_status_repository.dart';
+import '../../features/upload/domain/usecases/watch_track_processing_status_use_case.dart';
+
+// Profile feature
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
 import '../../features/profile/data/repositories/profile_repository_impl.dart'
@@ -48,12 +65,51 @@ import '../../features/profile/domain/usecases/get_profile_usecase.dart';
 import '../../features/profile/domain/usecases/update_profile_usecase.dart';
 import '../../features/profile/presentation/bloc/profile_cubit.dart';
 
+// Social existing
+import '../../features/social/data/repositories/social_repo.dart';
+
+// Interactions
+import '../../features/interactions/data/datasources/interactions_remote_data_source.dart';
+import '../../features/interactions/data/repositories/interactions_repository_impl.dart';
+import '../../features/interactions/domain/repositories/interactions_repository.dart';
+import '../../features/interactions/domain/usecases/get_track_interaction_status_usecase.dart';
+import '../../features/interactions/domain/usecases/like_track_usecase.dart';
+import '../../features/interactions/domain/usecases/repost_track_usecase.dart';
+import '../../features/interactions/domain/usecases/unlike_track_usecase.dart';
+import '../../features/interactions/domain/usecases/unrepost_track_usecase.dart';
+import '../../features/interactions/presentation/bloc/track_interaction_cubit.dart';
+import '../../features/interactions/domain/usecases/get_track_likers_usecase.dart';
+import '../../features/interactions/domain/usecases/get_track_reposters_usecase.dart';
+import '../../features/interactions/presentation/bloc/engagement_list_cubit.dart';
+import '../../features/interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
+import '../../features/interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
+
+// Comments
+import '../../features/comments/data/datasources/comments_remote_data_source.dart';
+import '../../features/comments/data/repositories/comments_repository_impl.dart';
+import '../../features/comments/domain/repositories/comments_repository.dart';
+import '../../features/comments/domain/usecases/create_comment_usecase.dart';
+import '../../features/comments/domain/usecases/delete_comment_usecase.dart';
+import '../../features/comments/domain/usecases/get_track_comments_usecase.dart';
+import '../../features/comments/domain/usecases/reply_to_comment_usecase.dart';
+import '../../features/comments/presentation/bloc/comments_cubit.dart';
+
 import '../network/api_constants.dart';
 import '../network/dio_client.dart';
 import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
-import '../../features/social/data/repositories/social_repo.dart';
+
+// ── Deep Links / OAuth ─────────────────────────────────────────────────────
+import '../../features/playback/data/datasources/track_detail_remote_data_source.dart';
+import '../../features/playback/data/repositories/track_detail_repository_impl.dart';
+import '../../features/playback/domain/repositories/i_track_detail_repository.dart';
+import '../../features/playback/domain/usecases/get_track_detail_use_case.dart';
+import '../../features/playback/domain/usecases/get_track_by_secret_use_case.dart';
+import '../../features/playback/presentation/bloc/track_loader_cubit.dart';
+import '../deep_links/deep_link_service.dart';
+import '../oauth/oauth_pending_request_store.dart';
+import '../oauth/windows_oauth_callback_server.dart';
 
 final getIt = GetIt.instance;
 
@@ -65,7 +121,7 @@ Future<void> setupDependencies() async {
     storage: FileStorage('${appDocDir.path}/.cookies/'),
   );
 
-  // ── Core ───────────────────────────────────────────────────────────────────
+  // ── Core ─────────────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
     getIt.registerLazySingleton<FlutterSecureStorage>(
@@ -76,6 +132,23 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<SecureStorage>()) {
     getIt.registerLazySingleton<SecureStorage>(
       () => SecureStorage(getIt<FlutterSecureStorage>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SharedPreferences>()) {
+    final prefs = await SharedPreferences.getInstance();
+    getIt.registerLazySingleton<SharedPreferences>(() => prefs);
+  }
+
+  if (!getIt.isRegistered<OAuthPendingRequestStore>()) {
+    getIt.registerLazySingleton<OAuthPendingRequestStore>(
+      () => OAuthPendingRequestStore(getIt<SharedPreferences>()),
+    );
+  }
+
+  if (!getIt.isRegistered<WindowsOAuthCallbackServer>()) {
+    getIt.registerLazySingleton<WindowsOAuthCallbackServer>(
+      () => WindowsOAuthCallbackServer(),
     );
   }
 
@@ -95,7 +168,37 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Core Services ──────────────────────────────────────────────────────────
+  // ── Core Services ────────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<DeepLinkService>()) {
+    getIt.registerLazySingleton<DeepLinkService>(
+      () => DeepLinkService(),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackDetailRemoteDataSource>()) {
+    getIt.registerLazySingleton<TrackDetailRemoteDataSource>(
+      () => TrackDetailRemoteDataSource(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ITrackDetailRepository>()) {
+    getIt.registerLazySingleton<ITrackDetailRepository>(
+      () => TrackDetailRepositoryImpl(getIt<TrackDetailRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
+    getIt.registerLazySingleton<GetTrackDetailUseCase>(
+      () => GetTrackDetailUseCase(getIt<ITrackDetailRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackBySecretUseCase>()) {
+    getIt.registerLazySingleton<GetTrackBySecretUseCase>(
+      () => GetTrackBySecretUseCase(getIt<ITrackDetailRepository>()),
+    );
+  }
 
   if (!getIt.isRegistered<AudioPlayerService>()) {
     getIt.registerLazySingleton<AudioPlayerService>(
@@ -103,17 +206,64 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Upload Feature: File Picker ────────────────────────────────────────────
+  if (!getIt.isRegistered<PlayerCubit>()) {
+    getIt.registerLazySingleton<PlayerCubit>(
+      () => PlayerCubit(
+        getIt<AudioPlayerService>(),
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackLoaderCubit>()) {
+    getIt.registerFactory<TrackLoaderCubit>(
+      () => TrackLoaderCubit(
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
+        playerCubit: getIt<PlayerCubit>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<PlaybackCubit>()) {
+    getIt.registerLazySingleton<PlaybackCubit>(
+      () => PlaybackCubit(getIt<AudioPlayerService>()),
+    );
+  }
+
+  // Factory — fresh instance per bridge page, not a singleton
+  if (!getIt.isRegistered<TrackLoaderCubit>()) {
+    getIt.registerFactory<TrackLoaderCubit>(
+      () => TrackLoaderCubit(
+        getTrackDetail: getIt<GetTrackDetailUseCase>(),
+        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
+        playerCubit: getIt<PlayerCubit>(),
+      ),
+    );
+  }
+
+  // ── Upload Feature: File Picker + Upload Flow ───────────────────────────
+
+  if (!getIt.isRegistered<AudioPickerPermissionService>()) {
+    getIt.registerLazySingleton<AudioPickerPermissionService>(
+      () => AudioPickerPermissionServiceImpl(),
+    );
+  }
 
   if (!getIt.isRegistered<AudioFilePickerDataSource>()) {
     getIt.registerLazySingleton<AudioFilePickerDataSource>(
-      () => const AudioFilePickerDataSourceImpl(),
+      () => AudioFilePickerDataSourceImpl(
+        getIt<AudioPickerPermissionService>(),
+      ),
     );
   }
 
   if (!getIt.isRegistered<UploadRepository>()) {
     getIt.registerLazySingleton<UploadRepository>(
-      () => UploadRepositoryImpl(getIt<AudioFilePickerDataSource>()),
+      () => UploadRepositoryImpl(
+        getIt<AudioFilePickerDataSource>(),
+        dioClient: getIt<DioClient>(),
+      ),
     );
   }
 
@@ -125,14 +275,58 @@ Future<void> setupDependencies() async {
 
   if (!getIt.isRegistered<UploadPickerCubit>()) {
     getIt.registerFactory<UploadPickerCubit>(
-      () => UploadPickerCubit(getIt<PickAudioFileUseCase>()),
+      () => UploadPickerCubit(
+        getIt<PickAudioFileUseCase>(),
+        getIt<UploadRepository>(),
+        getIt<WatchTrackProcessingStatusUseCase>(),
+        getIt<UpdateTrackVisibilityUseCase>(),
+      ),
     );
   }
 
-  // ── Upload Feature: Track Management Basics ────────────────────────────────
+  if (!getIt.isRegistered<TrackStatusRemoteDataSource>()) {
+    getIt.registerLazySingleton<TrackStatusRemoteDataSource>(
+      () => TrackStatusRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ITrackStatusRepository>()) {
+    getIt.registerLazySingleton<ITrackStatusRepository>(
+      () => TrackStatusRepositoryImpl(getIt<TrackStatusRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<WatchTrackProcessingStatusUseCase>()) {
+    getIt.registerLazySingleton<WatchTrackProcessingStatusUseCase>(
+      () => WatchTrackProcessingStatusUseCase(
+        getIt<ITrackStatusRepository>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackStatusRemoteDataSource>()) {
+    getIt.registerLazySingleton<TrackStatusRemoteDataSource>(
+      () => TrackStatusRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ITrackStatusRepository>()) {
+    getIt.registerLazySingleton<ITrackStatusRepository>(
+      () => TrackStatusRepositoryImpl(getIt<TrackStatusRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<WatchTrackProcessingStatusUseCase>()) {
+    getIt.registerLazySingleton<WatchTrackProcessingStatusUseCase>(
+      () => WatchTrackProcessingStatusUseCase(
+        getIt<ITrackStatusRepository>(),
+      ),
+    );
+  }
+
+  // ── Upload Feature: Track Management Basics ─────────────────────────────
 
   const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
-
   const String mockTrackManagementModeValue = AppConfig.mockTrackManagementMode;
 
   final MockTrackManagementMode mockTrackManagementMode =
@@ -183,7 +377,8 @@ Future<void> setupDependencies() async {
       ),
     );
   }
-  // ── Auth Feature ───────────────────────────────────────────────────────────
+
+  // ── Auth Feature ─────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
     getIt.registerLazySingleton<AuthRemoteDataSource>(
@@ -260,6 +455,18 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<RequestEmailChangeUseCase>()) {
+    getIt.registerLazySingleton<RequestEmailChangeUseCase>(
+      () => RequestEmailChangeUseCase(getIt<AuthRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ConfirmEmailChangeUseCase>()) {
+    getIt.registerLazySingleton<ConfirmEmailChangeUseCase>(
+      () => ConfirmEmailChangeUseCase(getIt<AuthRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<AuthCubit>()) {
     getIt.registerFactory<AuthCubit>(
       () => AuthCubit(
@@ -272,17 +479,50 @@ Future<void> setupDependencies() async {
         resetPasswordUseCase: getIt<ResetPasswordUseCase>(),
         sendEmailVerificationUseCase: getIt<SendEmailVerificationUseCase>(),
         verifyEmailUseCase: getIt<VerifyEmailUseCase>(),
+        requestEmailChangeUseCase: getIt<RequestEmailChangeUseCase>(),
+        confirmEmailChangeUseCase: getIt<ConfirmEmailChangeUseCase>(),
+        authRepository: getIt<AuthRepository>(),
+        windowsOAuthCallbackServer: getIt<WindowsOAuthCallbackServer>(),
+        oauthPendingRequestStore: getIt<OAuthPendingRequestStore>(),
       ),
     );
   }
 
   if (!getIt.isRegistered<RecentlyPlayedCubit>()) {
+    if (!getIt.isRegistered<RecentlyPlayedRemoteDataSource>()) {
+      getIt.registerLazySingleton<RecentlyPlayedRemoteDataSource>(
+        () => RecentlyPlayedRemoteDataSourceImpl(getIt<DioClient>()),
+      );
+    }
+
+    if (!getIt.isRegistered<RecentlyPlayedRepositoryImpl>()) {
+      getIt.registerLazySingleton<RecentlyPlayedRepositoryImpl>(
+        () => RecentlyPlayedRepositoryImpl(
+            getIt<RecentlyPlayedRemoteDataSource>()),
+      );
+    }
+
+    if (!getIt.isRegistered<GetRecentlyPlayed>()) {
+      getIt.registerLazySingleton<GetRecentlyPlayed>(
+        () => GetRecentlyPlayed(getIt<RecentlyPlayedRepositoryImpl>()),
+      );
+    }
+
+    if (!getIt.isRegistered<RecordRecentlyPlayed>()) {
+      getIt.registerLazySingleton<RecordRecentlyPlayed>(
+        () => RecordRecentlyPlayed(getIt<RecentlyPlayedRepositoryImpl>()),
+      );
+    }
+
     getIt.registerLazySingleton<RecentlyPlayedCubit>(
-      () => RecentlyPlayedCubit(),
+      () => RecentlyPlayedCubit(
+        getRecentlyPlayed: getIt<GetRecentlyPlayed>(),
+        recordRecentlyPlayed: getIt<RecordRecentlyPlayed>(),
+      ),
     );
   }
 
-  // ── Profile Feature from dev ───────────────────────────────────────────────
+  // ── Profile Feature ──────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<profile_data.ProfileRemoteDataSource>()) {
     getIt.registerLazySingleton<profile_data.ProfileRemoteDataSource>(
@@ -316,6 +556,147 @@ Future<void> setupDependencies() async {
         getProfileUseCase: getIt<GetProfileUseCase>(),
         updateProfileUseCase: getIt<UpdateProfileUseCase>(),
         profileRepository: getIt<profile_domain.ProfileRepository>(),
+        getMyLikedTracksUseCase: getIt<GetMyLikedTracksUseCase>(),
+        getMyRepostedTracksUseCase: getIt<GetMyRepostedTracksUseCase>(),
+      ),
+    );
+  }
+
+  // ── Interactions Feature ─────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<InteractionsRemoteDataSource>()) {
+    getIt.registerLazySingleton<InteractionsRemoteDataSource>(
+      () => InteractionsRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<InteractionsRepository>()) {
+    getIt.registerLazySingleton<InteractionsRepository>(
+      () => InteractionsRepositoryImpl(getIt<InteractionsRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackInteractionStatusUseCase>()) {
+    getIt.registerLazySingleton<GetTrackInteractionStatusUseCase>(
+      () => GetTrackInteractionStatusUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetMyLikedTracksUseCase>()) {
+    getIt.registerLazySingleton<GetMyLikedTracksUseCase>(
+      () => GetMyLikedTracksUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetMyRepostedTracksUseCase>()) {
+    getIt.registerLazySingleton<GetMyRepostedTracksUseCase>(
+      () => GetMyRepostedTracksUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<LikeTrackUseCase>()) {
+    getIt.registerLazySingleton<LikeTrackUseCase>(
+      () => LikeTrackUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnlikeTrackUseCase>()) {
+    getIt.registerLazySingleton<UnlikeTrackUseCase>(
+      () => UnlikeTrackUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<RepostTrackUseCase>()) {
+    getIt.registerLazySingleton<RepostTrackUseCase>(
+      () => RepostTrackUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnrepostTrackUseCase>()) {
+    getIt.registerLazySingleton<UnrepostTrackUseCase>(
+      () => UnrepostTrackUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackLikersUseCase>()) {
+    getIt.registerLazySingleton<GetTrackLikersUseCase>(
+      () => GetTrackLikersUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackRepostersUseCase>()) {
+    getIt.registerLazySingleton<GetTrackRepostersUseCase>(
+      () => GetTrackRepostersUseCase(getIt<InteractionsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrackInteractionCubit>()) {
+    getIt.registerFactory<TrackInteractionCubit>(
+      () => TrackInteractionCubit(
+        getTrackInteractionStatusUseCase:
+            getIt<GetTrackInteractionStatusUseCase>(),
+        likeTrackUseCase: getIt<LikeTrackUseCase>(),
+        unlikeTrackUseCase: getIt<UnlikeTrackUseCase>(),
+        repostTrackUseCase: getIt<RepostTrackUseCase>(),
+        unrepostTrackUseCase: getIt<UnrepostTrackUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<EngagementListCubit>()) {
+    getIt.registerFactory<EngagementListCubit>(
+      () => EngagementListCubit(
+        getTrackLikersUseCase: getIt<GetTrackLikersUseCase>(),
+        getTrackRepostersUseCase: getIt<GetTrackRepostersUseCase>(),
+      ),
+    );
+  }
+
+  // ── Comments Feature ─────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<CommentsRemoteDataSource>()) {
+    getIt.registerLazySingleton<CommentsRemoteDataSource>(
+      () => CommentsRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CommentsRepository>()) {
+    getIt.registerLazySingleton<CommentsRepository>(
+      () => CommentsRepositoryImpl(getIt<CommentsRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrackCommentsUseCase>()) {
+    getIt.registerLazySingleton<GetTrackCommentsUseCase>(
+      () => GetTrackCommentsUseCase(getIt<CommentsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CreateCommentUseCase>()) {
+    getIt.registerLazySingleton<CreateCommentUseCase>(
+      () => CreateCommentUseCase(getIt<CommentsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DeleteCommentUseCase>()) {
+    getIt.registerLazySingleton<DeleteCommentUseCase>(
+      () => DeleteCommentUseCase(getIt<CommentsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ReplyToCommentUseCase>()) {
+    getIt.registerLazySingleton<ReplyToCommentUseCase>(
+      () => ReplyToCommentUseCase(getIt<CommentsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CommentsCubit>()) {
+    getIt.registerFactory<CommentsCubit>(
+      () => CommentsCubit(
+        getTrackCommentsUseCase: getIt<GetTrackCommentsUseCase>(),
+        createCommentUseCase: getIt<CreateCommentUseCase>(),
+        deleteCommentUseCase: getIt<DeleteCommentUseCase>(),
+        replyToCommentUseCase: getIt<ReplyToCommentUseCase>(),
       ),
     );
   }

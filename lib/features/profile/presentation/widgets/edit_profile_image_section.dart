@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/utils/platform_url_utils.dart';
@@ -6,6 +8,8 @@ import '../../domain/repositories/profile_repository.dart';
 class EditProfileImageSection extends StatelessWidget {
   final String? avatarUrl;
   final String? coverUrl;
+  final String? localAvatarPath;
+  final String? localCoverPath;
   final bool isUploadingAvatar;
   final bool isUploadingCover;
   final void Function(ProfileImageType) onPickImage;
@@ -14,6 +18,8 @@ class EditProfileImageSection extends StatelessWidget {
     super.key,
     required this.avatarUrl,
     required this.coverUrl,
+    this.localAvatarPath,
+    this.localCoverPath,
     required this.isUploadingAvatar,
     required this.isUploadingCover,
     required this.onPickImage,
@@ -23,6 +29,11 @@ class EditProfileImageSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalizedCoverUrl = PlatformUrlUtils.normalizeBackendUrl(coverUrl);
     final normalizedAvatarUrl = PlatformUrlUtils.normalizeBackendUrl(avatarUrl);
+    final ImageProvider<Object>? avatarImage = localAvatarPath != null
+        ? FileImage(File(localAvatarPath!))
+        : (normalizedAvatarUrl != null
+            ? NetworkImage(normalizedAvatarUrl)
+            : null);
 
     return SizedBox(
       height: 180,
@@ -37,15 +48,23 @@ class EditProfileImageSection extends StatelessWidget {
               width: double.infinity,
               height: 140,
               color: const Color(0xFFAAAAAA),
-              child: normalizedCoverUrl != null
-                  ? Image.network(
-                      normalizedCoverUrl,
+              child: localCoverPath != null
+                  ? Image.file(
+                      File(localCoverPath!),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         color: const Color(0xFFAAAAAA),
                       ),
                     )
-                  : null,
+                  : normalizedCoverUrl != null
+                      ? Image.network(
+                          normalizedCoverUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: const Color(0xFFAAAAAA),
+                          ),
+                        )
+                      : null,
             ),
           ),
           if (!isUploadingCover)
@@ -90,10 +109,10 @@ class EditProfileImageSection extends StatelessWidget {
                 CircleAvatar(
                   radius: 46,
                   backgroundColor: const Color(0xFFB8CDE8),
-                  backgroundImage: normalizedAvatarUrl != null
-                      ? NetworkImage(normalizedAvatarUrl)
-                      : null,
-                  child: normalizedAvatarUrl == null
+                  backgroundImage: avatarImage,
+                  onBackgroundImageError:
+                      avatarImage != null ? (_, __) {} : null,
+                  child: avatarImage == null
                       ? const Icon(
                           Icons.person,
                           size: 52,

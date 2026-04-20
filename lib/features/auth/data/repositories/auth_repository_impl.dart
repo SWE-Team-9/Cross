@@ -1,7 +1,4 @@
-// Dart SDK
-// Flutter
-// Third-party
-// Project
+import '../../../../core/config/app_config.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
@@ -29,12 +26,6 @@ class AuthRepositoryImpl implements AuthRepository {
       rememberMe: rememberMe,
       captchaToken: captchaToken,
     );
-
-    // Tokens are managed by CookieManager as httpOnly cookies.
-    // Saving them to SecureStorage is what caused the double auth bug —
-    // the stored token was being read by something and added as a Bearer
-    // header on every request while CookieManager was also sending the cookie.
-    // Solution: do not save tokens here at all.
 
     return authResponse.user.toEntity();
   }
@@ -91,6 +82,24 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  }) {
+    return remoteDataSource.requestEmailChange(
+      newEmail: newEmail,
+      currentPassword: currentPassword,
+    );
+  }
+
+  @override
+  Future<void> confirmEmailChange({
+    required String token,
+  }) {
+    return remoteDataSource.confirmEmailChange(token: token);
+  }
+
+  @override
   Future<User?> getCurrentUser() async {
     try {
       final userDto = await remoteDataSource.getCurrentUser();
@@ -102,20 +111,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<bool> isLoggedIn() async {
-    // CHANGED: was reading token from SecureStorage:
-    //   final token = await localDataSource.getAccessToken();
-    //   return token != null && token.isNotEmpty;
-    //
-    // Problem with the old approach:
-    // 1. A saved token could be expired — user would appear logged in but all
-    //    requests would fail with 401
-    // 2. Reading from SecureStorage is what triggered AuthInterceptor to add
-    //    the Bearer header, causing the double auth bug
-    //
-    // New approach: call GET /auth/me directly.
-    // If the httpOnly cookie is valid → server returns 200 → user is logged in
-    // If the cookie is expired/missing → server returns 401 → not logged in
-    // This is always accurate and removes the need for SecureStorage entirely.
     try {
       await remoteDataSource.getCurrentUser();
       return true;
@@ -130,10 +125,37 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.logout();
     } catch (_) {
       // Remote logout failure is non-fatal.
-      // The user is logged out locally regardless —
-      // cookies will expire on the server eventually.
     } finally {
       await localDataSource.clearAll();
     }
+  }
+
+  @override
+  Uri buildGoogleAuthorizeUri({
+    required String state,
+    required String codeChallenge,
+    required String redirectUri,
+  }) {
+    return remoteDataSource.buildGoogleAuthorizeUri(
+      clientId: AppConfig.oauthClientId,
+      redirectUri: redirectUri,
+      scope: AppConfig.oauthScope,
+      state: state,
+      codeChallenge: codeChallenge,
+    );
+  }
+
+  @override
+  Future<void> exchangeOAuthCodeForSession({
+    required String code,
+    required String redirectUri,
+    required String codeVerifier,
+  }) {
+    return remoteDataSource.exchangeOAuthCodeForSession(
+      clientId: AppConfig.oauthClientId,
+      code: code,
+      redirectUri: redirectUri,
+      codeVerifier: codeVerifier,
+    );
   }
 }

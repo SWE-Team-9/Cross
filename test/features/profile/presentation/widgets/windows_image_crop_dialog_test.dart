@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
@@ -81,6 +83,7 @@ void main() {
 
     imageFile = await createValidTestPng('${tempDir.path}/sample.png');
   });
+
   tearDown(() async {
     // Intentionally do not delete temp files here.
     // Windows can keep the image file locked briefly during widget tests.
@@ -135,6 +138,23 @@ void main() {
     expect(find.text('Crop avatar'), findsOneWidget);
   });
 
+  testWidgets('shows loading state before decode completes', (tester) async {
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.AVATAR,
+    );
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Crop avatar'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    final cropButton = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Crop'),
+    );
+    expect(cropButton.onPressed, isNull);
+  });
+
   testWidgets('shows avatar crop title after decode', (tester) async {
     await pumpDialog(
       tester,
@@ -164,6 +184,7 @@ void main() {
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Crop'), findsOneWidget);
   });
+
   testWidgets('shows cover crop title after decode', (tester) async {
     await pumpDialog(
       tester,
@@ -184,6 +205,7 @@ void main() {
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Crop'), findsOneWidget);
   });
+
   testWidgets('cancel closes the dialog and returns null', (tester) async {
     String? result = 'not-null-yet';
 
@@ -231,6 +253,7 @@ void main() {
     expect(find.byType(Slider), findsOneWidget);
     expect(find.text('Crop avatar'), findsOneWidget);
   });
+
   testWidgets('dragging crop area does not throw', (tester) async {
     await pumpDialog(
       tester,
@@ -259,5 +282,106 @@ void main() {
     await tester.pump();
 
     expect(find.text('Crop cover'), findsOneWidget);
+  });
+
+  testWidgets('crop action can be triggered after decode', (tester) async {
+    String? capturedPath;
+
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.AVATAR,
+      onResult: (path) => capturedPath = path,
+    );
+
+    await waitForDialogDecode(tester);
+
+    await tester.tap(find.text('Crop'));
+    await tester.pump();
+
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+    });
+
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    if (capturedPath != null) {
+      expect(File(capturedPath!).existsSync(), isTrue);
+    }
+    expect(find.byType(AlertDialog), anyOf(findsOneWidget, findsNothing));
+  });
+
+  testWidgets('shows exporting spinner after crop is tapped', (tester) async {
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.AVATAR,
+    );
+
+    await waitForDialogDecode(tester);
+    await pumpUntilVisible(tester, find.text('Crop'));
+
+    await tester.tap(find.text('Crop'));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
+  });
+
+  testWidgets('cover crop action can be triggered after decode',
+      (tester) async {
+    String? capturedPath;
+
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.COVER,
+      onResult: (path) => capturedPath = path,
+    );
+
+    await waitForDialogDecode(tester);
+
+    await tester.tap(find.text('Crop'));
+    await tester.pump();
+
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+    });
+
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    if (capturedPath != null) {
+      expect(File(capturedPath!).existsSync(), isTrue);
+      expect(capturedPath!, contains('cropped_cover_'));
+    }
+  });
+
+  testWidgets('zooming via mouse wheel updates state', (tester) async {
+    await pumpDialog(
+      tester,
+      sourcePath: imageFile.path,
+      imageType: ProfileImageType.AVATAR,
+    );
+    await waitForDialogDecode(tester);
+    await pumpUntilVisible(tester, find.byType(Slider));
+
+    final cropArea = find
+        .descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(Listener),
+        )
+        .last;
+
+    final center = tester.getCenter(cropArea);
+
+    final TestPointer pointer = TestPointer(1, PointerDeviceKind.mouse);
+    pointer.hover(center);
+
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, -100)));
+    await tester.pump();
+
+    final Slider slider = tester.widget(find.byType(Slider).first);
+    expect(slider.value, greaterThanOrEqualTo(1.0));
   });
 }

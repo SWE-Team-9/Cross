@@ -7,12 +7,14 @@ void main() {
       final user = User.fromJson({
         'id': '1',
         'username': 'ali',
+        'avatarUrl': 'https://cdn.example.com/ali.png',
         'isFollowing': true,
         'followersCount': 12,
       });
 
       expect(user.id, '1');
       expect(user.username, 'ali');
+      expect(user.avatarUrl, 'https://cdn.example.com/ali.png');
       expect(user.isFollowing, isTrue);
       expect(user.followersCount, 12);
     });
@@ -21,12 +23,14 @@ void main() {
       final user = User.fromJson({
         '_id': '2',
         'handle': 'ali-handle',
+        'avatar_url': '/uploads/ali.jpg',
         'is_following': false,
         'followers_count': 7,
       });
 
       expect(user.id, '2');
       expect(user.username, 'ali-handle');
+      expect(user.avatarUrl, '/uploads/ali.jpg');
       expect(user.isFollowing, isFalse);
       expect(user.followersCount, 7);
     });
@@ -39,6 +43,7 @@ void main() {
 
       expect(user.id, '3');
       expect(user.username, 'Ali Mahmoud');
+      expect(user.avatarUrl, isNull);
       expect(user.isFollowing, isFalse);
       expect(user.followersCount, 0);
     });
@@ -80,6 +85,7 @@ void main() {
       final user = User(
         id: '1',
         username: 'ali',
+        avatarUrl: 'https://cdn.example.com/ali.png',
         isFollowing: true,
         followersCount: 9,
       );
@@ -87,6 +93,7 @@ void main() {
       expect(user.toJson(), {
         'id': '1',
         'username': 'ali',
+        'avatarUrl': 'https://cdn.example.com/ali.png',
         'isFollowing': true,
         'followersCount': 9,
       });
@@ -98,6 +105,7 @@ void main() {
       final user = User(
         id: '1',
         username: 'ali',
+        avatarUrl: 'https://cdn.example.com/ali.png',
         isFollowing: false,
         followersCount: 10,
       );
@@ -109,6 +117,7 @@ void main() {
 
       expect(updated.id, '1');
       expect(updated.username, 'ali');
+      expect(updated.avatarUrl, 'https://cdn.example.com/ali.png');
       expect(updated.isFollowing, isTrue);
       expect(updated.followersCount, 20);
     });

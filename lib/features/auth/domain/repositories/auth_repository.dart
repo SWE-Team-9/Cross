@@ -37,9 +37,30 @@ abstract class AuthRepository {
     required String code,
   });
 
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  });
+
+  Future<void> confirmEmailChange({
+    required String token,
+  });
+
   Future<User?> getCurrentUser();
 
   Future<void> logout();
 
   Future<bool> isLoggedIn();
+
+  Uri buildGoogleAuthorizeUri({
+    required String state,
+    required String codeChallenge,
+    required String redirectUri,
+  });
+
+  Future<void> exchangeOAuthCodeForSession({
+    required String code,
+    required String redirectUri,
+    required String codeVerifier,
+  });
 }

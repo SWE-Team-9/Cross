@@ -1,15 +1,32 @@
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/welcome_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/routes/auth_routes.dart';
 
+class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
+
 void main() {
-  // دالة مساعدة لبناء الـ Widget مع الـ Router المطلوب لكل تست
-  Widget buildWithRouter(GoRouter router) {
-    return MaterialApp.router(
-      routerConfig: router,
+  Widget buildWithRouter(GoRouter router, AuthCubit authCubit) {
+    return BlocProvider<AuthCubit>.value(
+      value: authCubit,
+      child: MaterialApp.router(
+        routerConfig: router,
+      ),
     );
+  }
+
+  MockAuthCubit buildAuthCubit() {
+    final authCubit = MockAuthCubit();
+    when(() => authCubit.state).thenReturn(AuthInitial());
+    when(() => authCubit.stream)
+        .thenAnswer((_) => const Stream<AuthState>.empty());
+    when(() => authCubit.continueWithGoogle()).thenAnswer((_) async {});
+    return authCubit;
   }
 
   group('WelcomePage Tests', () {
@@ -25,14 +42,11 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(buildWithRouter(router));
+      await tester.pumpWidget(buildWithRouter(router, buildAuthCubit()));
 
-      // التأكد من وجود النصوص الأساسية
       expect(find.text("We lead what’s next in music."), findsOneWidget);
       expect(find.text('Create an account'), findsOneWidget);
       expect(find.text('Log in'), findsOneWidget);
-
-      // التأكد من وجود الأيقونة والخلفية المرسومة
       expect(find.byIcon(Icons.cloud), findsOneWidget);
       expect(find.byType(CustomPaint), findsWidgets);
     });
@@ -54,12 +68,11 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(buildWithRouter(router));
+      await tester.pumpWidget(buildWithRouter(router, buildAuthCubit()));
 
       await tester.tap(find.text('Create an account'));
       await tester.pumpAndSettle();
 
-      // التأكد من الوصول لصفحة التسجيل بناءً على الـ Route الجديد
       expect(find.text('Register Page'), findsOneWidget);
     });
 
@@ -79,12 +92,11 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(buildWithRouter(router));
+      await tester.pumpWidget(buildWithRouter(router, buildAuthCubit()));
 
       await tester.tap(find.text('Log in'));
       await tester.pumpAndSettle();
 
-      // التأكد من الوصول لصفحة تسجيل الدخول بناءً على الـ Route الجديد
       expect(find.text('Login Page'), findsOneWidget);
     });
   });

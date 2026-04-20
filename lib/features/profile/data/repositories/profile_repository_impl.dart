@@ -1,7 +1,4 @@
-// Dart SDK
-// Flutter
-// Third-party
-// Project
+import '../../../upload/domain/entities/managed_track.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../datasources/profile_remote_data_source.dart';
@@ -13,10 +10,20 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<ProfileEntity> getProfile(String handle) async {
-    // DioClient already maps DioException → Failure, so we let
-    // any Failure thrown here bubble up to the Cubit unchanged.
     final dto = await _remoteDataSource.getProfile(handle);
     return dto.toEntity();
+  }
+
+  @override
+  Future<ProfileEntity> getMyProfile() async {
+    final dto = await _remoteDataSource.getMyProfile();
+    return dto.toEntity();
+  }
+
+  @override
+  Future<List<ManagedTrack>> getUserTracks(String userId) async {
+    final dtos = await _remoteDataSource.getUserTracks(userId);
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
   }
 
   @override
@@ -24,23 +31,35 @@ class ProfileRepositoryImpl implements ProfileRepository {
     String? displayName,
     String? bio,
     String? location,
+    String? website,
+    AccountTier? accountTier,
     List<String>? favoriteGenres,
     ProfileVisibility? visibility,
   }) async {
-    // Build partial update body — only include fields the user changed.
-    // Sending null fields could accidentally clear data on the server.
     final body = <String, dynamic>{};
+
     if (displayName != null) body['display_name'] = displayName;
     if (bio != null) body['bio'] = bio;
     if (location != null) body['location'] = location;
+    if (website != null) body['website'] = website;
     if (favoriteGenres != null) body['favorite_genres'] = favoriteGenres;
     if (visibility != null) {
-      body['visibility'] =
-          visibility == ProfileVisibility.PUBLIC ? 'PUBLIC' : 'PRIVATE';
+      body['is_private'] = visibility == ProfileVisibility.PRIVATE;
+    }
+    if (accountTier != null) {
+      body['account_type'] =
+          accountTier == AccountTier.ARTIST ? 'ARTIST' : 'LISTENER';
     }
 
     final dto = await _remoteDataSource.updateProfile(body);
     return dto.toEntity();
+  }
+
+  @override
+  Future<Map<String, String>> updateExternalLinks({
+    required Map<String, String> externalLinks,
+  }) {
+    return _remoteDataSource.updateExternalLinks(externalLinks);
   }
 
   @override

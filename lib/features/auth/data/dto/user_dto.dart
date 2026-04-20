@@ -12,6 +12,7 @@ class UserDto {
   final String? avatarUrl;
   final String? bio;
   final bool isPro;
+  final String accountType;
 
   const UserDto({
     required this.id,
@@ -25,6 +26,7 @@ class UserDto {
     this.avatarUrl,
     this.bio,
     this.isPro = false,
+    this.accountType = 'LISTENER',
   });
 
   factory UserDto.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class UserDto {
       avatarUrl: json['avatar_url'],
       bio: json['bio'],
       isPro: json['is_pro'] ?? false,
+      accountType: (json['account_type'] ?? 'LISTENER').toString(),
     );
   }
 
@@ -56,6 +59,7 @@ class UserDto {
       dateOfBirth: dateOfBirth != null ? DateTime.tryParse(dateOfBirth!) : null,
       isVerified: isVerified,
       isPro: isPro,
+      accountType: accountType,
     );
   }
 }

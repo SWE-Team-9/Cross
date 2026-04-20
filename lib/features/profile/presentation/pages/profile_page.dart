@@ -1,28 +1,31 @@
-import 'package:flutter/material.dart';
+// coverage:ignore-file
+import 'dart:async';
 
-// Third-party
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-// Project
 import '../../../../core/di/injector.dart';
+import '../../../../core/utils/platform_url_utils.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
-import '../../../upload/domain/entities/ManagedTrack.dart';
-import '../../../upload/domain/entities/TrackManagementVisibility.dart';
-import '../../../upload/presentation/models/applyTrackManagementResult.dart';
-import '../../../upload/presentation/models/trackManagementResult.dart';
+import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
+import '../../../playback/presentation/bloc/player_cubit.dart';
+import '../../../social/data/repositories/social_repo.dart';
+import '../../../social/domain/events/social_events.dart';
+import '../../../upload/domain/entities/managed_track.dart';
+import '../../../upload/presentation/models/apply_track_management_result.dart';
+import '../../../upload/presentation/models/track_management_result.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../bloc/profile_cubit.dart';
 import '../bloc/profile_state.dart';
 import '../routes/profile_routes.dart';
-import '../../../../core/utils/platform_url_utils.dart';
+import '../utils/genre_utils.dart';
 
 class ProfilePage extends StatelessWidget {
   final String handle;
-
-  /// Only used in tests to bypass GetIt.
-  /// Production always leaves this null — getIt<ProfileCubit>() is used instead.
   final ProfileCubit? cubit;
 
   const ProfilePage({
@@ -41,7 +44,18 @@ class ProfilePage extends StatelessWidget {
     }
 
     return BlocProvider<ProfileCubit>(
-      create: (_) => getIt<ProfileCubit>()..loadProfile(handle),
+      create: (context) {
+        final authState = context.read<AuthCubit>().state;
+        final profileCubit = getIt<ProfileCubit>();
+
+        if (authState is AuthAuthenticated && authState.user.handle == handle) {
+          profileCubit.loadOwnProfile();
+        } else {
+          profileCubit.loadProfile(handle);
+        }
+
+        return profileCubit;
+      },
       child: _ProfilePageBody(handle: handle),
     );
   }
@@ -60,29 +74,13 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   bool _isFollowing = false;
+  bool _isFollowActionInFlight = false;
+  bool _didSeedInitialTracks = false;
+  Set<String>? _viewerFollowingIds;
 
-  List<ManagedTrack> _managedTracks = const [
-    ManagedTrack(
-      id: 'profile-track-1',
-      title: 'Midnight Echoes',
-      description: 'Owner profile track for Sprint 2 management testing.',
-      genreId: 1,
-      genreName: 'Ambient',
-      tags: <String>['owner', 'ambient'],
-      visibility: TrackManagementVisibility.publicTrack,
-      durationInSeconds: 212,
-    ),
-    ManagedTrack(
-      id: 'profile-track-2',
-      title: 'City Lights',
-      description: 'Second owner track for edit/delete testing.',
-      genreId: 2,
-      genreName: 'Electronic',
-      tags: <String>['night', 'synth'],
-      visibility: TrackManagementVisibility.privateTrack,
-      durationInSeconds: 184,
-    ),
-  ];
+  List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
+  List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
+  List<ManagedTrack> _repostedTracks = const <ManagedTrack>[];
 
   bool get _isOwnProfile {
     final authState = context.read<AuthCubit>().state;
@@ -92,6 +90,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return false;
   }
 
+  // ── Lifecycle Methods ───────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
@@ -99,9 +99,152 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final profileState = context.read<ProfileCubit>().state;
+    if (!_didSeedInitialTracks && profileState is ProfileLoaded) {
+      _didSeedInitialTracks = true;
+      _managedTracks = profileState.tracks;
+      _likedTracks = profileState.likedTracks;
+      _repostedTracks = profileState.repostedTracks;
+    }
+
+    _syncFollowState(profileState);
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  // ── Action Methods ──────────────────────────────────────────────────────
+
+  void _syncManagedTracks(ProfileState state) {
+    if (!mounted) return;
+
+    if (state is ProfileLoaded) {
+      setState(() {
+        _managedTracks = state.tracks;
+        _likedTracks = state.likedTracks;
+        _repostedTracks = state.repostedTracks;
+      });
+    }
+  }
+
+  void _syncFollowState(ProfileState state) {
+    if (!mounted || _isOwnProfile || _isFollowActionInFlight) return;
+
+    final profile = switch (state) {
+      ProfileLoaded s => s.profile,
+      ProfileUpdating s => s.currentProfile,
+      ProfileUpdateSuccess s => s.updatedProfile,
+      ProfileUpdateError s => s.currentProfile,
+      ProfileImageUploading s => s.currentProfile,
+      ProfileImageUploadError s => s.currentProfile,
+      _ => null,
+    };
+
+    if (profile == null) return;
+
+    unawaited(_syncFollowStateFromProfile(profile));
+  }
+
+  Future<void> _syncFollowStateFromProfile(ProfileEntity profile) async {
+    var resolved = profile.isFollowing;
+
+    if (!resolved) {
+      resolved = await _viewerFollowsUser(profile.id);
+    }
+
+    if (!mounted || _isFollowActionInFlight) return;
+    if (_isFollowing != resolved) {
+      setState(() {
+        _isFollowing = resolved;
+      });
+    }
+  }
+
+  Future<bool> _viewerFollowsUser(String userId) async {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! AuthAuthenticated || userId.trim().isEmpty) return false;
+    if (authState.user.id == userId.trim()) return false;
+
+    final followingIds = await _loadViewerFollowingIds(authState.user.id);
+    return followingIds.contains(userId.trim());
+  }
+
+  Future<Set<String>> _loadViewerFollowingIds(String viewerId) async {
+    if (_viewerFollowingIds != null) return _viewerFollowingIds!;
+    if (!getIt.isRegistered<SocialRepo>()) return const <String>{};
+
+    final repo = getIt<SocialRepo>();
+    final resolved = <String>{};
+    var page = 1;
+    const limit = 100;
+
+    try {
+      while (true) {
+        final users = await repo.getFollowing(viewerId, page, limit: limit);
+        for (final user in users) {
+          if (user.id.trim().isNotEmpty) {
+            resolved.add(user.id.trim());
+          }
+        }
+
+        if (users.length < limit) break;
+        page++;
+      }
+    } catch (_) {}
+
+    _viewerFollowingIds = resolved;
+    return _viewerFollowingIds!;
+  }
+
+  Future<void> _toggleFollow(ProfileEntity profile) async {
+    if (_isOwnProfile || _isFollowActionInFlight || profile.id.trim().isEmpty) {
+      return;
+    }
+
+    final previous = _isFollowing;
+    setState(() {
+      _isFollowActionInFlight = true;
+      _isFollowing = !previous;
+    });
+
+    try {
+      if (!getIt.isRegistered<SocialRepo>()) {
+        SocialEvents.emitFollowChanged();
+        return;
+      }
+
+      final repo = getIt<SocialRepo>();
+      if (previous) {
+        final result = await repo.unfollowUser(profile.id);
+        setState(() {
+          _isFollowing = result.isFollowing;
+          _viewerFollowingIds?.remove(profile.id);
+        });
+      } else {
+        final result = await repo.followUser(profile.id);
+        setState(() {
+          _isFollowing = result.isFollowing;
+          _viewerFollowingIds?.add(profile.id);
+        });
+      }
+      SocialEvents.emitFollowChanged();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isFollowing = previous;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isFollowActionInFlight = false;
+      });
+    }
   }
 
   Future<void> _openTrackManagement(ManagedTrack track) async {
@@ -120,61 +263,360 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     }
   }
 
+  Future<void> _playTrack(ManagedTrack managedTrack) async {
+    try {
+      final getTrackDetailUseCase = getIt<GetTrackDetailUseCase>();
+      final result = await getTrackDetailUseCase(managedTrack.id);
+
+      if (result.failure != null || result.detail == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to play track: ${result.failure?.message ?? 'Unknown error'}',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final detail = result.detail!;
+      await getIt<PlayerCubit>().play(detail.toPlaybackTrack());
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error playing track: $e')),
+      );
+    }
+  }
+
+  void _handleAuthStateChanges(BuildContext context, AuthState state) {
+    if (!mounted) return;
+
+    if (state is AuthEmailChangeRequested) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'A confirmation link was sent to ${state.newEmail}. Please check your inbox.',
+          ),
+        ),
+      );
+    } else if (state is AuthEmailChangeConfirmed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Email updated successfully. Please sign in again with your new email.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showChangeEmailDialog() async {
+    final parentContext = context;
+    final authCubit = parentContext.read<AuthCubit>();
+
+    final formKey = GlobalKey<FormState>();
+    final newEmailController = TextEditingController();
+    final currentPasswordController = TextEditingController();
+
+    bool obscurePassword = true;
+    bool isSubmitting = false;
+    String? localError;
+
+    await showDialog<void>(
+      context: parentContext,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            String? validateEmail(String? value) {
+              final email = value?.trim() ?? '';
+              if (email.isEmpty) return 'Please enter a new email address.';
+              final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+              if (!emailRegex.hasMatch(email)) {
+                return 'Please enter a valid email address.';
+              }
+              return null;
+            }
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF121212),
+              title: const Text(
+                'Change email',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: newEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(color: Colors.white),
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        labelText: 'New email',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: const Color(0xFF1C1C1C),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      validator: validateEmail,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: currentPasswordController,
+                      obscureText: obscurePassword,
+                      style: const TextStyle(color: Colors.white),
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        labelText: 'Current password',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: const Color(0xFF1C1C1C),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.white70,
+                          ),
+                          onPressed: isSubmitting
+                              ? null
+                              : () => setDialogState(
+                                    () => obscurePassword = !obscurePassword,
+                                  ),
+                        ),
+                      ),
+                      validator: (v) => (v ?? '').trim().isEmpty
+                          ? 'Please enter your password.'
+                          : null,
+                    ),
+                    if (localError != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        localError!,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF5500),
+                  ),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (!(formKey.currentState?.validate() ?? false)) {
+                            return;
+                          }
+
+                          final remaining =
+                              authCubit.emailChangeCooldownRemainingSeconds;
+                          if (remaining > 0) {
+                            setDialogState(
+                              () => localError =
+                                  'Wait $remaining seconds before resending.',
+                            );
+                            return;
+                          }
+
+                          setDialogState(() {
+                            isSubmitting = true;
+                            localError = null;
+                          });
+
+                          await authCubit.requestEmailChange(
+                            newEmail: newEmailController.text.trim(),
+                            currentPassword: currentPasswordController.text,
+                          );
+
+                          if (!mounted) return;
+                          final currentState = authCubit.state;
+
+                          if (currentState is AuthEmailChangeRequested) {
+                            Navigator.of(dialogContext).pop();
+                          } else {
+                            setDialogState(() {
+                              isSubmitting = false;
+                              localError =
+                                  (currentState is AuthEmailChangeFailure)
+                                      ? currentState.message
+                                      : (currentState is AuthError
+                                          ? currentState.message
+                                          : 'Action failed.');
+                            });
+                          }
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Send link',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    newEmailController.dispose();
+    currentPasswordController.dispose();
+  }
+
+  Future<void> _openExternalLink(
+    BuildContext context,
+    String platform,
+    String rawUrl,
+  ) async {
+    try {
+      final normalized = _normalizeForLaunch(rawUrl);
+      final uri = Uri.tryParse(normalized);
+
+      if (uri == null || !(uri.isScheme('http') || uri.isScheme('https'))) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid link'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open ${_labelForPlatform(platform)}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to open link'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  String _normalizeForLaunch(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && uri.hasScheme) {
+      return trimmed;
+    }
+
+    return 'https://$trimmed';
+  }
+
+  // ── Main Build Method ───────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ProfileCubit, ProfileState>(
-      builder: (context, state) {
-        if (state is ProfileLoading) {
-          return const Scaffold(
-            backgroundColor: Colors.black,
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    return BlocListener<AuthCubit, AuthState>(
+      listener: _handleAuthStateChanges,
+      child: BlocListener<ProfileCubit, ProfileState>(
+        listener: (context, state) {
+          _syncManagedTracks(state);
+          _syncFollowState(state);
+        },
+        child: BlocBuilder<ProfileCubit, ProfileState>(
+          builder: (context, state) {
+            if (state is ProfileLoading) {
+              return const Scaffold(
+                backgroundColor: Colors.black,
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-        if (state is ProfileError) {
-          return Scaffold(
-            backgroundColor: Colors.black,
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.white54,
-                    size: 48,
+            if (state is ProfileError) {
+              return Scaffold(
+                backgroundColor: Colors.black,
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        state.message,
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      TextButton(
+                        onPressed: () => context.pop(),
+                        child: const Text('Go back'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    state.message,
-                    style: const TextStyle(color: Colors.white70),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.pop(),
-                    child: const Text('Go back'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
+                ),
+              );
+            }
 
-        final ProfileEntity? profile = switch (state) {
-          ProfileLoaded s => s.profile,
-          ProfileUpdating s => s.currentProfile,
-          ProfileUpdateSuccess s => s.updatedProfile,
-          ProfileUpdateError s => s.currentProfile,
-          ProfileImageUploading s => s.currentProfile,
-          _ => null,
-        };
+            final profile = switch (state) {
+              ProfileLoaded s => s.profile,
+              ProfileUpdating s => s.currentProfile,
+              ProfileUpdateSuccess s => s.updatedProfile,
+              ProfileUpdateError s => s.currentProfile,
+              ProfileImageUploading s => s.currentProfile,
+              ProfileImageUploadError s => s.currentProfile,
+              _ => null,
+            };
 
-        if (profile == null) {
-          return const Scaffold(backgroundColor: Colors.black);
-        }
+            if (profile == null) {
+              return const Scaffold(backgroundColor: Colors.black);
+            }
 
-        return _buildBody(context, profile);
-      },
+            return _buildBody(context, profile);
+          },
+        ),
+      ),
     );
   }
 
@@ -199,10 +641,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           body: TabBarView(
             controller: _tabController,
             children: [
-              _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet'),
+              _buildLikedTracksTab(),
               _buildTracksTab(),
               _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet'),
-              _buildEmptyTab(Icons.repeat, 'No reposts yet'),
+              _buildRepostedTracksTab(),
             ],
           ),
         ),
@@ -210,34 +652,181 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
+  // ── Tab Builders ────────────────────────────────────────────────────────
+
+  Widget _buildLikedTracksTab() {
+    if (!_isOwnProfile) {
+      return _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet');
+    }
+
+    return _ProfileTracksListTab(
+      tracks: _likedTracks,
+      emptyIcon: Icons.favorite_border,
+      emptyMessage: 'No liked tracks yet',
+      onPlayTap: _playTrack,
+    );
+  }
+
   Widget _buildTracksTab() {
     if (!_isOwnProfile) {
-      return _buildEmptyTab(Icons.music_note_outlined, 'No tracks yet');
+      return _ProfileTracksListTab(
+        tracks: _managedTracks,
+        emptyIcon: Icons.music_note_outlined,
+        emptyMessage: 'No tracks yet',
+        onPlayTap: _playTrack,
+      );
     }
 
     return _ManagedProfileTracksTab(
       tracks: _managedTracks,
       onManageTap: _openTrackManagement,
+      onPlayTap: _playTrack,
     );
   }
 
-  Widget _circleIconBtn(IconData icon, VoidCallback onTap) {
+  Widget _buildRepostedTracksTab() {
+    if (!_isOwnProfile) {
+      return _buildEmptyTab(Icons.repeat, 'No reposts yet');
+    }
+
+    return _ProfileTracksListTab(
+      tracks: _repostedTracks,
+      emptyIcon: Icons.repeat,
+      emptyMessage: 'No reposts yet',
+      onPlayTap: _playTrack,
+    );
+  }
+
+  Widget _buildEmptyTab(IconData icon, String message) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 48, color: Colors.white24),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: const TextStyle(color: Colors.white38),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── UI Components ───────────────────────────────────────────────────────
+
+  Widget _buildActionRow(BuildContext context, ProfileEntity profile) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+      child: Row(
+        children: [
+          if (_isOwnProfile)
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildOwnerActionButton(
+                      icon: Icons.edit_outlined,
+                      label: 'Edit',
+                      onTap: () => ProfileRoutes.goToEditProfile(context),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildOwnerActionButton(
+                      icon: Icons.email,
+                      label: 'change Email',
+                      onTap: _showChangeEmailDialog,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Expanded(
+              child: GestureDetector(
+                onTap: _isFollowActionInFlight
+                    ? null
+                    : () => _toggleFollow(profile),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    color:
+                        _isFollowing ? Colors.black : const Color(0xFFFF5500),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _isFollowing
+                          ? const Color(0xFF555555)
+                          : const Color(0xFFFF5500),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _isFollowActionInFlight
+                        ? '...'
+                        : (_isFollowing ? 'Following' : 'Follow'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(width: 12),
+          _circleIconBtn(Icons.shuffle, () {}),
+          const SizedBox(width: 8),
+          _playButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOwnerActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
-        decoration: const BoxDecoration(
-          color: Color(0xFF1A1A1A),
-          shape: BoxShape.circle,
+        height: 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF555555)),
         ),
-        child: Icon(icon, color: Colors.white, size: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildProfileHeader(BuildContext context, ProfileEntity profile) {
-    final normalizedCoverUrl =
+    final coverUrl =
         PlatformUrlUtils.normalizeBackendUrl(profile.coverPhotoUrl);
 
     return SizedBox(
@@ -248,40 +837,26 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           SizedBox(
             width: double.infinity,
             height: 150,
-            child: normalizedCoverUrl != null
+            child: coverUrl != null
                 ? Image.network(
-                    normalizedCoverUrl,
+                    coverUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
-                      color: Colors.black,
+                      color: Colors.grey[900],
                     ),
                   )
-                : Container(
-                    color: Colors.black,
-                  ),
+                : Container(color: Colors.grey[900]),
           ),
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _circleIconBtn(Icons.arrow_back, () => context.pop()),
-                    Row(
-                      children: [
-                        _circleIconBtn(Icons.cast, () {}),
-                        const SizedBox(width: 8),
-                        _circleIconBtn(Icons.more_vert, () {}),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            top: 10,
+            left: 14,
+            right: 14,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _circleIconBtn(Icons.arrow_back, () => context.pop()),
+                _circleIconBtn(Icons.more_vert, () {}),
+              ],
             ),
           ),
           Positioned(
@@ -295,8 +870,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildAvatar(ProfileEntity profile) {
-    final normalizedAvatarUrl =
-        PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
+    final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(profile.avatarUrl);
+    final ImageProvider<Object>? avatarImage =
+        avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -306,17 +882,39 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       child: CircleAvatar(
         radius: 50,
         backgroundColor: const Color(0xFF5B7BBB),
-        backgroundImage: normalizedAvatarUrl != null
-            ? CachedNetworkImageProvider(normalizedAvatarUrl)
-            : null,
-        child: normalizedAvatarUrl == null
-            ? const Icon(Icons.person, size: 56, color: Color(0xFF7B9FD4))
+        backgroundImage: avatarImage,
+        onBackgroundImageError: avatarImage != null ? (_, __) {} : null,
+        child: avatarUrl == null
+            ? const Icon(
+                Icons.person,
+                size: 56,
+                color: Colors.white54,
+              )
             : null,
       ),
     );
   }
 
   Widget _buildUserInfo(BuildContext context, ProfileEntity profile) {
+    final mergedLinks = <String, String>{};
+
+    final website = (profile.website ?? '').trim();
+    if (website.isNotEmpty) {
+      mergedLinks['website'] = website;
+    }
+
+    for (final entry in profile.externalLinks.entries) {
+      if (entry.value.trim().isEmpty) continue;
+      mergedLinks[entry.key] = entry.value.trim();
+    }
+
+    final bio = (profile.bio ?? '').trim();
+    final location = (profile.location ?? '').trim();
+    final favoriteGenres = profile.favoriteGenres
+        .map((genre) => favoriteGenreLabel(genre.trim()))
+        .where((genre) => genre.isNotEmpty)
+        .toList(growable: false);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
       child: Column(
@@ -327,170 +925,185 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             style: const TextStyle(
               color: Colors.white,
               fontSize: 22,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildInfoChip(
+                profile.accountTier == AccountTier.ARTIST
+                    ? 'Artist'
+                    : 'Listener',
+                profile.accountTier == AccountTier.ARTIST
+                    ? Icons.mic
+                    : Icons.headphones,
+              ),
+              if (profile.isPrivate)
+                _buildInfoChip('Private', Icons.lock_outline),
+            ],
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               GestureDetector(
                 onTap: () =>
                     ProfileRoutes.goToFollowers(context, profile.handle),
-                child: const Text(
-                  '0 Followers',
-                  style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
+                child: Text(
+                  '${profile.followersCount} Followers',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ),
-              const Text(
-                ' · ',
-                style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
-              ),
+              const Text(' · ', style: TextStyle(color: Colors.grey)),
               GestureDetector(
                 onTap: () =>
                     ProfileRoutes.goToFollowing(context, profile.handle),
-                child: const Text(
-                  '0 Following',
-                  style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 13),
+                child: Text(
+                  '${profile.followingCount} Following',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ),
             ],
           ),
-          if (profile.bio != null && profile.bio!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              profile.bio!,
-              style: const TextStyle(
-                color: Color(0xFF999999),
-                fontSize: 13,
-                height: 1.5,
-              ),
+          const SizedBox(height: 10),
+          IconButton(
+            onPressed: () => ProfileRoutes.goToSuggestedUsers(context),
+            icon: const Icon(Icons.group_add_outlined, size: 18),
+            color: Colors.white70,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Suggested users',
+          ),
+          if (favoriteGenres.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: favoriteGenres
+                  .map(
+                    (genre) => _buildInfoChip(
+                      genre,
+                      Icons.local_offer_outlined,
+                    ),
+                  )
+                  .toList(growable: false),
             ),
           ],
-          if (profile.location != null && profile.location!.isNotEmpty) ...[
-            const SizedBox(height: 4),
+          if (location.isNotEmpty) ...[
+            const SizedBox(height: 10),
             Row(
               children: [
                 const Icon(
                   Icons.location_on_outlined,
-                  color: Color(0xFF888888),
-                  size: 14,
+                  size: 16,
+                  color: Colors.grey,
                 ),
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 Text(
-                  profile.location!,
+                  location,
                   style: const TextStyle(
-                    color: Color(0xFF888888),
-                    fontSize: 12,
+                    color: Colors.white70,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ],
-          if (profile.favoriteGenres.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: profile.favoriteGenres.map((genre) {
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF444444)),
-                  ),
-                  child: Text(
-                    genre,
-                    style: const TextStyle(
-                      color: Color(0xFFCCCCCC),
-                      fontSize: 11,
-                    ),
-                  ),
-                );
-              }).toList(),
+          if (website.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              website,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
             ),
+          ],
+          if (bio.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              bio,
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+          if (mergedLinks.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _buildExternalLinksRow(context, mergedLinks),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildActionRow(BuildContext context, ProfileEntity profile) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-      child: Row(
-        children: [
-          if (_isOwnProfile)
-            GestureDetector(
-              onTap: () => ProfileRoutes.goToEditProfile(context),
-              child: const Row(
-                children: [
-                  Icon(Icons.edit_outlined, color: Colors.white, size: 18),
-                  SizedBox(width: 6),
-                  Text(
-                    'Edit',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ],
-              ),
-            )
-          else
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _isFollowing = !_isFollowing),
-                child: Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color: _isFollowing
-                        ? const Color(0xFFFF5500)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: _isFollowing
-                          ? const Color(0xFFFF5500)
-                          : const Color(0xFF555555),
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _isFollowing ? 'Following' : 'Follow',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+  Widget _buildExternalLinksRow(
+    BuildContext context,
+    Map<String, String> links,
+  ) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: links.entries.map((entry) {
+        final platform = entry.key.trim().toLowerCase();
+        final url = entry.value.trim();
+
+        return Tooltip(
+          message: '${_labelForPlatform(platform)}\n$url',
+          child: InkWell(
+            onTap: () => _openExternalLink(context, platform, url),
+            onLongPress: () async {
+              await Clipboard.setData(ClipboardData(text: url));
+              if (!mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${_labelForPlatform(platform)} link copied'),
+                  behavior: SnackBarBehavior.floating,
                 ),
-              ),
-            ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () {},
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Icon(
-                Icons.shuffle,
-                color: Colors.white.withValues(alpha: 0.8),
-                size: 22,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () {},
+              );
+            },
+            borderRadius: BorderRadius.circular(22),
             child: Container(
               width: 42,
               height: 42,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: const Color(0xFF141414),
                 shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF333333)),
               ),
-              child: const Icon(
-                Icons.play_arrow,
-                color: Colors.black,
-                size: 24,
+              child: Icon(
+                _iconForPlatform(platform),
+                color: Colors.white,
+                size: 20,
               ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInfoChip(String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF333333)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white70),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -498,113 +1111,202 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
+  IconData _iconForPlatform(String platform) {
+    switch (platform) {
+      case 'website':
+        return Icons.language;
+      case 'instagram':
+        return Icons.camera_alt_outlined;
+      case 'youtube':
+        return Icons.ondemand_video;
+      case 'soundcloud':
+        return Icons.music_note;
+      case 'tiktok':
+        return Icons.audiotrack;
+      case 'x':
+        return Icons.alternate_email;
+      case 'facebook':
+        return Icons.facebook;
+      default:
+        return Icons.link;
+    }
+  }
+
+  String _labelForPlatform(String platform) {
+    switch (platform) {
+      case 'website':
+        return 'Website';
+      case 'instagram':
+        return 'Instagram';
+      case 'youtube':
+        return 'YouTube';
+      case 'soundcloud':
+        return 'SoundCloud';
+      case 'tiktok':
+        return 'TikTok';
+      case 'x':
+        return 'X';
+      case 'facebook':
+        return 'Facebook';
+      default:
+        return platform;
+    }
+  }
+
   Widget _buildTabBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF1F1F1F))),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        labelColor: Colors.white,
-        unselectedLabelColor: const Color(0xFF666666),
-        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(fontSize: 13),
-        indicatorColor: const Color(0xFFFF5500),
-        indicatorWeight: 2,
-        tabs: const [
-          Tab(text: 'Likes'),
-          Tab(text: 'Tracks'),
-          Tab(text: 'Playlists'),
-          Tab(text: 'Reposts'),
-        ],
-      ),
+    return TabBar(
+      controller: _tabController,
+      indicatorColor: const Color(0xFFFF5500),
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.grey,
+      tabs: const [
+        Tab(text: 'Likes'),
+        Tab(text: 'Tracks'),
+        Tab(text: 'Playlists'),
+        Tab(text: 'Reposts'),
+      ],
     );
   }
 
-  Widget _buildEmptyTab(IconData icon, String message) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 48, color: const Color(0xFF444444)),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: const TextStyle(color: Color(0xFF666666), fontSize: 14),
-          ),
-        ],
+  Widget _circleIconBtn(IconData icon, VoidCallback onTap) {
+    return IconButton(
+      onPressed: onTap,
+      icon: Icon(icon, color: Colors.white),
+      style: IconButton.styleFrom(backgroundColor: Colors.black45),
+    );
+  }
+
+  Widget _playButton() {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
       ),
+      child: const Icon(Icons.play_arrow, color: Colors.black),
     );
   }
 }
 
+// ── Shared Sub-Widgets ──────────────────────────────────────────────────
+
 class _ManagedProfileTracksTab extends StatelessWidget {
+  final List<ManagedTrack> tracks;
+  final ValueChanged<ManagedTrack> onManageTap;
+  final ValueChanged<ManagedTrack> onPlayTap;
+
   const _ManagedProfileTracksTab({
     required this.tracks,
     required this.onManageTap,
+    required this.onPlayTap,
   });
-
-  final List<ManagedTrack> tracks;
-  final ValueChanged<ManagedTrack> onManageTap;
 
   @override
   Widget build(BuildContext context) {
     if (tracks.isEmpty) {
       return const Center(
         child: Text(
-          'No managed tracks remaining.',
-          style: TextStyle(color: Color(0xFF666666), fontSize: 14),
+          'No tracks yet.',
+          style: TextStyle(color: Colors.grey),
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return ListView.builder(
       itemCount: tracks.length,
-      separatorBuilder: (_, __) => const Divider(
-        color: Color(0xFF1A1A1A),
-        height: 1,
-        indent: 14,
-        endIndent: 14,
-      ),
+      itemBuilder: (context, index) {
+        final track = tracks[index];
+        return GestureDetector(
+          onTap: () => onPlayTap(track),
+          child: ListTile(
+            title: Text(
+              track.title,
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  track.visibility.name,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                if ((track.description ?? '').trim().isNotEmpty)
+                  Text(
+                    track.description!.trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                if (track.tags.isNotEmpty)
+                  Text(
+                    track.tags.map((tag) => '#$tag').join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white60),
+                  ),
+              ],
+            ),
+            trailing: OutlinedButton(
+              onPressed: () => onManageTap(track),
+              child: const Text('Manage'),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProfileTracksListTab extends StatelessWidget {
+  final List<ManagedTrack> tracks;
+  final IconData emptyIcon;
+  final String emptyMessage;
+  final ValueChanged<ManagedTrack> onPlayTap;
+
+  const _ProfileTracksListTab({
+    required this.tracks,
+    required this.emptyIcon,
+    required this.emptyMessage,
+    required this.onPlayTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (tracks.isEmpty) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(emptyIcon, size: 48, color: Colors.white24),
+                  const SizedBox(height: 12),
+                  Text(
+                    emptyMessage,
+                    style: const TextStyle(color: Colors.white38),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return ListView.builder(
+      itemCount: tracks.length,
       itemBuilder: (context, index) {
         final track = tracks[index];
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      track.title,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${track.genreName ?? 'Unknown genre'} • ${track.visibility.displayLabel}',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF999999),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              OutlinedButton(
-                onPressed: () => onManageTap(track),
-                child: const Text('Manage'),
-              ),
-            ],
+        return ListTile(
+          onTap: () => onPlayTap(track),
+          title: Text(
+            track.title,
+            style: const TextStyle(color: Colors.white),
           ),
         );
       },

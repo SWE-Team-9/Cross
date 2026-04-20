@@ -1,3 +1,5 @@
+import 'track.dart'; // 🔥 ADD THIS
+
 enum PlayerStatus {
   idle,
   loading,
@@ -15,12 +17,24 @@ class PlayerState {
   final String? errorMessage;
   final String? currentTrackId;
 
+  // 🔥 NEW
+  final List<Track> queue;
+  final int currentIndex;
+  final String? source;
+  final double volume;
+
   const PlayerState({
     required this.status,
     required this.position,
     this.duration,
     this.errorMessage,
     this.currentTrackId,
+
+    // 🔥 DEFAULTS (THIS FIXES YOUR ERROR)
+    this.queue = const [],
+    this.currentIndex = 0,
+    this.source,
+    this.volume = 1.0,
   });
 
   PlayerState copyWith({
@@ -29,6 +43,10 @@ class PlayerState {
     Duration? duration,
     String? errorMessage,
     String? currentTrackId,
+    List<Track>? queue,
+    int? currentIndex,
+    String? source,
+    double? volume,
   }) {
     return PlayerState(
       status: status ?? this.status,
@@ -36,6 +54,10 @@ class PlayerState {
       duration: duration ?? this.duration,
       errorMessage: errorMessage ?? this.errorMessage,
       currentTrackId: currentTrackId ?? this.currentTrackId,
+      queue: queue ?? this.queue,
+      currentIndex: currentIndex ?? this.currentIndex,
+      source: source ?? this.source,
+      volume: volume ?? this.volume,
     );
   }
 }

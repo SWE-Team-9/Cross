@@ -2,10 +2,14 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/errors/failure.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/update_profile_usecase.dart';
+import 'package:soundcloud_clone/features/interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
+import 'package:soundcloud_clone/features/interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_state.dart';
 
@@ -15,10 +19,18 @@ class MockUpdateProfileUseCase extends Mock implements UpdateProfileUseCase {}
 
 class MockProfileRepository extends Mock implements ProfileRepository {}
 
+class MockGetMyLikedTracksUseCase extends Mock
+    implements GetMyLikedTracksUseCase {}
+
+class MockGetMyRepostedTracksUseCase extends Mock
+    implements GetMyRepostedTracksUseCase {}
+
 void main() {
   late MockGetProfileUseCase mockGetProfileUseCase;
   late MockUpdateProfileUseCase mockUpdateProfileUseCase;
   late MockProfileRepository mockProfileRepository;
+  late MockGetMyLikedTracksUseCase mockGetMyLikedTracksUseCase;
+  late MockGetMyRepostedTracksUseCase mockGetMyRepostedTracksUseCase;
 
   const profile = ProfileEntity(
     id: '1',
@@ -52,6 +64,12 @@ void main() {
     followingCount: 20,
   );
 
+  const ownTrack = ManagedTrack(
+    id: 'track-1',
+    title: 'Midnight Echoes',
+    visibility: TrackManagementVisibility.publicTrack,
+  );
+
   setUpAll(() {
     registerFallbackValue(
       const UpdateProfileParams(
@@ -64,6 +82,8 @@ void main() {
     mockGetProfileUseCase = MockGetProfileUseCase();
     mockUpdateProfileUseCase = MockUpdateProfileUseCase();
     mockProfileRepository = MockProfileRepository();
+    mockGetMyLikedTracksUseCase = MockGetMyLikedTracksUseCase();
+    mockGetMyRepostedTracksUseCase = MockGetMyRepostedTracksUseCase();
   });
 
   ProfileCubit buildCubit() {
@@ -71,6 +91,8 @@ void main() {
       getProfileUseCase: mockGetProfileUseCase,
       updateProfileUseCase: mockUpdateProfileUseCase,
       profileRepository: mockProfileRepository,
+      getMyLikedTracksUseCase: mockGetMyLikedTracksUseCase,
+      getMyRepostedTracksUseCase: mockGetMyRepostedTracksUseCase,
     );
   }
 
@@ -82,13 +104,16 @@ void main() {
     'loadProfile emits [ProfileLoading, ProfileLoaded] on success',
     build: () {
       when(() => mockGetProfileUseCase('ali')).thenAnswer((_) async => profile);
+      when(() => mockProfileRepository.getUserTracks('1'))
+          .thenAnswer((_) async => [ownTrack]);
       return buildCubit();
     },
     act: (cubit) => cubit.loadProfile('ali'),
     expect: () => [
       isA<ProfileLoading>(),
       isA<ProfileLoaded>()
-          .having((s) => s.profile.displayName, 'displayName', 'Ali'),
+          .having((s) => s.profile.displayName, 'displayName', 'Ali')
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
     ],
   );
 
@@ -113,6 +138,61 @@ void main() {
       return buildCubit();
     },
     act: (cubit) => cubit.loadProfile('ali'),
+    expect: () => [
+      isA<ProfileLoading>(),
+      isA<ProfileError>().having(
+        (s) => s.message,
+        'message',
+        'Something went wrong. Please try again.',
+      ),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'loadOwnProfile emits [ProfileLoading, ProfileLoaded] on success',
+    build: () {
+      when(() => mockProfileRepository.getMyProfile())
+          .thenAnswer((_) async => profile);
+      when(() => mockProfileRepository.getUserTracks(profile.id))
+          .thenAnswer((_) async => [ownTrack]);
+      when(() => mockGetMyLikedTracksUseCase())
+          .thenAnswer((_) async => const <ManagedTrack>[]);
+      when(() => mockGetMyRepostedTracksUseCase())
+          .thenAnswer((_) async => const <ManagedTrack>[]);
+      return buildCubit();
+    },
+    act: (cubit) => cubit.loadOwnProfile(),
+    expect: () => [
+      isA<ProfileLoading>(),
+      isA<ProfileLoaded>()
+          .having((s) => s.profile.handle, 'handle', 'ali')
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'loadOwnProfile emits [ProfileLoading, ProfileError] on Failure',
+    build: () {
+      when(() => mockProfileRepository.getMyProfile())
+          .thenThrow(const ServerFailure('my profile failed'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.loadOwnProfile(),
+    expect: () => [
+      isA<ProfileLoading>(),
+      isA<ProfileError>()
+          .having((s) => s.message, 'message', 'my profile failed'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'loadOwnProfile emits generic error on unexpected exception',
+    build: () {
+      when(() => mockProfileRepository.getMyProfile())
+          .thenThrow(Exception('boom'));
+      return buildCubit();
+    },
+    act: (cubit) => cubit.loadOwnProfile(),
     expect: () => [
       isA<ProfileLoading>(),
       isA<ProfileError>().having(
@@ -194,6 +274,165 @@ void main() {
   );
 
   blocTest<ProfileCubit, ProfileState>(
+    'updateProfile emits ProfileLoaded(current) when no changes are provided',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileLoaded(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>()
+          .having((s) => s.profile.displayName, 'displayName', 'Ali'),
+    ],
+    verify: (_) {
+      verifyNever(() => mockUpdateProfileUseCase(any()));
+      verifyNever(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: any(named: 'externalLinks'),
+        ),
+      );
+    },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile with only external links skips base update and emits success',
+    build: () {
+      when(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: {'instagram': 'https://instagram.com/user'},
+        ),
+      ).thenAnswer((_) async => {'instagram': 'https://instagram.com/user'});
+
+      final cubit = buildCubit();
+      cubit.emit(ProfileLoaded(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(
+      const UpdateProfileParams(
+        externalLinks: {'instagram': 'https://instagram.com/user'},
+      ),
+    ),
+    expect: () => [
+      isA<ProfileUpdating>(),
+      isA<ProfileUpdateSuccess>().having(
+        (s) => s.updatedProfile.externalLinks['instagram'],
+        'instagram',
+        'https://instagram.com/user',
+      ),
+      isA<ProfileLoaded>().having(
+        (s) => s.profile.externalLinks['instagram'],
+        'instagramLoaded',
+        'https://instagram.com/user',
+      ),
+    ],
+    verify: (_) {
+      verifyNever(() => mockUpdateProfileUseCase(any()));
+      verify(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: {'instagram': 'https://instagram.com/user'},
+        ),
+      ).called(1);
+    },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile with base and external changes calls both update paths',
+    build: () {
+      when(() => mockUpdateProfileUseCase(any()))
+          .thenAnswer((_) async => updatedProfile);
+      when(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: {'x': 'https://x.com/new'},
+        ),
+      ).thenAnswer((_) async => {'x': 'https://x.com/new'});
+
+      final cubit = buildCubit();
+      cubit.emit(ProfileLoaded(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(
+      const UpdateProfileParams(
+        displayName: 'Ali Updated',
+        externalLinks: {'x': 'https://x.com/new'},
+      ),
+    ),
+    expect: () => [
+      isA<ProfileUpdating>(),
+      isA<ProfileUpdateSuccess>().having(
+        (s) => s.updatedProfile.externalLinks['x'],
+        'x',
+        'https://x.com/new',
+      ),
+      isA<ProfileLoaded>().having(
+        (s) => s.profile.externalLinks['x'],
+        'xLoaded',
+        'https://x.com/new',
+      ),
+    ],
+    verify: (_) {
+      verify(() => mockUpdateProfileUseCase(any())).called(1);
+      verify(
+        () => mockProfileRepository.updateExternalLinks(
+          externalLinks: {'x': 'https://x.com/new'},
+        ),
+      ).called(1);
+    },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile resolves current profile from ProfileUpdating state',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileUpdating(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>().having((s) => s.profile.id, 'id', '1'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile resolves current profile from ProfileUpdateError state',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileUpdateError(profile, 'err'));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>().having((s) => s.profile.id, 'id', '1'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile resolves current profile from ProfileImageUploading state',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileImageUploading(profile, ProfileImageType.AVATAR));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>().having((s) => s.profile.id, 'id', '1'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'updateProfile resolves current profile from ProfileUpdateSuccess state',
+    build: () {
+      final cubit = buildCubit();
+      cubit.emit(ProfileUpdateSuccess(profile));
+      return cubit;
+    },
+    act: (cubit) => cubit.updateProfile(const UpdateProfileParams()),
+    expect: () => [
+      isA<ProfileLoaded>().having((s) => s.profile.id, 'id', '1'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
     'updateProfile does nothing when there is no current profile state',
     build: buildCubit,
     act: (cubit) => cubit.updateProfile(
@@ -258,7 +497,7 @@ void main() {
   );
 
   blocTest<ProfileCubit, ProfileState>(
-    'uploadImage emits ProfileUpdateError on Failure',
+    'uploadImage emits ProfileImageUploadError on Failure',
     build: () {
       when(
         () => mockProfileRepository.uploadProfileImage(
@@ -268,7 +507,7 @@ void main() {
       ).thenThrow(const ServerFailure('upload failed'));
 
       final cubit = buildCubit();
-      cubit.emit(ProfileLoaded(profile));
+      cubit.emit(ProfileLoaded(profile, tracks: [ownTrack]));
       return cubit;
     },
     act: (cubit) => cubit.uploadImage(
@@ -276,14 +515,19 @@ void main() {
       filePath: '/tmp/a.png',
     ),
     expect: () => [
-      isA<ProfileImageUploading>(),
-      isA<ProfileUpdateError>()
-          .having((s) => s.message, 'message', 'upload failed'),
+      isA<ProfileImageUploading>()
+          .having((s) => s.imageType, 'imageType', ProfileImageType.AVATAR)
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
+      isA<ProfileImageUploadError>()
+          .having((s) => s.imageType, 'imageType', ProfileImageType.AVATAR)
+          .having((s) => s.filePath, 'filePath', '/tmp/a.png')
+          .having((s) => s.message, 'message', 'upload failed')
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
     ],
   );
 
   blocTest<ProfileCubit, ProfileState>(
-    'uploadImage emits generic error on unexpected exception',
+    'uploadImage emits generic ProfileImageUploadError on unexpected exception',
     build: () {
       when(
         () => mockProfileRepository.uploadProfileImage(
@@ -293,7 +537,7 @@ void main() {
       ).thenThrow(Exception('boom'));
 
       final cubit = buildCubit();
-      cubit.emit(ProfileLoaded(profile));
+      cubit.emit(ProfileLoaded(profile, tracks: [ownTrack]));
       return cubit;
     },
     act: (cubit) => cubit.uploadImage(
@@ -302,14 +546,13 @@ void main() {
     ),
     expect: () => [
       isA<ProfileImageUploading>(),
-      isA<ProfileUpdateError>().having(
+      isA<ProfileImageUploadError>().having(
         (s) => s.message,
         'message',
         'Unable to upload image. Please try again.',
       ),
     ],
   );
-
   blocTest<ProfileCubit, ProfileState>(
     'uploadImage does nothing when there is no current profile state',
     build: buildCubit,
@@ -318,5 +561,40 @@ void main() {
       filePath: '/tmp/a.png',
     ),
     expect: () => [],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'uploadImage retries successfully from ProfileImageUploadError state',
+    build: () {
+      when(
+        () => mockProfileRepository.uploadProfileImage(
+          imageType: ProfileImageType.AVATAR,
+          filePath: '/tmp/a.png',
+        ),
+      ).thenAnswer((_) async => 'avatar-updated');
+
+      final cubit = buildCubit();
+      cubit.emit(
+        ProfileImageUploadError(
+          profile,
+          imageType: ProfileImageType.AVATAR,
+          filePath: '/tmp/a.png',
+          message: 'upload failed',
+          tracks: [ownTrack],
+        ),
+      );
+      return cubit;
+    },
+    act: (cubit) => cubit.uploadImage(
+      imageType: ProfileImageType.AVATAR,
+      filePath: '/tmp/a.png',
+    ),
+    expect: () => [
+      isA<ProfileImageUploading>()
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
+      isA<ProfileLoaded>()
+          .having((s) => s.profile.avatarUrl, 'avatarUrl', 'avatar-updated')
+          .having((s) => s.tracks, 'tracks', [ownTrack]),
+    ],
   );
 }
