@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.SWETeam9.my_app"
+    namespace = "com.SWETeam9.Iqa3"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.SWETeam9.my_app"
+        applicationId = "com.SWETeam9.Iqa3"
         minSdk = 24 
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

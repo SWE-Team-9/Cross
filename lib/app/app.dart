@@ -62,7 +62,7 @@ class App extends StatelessWidget {
           ),
         ],
         child: MaterialApp.router(
-          title: 'SoundCloud Clone',
+          title: 'Iqa3',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             primarySwatch: Colors.orange,
