@@ -386,10 +386,11 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
       }
     }
 
-    return WillPopScope(
-      onWillPop: () async {
-        context.read<PlayerCubit>().showMiniPlayer();
-        return true;
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          context.read<PlayerCubit>().showMiniPlayer();
+        }
       },
       child: Theme(
         data: darkOrangeTheme,
