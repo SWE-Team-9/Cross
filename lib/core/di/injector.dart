@@ -110,6 +110,22 @@ import '../../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../oauth/oauth_pending_request_store.dart';
 import '../oauth/windows_oauth_callback_server.dart';
+//messaging
+import '../../features/messaging/data/datasources/messaging_remote_data_source.dart';
+import '../../features/messaging/data/repositories/messaging_repository_impl.dart';
+import '../../features/messaging/domain/repositories/messaging_repository.dart';
+import '../../features/messaging/data/datasources/messaging_socket_data_source.dart';
+import '../../features/messaging/data/repositories/messaging_realtime_repository_impl.dart';
+import '../../features/messaging/domain/repositories/messaging_realtime_repository.dart';
+import '../../features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
+import '../../features/messaging/domain/usecases/delete_message_usecase.dart';
+import '../../features/messaging/domain/usecases/get_conversation_messages_usecase.dart';
+import '../../features/messaging/domain/usecases/get_conversations_usecase.dart';
+import '../../features/messaging/domain/usecases/get_unread_count_usecase.dart';
+import '../../features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
+import '../../features/messaging/domain/usecases/send_text_message_usecase.dart';
+import '../../features/messaging/domain/usecases/share_playlist_message_usecase.dart';
+import '../../features/messaging/domain/usecases/share_track_message_usecase.dart';
 
 final getIt = GetIt.instance;
 
@@ -121,6 +137,9 @@ Future<void> setupDependencies() async {
     storage: FileStorage('${appDocDir.path}/.cookies/'),
   );
 
+  if (!getIt.isRegistered<PersistCookieJar>()) {
+    getIt.registerLazySingleton<PersistCookieJar>(() => cookieJar);
+  }
   // ── Core ─────────────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
@@ -157,7 +176,7 @@ Future<void> setupDependencies() async {
       () => DioClient(
         baseUrl: ApiConstants.baseUrl,
         secureStorage: getIt<SecureStorage>(),
-        cookieJar: cookieJar,
+        cookieJar: getIt<PersistCookieJar>(),
       ),
     );
   }
@@ -518,6 +537,109 @@ Future<void> setupDependencies() async {
       () => RecentlyPlayedCubit(
         getRecentlyPlayed: getIt<GetRecentlyPlayed>(),
         recordRecentlyPlayed: getIt<RecordRecentlyPlayed>(),
+      ),
+    );
+  }
+
+
+  // ── Messaging Feature ────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<MessagingRemoteDataSource>()) {
+    getIt.registerLazySingleton<MessagingRemoteDataSource>(
+      () => MessagingRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<MessagingSocketDataSource>()) {
+    getIt.registerLazySingleton<MessagingSocketDataSource>(
+      () => MessagingSocketDataSourceImpl(
+        cookieJar: getIt<PersistCookieJar>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<MessagingRepository>()) {
+    getIt.registerLazySingleton<MessagingRepository>(
+      () => MessagingRepositoryImpl(getIt<MessagingRemoteDataSource>()),
+    );
+  }
+
+if (!getIt.isRegistered<MessagingRealtimeRepository>()) {
+  getIt.registerLazySingleton<MessagingRealtimeRepository>(
+    () => MessagingRealtimeRepositoryImpl(
+      getIt<MessagingSocketDataSource>(),
+    ),
+  );
+}
+
+if (!getIt.isRegistered<ConnectMessagingSocketUseCase>()) {
+  getIt.registerLazySingleton<ConnectMessagingSocketUseCase>(
+    () => ConnectMessagingSocketUseCase(
+      getIt<MessagingRealtimeRepository>(),
+    ),
+  );
+}
+
+  if (!getIt.isRegistered<MessagingRealtimeRepository>()) {
+    getIt.registerLazySingleton<MessagingRealtimeRepository>(
+      () => MessagingRealtimeRepositoryImpl(
+        getIt<MessagingSocketDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetConversationsUseCase>()) {
+    getIt.registerLazySingleton<GetConversationsUseCase>(
+      () => GetConversationsUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetConversationMessagesUseCase>()) {
+    getIt.registerLazySingleton<GetConversationMessagesUseCase>(
+      () => GetConversationMessagesUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SendTextMessageUseCase>()) {
+    getIt.registerLazySingleton<SendTextMessageUseCase>(
+      () => SendTextMessageUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ShareTrackMessageUseCase>()) {
+    getIt.registerLazySingleton<ShareTrackMessageUseCase>(
+      () => ShareTrackMessageUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SharePlaylistMessageUseCase>()) {
+    getIt.registerLazySingleton<SharePlaylistMessageUseCase>(
+      () => SharePlaylistMessageUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetUnreadCountUseCase>()) {
+    getIt.registerLazySingleton<GetUnreadCountUseCase>(
+      () => GetUnreadCountUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<MarkConversationReadUseCase>()) {
+    getIt.registerLazySingleton<MarkConversationReadUseCase>(
+      () => MarkConversationReadUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DeleteMessageUseCase>()) {
+    getIt.registerLazySingleton<DeleteMessageUseCase>(
+      () => DeleteMessageUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ConnectMessagingSocketUseCase>()) {
+    getIt.registerLazySingleton<ConnectMessagingSocketUseCase>(
+      () => ConnectMessagingSocketUseCase(
+        getIt<MessagingRealtimeRepository>(),
       ),
     );
   }
