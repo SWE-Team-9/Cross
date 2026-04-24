@@ -6,10 +6,10 @@ class MockSubscriptionRepository implements SubscriptionRepository {
   Future<Subscription> getMySubscription() async {
     // Simulate FREE user who reached limit
     return const Subscription(
-      subscriptionType: 'PRO',
-      uploadLimit: 999,
-      uploadedTracks: 999,
-      remainingUploads: 0,
+      subscriptionType: 'FREE',
+      uploadLimit: 3,
+      uploadedTracks: 2,
+      remainingUploads: 1,
     );
   }
 }
