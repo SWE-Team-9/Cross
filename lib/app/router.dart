@@ -39,6 +39,7 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_i
 
 // Project — library
 import '../features/library/presentation/pages/library_page.dart';
+import '../features/notifications/presentation/pages/notifications_page.dart';
 
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
@@ -64,6 +65,7 @@ class AppRoutes {
   static const String suggestedUsers = '/suggested-users';
   static const String trackManagementDemo = '/track-management-demo';
   static const String player = '/player';
+  static const String notifications = '/notifications';
 
   // secretTrack MUST be before trackDetail — more specific path first
   static const String secretTrack = '/track/secret/:token';
@@ -204,6 +206,15 @@ GoRouter _createRouter() {
         name: 'library',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: LibraryPage()),
+      ),
+
+      // ── Notifications ─────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.notifications,
+        name: 'notifications',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: NotificationsPage()),
       ),
 
       // ── Upload picker ────────────────────────────────────────────────────────

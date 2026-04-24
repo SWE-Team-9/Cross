@@ -14,6 +14,8 @@ import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/player_ui_state.dart';
 import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
+import '../features/notifications/presentation/bloc/notification_preferences_bloc.dart';
+import '../features/notifications/presentation/bloc/notifications_bloc.dart';
 import '../features/social/data/repositories/social_repo.dart';
 import 'router.dart';
 
@@ -62,6 +64,13 @@ class App extends StatelessWidget {
           ),
           BlocProvider(
             create: (_) => getIt<PlaybackCubit>(),
+          ),
+          BlocProvider(
+            create: (_) =>
+                getIt<NotificationsBloc>()..add(const LoadNotifications()),
+          ),
+          BlocProvider(
+            create: (_) => getIt<NotificationPreferencesBloc>(),
           ),
         ],
         child: MaterialApp.router(
