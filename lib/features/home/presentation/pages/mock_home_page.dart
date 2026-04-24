@@ -13,6 +13,7 @@ import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/notifications/presentation/widgets/notification_badge.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -664,6 +665,20 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
+          GestureDetector(
+            onTap: () => context.push('/notifications'),
+            child: const Padding(
+              padding: EdgeInsets.all(6),
+              child: NotificationBadge(
+                child: Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white70,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 2),
           _IconBtn(icon: Icons.cast, onTap: () {}),
           _IconBtn(
             icon: Icons.upload_outlined,

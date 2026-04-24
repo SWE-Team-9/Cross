@@ -93,6 +93,7 @@ import '../../features/comments/domain/usecases/delete_comment_usecase.dart';
 import '../../features/comments/domain/usecases/get_track_comments_usecase.dart';
 import '../../features/comments/domain/usecases/reply_to_comment_usecase.dart';
 import '../../features/comments/presentation/bloc/comments_cubit.dart';
+import '../../features/notifications/notifications_injection.dart';
 
 import '../network/api_constants.dart';
 import '../network/dio_client.dart';
@@ -721,6 +722,9 @@ Future<void> setupDependencies() async {
       ),
     );
   }
+
+  // ── Notifications Feature ───────────────────────────────────────────────
+  registerNotificationsModule(getIt);
 }
 
 MockTrackManagementMode _parseMockTrackManagementMode(String value) {
