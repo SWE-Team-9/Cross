@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
+import 'package:soundcloud_clone/features/playback/domain/entities/waveform_data.dart';
 
 class PlayerWaveform extends StatelessWidget {
   final Duration position;
   final Duration? duration;
   final Function(Duration) onSeek;
   final List<int> commentTimestampsSeconds;
+  final WaveformData? waveformData;
 
   const PlayerWaveform({
     super.key,
     required this.position,
     required this.duration,
     required this.onSeek,
+    this.waveformData,
     this.commentTimestampsSeconds = const [],
   });
 
@@ -21,14 +23,18 @@ class PlayerWaveform extends StatelessWidget {
     final current = position.inMilliseconds.clamp(0, total);
     final progress = total == 0 ? 0.0 : current / total;
 
-    // Deterministic fake waveform heights
-    final rng = Random(42);
-    final bars = List.generate(80, (i) {
-      final base = 0.2 + rng.nextDouble() * 0.8;
-      // Make it look more musical — peaks and valleys
-      final wave = sin(i * 0.3) * 0.2;
-      return (base + wave).clamp(0.15, 1.0);
-    });
+    final bars = waveformData?.resample(120) ?? [];
+    if (bars.isEmpty) {
+      return const SizedBox(
+        height: 72,
+        child: Center(
+          child: Text(
+            'Loading waveform...',
+            style: TextStyle(color: Colors.white38),
+          ),
+        ),
+      );
+    }
 
     return GestureDetector(
       onTapDown: (details) {
@@ -54,7 +60,7 @@ class PlayerWaveform extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: List.generate(bars.length, (index) {
-                final barProgress = index / bars.length;
+                final barProgress = bars.isEmpty ? 0 : index / bars.length;
                 final isPlayed = barProgress <= progress;
                 final barHeight = bars[index] * 60;
 

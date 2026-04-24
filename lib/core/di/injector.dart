@@ -127,6 +127,11 @@ import '../../features/messaging/domain/usecases/send_text_message_usecase.dart'
 import '../../features/messaging/domain/usecases/share_playlist_message_usecase.dart';
 import '../../features/messaging/domain/usecases/share_track_message_usecase.dart';
 
+// Premium
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
+
 final getIt = GetIt.instance;
 
 Future<void> setupDependencies() async {
@@ -299,6 +304,8 @@ Future<void> setupDependencies() async {
         getIt<UploadRepository>(),
         getIt<WatchTrackProcessingStatusUseCase>(),
         getIt<UpdateTrackVisibilityUseCase>(),
+        getIt<SubscriptionRepository>(),
+        getIt<CheckUploadLimitUseCase>(),
       ),
     );
   }
@@ -771,6 +778,20 @@ if (!getIt.isRegistered<ConnectMessagingSocketUseCase>()) {
         getTrackLikersUseCase: getIt<GetTrackLikersUseCase>(),
         getTrackRepostersUseCase: getIt<GetTrackRepostersUseCase>(),
       ),
+    );
+  }
+
+  // ── Premium Feature ─────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<SubscriptionRepository>()) {
+    getIt.registerLazySingleton<SubscriptionRepository>(
+      () => MockSubscriptionRepository(),
+    );
+  }
+
+  if (!getIt.isRegistered<CheckUploadLimitUseCase>()) {
+    getIt.registerLazySingleton<CheckUploadLimitUseCase>(
+      () => CheckUploadLimitUseCase(),
     );
   }
 
