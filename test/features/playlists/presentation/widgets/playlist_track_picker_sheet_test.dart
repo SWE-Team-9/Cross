@@ -28,7 +28,8 @@ void main() {
   }
 
   group('PlaylistTrackPickerSheet', () {
-    testWidgets('blank query keeps idle prompt and skips network', (tester) async {
+    testWidgets('blank query keeps idle prompt and skips network',
+        (tester) async {
       await tester.pumpWidget(_buildHost(existingTrackIds: const <String>{}));
       await tester.tap(find.text('open picker'));
       await tester.pumpAndSettle();
@@ -38,7 +39,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Start typing to search tracks'), findsOneWidget);
-      verifyNever(() => dioClient.get(any(), queryParameters: any(named: 'queryParameters')));
+      verifyNever(() =>
+          dioClient.get(any(), queryParameters: any(named: 'queryParameters')));
     });
 
     testWidgets('search typing loads and shows tracks', (tester) async {
@@ -74,7 +76,8 @@ void main() {
       expect(find.text('Ahmed'), findsOneWidget);
     });
 
-    testWidgets('error while searching shows empty-state message', (tester) async {
+    testWidgets('error while searching shows empty-state message',
+        (tester) async {
       when(() => dioClient.get(
             '/api/v1/tracks',
             queryParameters: {'q': 'boom', 'limit': 25},
@@ -162,7 +165,6 @@ void main() {
       expect(find.text('selected: none'), findsOneWidget);
       expect(find.text('Search tracks by title or artist'), findsOneWidget);
     });
-
   });
 }
 
