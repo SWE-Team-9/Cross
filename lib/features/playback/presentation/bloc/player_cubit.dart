@@ -288,18 +288,25 @@ class PlayerCubit extends Cubit<PlayerUIState> {
   ) async {
     final resolvedTracks = List<Track>.from(tracks);
     final selected = resolvedTracks[index];
-    if (selected.audioUrl.trim().isNotEmpty) {
-      return resolvedTracks;
-    }
 
     final getTrackDetail = _getTrackDetail;
-    if (getTrackDetail == null) return null;
+    if (getTrackDetail == null) return resolvedTracks;
 
     final result = await getTrackDetail(selected.id);
     final detail = result.detail;
-    if (result.failure != null || detail == null) return null;
 
-    resolvedTracks[index] = detail.toPlaybackTrack();
+    if (result.failure == null && detail != null) {
+      // ✅ ALWAYS update waveform
+      emit(state.copyWith(
+        waveform: detail.waveformData,
+      ));
+
+      // ✅ Only replace track if needed
+      if (selected.audioUrl.trim().isEmpty) {
+        resolvedTracks[index] = detail.toPlaybackTrack();
+      }
+    }
+
     return resolvedTracks;
   }
 

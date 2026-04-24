@@ -760,6 +760,7 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                   PlayerWaveform(
                                     position: state.position,
                                     duration: state.duration,
+                                    waveformData: state.waveform,
                                     commentTimestampsSeconds: _timelineComments
                                         .map(
                                           (comment) =>

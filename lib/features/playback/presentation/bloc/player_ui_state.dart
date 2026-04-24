@@ -1,11 +1,13 @@
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/playback/domain/entities/waveform_data.dart';
 
 class PlayerUIState {
   final PlayerState playerState;
   final Track? currentTrack;
   final bool isFullScreen;
   final Set<String> playedTrackIds;
+  final WaveformData? waveform;
 
   // 🔥 NEW
   final bool showMiniPlayer;
@@ -15,6 +17,7 @@ class PlayerUIState {
     this.currentTrack,
     this.isFullScreen = false,
     this.playedTrackIds = const {},
+    this.waveform, // ✅ ADDED
     this.showMiniPlayer = true,
   });
 
@@ -23,6 +26,7 @@ class PlayerUIState {
     Track? currentTrack,
     bool? isFullScreen,
     Set<String>? playedTrackIds,
+    WaveformData? waveform, // ✅ ADDED
     bool? showMiniPlayer,
   }) {
     return PlayerUIState(
@@ -30,6 +34,7 @@ class PlayerUIState {
       currentTrack: currentTrack ?? this.currentTrack,
       isFullScreen: isFullScreen ?? this.isFullScreen,
       playedTrackIds: playedTrackIds ?? this.playedTrackIds,
+      waveform: waveform ?? this.waveform, // ✅ ADDED
       showMiniPlayer: showMiniPlayer ?? this.showMiniPlayer,
     );
   }
@@ -41,6 +46,7 @@ class PlayerUIState {
   Duration? get duration => playerState.duration;
   double get volume => playerState.volume;
   AppRepeatMode get repeatMode => playerState.repeatMode;
+
   List<Track> get queue {
     if (playerState.queue.isNotEmpty) return playerState.queue;
     final track = currentTrack;
