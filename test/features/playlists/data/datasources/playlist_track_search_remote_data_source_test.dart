@@ -16,11 +16,13 @@ void main() {
   });
 
   group('searchTracks', () {
-    test('returns empty list for blank query and avoids network call', () async {
+    test('returns empty list for blank query and avoids network call',
+        () async {
       final result = await dataSource.searchTracks('   ');
 
       expect(result, isEmpty);
-      verifyNever(() => dioClient.get(any(), queryParameters: any(named: 'queryParameters')));
+      verifyNever(() =>
+          dioClient.get(any(), queryParameters: any(named: 'queryParameters')));
     });
 
     test('uses q parameter and parses track payload', () async {

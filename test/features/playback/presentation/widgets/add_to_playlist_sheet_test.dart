@@ -165,7 +165,7 @@ void main() {
 
       final titleField = find.byWidgetPredicate(
         (widget) =>
-        widget is TextField && widget.decoration?.labelText == 'Title',
+            widget is TextField && widget.decoration?.labelText == 'Title',
       );
       await tester.enterText(titleField, 'Coverage Playlist');
       await tester.tap(find.text('Create'));
