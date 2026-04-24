@@ -661,13 +661,17 @@ Future<void> setupDependencies() async {
 
   // ── Premium Feature ─────────────────────────────────────────────────────
 
-  getIt.registerLazySingleton<SubscriptionRepository>(
-    () => MockSubscriptionRepository(),
-  );
+  if (!getIt.isRegistered<SubscriptionRepository>()) {
+    getIt.registerLazySingleton<SubscriptionRepository>(
+      () => MockSubscriptionRepository(),
+    );
+  }
 
-  getIt.registerLazySingleton<CheckUploadLimitUseCase>(
-    () => CheckUploadLimitUseCase(),
-  );
+  if (!getIt.isRegistered<CheckUploadLimitUseCase>()) {
+    getIt.registerLazySingleton<CheckUploadLimitUseCase>(
+      () => CheckUploadLimitUseCase(),
+    );
+  }
 
   // ── Comments Feature ─────────────────────────────────────────────────────
 
