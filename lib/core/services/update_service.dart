@@ -33,7 +33,8 @@ class UpdateService {
     }
   }
 
-  static bool isMandatoryUpdate(Map<String, dynamic> data, String currentVersion) {
+  static bool isMandatoryUpdate(
+      Map<String, dynamic> data, String currentVersion) {
     final minVersion = data['min_required_version'] as String;
     return _isNewer(minVersion, currentVersion);
   }
