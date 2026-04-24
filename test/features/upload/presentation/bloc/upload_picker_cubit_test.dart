@@ -13,6 +13,9 @@ import 'package:soundcloud_clone/features/upload/domain/usecases/update_track_vi
 import 'package:soundcloud_clone/features/upload/domain/usecases/watch_track_processing_status_use_case.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
 
 class MockPickAudioFileUseCase extends Mock implements PickAudioFileUseCase {}
 
@@ -24,6 +27,11 @@ class MockWatchTrackProcessingStatusUseCase extends Mock
 class MockUpdateTrackVisibilityUseCase extends Mock
     implements UpdateTrackVisibilityUseCase {}
 
+class MockSubscriptionRepository extends Mock
+    implements SubscriptionRepository {}
+
+class FakePickedAudioFile extends Fake implements PickedAudioFile {}
+
 void _noopProgress(double _) {}
 
 void main() {
@@ -33,6 +41,7 @@ void main() {
       mockWatchTrackProcessingStatusUseCase;
   late MockUpdateTrackVisibilityUseCase mockUpdateTrackVisibilityUseCase;
   late UploadPickerCubit cubit;
+  late MockSubscriptionRepository mockSubscriptionRepository;
 
   const tPickedAudioFile = PickedAudioFile(
     name: 'selected_audio.mp3',
@@ -51,10 +60,13 @@ void main() {
         mockUploadRepository,
         mockWatchTrackProcessingStatusUseCase,
         mockUpdateTrackVisibilityUseCase,
+        mockSubscriptionRepository, // ✅ NEW
+        CheckUploadLimitUseCase(),
       );
 
   setUpAll(() {
     registerFallbackValue(_noopProgress);
+    registerFallbackValue(FakePickedAudioFile());
   });
 
   setUp(() {
@@ -63,6 +75,17 @@ void main() {
     mockWatchTrackProcessingStatusUseCase =
         MockWatchTrackProcessingStatusUseCase();
     mockUpdateTrackVisibilityUseCase = MockUpdateTrackVisibilityUseCase();
+
+    mockSubscriptionRepository = MockSubscriptionRepository();
+
+    when(() => mockSubscriptionRepository.getMySubscription())
+        .thenAnswer((_) async => const Subscription(
+              subscriptionType: 'FREE',
+              uploadLimit: 3,
+              uploadedTracks: 0,
+              remainingUploads: 3,
+            ));
+
     cubit = buildCubit();
   });
 
@@ -99,6 +122,136 @@ void main() {
     verify: (_) {
       verify(() => mockPickAudioFileUseCase()).called(1);
     },
+  );
+
+  blocTest<UploadPickerCubit, UploadPickerState>(
+    'blocks upload when subscription limit is reached',
+    build: () {
+      when(() => mockSubscriptionRepository.getMySubscription())
+          .thenAnswer((_) async => const Subscription(
+                subscriptionType: 'FREE',
+                uploadLimit: 3,
+                uploadedTracks: 3,
+                remainingUploads: 0,
+              ));
+      return buildCubit();
+    },
+    seed: () => const UploadPickerState(
+      status: UploadPickerStatus.ready,
+      pickedAudioFile: tPickedAudioFile,
+    ),
+    act: (cubit) => cubit.uploadSelectedFile(title: 'My Track'),
+    expect: () => [
+      const UploadPickerState(
+        status: UploadPickerStatus.failure,
+        pickedAudioFile: tPickedAudioFile,
+        errorMessage: 'Upload limit reached. Upgrade to Pro.',
+      ),
+    ],
+    verify: (_) {
+      verifyNever(() => mockUploadRepository.uploadTrack(
+            file: any(named: 'file'),
+            title: any(named: 'title'),
+          ));
+    },
+  );
+
+  blocTest<UploadPickerCubit, UploadPickerState>(
+    'allows upload when user has remaining uploads',
+    build: () {
+      when(() => mockSubscriptionRepository.getMySubscription())
+          .thenAnswer((_) async => const Subscription(
+                subscriptionType: 'FREE',
+                uploadLimit: 3,
+                uploadedTracks: 1,
+                remainingUploads: 2,
+              ));
+
+      when(() => mockUploadRepository.uploadTrack(
+            file: any(named: 'file'),
+            title: any(named: 'title'),
+            genre: any(named: 'genre'),
+            description: any(named: 'description'),
+            tags: any(named: 'tags'),
+            onProgress: any(named: 'onProgress'),
+          )).thenAnswer((_) async => tFinishedUploadTrackResult);
+
+      return buildCubit();
+    },
+    seed: () => const UploadPickerState(
+      status: UploadPickerStatus.ready,
+      pickedAudioFile: tPickedAudioFile,
+    ),
+    act: (cubit) => cubit.uploadSelectedFile(title: 'My Track'),
+    expect: () => [
+      const UploadPickerState(
+        status: UploadPickerStatus.uploading,
+        pickedAudioFile: tPickedAudioFile,
+      ),
+      const UploadPickerState(
+        status: UploadPickerStatus.processing,
+        pickedAudioFile: tPickedAudioFile,
+        uploadedTrackId: 'track-123',
+        processingStatus: 'FINISHED',
+        uploadedVisibility: TrackManagementVisibility.privateTrack,
+      ),
+      const UploadPickerState(
+        status: UploadPickerStatus.success,
+        pickedAudioFile: tPickedAudioFile,
+        uploadedTrackId: 'track-123',
+        processingStatus: 'FINISHED',
+        uploadedVisibility: TrackManagementVisibility.privateTrack,
+      ),
+    ],
+  );
+
+  blocTest<UploadPickerCubit, UploadPickerState>(
+    'allows upload for PRO user even if limit is 0',
+    build: () {
+      when(() => mockSubscriptionRepository.getMySubscription())
+          .thenAnswer((_) async => const Subscription(
+                subscriptionType: 'PRO',
+                uploadLimit: 999,
+                uploadedTracks: 999,
+                remainingUploads: 0,
+              ));
+
+      when(() => mockUploadRepository.uploadTrack(
+            file: any(named: 'file'),
+            title: any(named: 'title'),
+            genre: any(named: 'genre'),
+            description: any(named: 'description'),
+            tags: any(named: 'tags'),
+            onProgress: any(named: 'onProgress'),
+          )).thenAnswer((_) async => tFinishedUploadTrackResult);
+
+      return buildCubit();
+    },
+    seed: () => const UploadPickerState(
+      status: UploadPickerStatus.ready,
+      pickedAudioFile: tPickedAudioFile,
+    ),
+    act: (cubit) => cubit.uploadSelectedFile(title: 'My Track'),
+    expect: () => [
+      const UploadPickerState(
+        status: UploadPickerStatus.uploading,
+        pickedAudioFile: tPickedAudioFile,
+      ),
+      const UploadPickerState(
+        status: UploadPickerStatus.processing,
+        pickedAudioFile: tPickedAudioFile,
+        uploadedTrackId: 'track-123',
+        processingStatus: 'FINISHED',
+        uploadedVisibility: TrackManagementVisibility.privateTrack,
+      ),
+      const UploadPickerState(
+        status: UploadPickerStatus.success,
+        pickedAudioFile: tPickedAudioFile,
+        uploadedTrackId: 'track-123',
+        processingStatus: 'FINISHED',
+        uploadedVisibility: TrackManagementVisibility.privateTrack,
+      ),
+    ],
   );
 
   blocTest<UploadPickerCubit, UploadPickerState>(
