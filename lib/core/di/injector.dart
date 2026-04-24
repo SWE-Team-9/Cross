@@ -111,6 +111,11 @@ import '../deep_links/deep_link_service.dart';
 import '../oauth/oauth_pending_request_store.dart';
 import '../oauth/windows_oauth_callback_server.dart';
 
+// Premium
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
+
 final getIt = GetIt.instance;
 
 Future<void> setupDependencies() async {
@@ -280,6 +285,8 @@ Future<void> setupDependencies() async {
         getIt<UploadRepository>(),
         getIt<WatchTrackProcessingStatusUseCase>(),
         getIt<UpdateTrackVisibilityUseCase>(),
+        getIt<SubscriptionRepository>(),
+        getIt<CheckUploadLimitUseCase>(),
       ),
     );
   }
@@ -649,6 +656,20 @@ Future<void> setupDependencies() async {
         getTrackLikersUseCase: getIt<GetTrackLikersUseCase>(),
         getTrackRepostersUseCase: getIt<GetTrackRepostersUseCase>(),
       ),
+    );
+  }
+
+  // ── Premium Feature ─────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<SubscriptionRepository>()) {
+    getIt.registerLazySingleton<SubscriptionRepository>(
+      () => MockSubscriptionRepository(),
+    );
+  }
+
+  if (!getIt.isRegistered<CheckUploadLimitUseCase>()) {
+    getIt.registerLazySingleton<CheckUploadLimitUseCase>(
+      () => CheckUploadLimitUseCase(),
     );
   }
 
