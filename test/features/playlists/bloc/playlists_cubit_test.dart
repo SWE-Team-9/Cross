@@ -241,14 +241,16 @@ void main() {
       },
       seed: () => PlaylistsState.initial().copyWith(
         playlists: [_playlist(id: 'pl_1', tracks: const <Track>[], count: 0)],
-        selectedPlaylist: _playlist(id: 'pl_1', tracks: const <Track>[], count: 0),
+        selectedPlaylist:
+            _playlist(id: 'pl_1', tracks: const <Track>[], count: 0),
       ),
       act: (cubit) => cubit.addTrackToPlaylist(
         playlistId: 'pl_1',
         track: _track(id: 'trk_99'),
       ),
       expect: () => [
-        isA<PlaylistsState>().having((s) => s.isSubmitting, 'submitting', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
             .having((s) => s.selectedPlaylist?.tracksCount, 'count', 1),
@@ -295,7 +297,8 @@ void main() {
         isA<PlaylistsState>()
             .having((s) => s.isLoadingDetails, 'loading details', isFalse)
             .having((s) => s.selectedPlaylist?.playlistId, 'selected', 'pl_1')
-            .having((s) => s.playlists.first.playlistId, 'first list id', 'pl_1'),
+            .having(
+                (s) => s.playlists.first.playlistId, 'first list id', 'pl_1'),
       ],
     );
 
@@ -323,7 +326,8 @@ void main() {
         title: 'Renamed',
       ),
       expect: () => [
-        isA<PlaylistsState>().having((s) => s.isSubmitting, 'submitting', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
             .having((s) => s.infoMessage, 'info', 'Playlist updated')
@@ -365,7 +369,8 @@ void main() {
       ),
       act: (cubit) => cubit.deletePlaylist('pl_1'),
       expect: () => [
-        isA<PlaylistsState>().having((s) => s.isSubmitting, 'submitting', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
             .having((s) => s.playlists.length, 'remaining', 1)
@@ -411,11 +416,13 @@ void main() {
       expect: () => [
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isTrue)
-            .having((s) => s.selectedPlaylist?.tracks.length, 'optimistic len', 1),
+            .having(
+                (s) => s.selectedPlaylist?.tracks.length, 'optimistic len', 1),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
             .having((s) => s.playlists.first.tracksCount, 'count', 1)
-            .having((s) => s.infoMessage, 'info', 'Track removed from playlist'),
+            .having(
+                (s) => s.infoMessage, 'info', 'Track removed from playlist'),
       ],
     );
 
@@ -446,10 +453,12 @@ void main() {
       expect: () => [
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isTrue)
-            .having((s) => s.selectedPlaylist?.tracks.length, 'optimistic len', 1),
+            .having(
+                (s) => s.selectedPlaylist?.tracks.length, 'optimistic len', 1),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
-            .having((s) => s.selectedPlaylist?.tracks.length, 'rolled back len', 2)
+            .having(
+                (s) => s.selectedPlaylist?.tracks.length, 'rolled back len', 2)
             .having((s) => s.errorMessage, 'error', contains('remove failed')),
       ],
     );
@@ -522,7 +531,8 @@ void main() {
         );
       },
       expect: () => [
-        isA<PlaylistsState>().having((s) => s.isReordering, 'reordering', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isReordering, 'reordering', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isReordering, 'reordering', isFalse)
             .having((s) => s.infoMessage, 'info', 'Playlist reordered'),
@@ -542,8 +552,10 @@ void main() {
             .having((s) => s.isLoadingDetails, 'loading details', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isLoadingDetails, 'loading details', isFalse)
-            .having((s) => s.selectedPlaylist?.playlistId, 'selected', 'pl_secret')
-            .having((s) => s.playlists.first.playlistId, 'first list id', 'pl_secret'),
+            .having(
+                (s) => s.selectedPlaylist?.playlistId, 'selected', 'pl_secret')
+            .having((s) => s.playlists.first.playlistId, 'first list id',
+                'pl_secret'),
       ],
     );
 
@@ -567,7 +579,8 @@ void main() {
       },
       act: (cubit) => cubit.loadEmbedCode('pl_1'),
       expect: () => [
-        isA<PlaylistsState>().having((s) => s.isSubmitting, 'submitting', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
             .having((s) => s.embedCode, 'embed', contains('<iframe')),
@@ -582,7 +595,8 @@ void main() {
       },
       act: (cubit) => cubit.loadEmbedCode('pl_1'),
       expect: () => [
-        isA<PlaylistsState>().having((s) => s.isSubmitting, 'submitting', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
             .having((s) => s.errorMessage, 'error', contains('embed failed')),

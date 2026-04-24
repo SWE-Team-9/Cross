@@ -120,7 +120,8 @@ void main() {
   });
 
   group('update/delete and track actions', () {
-    test('updatePlaylist sends patch payload only for provided fields', () async {
+    test('updatePlaylist sends patch payload only for provided fields',
+        () async {
       when(() => dioClient.patch(
             '/api/v1/playlists/pl_10',
             data: {
@@ -211,7 +212,8 @@ void main() {
             },
           )).thenAnswer(
         (_) async => Response<dynamic>(
-          requestOptions: RequestOptions(path: '/api/v1/playlists/pl_3/reorder'),
+          requestOptions:
+              RequestOptions(path: '/api/v1/playlists/pl_3/reorder'),
           data: const <String, dynamic>{},
         ),
       );
