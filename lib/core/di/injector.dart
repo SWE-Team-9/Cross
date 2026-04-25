@@ -674,9 +674,11 @@ Future<void> setupDependencies() async {
     );
   }
 
-  getIt.registerLazySingleton<SubscriptionCubit>(
-    () => SubscriptionCubit(getIt<SubscriptionRepository>()),
-  );
+  if (!getIt.isRegistered<SubscriptionCubit>()) {
+    getIt.registerLazySingleton<SubscriptionCubit>(
+      () => SubscriptionCubit(getIt<SubscriptionRepository>()),
+    );
+  }
 
   // ── Comments Feature ─────────────────────────────────────────────────────
 
