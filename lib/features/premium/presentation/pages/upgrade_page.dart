@@ -142,7 +142,7 @@ class _UpgradeViewState extends State<_UpgradeView>
                           Text(
                             'CHOOSE YOUR PLAN',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.35),
+                              color: Colors.white.withValues(alpha: 0.35),
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.4,
@@ -210,7 +210,7 @@ class _UpgradeViewState extends State<_UpgradeView>
                             child: Text(
                               'Cancel anytime · Secure payment',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.3),
+                                color: Colors.white.withValues(alpha: 0.3),
                                 fontSize: 12,
                               ),
                             ),
@@ -268,7 +268,7 @@ class _HeroSection extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFFFF5500).withOpacity(0.35),
+                  const Color(0xFFFF5500).withValues(alpha: 0.35),
                   Colors.transparent,
                 ],
               ),
@@ -288,10 +288,10 @@ class _HeroSection extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF5500).withOpacity(0.15),
+                    color: const Color(0xFFFF5500).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: const Color(0xFFFF5500).withOpacity(0.4)),
+                        color: const Color(0xFFFF5500).withValues(alpha: 0.4)),
                   ),
                   child: const Text(
                     '⚡  PRO MEMBERSHIP',
@@ -322,7 +322,7 @@ class _HeroSection extends StatelessWidget {
                 Text(
                   'Unlock unlimited uploads, premium tools,\nand analytics built for creators.',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.55),
+                    color: Colors.white.withValues(alpha: 0.55),
                     fontSize: 14,
                     height: 1.5,
                   ),
@@ -370,13 +370,13 @@ class _PlanCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFFF5500).withOpacity(0.08)
+              ? const Color(0xFFFF5500).withValues(alpha: 0.08)
               : const Color(0xFF161616),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
                 ? const Color(0xFFFF5500)
-                : Colors.white.withOpacity(0.08),
+                : Colors.white.withValues(alpha: 0.08),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -428,7 +428,7 @@ class _PlanCard extends StatelessWidget {
                           Text(
                             subtitle,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.45),
+                              color: Colors.white.withValues(alpha: 0.45),
                               fontSize: 14,
                             ),
                           ),
@@ -452,7 +452,7 @@ class _PlanCard extends StatelessWidget {
                             child: Text(
                               period,
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.45),
+                                color: Colors.white.withValues(alpha: 0.45),
                                 fontSize: 13,
                               ),
                             ),
@@ -485,7 +485,7 @@ class _PlanCard extends StatelessWidget {
             ),
             if (features.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Divider(color: Colors.white.withOpacity(0.07), height: 1),
+              Divider(color: Colors.white.withValues(alpha: 0.07), height: 1),
               const SizedBox(height: 14),
               ...features.map(
                 (f) => Padding(
@@ -503,7 +503,7 @@ class _PlanCard extends StatelessWidget {
                       Text(
                         f,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 13.5,
                         ),
                       ),
@@ -538,7 +538,7 @@ class _FeatureHighlights extends StatelessWidget {
         Text(
           'EVERYTHING YOU GET',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.4,
@@ -572,7 +572,7 @@ class _HighlightTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF161616),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withOpacity(0.07)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
           ),
           child: Icon(icon, color: const Color(0xFFFF5500), size: 26),
         ),
@@ -581,7 +581,7 @@ class _HighlightTile extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.6),
+            color: Colors.white.withValues(alpha: 0.6),
             fontSize: 11.5,
             height: 1.35,
           ),
@@ -634,7 +634,7 @@ class _CtaButtonState extends State<_CtaButton>
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFFFF5500)
-                    .withOpacity(0.25 + _pulse.value * 0.2),
+                    .withValues(alpha: 0.25 + _pulse.value * 0.2),
                 blurRadius: 20 + _pulse.value * 10,
                 spreadRadius: 0,
               ),
@@ -650,7 +650,8 @@ class _CtaButtonState extends State<_CtaButton>
           onPressed: widget.isLoading ? null : widget.onPressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFFF5500),
-            disabledBackgroundColor: const Color(0xFFFF5500).withOpacity(0.5),
+            disabledBackgroundColor:
+                const Color(0xFFFF5500).withValues(alpha: 0.5),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             elevation: 0,
