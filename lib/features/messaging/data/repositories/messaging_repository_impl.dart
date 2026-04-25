@@ -1,3 +1,4 @@
+import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/conversation_list_page_entity.dart';
 import '../../domain/entities/conversation_messages_page_entity.dart';
 import '../../domain/entities/message_entity.dart';
@@ -14,10 +15,12 @@ class MessagingRepositoryImpl implements MessagingRepository {
   Future<ConversationListPageEntity> getMyConversations({
     int page = 1,
     int limit = 20,
+    bool archived = false,
   }) async {
     final dto = await remoteDataSource.getMyConversations(
       page: page,
       limit: limit,
+      archived: archived,
     );
 
     return dto.toEntity();
@@ -33,6 +36,23 @@ class MessagingRepositoryImpl implements MessagingRepository {
       conversationId,
       page: page,
       limit: limit,
+    );
+
+    return dto.toEntity();
+  }
+
+  @override
+  Future<ConversationEntity> getConversationMeta(String conversationId) async {
+    final dto = await remoteDataSource.getConversationMeta(conversationId);
+    return dto.toEntity();
+  }
+
+  @override
+  Future<ConversationEntity> getOrCreateDirectConversation({
+    required String receiverId,
+  }) async {
+    final dto = await remoteDataSource.getOrCreateDirectConversation(
+      receiverId: receiverId,
     );
 
     return dto.toEntity();
@@ -90,6 +110,21 @@ class MessagingRepositoryImpl implements MessagingRepository {
   @override
   Future<void> markConversationAsRead(String conversationId) {
     return remoteDataSource.markConversationAsRead(conversationId);
+  }
+
+  @override
+  Future<void> markConversationAsUnread(String conversationId) {
+    return remoteDataSource.markConversationAsUnread(conversationId);
+  }
+
+  @override
+  Future<void> archiveConversation(String conversationId) {
+    return remoteDataSource.archiveConversation(conversationId);
+  }
+
+  @override
+  Future<void> unarchiveConversation(String conversationId) {
+    return remoteDataSource.unarchiveConversation(conversationId);
   }
 
   @override

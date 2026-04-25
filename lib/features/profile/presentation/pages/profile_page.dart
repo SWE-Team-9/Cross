@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/utils/platform_url_utils.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
+import '../../../messaging/presentation/widgets/message_user_button.dart';
 import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../../social/data/repositories/social_repo.dart';
@@ -90,8 +91,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return false;
   }
 
-  // ── Lifecycle Methods ───────────────────────────────────────────────────
-
   @override
   void initState() {
     super.initState();
@@ -118,8 +117,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     _tabController.dispose();
     super.dispose();
   }
-
-  // ── Action Methods ──────────────────────────────────────────────────────
 
   void _syncManagedTracks(ProfileState state) {
     if (!mounted) return;
@@ -552,8 +549,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return 'https://$trimmed';
   }
 
-  // ── Main Build Method ───────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
@@ -652,8 +647,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
-  // ── Tab Builders ────────────────────────────────────────────────────────
-
   Widget _buildLikedTracksTab() {
     if (!_isOwnProfile) {
       return _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet');
@@ -721,8 +714,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
-  // ── UI Components ───────────────────────────────────────────────────────
-
   Widget _buildActionRow(BuildContext context, ProfileEntity profile) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
@@ -752,33 +743,48 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             )
           else
             Expanded(
-              child: GestureDetector(
-                onTap: _isFollowActionInFlight
-                    ? null
-                    : () => _toggleFollow(profile),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color:
-                        _isFollowing ? Colors.black : const Color(0xFFFF5500),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: _isFollowing
-                          ? const Color(0xFF555555)
-                          : const Color(0xFFFF5500),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _isFollowActionInFlight
+                          ? null
+                          : () => _toggleFollow(profile),
+                      child: Container(
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        decoration: BoxDecoration(
+                          color: _isFollowing
+                              ? Colors.black
+                              : const Color(0xFFFF5500),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: _isFollowing
+                                ? const Color(0xFF555555)
+                                : const Color(0xFFFF5500),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _isFollowActionInFlight
+                              ? '...'
+                              : (_isFollowing ? 'Following' : 'Follow'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _isFollowActionInFlight
-                        ? '...'
-                        : (_isFollowing ? 'Following' : 'Follow'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: MessageUserButton(
+                      receiverId: profile.id,
+                      enabled: profile.id.trim().isNotEmpty,
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           const SizedBox(width: 12),
@@ -1188,8 +1194,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 }
-
-// ── Shared Sub-Widgets ──────────────────────────────────────────────────
 
 class _ManagedProfileTracksTab extends StatelessWidget {
   final List<ManagedTrack> tracks;

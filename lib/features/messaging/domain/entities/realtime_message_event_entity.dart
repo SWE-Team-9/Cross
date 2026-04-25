@@ -1,16 +1,39 @@
+import 'conversation_entity.dart';
 import 'message_entity.dart';
-import 'messaging_event_type.dart';
+
+enum RealtimeMessageEventType {
+  newMessage,
+  messageDeleted,
+  conversationRead,
+  conversationUpdated,
+  unreadCountUpdated,
+  userBlocked,
+  userUnblocked,
+  unknown,
+}
 
 class RealtimeMessageEventEntity {
-  final MessagingEventType type;
+  final RealtimeMessageEventType type;
   final String conversationId;
-  final MessageEntity message;
-  final int currentUnreadCount;
+  final MessageEntity? message;
+  final String? messageId;
+  final ConversationEntity? conversation;
+  final int? currentUnreadCount;
+  final bool? isBlockedByMe;
+  final bool? hasBlockedMe;
+  final bool? canMessage;
+  final String? blockReason;
 
   const RealtimeMessageEventEntity({
     required this.type,
     required this.conversationId,
-    required this.message,
-    required this.currentUnreadCount,
+    this.message,
+    this.messageId,
+    this.conversation,
+    this.currentUnreadCount,
+    this.isBlockedByMe,
+    this.hasBlockedMe,
+    this.canMessage,
+    this.blockReason,
   });
 }

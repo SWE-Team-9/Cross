@@ -121,11 +121,19 @@ import '../../features/messaging/domain/usecases/connect_messaging_socket_usecas
 import '../../features/messaging/domain/usecases/delete_message_usecase.dart';
 import '../../features/messaging/domain/usecases/get_conversation_messages_usecase.dart';
 import '../../features/messaging/domain/usecases/get_conversations_usecase.dart';
+import '../../features/messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
 import '../../features/messaging/domain/usecases/get_unread_count_usecase.dart';
 import '../../features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
 import '../../features/messaging/domain/usecases/send_text_message_usecase.dart';
 import '../../features/messaging/domain/usecases/share_playlist_message_usecase.dart';
 import '../../features/messaging/domain/usecases/share_track_message_usecase.dart';
+import '../../features/messaging/presentation/bloc/unread_count_cubit.dart';
+import '../../features/messaging/presentation/bloc/share_track_to_conversation_cubit.dart';
+import '../../features/messaging/presentation/bloc/start_direct_conversation_cubit.dart';
+import '../../features/messaging/domain/usecases/archive_conversation_usecase.dart';
+import '../../features/messaging/domain/usecases/get_conversation_meta_usecase.dart';
+import '../../features/messaging/domain/usecases/mark_conversation_unread_usecase.dart';
+import '../../features/messaging/domain/usecases/unarchive_conversation_usecase.dart';
 
 // Premium
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
@@ -548,7 +556,6 @@ Future<void> setupDependencies() async {
     );
   }
 
-
   // ── Messaging Feature ────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<MessagingRemoteDataSource>()) {
@@ -571,22 +578,6 @@ Future<void> setupDependencies() async {
     );
   }
 
-if (!getIt.isRegistered<MessagingRealtimeRepository>()) {
-  getIt.registerLazySingleton<MessagingRealtimeRepository>(
-    () => MessagingRealtimeRepositoryImpl(
-      getIt<MessagingSocketDataSource>(),
-    ),
-  );
-}
-
-if (!getIt.isRegistered<ConnectMessagingSocketUseCase>()) {
-  getIt.registerLazySingleton<ConnectMessagingSocketUseCase>(
-    () => ConnectMessagingSocketUseCase(
-      getIt<MessagingRealtimeRepository>(),
-    ),
-  );
-}
-
   if (!getIt.isRegistered<MessagingRealtimeRepository>()) {
     getIt.registerLazySingleton<MessagingRealtimeRepository>(
       () => MessagingRealtimeRepositoryImpl(
@@ -598,6 +589,14 @@ if (!getIt.isRegistered<ConnectMessagingSocketUseCase>()) {
   if (!getIt.isRegistered<GetConversationsUseCase>()) {
     getIt.registerLazySingleton<GetConversationsUseCase>(
       () => GetConversationsUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetOrCreateDirectConversationUseCase>()) {
+    getIt.registerLazySingleton<GetOrCreateDirectConversationUseCase>(
+      () => GetOrCreateDirectConversationUseCase(
+        getIt<MessagingRepository>(),
+      ),
     );
   }
 
@@ -650,6 +649,58 @@ if (!getIt.isRegistered<ConnectMessagingSocketUseCase>()) {
       ),
     );
   }
+
+  if (!getIt.isRegistered<UnreadCountCubit>()) {
+    getIt.registerFactory<UnreadCountCubit>(
+      () => UnreadCountCubit(
+        getUnreadCountUseCase: getIt<GetUnreadCountUseCase>(),
+        connectMessagingSocketUseCase: getIt<ConnectMessagingSocketUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<ShareTrackToConversationCubit>()) {
+    getIt.registerFactory<ShareTrackToConversationCubit>(
+      () => ShareTrackToConversationCubit(
+        getConversationsUseCase: getIt<GetConversationsUseCase>(),
+        shareTrackMessageUseCase: getIt<ShareTrackMessageUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<StartDirectConversationCubit>()) {
+    getIt.registerFactory<StartDirectConversationCubit>(
+      () => StartDirectConversationCubit(
+        getOrCreateDirectConversationUseCase:
+            getIt<GetOrCreateDirectConversationUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetConversationMetaUseCase>()) {
+    getIt.registerLazySingleton<GetConversationMetaUseCase>(
+      () => GetConversationMetaUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<MarkConversationUnreadUseCase>()) {
+    getIt.registerLazySingleton<MarkConversationUnreadUseCase>(
+      () => MarkConversationUnreadUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ArchiveConversationUseCase>()) {
+    getIt.registerLazySingleton<ArchiveConversationUseCase>(
+      () => ArchiveConversationUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnarchiveConversationUseCase>()) {
+    getIt.registerLazySingleton<UnarchiveConversationUseCase>(
+      () => UnarchiveConversationUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
 
   // ── Profile Feature ──────────────────────────────────────────────────────
 

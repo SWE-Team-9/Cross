@@ -17,6 +17,7 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/engagem
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/pages/engagement_list_page.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/widgets/share_track_to_conversation_sheet.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
@@ -142,8 +143,11 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
     final wasFollowing = _isArtistFollowed(track);
     setState(() {
       _isFollowingArtist = true;
-      _setArtistFollowState(track,
-          artistId: artistId, isFollowing: !wasFollowing);
+      _setArtistFollowState(
+        track,
+        artistId: artistId,
+        isFollowing: !wasFollowing,
+      );
     });
 
     try {
@@ -261,6 +265,14 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _shareTrackToConversation(BuildContext context, Track track) async {
+    await showShareTrackToConversationSheet(
+      context: context,
+      trackId: track.id,
+      text: 'Check out this track',
     );
   }
 
@@ -840,7 +852,9 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                             borderRadius:
                                                 BorderRadius.circular(18),
                                             onTap: () => _openComments(
-                                                context, track.id),
+                                              context,
+                                              track.id,
+                                            ),
                                             child: const Padding(
                                               padding: EdgeInsets.symmetric(
                                                 vertical: 4,
@@ -968,7 +982,7 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
                                   .read<TrackInteractionCubit>()
                                   .toggleRepost(track.id),
                               onShareTap: () =>
-                                  _openBroadcastSheet(context, track),
+                                  _shareTrackToConversation(context, track),
                               onMoreTap: () =>
                                   TrackOptionsSheet.show(context, track: track),
                               likesCount: interactionState.likesCount,

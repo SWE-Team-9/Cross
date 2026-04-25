@@ -2,7 +2,7 @@ import '../../domain/entities/realtime_message_event_entity.dart';
 import 'conversation_dto.dart';
 import 'message_dto.dart';
 
-class SocketMessageEventDto {
+class RealtimeMessageEventDto {
   final RealtimeMessageEventType type;
   final String conversationId;
   final MessageDto? message;
@@ -14,7 +14,7 @@ class SocketMessageEventDto {
   final bool? canMessage;
   final String? blockReason;
 
-  const SocketMessageEventDto({
+  const RealtimeMessageEventDto({
     required this.type,
     required this.conversationId,
     this.message,
@@ -27,13 +27,13 @@ class SocketMessageEventDto {
     this.blockReason,
   });
 
-  factory SocketMessageEventDto.fromJson(Map<String, dynamic> json) {
+  factory RealtimeMessageEventDto.fromJson(Map<String, dynamic> json) {
     final type = _parseType(json['type']);
 
     final messageRaw = json['message'];
     final conversationRaw = json['conversation'];
 
-    return SocketMessageEventDto(
+    return RealtimeMessageEventDto(
       type: type,
       conversationId: (json['conversationId'] ??
               json['conversation_id'] ??
@@ -115,9 +115,7 @@ class SocketMessageEventDto {
   static MessageDto? _messageOrNull(dynamic value) {
     if (value == null) return null;
     if (value is Map<String, dynamic>) return MessageDto.fromJson(value);
-    if (value is Map) {
-      return MessageDto.fromJson(Map<String, dynamic>.from(value));
-    }
+    if (value is Map) return MessageDto.fromJson(Map<String, dynamic>.from(value));
     return null;
   }
 
