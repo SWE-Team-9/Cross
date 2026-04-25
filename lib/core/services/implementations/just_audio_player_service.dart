@@ -61,6 +61,7 @@ class JustAudioPlayerService implements AudioPlayerService {
         _currentState.copyWith(
           status: status,
           position: playbackState.updatePosition,
+          currentIndex: playbackState.queueIndex ?? _currentState.currentIndex,
         ),
       );
     });
@@ -69,6 +70,7 @@ class JustAudioPlayerService implements AudioPlayerService {
       _updateState(
         _currentState.copyWith(
           duration: mediaItem?.duration,
+          currentTrackId: mediaItem?.id,
         ),
       );
     });
@@ -94,10 +96,12 @@ class JustAudioPlayerService implements AudioPlayerService {
           id: track.id,
           title: track.title,
           artist: track.artist,
+          duration: track.duration,
           artUri:
               track.artworkUrl != null ? Uri.parse(track.artworkUrl!) : null,
           extras: {
             'url': track.audioUrl,
+            if (track.durationMs != null) 'durationMs': track.durationMs,
           },
         );
       }).toList();
@@ -110,6 +114,7 @@ class JustAudioPlayerService implements AudioPlayerService {
         _currentState.copyWith(
           queue: tracks,
           currentIndex: safeIndex,
+          currentTrackId: tracks[safeIndex].id,
           source: source,
           volume: _volume,
         ),
@@ -159,6 +164,16 @@ class JustAudioPlayerService implements AudioPlayerService {
 
   @override
   double get currentVolume => _volume;
+
+  @override
+  Future<void> setRepeatMode(AppRepeatMode mode) async {
+    final handler = _handler;
+    if (handler is AppAudioHandler) {
+      await handler.setAppRepeatMode(mode);
+    }
+
+    _updateState(_currentState.copyWith(repeatMode: mode));
+  }
 
   void _updateState(PlayerState newState) {
     _currentState = newState;

@@ -3,13 +3,43 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
+import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/playback/presentation/widgets/repeat_mode_button.dart';
+
+import '../../../../core/di/injector.dart';
 
 import '../../../../app/router.dart';
 
-class MiniPlayer extends StatelessWidget {
+class MiniPlayer extends StatefulWidget {
   const MiniPlayer({super.key});
 
+  @override
+  State<MiniPlayer> createState() => _MiniPlayerState();
+}
+
+class _MiniPlayerState extends State<MiniPlayer> {
+  TrackInteractionCubit? _interactionCubit;
+  String? _loadedInteractionTrackId;
+  double _lastNonZeroVolume = 1.0;
+
   static const String _playerHeroTag = 'player_shell_hero';
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (getIt.isRegistered<TrackInteractionCubit>()) {
+      _interactionCubit = getIt<TrackInteractionCubit>();
+    }
+  }
+
+  @override
+  void dispose() {
+    _interactionCubit?.close();
+    super.dispose();
+  }
 
   void _showVolumeSheet(BuildContext context, double currentVolume) {
     double localVolume = currentVolume;
@@ -43,6 +73,71 @@ class MiniPlayer extends StatelessWidget {
     );
   }
 
+  void _toggleMute(PlayerUIState state) {
+    final cubit = context.read<PlayerCubit>();
+    final current = state.volume;
+
+    if (current > 0.001) {
+      _lastNonZeroVolume = current;
+      cubit.setVolume(0.0);
+      return;
+    }
+
+    final restored = _lastNonZeroVolume.clamp(0.05, 1.0).toDouble();
+    cubit.setVolume(restored);
+  }
+
+  void _ensureInteractionLoaded(Track track) {
+    final cubit = _interactionCubit;
+    if (cubit == null) return;
+    if (_loadedInteractionTrackId == track.id) return;
+
+    _loadedInteractionTrackId = track.id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _loadedInteractionTrackId != track.id) return;
+
+      cubit.load(
+        trackId: track.id,
+        likesCount: track.likesCount,
+        repostsCount: track.repostsCount,
+      );
+    });
+  }
+
+  Widget _buildLikeAction(Track track) {
+    final cubit = _interactionCubit;
+    if (cubit == null) {
+      return const Padding(
+        padding: EdgeInsets.only(right: 14),
+        child: Icon(
+          Icons.favorite_border,
+          color: Colors.white70,
+          size: 20,
+        ),
+      );
+    }
+
+    return BlocBuilder<TrackInteractionCubit, TrackInteractionState>(
+      bloc: cubit,
+      builder: (context, interactionState) {
+        final isLiked = interactionState.isLiked;
+        final isSubmitting = interactionState.isSubmittingLike;
+
+        return GestureDetector(
+          onTap: isSubmitting ? null : () => cubit.toggleLike(track.id),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: Icon(
+              isLiked ? Icons.favorite : Icons.favorite_border,
+              color: isLiked ? const Color(0xFFFF5500) : Colors.white70,
+              size: 20,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PlayerCubit, PlayerUIState>(
@@ -51,6 +146,12 @@ class MiniPlayer extends StatelessWidget {
         if (track == null) {
           return const SizedBox.shrink();
         }
+
+        if (state.volume > 0.001) {
+          _lastNonZeroVolume = state.volume;
+        }
+
+        _ensureInteractionLoaded(track);
 
         final duration = state.duration;
         final double progress =
@@ -166,13 +267,29 @@ class MiniPlayer extends StatelessWidget {
                           ),
                         ),
 
-                        // ── Follow ────────────────────────────────────
+                        // Playback options
+                        RepeatModeButton(
+                          mode: state.repeatMode,
+                          iconSize: 20,
+                          showOptions: false,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 10,
+                          ),
+                          onChanged: (mode) =>
+                              context.read<PlayerCubit>().setRepeatMode(mode),
+                        ),
+
                         GestureDetector(
-                          onTap: () => _showVolumeSheet(context, state.volume),
-                          child: const Padding(
+                          onTap: () => _toggleMute(state),
+                          onLongPress: () =>
+                              _showVolumeSheet(context, state.volume),
+                          child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8),
                             child: Icon(
-                              Icons.volume_up_outlined,
+                              state.volume <= 0.001
+                                  ? Icons.volume_off_outlined
+                                  : Icons.volume_up_outlined,
                               color: Colors.white70,
                               size: 20,
                             ),
@@ -180,17 +297,7 @@ class MiniPlayer extends StatelessWidget {
                         ),
 
                         // ── Like ──────────────────────────────────────
-                        GestureDetector(
-                          onTap: () {},
-                          child: const Padding(
-                            padding: EdgeInsets.only(right: 14),
-                            child: Icon(
-                              Icons.favorite_border,
-                              color: Colors.white70,
-                              size: 20,
-                            ),
-                          ),
-                        ),
+                        _buildLikeAction(track),
                       ],
                     ),
                   ),

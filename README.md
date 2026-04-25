@@ -1,6 +1,6 @@
-# SoundCloud Clone - Cross
+# Iqa3 - Cross
 
-Flutter cross-platform client for the SoundCloud clone project.
+Flutter cross-platform client for the Iqa3 project.
 
 ## Configuration
 

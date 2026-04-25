@@ -81,6 +81,7 @@ macos/Runner.xcworkspace/xcuserdata/
 macos/Runner.xcodeproj/project.xcworkspace/xcuserdata/
 macos/Runner.xcodeproj/xcuserdata/
 macos/Runner/GeneratedPluginRegistrant.*
+macos/Flutter/Generated*
 
 # Linux
 linux/flutter/ephemeral/
@@ -93,6 +94,7 @@ windows/flutter/ephemeral/
 windows/flutter/generated_plugin_registrant.cc
 windows/flutter/generated_plugin_registrant.h
 windows/flutter/generated_plugins.cmake
+windows/flutter/generated_*
 
 # Symbolication related
 app.*.symbols
