@@ -1070,11 +1070,11 @@ static const bool useMockTrackManagement = bool.fromEnvironment(
           <div class="grid-2">
             <div class="card">
               <h3>Build metadata</h3>
-              <p><code>windows/CMakeLists.txt</code> still uses the generic project and binary name <code>my_app</code>.</p>
+              <p><code>windows/CMakeLists.txt</code> still uses the generic project and binary name <code>Iqa3</code>.</p>
             </div>
             <div class="card">
               <h3>Runner title</h3>
-              <p><code>windows/runner/main.cpp</code> also creates the window with title <code>my_app</code>.</p>
+              <p><code>windows/runner/main.cpp</code> also creates the window with title <code>Iqa3</code>.</p>
             </div>
           </div>
 
@@ -1092,7 +1092,7 @@ static const bool useMockTrackManagement = bool.fromEnvironment(
 FlutterWindow window(project);
 Win32Window::Point origin(10, 10);
 Win32Window::Size size(1280, 720);
-if (!window.Create(L"my_app", origin, size)) {
+if (!window.Create(L"Iqa3", origin, size)) {
   return EXIT_FAILURE;
 }</pre>
               </div>
@@ -1103,7 +1103,7 @@ if (!window.Create(L"my_app", origin, size)) {
                   <li>Set the initial screen position and size.</li>
                   <li>Try to create the desktop window.</li>
                   <li>If creation fails, stop startup immediately.</li>
-                  <li>The window title still says <code>my_app</code>, which is a signal that the Windows shell layer has not been fully branded yet.</li>
+                  <li>The window title still says <code>Iqa3</code>, which is a signal that the Windows shell layer has not been fully branded yet.</li>
                 </ol>
               </div>
             </div>

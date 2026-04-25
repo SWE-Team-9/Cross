@@ -10,6 +10,12 @@ enum PlayerStatus {
   error,
 }
 
+enum AppRepeatMode {
+  off,
+  one,
+  all,
+}
+
 class PlayerState {
   final PlayerStatus status;
   final Duration position;
@@ -22,6 +28,7 @@ class PlayerState {
   final int currentIndex;
   final String? source;
   final double volume;
+  final AppRepeatMode repeatMode;
 
   const PlayerState({
     required this.status,
@@ -35,6 +42,7 @@ class PlayerState {
     this.currentIndex = 0,
     this.source,
     this.volume = 1.0,
+    this.repeatMode = AppRepeatMode.off,
   });
 
   PlayerState copyWith({
@@ -47,6 +55,7 @@ class PlayerState {
     int? currentIndex,
     String? source,
     double? volume,
+    AppRepeatMode? repeatMode,
   }) {
     return PlayerState(
       status: status ?? this.status,
@@ -58,6 +67,7 @@ class PlayerState {
       currentIndex: currentIndex ?? this.currentIndex,
       source: source ?? this.source,
       volume: volume ?? this.volume,
+      repeatMode: repeatMode ?? this.repeatMode,
     );
   }
 }
