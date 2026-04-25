@@ -13,6 +13,7 @@ import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/widgets/notification_badge.dart';
 
 class MockHomePage extends StatefulWidget {
@@ -608,13 +609,24 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'GET PRO',
-            style: TextStyle(
-              color: Color(0xFFFF5500),
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
+          Builder(
+            builder: (context) {
+              final sub = context.watch<SubscriptionCubit>().state;
+
+              final isPro = sub?.subscriptionType == 'PRO';
+
+              return GestureDetector(
+                onTap: isPro ? null : () => context.go('/upgrade'),
+                child: Text(
+                  isPro ? 'PRO' : 'GET PRO',
+                  style: TextStyle(
+                    color: isPro ? Colors.green : const Color(0xFFFF5500),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              );
+            },
           ),
           const Spacer(),
           if (authState is AuthAuthenticated)
