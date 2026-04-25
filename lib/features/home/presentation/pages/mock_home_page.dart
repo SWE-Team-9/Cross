@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-
-import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
@@ -13,6 +12,12 @@ import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_state.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/routes/messaging_routes.dart';
+
+import '/features/profile/presentation/routes/profile_routes.dart';
+
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -365,87 +370,89 @@ class _MockHomePageState extends State<MockHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthUnauthenticated) {
-          context.go('/welcome');
-        } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
-        }
-      },
-      builder: (context, state) {
-        String currentHandle = '';
-        if (state is AuthAuthenticated) {
-          currentHandle = state.user.handle;
-        }
+    return BlocProvider<UnreadCountCubit>(
+      create: (_) => getIt<UnreadCountCubit>()..load(),
+      child: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthUnauthenticated) {
+            context.go('/welcome');
+          } else if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          String currentHandle = '';
+          if (state is AuthAuthenticated) {
+            currentHandle = state.user.handle;
+          }
 
-        return Scaffold(
-          backgroundColor: Colors.black,
-          // ── Bottom Nav ──────────────────────────────────────────────────
-          bottomNavigationBar: BottomNavBar(
-            selected: _selectedTab,
-            onTap: (i) {
-              setState(() => _selectedTab = i);
-              switch (i) {
-                case 0:
-                  break;
-                case 1:
-                  context.go('/feed');
-                  break;
-                case 2:
-                  context.go('/search');
-                  break;
-                case 3:
-                  context.go('/library');
-                  break;
-                case 4:
-                  context.go('/upgrade');
-                  break;
-              }
-            },
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                _TopBar(
-                  currentUserHandle: currentHandle,
-                  authState: state,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SectionHeader(title: 'More of what you like'),
-                        const _RelatedTracksRow(),
-                        const _SectionHeader(title: 'Mixed for you'),
-                        _MixesRow(userHandle: currentHandle),
-                        const _SectionHeader(title: 'Trending by genre'),
-                        _GenreChips(
-                          genres: _genres,
-                          selected: _selectedGenre,
-                          onSelect: (g) {
-                            setState(() => _selectedGenre = g);
-                            _filterCachedTrendingTracks();
-                          },
-                        ),
-                        _TrendingByGenreTracks(
-                          loading: _isLoadingTrending,
-                          error: _trendingError,
-                          tracks: _trendingTracks,
-                        ),
-                        const SizedBox(height: 100),
-                      ],
+          return Scaffold(
+            backgroundColor: Colors.black,
+            bottomNavigationBar: BottomNavBar(
+              selected: _selectedTab,
+              onTap: (i) {
+                setState(() => _selectedTab = i);
+                switch (i) {
+                  case 0:
+                    break;
+                  case 1:
+                    context.go('/feed');
+                    break;
+                  case 2:
+                    context.go('/search');
+                    break;
+                  case 3:
+                    context.go('/library');
+                    break;
+                  case 4:
+                    context.go('/upgrade');
+                    break;
+                }
+              },
+            ),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  _TopBar(
+                    currentUserHandle: currentHandle,
+                    authState: state,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionHeader(title: 'More of what you like'),
+                          const _RelatedTracksRow(),
+                          const _SectionHeader(title: 'Mixed for you'),
+                          _MixesRow(userHandle: currentHandle),
+                          const _SectionHeader(title: 'Trending by genre'),
+                          _GenreChips(
+                            genres: _genres,
+                            selected: _selectedGenre,
+                            onSelect: (g) {
+                              setState(() => _selectedGenre = g);
+                              _filterCachedTrendingTracks();
+                            },
+                          ),
+                          _TrendingByGenreTracks(
+                            loading: _isLoadingTrending,
+                            error: _trendingError,
+                            tracks: _trendingTracks,
+                          ),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -509,7 +516,6 @@ class _TrendingByGenreTracks extends StatelessWidget {
   }
 }
 
-// ── Top bar ───────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   final String currentUserHandle;
   final AuthState authState;
@@ -665,6 +671,15 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           _IconBtn(icon: Icons.cast, onTap: () {}),
+          BlocBuilder<UnreadCountCubit, UnreadCountState>(
+            builder: (context, unreadState) {
+              return _BadgeIconBtn(
+                icon: Icons.forum_outlined,
+                count: unreadState.count,
+                onTap: () => MessagingRoutes.goToInbox(context),
+              );
+            },
+          ),
           _IconBtn(
             icon: Icons.upload_outlined,
             onTap: () => context.push('/upload-picker'),
@@ -688,6 +703,62 @@ class _IconBtn extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: Colors.white70, size: 22),
+      ),
+    );
+  }
+}
+
+class _BadgeIconBtn extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final VoidCallback onTap;
+
+  const _BadgeIconBtn({
+    required this.icon,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon, color: Colors.white70, size: 22),
+            if (count > 0)
+              Positioned(
+                right: -8,
+                top: -8,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5500),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.black, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -979,8 +1050,6 @@ class _GenreChips extends StatelessWidget {
     );
   }
 }
-
-// ── Data classes ──────────────────────────────────────────────────────────────
 
 class _AlbumData {
   final String label, sub, handle, topText;

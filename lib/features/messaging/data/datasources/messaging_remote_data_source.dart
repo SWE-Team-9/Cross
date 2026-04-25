@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
+import '../dto/conversation_dto.dart';
 import '../dto/conversation_list_page_dto.dart';
 import '../dto/conversation_messages_page_dto.dart';
 import '../dto/message_dto.dart';
@@ -11,12 +12,19 @@ abstract class MessagingRemoteDataSource {
   Future<ConversationListPageDto> getMyConversations({
     int page = 1,
     int limit = 20,
+    bool archived = false,
   });
 
   Future<ConversationMessagesPageDto> getConversationMessages(
     String conversationId, {
     int page = 1,
     int limit = 50,
+  });
+
+  Future<ConversationDto> getConversationMeta(String conversationId);
+
+  Future<ConversationDto> getOrCreateDirectConversation({
+    required String receiverId,
   });
 
   Future<MessageDto> sendTextMessage({
@@ -40,6 +48,12 @@ abstract class MessagingRemoteDataSource {
 
   Future<void> markConversationAsRead(String conversationId);
 
+  Future<void> markConversationAsUnread(String conversationId);
+
+  Future<void> archiveConversation(String conversationId);
+
+  Future<void> unarchiveConversation(String conversationId);
+
   Future<void> deleteMessage(String messageId);
 }
 
@@ -52,21 +66,21 @@ class MessagingRemoteDataSourceImpl implements MessagingRemoteDataSource {
   Future<ConversationListPageDto> getMyConversations({
     int page = 1,
     int limit = 20,
+    bool archived = false,
   }) async {
     final response = await dioClient.get(
       ApiConstants.messagingConversationsPath,
       queryParameters: {
         'page': page,
         'limit': limit,
+        'archived': archived,
       },
     );
 
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
-    final map = _asMap(responseData);
-
-    return ConversationListPageDto.fromJson(map);
+    return ConversationListPageDto.fromJson(_asMap(responseData));
   }
 
   @override
@@ -86,9 +100,36 @@ class MessagingRemoteDataSourceImpl implements MessagingRemoteDataSource {
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
-    final map = _asMap(responseData);
+    return ConversationMessagesPageDto.fromJson(_asMap(responseData));
+  }
 
-    return ConversationMessagesPageDto.fromJson(map);
+  @override
+  Future<ConversationDto> getConversationMeta(String conversationId) async {
+    final response = await dioClient.get(
+      ApiConstants.messagingConversationMetaPath(conversationId),
+    );
+
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
+
+    return ConversationDto.fromJson(_asMap(responseData));
+  }
+
+  @override
+  Future<ConversationDto> getOrCreateDirectConversation({
+    required String receiverId,
+  }) async {
+    final response = await dioClient.post(
+      ApiConstants.messagingDirectConversationPath,
+      data: {
+        'receiverId': receiverId,
+      },
+    );
+
+    final responseData =
+        response.data is String ? jsonDecode(response.data) : response.data;
+
+    return ConversationDto.fromJson(_asMap(responseData));
   }
 
   @override
@@ -166,6 +207,27 @@ class MessagingRemoteDataSourceImpl implements MessagingRemoteDataSource {
   Future<void> markConversationAsRead(String conversationId) async {
     await dioClient.patch(
       ApiConstants.messagingMarkConversationReadPath(conversationId),
+    );
+  }
+
+  @override
+  Future<void> markConversationAsUnread(String conversationId) async {
+    await dioClient.patch(
+      ApiConstants.messagingMarkConversationUnreadPath(conversationId),
+    );
+  }
+
+  @override
+  Future<void> archiveConversation(String conversationId) async {
+    await dioClient.patch(
+      ApiConstants.messagingArchiveConversationPath(conversationId),
+    );
+  }
+
+  @override
+  Future<void> unarchiveConversation(String conversationId) async {
+    await dioClient.patch(
+      ApiConstants.messagingUnarchiveConversationPath(conversationId),
     );
   }
 
