@@ -1,8 +1,8 @@
 import '../../../../core/errors/failure.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/entities/notification_preferences_entity.dart';
-import '../../domain/entities/notifications_result.dart';
 import '../../domain/repositories/notifications_repository.dart';
+import '../../domain/entities/notifications_result.dart';
 import '../datasources/notifications_remote_data_source.dart';
 import '../models/notification_preferences_model.dart';
 
@@ -17,70 +17,52 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     int limit = 20,
   }) async {
     try {
-      final list = await _remote.getNotifications(page: page, limit: limit);
-      return NotificationsResult.success(list);
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
+      final models = await _remote.getNotifications(page: page, limit: limit);
+      return NotificationsResult.success(models);
     } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to load notifications.'),
-      );
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
   @override
   Future<NotificationsResult<int>> getUnreadCount() async {
     try {
-      return NotificationsResult.success(await _remote.getUnreadCount());
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
+      final count = await _remote.getUnreadCount();
+      return NotificationsResult.success(count);
     } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to load unread count.'),
-      );
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<NotificationsResult<bool>> markAsRead(String notificationId) async {
+  Future<NotificationsResult<void>> markAsRead(String notificationId) async {
     try {
       await _remote.markAsRead(notificationId);
-      return const NotificationsResult.success(true);
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
+      return const NotificationsResult.success(null);
     } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to mark notification as read.'),
-      );
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<NotificationsResult<bool>> markAllAsRead() async {
+  Future<NotificationsResult<void>> markAllAsRead() async {
     try {
       await _remote.markAllAsRead();
-      return const NotificationsResult.success(true);
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
+      return const NotificationsResult.success(null);
     } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to mark all notifications as read.'),
-      );
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<NotificationsResult<bool>> deleteNotification(
-      String notificationId) async {
+  Future<NotificationsResult<void>> deleteNotification(
+    String notificationId,
+  ) async {
     try {
       await _remote.deleteNotification(notificationId);
-      return const NotificationsResult.success(true);
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
+      return const NotificationsResult.success(null);
     } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to delete notification.'),
-      );
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
@@ -90,66 +72,58 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       final model = await _remote.getPreferences();
       return NotificationsResult.success(model);
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
     } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to load notification preferences.'),
-      );
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<NotificationsResult<bool>> updatePreferences(
+  Future<NotificationsResult<void>> updatePreferences(
     NotificationPreferencesEntity preferences,
   ) async {
     try {
-      final model = NotificationPreferencesModel.fromEntity(preferences);
-      await _remote.updatePreferences(model);
-      return const NotificationsResult.success(true);
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
-    } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to update notification preferences.'),
+      final model = NotificationPreferencesModel(
+        pushEnabled: preferences.pushEnabled,
+        emailEnabled: preferences.emailEnabled,
+        likesEnabled: preferences.likesEnabled,
+        commentsEnabled: preferences.commentsEnabled,
+        followsEnabled: preferences.followsEnabled,
+        repostsEnabled: preferences.repostsEnabled,
       );
+      await _remote.updatePreferences(model);
+      return const NotificationsResult.success(null);
+    } catch (e) {
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<NotificationsResult<bool>> registerDevice({
+  Future<NotificationsResult<void>> registerDevice({
     required String deviceToken,
     required String platform,
   }) async {
     try {
       await _remote.registerDevice(
-          deviceToken: deviceToken, platform: platform);
-      return const NotificationsResult.success(true);
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
-    } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to register device for notifications.'),
+        deviceToken: deviceToken,
+        platform: platform,
       );
+      return const NotificationsResult.success(null);
+    } catch (e) {
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<NotificationsResult<bool>> removeDevice(String deviceId) async {
+  Future<NotificationsResult<void>> removeDevice(String deviceId) async {
     try {
       await _remote.removeDevice(deviceId);
-      return const NotificationsResult.success(true);
-    } on Failure catch (failure) {
-      return NotificationsResult.failure(failure);
+      return const NotificationsResult.success(null);
     } catch (e) {
-      return const NotificationsResult.failure(
-        ServerFailure('Failed to remove notification device.'),
-      );
+      return NotificationsResult.failure(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Stream<NotificationEntity> get notificationStream {
-    return _remote.notificationStream;
-  }
+  Stream<NotificationEntity> get notificationStream =>
+      _remote.notificationStream;
 }
