@@ -22,6 +22,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
   String? _conversationId;
   String? _receiverId;
+  bool _canMessage = true;
 
   ChatThreadCubit({
     required this.getConversationMessagesUseCase,
@@ -34,9 +35,11 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   Future<void> load({
     required String conversationId,
     required String receiverId,
+    bool canMessage = true,
   }) async {
     _conversationId = conversationId;
     _receiverId = receiverId;
+    _canMessage = canMessage;
 
     emit(
       state.copyWith(
@@ -123,6 +126,15 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   }
 
   Future<void> sendText(String text) async {
+    if (!_canMessage) {
+      emit(
+        state.copyWith(
+          errorMessage: 'You cannot message this user.',
+        ),
+      );
+      return;
+    }
+
     final receiverId = _receiverId;
     if (receiverId == null) return;
 
@@ -204,25 +216,80 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     }
   }
 
-  void _handleSocketEvent(RealtimeMessageEventEntity event) {
-    if (event.conversationId != _conversationId) return;
+void _handleSocketEvent(RealtimeMessageEventEntity event) {
+  if (event.conversationId != _conversationId) return;
 
-    final exists = state.messages.any((message) => message.id == event.message.id);
-    if (exists) return;
+  switch (event.type) {
+    case RealtimeMessageEventType.newMessage:
+      final message = event.message;
+      if (message == null) return;
 
-    final merged = _sortMessages([
-      ...state.messages,
-      event.message,
-    ]);
+      final exists = state.messages.any(
+        (item) => item.id == message.id,
+      );
+      if (exists) return;
 
-    emit(
-      state.copyWith(
-        messages: merged,
-        isSocketConnected: true,
-        clearError: true,
-      ),
-    );
+      final merged = _sortMessages([
+        ...state.messages,
+        message,
+      ]);
+
+      emit(
+        state.copyWith(
+          messages: merged,
+          isSocketConnected: true,
+          clearError: true,
+        ),
+      );
+      break;
+
+    case RealtimeMessageEventType.messageDeleted:
+      final messageId = event.messageId;
+      if (messageId == null || messageId.isEmpty) return;
+
+      emit(
+        state.copyWith(
+          messages: state.messages
+              .where((message) => message.id != messageId)
+              .toList(growable: false),
+          isSocketConnected: true,
+          clearError: true,
+        ),
+      );
+      break;
+
+    case RealtimeMessageEventType.userBlocked:
+      _canMessage = false;
+      emit(
+        state.copyWith(
+          isSocketConnected: true,
+          errorMessage: event.blockReason ?? 'You cannot message this user.',
+        ),
+      );
+      break;
+
+    case RealtimeMessageEventType.userUnblocked:
+      _canMessage = true;
+      emit(
+        state.copyWith(
+          isSocketConnected: true,
+          clearError: true,
+        ),
+      );
+      break;
+
+    case RealtimeMessageEventType.conversationRead:
+    case RealtimeMessageEventType.conversationUpdated:
+    case RealtimeMessageEventType.unreadCountUpdated:
+    case RealtimeMessageEventType.unknown:
+      emit(
+        state.copyWith(
+          isSocketConnected: true,
+        ),
+      );
+      break;
   }
+}
 
   List<MessageEntity> _sortMessages(List<MessageEntity> messages) {
     final list = [...messages];
@@ -233,7 +300,9 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   @override
   Future<void> close() async {
     await _socketSub?.cancel();
-    await connectMessagingSocketUseCase.disconnect();
+
+    // Do not disconnect the shared messaging socket here.
+    // The Home unread badge may still be listening through UnreadCountCubit.
     return super.close();
   }
 }

@@ -9,10 +9,12 @@ class GetConversationsUseCase {
   Future<ConversationListPageEntity> call({
     int page = 1,
     int limit = 20,
+    bool archived = false,
   }) {
     return repository.getMyConversations(
       page: page,
       limit: limit,
+      archived: archived,
     );
   }
 }

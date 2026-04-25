@@ -21,6 +21,8 @@ class ChatThreadPage extends StatelessWidget {
   final String participantDisplayName;
   final String participantHandle;
   final String? participantAvatarUrl;
+  final bool canMessage;
+  final String? blockReason;
   final VoidCallback? onBack;
 
   const ChatThreadPage({
@@ -30,6 +32,8 @@ class ChatThreadPage extends StatelessWidget {
     required this.participantDisplayName,
     required this.participantHandle,
     required this.participantAvatarUrl,
+    this.canMessage = true,
+    this.blockReason,
     this.onBack,
   });
 
@@ -47,6 +51,7 @@ class ChatThreadPage extends StatelessWidget {
       )..load(
           conversationId: conversationId,
           receiverId: receiverId,
+          canMessage: canMessage,
         ),
       child: _ChatThreadView(
         conversationId: conversationId,
@@ -54,6 +59,8 @@ class ChatThreadPage extends StatelessWidget {
         participantDisplayName: participantDisplayName,
         participantHandle: participantHandle,
         participantAvatarUrl: participantAvatarUrl,
+        canMessage: canMessage,
+        blockReason: blockReason,
         onBack: onBack,
       ),
     );
@@ -66,6 +73,8 @@ class _ChatThreadView extends StatefulWidget {
   final String participantDisplayName;
   final String participantHandle;
   final String? participantAvatarUrl;
+  final bool canMessage;
+  final String? blockReason;
   final VoidCallback? onBack;
 
   const _ChatThreadView({
@@ -74,6 +83,8 @@ class _ChatThreadView extends StatefulWidget {
     required this.participantDisplayName,
     required this.participantHandle,
     required this.participantAvatarUrl,
+    required this.canMessage,
+    required this.blockReason,
     required this.onBack,
   });
 
@@ -136,7 +147,8 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
             CircleAvatar(
               radius: 20,
               backgroundColor: MessagingTheme.surface,
-              foregroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+              foregroundImage:
+                  avatarUrl != null ? NetworkImage(avatarUrl) : null,
               child: Text(
                 widget.participantDisplayName.isNotEmpty
                     ? widget.participantDisplayName[0].toUpperCase()
@@ -242,10 +254,12 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
                           ),
                           const SizedBox(height: 14),
                           TextButton(
-                            onPressed: () => context.read<ChatThreadCubit>().load(
-                                  conversationId: widget.conversationId,
-                                  receiverId: widget.receiverId,
-                                ),
+                            onPressed: () =>
+                                context.read<ChatThreadCubit>().load(
+                                      conversationId: widget.conversationId,
+                                      receiverId: widget.receiverId,
+                                      canMessage: widget.canMessage,
+                                    ),
                             child: const Text(
                               'Retry',
                               style: TextStyle(color: MessagingTheme.accent),
@@ -276,7 +290,8 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
                   controller: _scrollController,
                   reverse: true,
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                  itemCount: state.messages.length + (state.isLoadingMore ? 1 : 0),
+                  itemCount:
+                      state.messages.length + (state.isLoadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (state.isLoadingMore && index == state.messages.length) {
                       return const Padding(
@@ -293,8 +308,8 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
                     final message =
                         state.messages[state.messages.length - 1 - index];
 
-                    final isMine =
-                        currentUserId != null && message.senderId == currentUserId;
+                    final isMine = currentUserId != null &&
+                        message.senderId == currentUserId;
 
                     return MessageBubble(
                       message: message,
@@ -310,17 +325,74 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
               },
             ),
           ),
-          BlocBuilder<ChatThreadCubit, ChatThreadState>(
-            builder: (context, state) {
-              return MessageComposer(
-                isSending: state.isSending,
-                onSend: (text) {
-                  context.read<ChatThreadCubit>().sendText(text);
-                },
-              );
-            },
-          ),
+          if (!widget.canMessage)
+            _MessagingBlockedBanner(
+              reason: widget.blockReason,
+            )
+          else
+            BlocBuilder<ChatThreadCubit, ChatThreadState>(
+              builder: (context, state) {
+                return MessageComposer(
+                  isSending: state.isSending,
+                  onSend: (text) {
+                    context.read<ChatThreadCubit>().sendText(text);
+                  },
+                );
+              },
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _MessagingBlockedBanner extends StatelessWidget {
+  final String? reason;
+
+  const _MessagingBlockedBanner({
+    required this.reason,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final message = (reason ?? '').trim().isNotEmpty
+        ? reason!.trim()
+        : 'You cannot message this user.';
+
+    return Container(
+      width: double.infinity,
+      color: MessagingTheme.background,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: MessagingTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white10),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.block,
+                color: Colors.redAccent,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

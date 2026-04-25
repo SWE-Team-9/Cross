@@ -3,7 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../domain/entities/conversation_entity.dart';
+import '../../domain/usecases/archive_conversation_usecase.dart';
 import '../../domain/usecases/get_conversations_usecase.dart';
+import '../../domain/usecases/mark_conversation_read_usecase.dart';
+import '../../domain/usecases/mark_conversation_unread_usecase.dart';
+import '../../domain/usecases/unarchive_conversation_usecase.dart';
 import '../bloc/inbox_cubit.dart';
 import '../bloc/inbox_state.dart';
 import '../messaging_theme.dart';
@@ -22,6 +26,11 @@ class InboxPage extends StatelessWidget {
     return BlocProvider(
       create: (_) => InboxCubit(
         getConversationsUseCase: GetIt.I<GetConversationsUseCase>(),
+        markConversationReadUseCase: GetIt.I<MarkConversationReadUseCase>(),
+        markConversationUnreadUseCase:
+            GetIt.I<MarkConversationUnreadUseCase>(),
+        archiveConversationUseCase: GetIt.I<ArchiveConversationUseCase>(),
+        unarchiveConversationUseCase: GetIt.I<UnarchiveConversationUseCase>(),
       )..loadInitial(),
       child: _InboxView(onOpenConversation: onOpenConversation),
     );
@@ -61,6 +70,114 @@ class _InboxViewState extends State<_InboxView> {
     super.dispose();
   }
 
+  void _showConversationActions(
+    BuildContext context,
+    ConversationEntity conversation,
+  ) {
+    final inboxCubit = context.read<InboxCubit>();
+    final isArchivedMode = inboxCubit.state.isArchivedMode;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: MessagingTheme.surfaceAlt,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                leading: const Icon(
+                  Icons.mark_email_read_outlined,
+                  color: Colors.white70,
+                ),
+                title: const Text(
+                  'Mark as read',
+                  style: TextStyle(color: Colors.white),
+                ),
+                subtitle: Text(
+                  conversation.participant.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white54),
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  inboxCubit.markConversationAsRead(
+                    conversation.conversationId,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.mark_email_unread_outlined,
+                  color: Colors.white70,
+                ),
+                title: const Text(
+                  'Mark as unread',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  inboxCubit.markConversationAsUnread(
+                    conversation.conversationId,
+                  );
+                },
+              ),
+              if (!isArchivedMode)
+                ListTile(
+                  leading: const Icon(
+                    Icons.archive_outlined,
+                    color: Colors.white70,
+                  ),
+                  title: const Text(
+                    'Archive conversation',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    inboxCubit.archiveConversation(
+                      conversation.conversationId,
+                    );
+                  },
+                )
+              else
+                ListTile(
+                  leading: const Icon(
+                    Icons.unarchive_outlined,
+                    color: Colors.white70,
+                  ),
+                  title: const Text(
+                    'Unarchive conversation',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    inboxCubit.unarchiveConversation(
+                      conversation.conversationId,
+                    );
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,15 +185,55 @@ class _InboxViewState extends State<_InboxView> {
       appBar: AppBar(
         backgroundColor: MessagingTheme.background,
         elevation: 0,
-        title: const Text(
-          'Messages',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-          ),
+        title: BlocBuilder<InboxCubit, InboxState>(
+          builder: (context, state) {
+            return Text(
+              state.isArchivedMode ? 'Archived Messages' : 'Messages',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            );
+          },
         ),
+        actions: [
+          BlocBuilder<InboxCubit, InboxState>(
+            builder: (context, state) {
+              return TextButton.icon(
+                onPressed: state.isLoading
+                    ? null
+                    : () => context.read<InboxCubit>().toggleArchivedMode(),
+                icon: Icon(
+                  state.isArchivedMode
+                      ? Icons.inbox_outlined
+                      : Icons.archive_outlined,
+                  color: Colors.white70,
+                  size: 18,
+                ),
+                label: Text(
+                  state.isArchivedMode ? 'Inbox' : 'Archived',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 6),
+        ],
       ),
-      body: BlocBuilder<InboxCubit, InboxState>(
+      body: BlocConsumer<InboxCubit, InboxState>(
+        listener: (context, state) {
+          if (state.errorMessage != null && state.conversations.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: const Color(0xFF2B2B2B),
+                content: Text(state.errorMessage!),
+              ),
+            );
+          }
+        },
         builder: (context, state) {
           if (state.isLoading && state.conversations.isEmpty) {
             return const Center(
@@ -117,31 +274,37 @@ class _InboxViewState extends State<_InboxView> {
           }
 
           if (state.conversations.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.forum_outlined,
+                      state.isArchivedMode
+                          ? Icons.archive_outlined
+                          : Icons.forum_outlined,
                       color: Colors.white24,
                       size: 56,
                     ),
-                    SizedBox(height: 14),
+                    const SizedBox(height: 14),
                     Text(
-                      'No conversations yet',
-                      style: TextStyle(
+                      state.isArchivedMode
+                          ? 'No archived conversations'
+                          : 'No conversations yet',
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'When you start chatting with someone, it will show up here.',
+                      state.isArchivedMode
+                          ? 'Archived chats will appear here.'
+                          : 'When you start chatting with someone, it will show up here.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white38),
+                      style: const TextStyle(color: Colors.white38),
                     ),
                   ],
                 ),
@@ -174,9 +337,15 @@ class _InboxViewState extends State<_InboxView> {
 
                 final conversation = state.conversations[index];
 
-                return ConversationTile(
-                  conversation: conversation,
-                  onTap: () => widget.onOpenConversation(conversation),
+                return GestureDetector(
+                  onLongPress: () => _showConversationActions(
+                    context,
+                    conversation,
+                  ),
+                  child: ConversationTile(
+                    conversation: conversation,
+                    onTap: () => widget.onOpenConversation(conversation),
+                  ),
                 );
               },
             ),

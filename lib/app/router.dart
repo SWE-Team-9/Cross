@@ -44,11 +44,17 @@ import '../features/library/presentation/pages/library_page.dart';
 import '../features/home/presentation/pages/mock_home_page.dart';
 
 // Project — feed
+import '../features/feed/presentation/pages/feed_page.dart';
 
 // Project — search
 import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
 
-import '../features/feed/presentation/pages/feed_page.dart';
+// Project — messaging
+import '../features/messaging/domain/entities/conversation_entity.dart';
+import '../features/messaging/presentation/pages/chat_thread_loader_page.dart';
+import '../features/messaging/presentation/pages/chat_thread_page.dart';
+import '../features/messaging/presentation/pages/inbox_page.dart';
+import '../features/messaging/presentation/routes/messaging_routes.dart';
 
 class AppRoutes {
   static const String home = '/home';
@@ -64,6 +70,10 @@ class AppRoutes {
   static const String suggestedUsers = '/suggested-users';
   static const String trackManagementDemo = '/track-management-demo';
   static const String player = '/player';
+
+  // ── Messaging ───────────────────────────────────────────────────────────
+  static const String inbox = '/messages';
+  static const String chatThread = '/messages/:conversationId';
 
   // secretTrack MUST be before trackDetail — more specific path first
   static const String secretTrack = '/track/secret/:token';
@@ -206,7 +216,7 @@ GoRouter _createRouter() {
             const NoTransitionPage(child: LibraryPage()),
       ),
 
-      // ── Upload picker ────────────────────────────────────────────────────────
+      // ── Upload picker ───────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.uploadPicker,
         name: 'upload-picker',
@@ -218,7 +228,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Edit profile ─────────────────────────────────────────────────────────
+      // ── Edit profile ────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.editProfile,
         name: 'edit-profile',
@@ -234,7 +244,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Profile ──────────────────────────────────────────────────────────────
+      // ── Profile ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
@@ -247,7 +257,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Followers ────────────────────────────────────────────────────────────
+      // ── Followers ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.followers,
         name: 'followers',
@@ -258,7 +268,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Following ────────────────────────────────────────────────────────────
+      // ── Following ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.following,
         name: 'following',
@@ -269,7 +279,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Suggested users ───────────────────────────────────────────────────────
+      // ── Suggested users ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.suggestedUsers,
         name: 'suggested-users',
@@ -279,7 +289,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track management ─────────────────────────────────────────────────────
+      // ── Track management ────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.trackManagementDemo,
         name: 'track-management',
@@ -296,7 +306,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Full player ──────────────────────────────────────────────────────────
+      // ── Full player ─────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.player,
         name: 'player',
@@ -313,17 +323,19 @@ GoRouter _createRouter() {
               position: Tween<Offset>(
                 begin: const Offset(0, 1),
                 end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              )),
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
               child: child,
             );
           },
         ),
       ),
 
-      // ── Secret track — MUST be before trackDetail ────────────────────────────
+      // ── Secret track — MUST be before trackDetail ──────────────────────────
       GoRoute(
         path: AppRoutes.secretTrack,
         name: 'secret-track',
@@ -342,7 +354,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track detail ─────────────────────────────────────────────────────────
+      // ── Track detail ───────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.trackDetail,
         name: 'track-detail',
@@ -361,7 +373,53 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Playlist ─────────────────────────────────────────────────────────────
+      // ── Messaging ─────────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.inbox,
+        name: 'messages-inbox',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          return MaterialPage(
+            child: InboxPage(
+              onOpenConversation: (conversation) {
+                MessagingRoutes.goToConversation(context, conversation);
+              },
+            ),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: AppRoutes.chatThread,
+        name: 'messages-thread',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final conversationId = state.pathParameters['conversationId'] ?? '';
+          final extra = state.extra;
+
+          if (extra is ConversationEntity) {
+            return MaterialPage(
+              child: ChatThreadPage(
+                conversationId: extra.conversationId,
+                receiverId: extra.participant.id,
+                participantDisplayName: extra.participant.displayName,
+                participantHandle: extra.participant.handle,
+                participantAvatarUrl: extra.participant.avatarUrl,
+                canMessage: extra.canMessage,
+                blockReason: extra.blockReason,
+              ),
+            );
+          }
+
+          return MaterialPage(
+            child: ChatThreadLoaderPage(
+              conversationId: conversationId,
+            ),
+          );
+        },
+      ),
+
+      // ── Playlist ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlist,
         name: 'playlist',
@@ -375,7 +433,7 @@ GoRouter _createRouter() {
       ),
     ],
 
-    // ── 404 fallback ──────────────────────────────────────────────────────────
+    // ── 404 fallback ────────────────────────────────────────────────────────
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: Colors.black,
       body: Center(
@@ -444,8 +502,11 @@ class _PlaceholderPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.construction_outlined,
-                  size: 56, color: Colors.white54),
+              const Icon(
+                Icons.construction_outlined,
+                size: 56,
+                color: Colors.white54,
+              ),
               const SizedBox(height: 16),
               Text(
                 '$title page is not implemented yet.',
