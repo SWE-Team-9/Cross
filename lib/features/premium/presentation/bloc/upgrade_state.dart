@@ -1,3 +1,5 @@
+import 'package:equatable/equatable.dart';
+
 enum UpgradeStatus {
   initial,
   loading,
@@ -5,7 +7,7 @@ enum UpgradeStatus {
   error,
 }
 
-class UpgradeState {
+class UpgradeState extends Equatable {
   final String selectedPlan;
   final UpgradeStatus status;
   final String? errorMessage;
@@ -27,4 +29,7 @@ class UpgradeState {
       errorMessage: errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [selectedPlan, status, errorMessage];
 }
