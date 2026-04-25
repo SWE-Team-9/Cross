@@ -78,8 +78,24 @@ class RecentlyPlayedRemoteDataSourceImpl
           (json['coverArtUrl'] ?? json['cover_art_url'] ?? json['artworkUrl'])
               ?.toString(),
       handle: handle.isEmpty ? null : handle,
+      artistId: (uploaderMap['id'] ??
+              uploaderMap['userId'] ??
+              uploaderMap['user_id'] ??
+              json['artistId'] ??
+              json['artist_id'])
+          ?.toString(),
       likesCount: (json['likesCount'] as int?) ?? 0,
       repostsCount: (json['repostsCount'] as int?) ?? 0,
+      durationMs: _asInt(json['durationMs'] ?? json['duration_ms']),
     );
+  }
+
+  int? _asInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value > 0 ? value : null;
+    if (value is num) return value > 0 ? value.round() : null;
+    final parsed = int.tryParse(value.toString());
+    if (parsed == null || parsed <= 0) return null;
+    return parsed;
   }
 }

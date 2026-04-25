@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 
 import '../../../../core/errors/upload_picker_exceptions.dart';
 import '../../domain/entities/managed_track.dart';
@@ -9,6 +10,8 @@ import '../../domain/usecases/pick_audi_file_usecase.dart';
 import '../../domain/usecases/update_track_visibility_usecase.dart';
 import '../../domain/usecases/watch_track_processing_status_use_case.dart';
 import 'upload_picker_state.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 
 class UploadPickerCubit extends Cubit<UploadPickerState> {
   UploadPickerCubit(
@@ -16,12 +19,16 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
     this._uploadRepository,
     this._watchTrackProcessingStatusUseCase,
     this._updateTrackVisibilityUseCase,
+    this._subscriptionRepository,
+    this._checkUploadLimitUseCase,
   ) : super(const UploadPickerState());
 
   final PickAudioFileUseCase _pickAudioFileUseCase;
   final UploadRepository _uploadRepository;
   final WatchTrackProcessingStatusUseCase _watchTrackProcessingStatusUseCase;
   final UpdateTrackVisibilityUseCase _updateTrackVisibilityUseCase;
+  final SubscriptionRepository _subscriptionRepository;
+  final CheckUploadLimitUseCase _checkUploadLimitUseCase;
 
   Future<void> pickAudioFile() async {
     emit(
@@ -121,6 +128,43 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         state.copyWith(
           status: UploadPickerStatus.failure,
           errorMessage: 'Please enter a track title before uploading.',
+          clearFailureType: true,
+          clearUploadProgress: true,
+          clearUploadedVisibility: true,
+          clearPrivateShareToken: true,
+        ),
+      );
+      return;
+    }
+
+    Subscription subscription;
+
+    try {
+      subscription = await _subscriptionRepository.getMySubscription();
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: UploadPickerStatus.failure,
+          errorMessage: 'Failed to check subscription. Please try again.',
+          clearFailureType: true,
+          clearUploadProgress: true,
+          clearUploadedVisibility: true,
+          clearPrivateShareToken: true,
+        ),
+      );
+      return;
+    }
+
+    final canUpload = _checkUploadLimitUseCase(
+      remainingUploads: subscription.remainingUploads,
+      isPro: subscription.isPro,
+    );
+
+    if (!canUpload) {
+      emit(
+        state.copyWith(
+          status: UploadPickerStatus.failure,
+          errorMessage: 'Upload limit reached. Upgrade to Pro.',
           clearFailureType: true,
           clearUploadProgress: true,
           clearUploadedVisibility: true,

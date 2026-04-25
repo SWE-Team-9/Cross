@@ -53,6 +53,8 @@ class _StubPlayerCubit extends Cubit<PlayerUIState> implements PlayerCubit {
 
   bool toggleCalled = false;
   bool openFullPlayerCalled = false;
+  double? lastVolume;
+  app_player.AppRepeatMode? lastRepeatMode;
 
   @override
   Future<void> togglePlayPause() async => toggleCalled = true;
@@ -82,7 +84,14 @@ class _StubPlayerCubit extends Cubit<PlayerUIState> implements PlayerCubit {
   Future<void> seek(Duration position) async {}
 
   @override
-  Future<void> setVolume(double volume) async {}
+  Future<void> setVolume(double volume) async => lastVolume = volume;
+
+  @override
+  Future<void> setRepeatMode(app_player.AppRepeatMode mode) async =>
+      lastRepeatMode = mode;
+
+  @override
+  Future<void> cycleRepeatMode() async {}
 
   @override
   Future<void> stop() async {}
@@ -188,5 +197,46 @@ void main() {
 
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
     expect(find.byIcon(Icons.pause), findsNothing);
+  });
+
+  testWidgets('repeat button cycles repeat mode without opening an overlay',
+      (tester) async {
+    final cubit = await pump(tester, _withTrack(isPlaying: false));
+
+    await tester.tap(find.byIcon(Icons.repeat_outlined));
+    await tester.pump();
+
+    expect(cubit.lastRepeatMode, app_player.AppRepeatMode.one);
+    expect(find.text('Repeat current track'), findsNothing);
+  });
+
+  testWidgets('volume button mutes and long press opens volume slider',
+      (tester) async {
+    final cubit = await pump(
+      tester,
+      PlayerUIState(
+        playerState: const app_player.PlayerState(
+          status: app_player.PlayerStatus.paused,
+          position: Duration(seconds: 30),
+          duration: Duration(seconds: 120),
+          volume: 0.75,
+        ),
+        currentTrack: _track,
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.volume_up_outlined));
+    await tester.pump();
+
+    expect(cubit.lastVolume, 0.0);
+
+    await tester.longPress(find.byIcon(Icons.volume_up_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Slider), findsOneWidget);
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    slider.onChanged?.call(0.25);
+
+    expect(cubit.lastVolume, 0.25);
   });
 }
