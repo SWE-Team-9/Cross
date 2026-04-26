@@ -84,6 +84,22 @@ import '../../features/interactions/presentation/bloc/engagement_list_cubit.dart
 import '../../features/interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
 import '../../features/interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
 
+// Playlists
+import '../../features/playlists/data/datasources/playlists_remote_data_source.dart';
+import '../../features/playlists/data/repositories/playlists_repository_impl.dart';
+import '../../features/playlists/domain/repositories/playlists_repository.dart';
+import '../../features/playlists/domain/usecases/add_track_to_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/create_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/delete_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/get_my_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/get_playlist_details_usecase.dart';
+import '../../features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
+import '../../features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
+import '../../features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/update_playlist_usecase.dart';
+import '../../features/playlists/presentation/bloc/playlists_cubit.dart';
+
 // Comments
 import '../../features/comments/data/datasources/comments_remote_data_source.dart';
 import '../../features/comments/data/repositories/comments_repository_impl.dart';
@@ -656,6 +672,97 @@ Future<void> setupDependencies() async {
       () => EngagementListCubit(
         getTrackLikersUseCase: getIt<GetTrackLikersUseCase>(),
         getTrackRepostersUseCase: getIt<GetTrackRepostersUseCase>(),
+      ),
+    );
+  }
+
+  // ── Playlists Feature ───────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<PlaylistsRemoteDataSource>()) {
+    getIt.registerLazySingleton<PlaylistsRemoteDataSource>(
+      () => PlaylistsRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<PlaylistsRepository>()) {
+    getIt.registerLazySingleton<PlaylistsRepository>(
+      () => PlaylistsRepositoryImpl(getIt<PlaylistsRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetMyPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetMyPlaylistsUseCase>(
+      () => GetMyPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CreatePlaylistUseCase>()) {
+    getIt.registerLazySingleton<CreatePlaylistUseCase>(
+      () => CreatePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetPlaylistDetailsUseCase>()) {
+    getIt.registerLazySingleton<GetPlaylistDetailsUseCase>(
+      () => GetPlaylistDetailsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UpdatePlaylistUseCase>()) {
+    getIt.registerLazySingleton<UpdatePlaylistUseCase>(
+      () => UpdatePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DeletePlaylistUseCase>()) {
+    getIt.registerLazySingleton<DeletePlaylistUseCase>(
+      () => DeletePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<AddTrackToPlaylistUseCase>()) {
+    getIt.registerLazySingleton<AddTrackToPlaylistUseCase>(
+      () => AddTrackToPlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<RemoveTrackFromPlaylistUseCase>()) {
+    getIt.registerLazySingleton<RemoveTrackFromPlaylistUseCase>(
+      () => RemoveTrackFromPlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ReorderPlaylistTracksUseCase>()) {
+    getIt.registerLazySingleton<ReorderPlaylistTracksUseCase>(
+      () => ReorderPlaylistTracksUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ResolveSecretPlaylistUseCase>()) {
+    getIt.registerLazySingleton<ResolveSecretPlaylistUseCase>(
+      () => ResolveSecretPlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetPlaylistEmbedCodeUseCase>()) {
+    getIt.registerLazySingleton<GetPlaylistEmbedCodeUseCase>(
+      () => GetPlaylistEmbedCodeUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<PlaylistsCubit>()) {
+    getIt.registerFactory<PlaylistsCubit>(
+      () => PlaylistsCubit(
+        getMyPlaylistsUseCase: getIt<GetMyPlaylistsUseCase>(),
+        createPlaylistUseCase: getIt<CreatePlaylistUseCase>(),
+        getPlaylistDetailsUseCase: getIt<GetPlaylistDetailsUseCase>(),
+        updatePlaylistUseCase: getIt<UpdatePlaylistUseCase>(),
+        deletePlaylistUseCase: getIt<DeletePlaylistUseCase>(),
+        addTrackToPlaylistUseCase: getIt<AddTrackToPlaylistUseCase>(),
+        removeTrackFromPlaylistUseCase: getIt<RemoveTrackFromPlaylistUseCase>(),
+        reorderPlaylistTracksUseCase: getIt<ReorderPlaylistTracksUseCase>(),
+        resolveSecretPlaylistUseCase: getIt<ResolveSecretPlaylistUseCase>(),
+        getPlaylistEmbedCodeUseCase: getIt<GetPlaylistEmbedCodeUseCase>(),
       ),
     );
   }
