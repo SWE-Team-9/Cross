@@ -18,6 +18,9 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cu
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 
 // ── Fakes / Mocks ─────────────────────────────────────────────────────────────
 
@@ -92,11 +95,20 @@ Future<void> _pumpApp(
   when(() => authCubit.remainingResendSeconds).thenReturn(0);
 
   await tester.pumpWidget(
-    BlocProvider<AuthCubit>.value(
-      value: authCubit,
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthCubit>.value(value: authCubit),
+
+        // ✅ THIS IS THE MISSING PIECE
+        BlocProvider(
+          create: (_) => SubscriptionCubit(MockSubscriptionRepository())
+            ..loadSubscription(),
+        ),
+      ],
       child: const App(),
     ),
   );
+
   await tester.pump();
 }
 
@@ -106,6 +118,7 @@ void main() {
 
   setUp(() async {
     await GetIt.I.reset();
+
     authCubit = MockAuthCubit();
     mockSocialRepo = MockSocialRepo();
 
@@ -114,12 +127,17 @@ void main() {
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
     GetIt.I.registerLazySingleton<SocialRepo>(() => mockSocialRepo);
 
-    // AuthCubit & PlaybackCubit are created via getIt inside App —
-    // register factories that return the mocks
+    // ✅ ADD THIS
+    GetIt.I.registerLazySingleton<SubscriptionRepository>(
+      () => MockSubscriptionRepository(),
+    );
+
     GetIt.I.registerFactory<AuthCubit>(() => authCubit);
+
     GetIt.I.registerLazySingleton<PlaybackCubit>(
       () => PlaybackCubit(GetIt.I<AudioPlayerService>()),
     );
+
     GetIt.I.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(GetIt.I<AudioPlayerService>()),
     );
@@ -228,8 +246,14 @@ void main() {
       when(() => authCubit.checkAuthStatus()).thenAnswer((_) async {});
 
       await tester.pumpWidget(
-        BlocProvider<AuthCubit>.value(
-          value: authCubit,
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthCubit>.value(value: authCubit),
+            BlocProvider(
+              create: (_) => SubscriptionCubit(MockSubscriptionRepository())
+                ..loadSubscription(),
+            ),
+          ],
           child: const App(),
         ),
       );

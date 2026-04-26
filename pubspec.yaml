@@ -57,6 +57,9 @@ dependencies:
   audio_session: ^0.1.16
   video_player: ^2.10.0
 
+  #Release:
+  package_info_plus: ^8.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

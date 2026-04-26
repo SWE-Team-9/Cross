@@ -53,6 +53,9 @@ import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_
 
 import '../features/feed/presentation/pages/feed_page.dart';
 
+// Project - premium
+import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
+
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
@@ -203,7 +206,7 @@ GoRouter _createRouter() {
         path: AppRoutes.upgrade,
         name: 'upgrade',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: _PlaceholderPage(title: 'Upgrade'),
+          child: const UpgradePage(),
         ),
       ),
 

@@ -14,6 +14,8 @@ import 'package:soundcloud_clone/features/home/presentation/pages/mock_home_page
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 
 // ─── Fakes & Mocks ────────────────────────────────────────────────────────────
 
@@ -91,6 +93,9 @@ Widget _buildApp(MockAuthCubit authCubit) {
             BlocProvider<AuthCubit>.value(value: authCubit),
             BlocProvider<PlayerCubit>(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+            ),
+            BlocProvider(
+              create: (_) => SubscriptionCubit(MockSubscriptionRepository()),
             ),
           ],
           child: const MockHomePage(),
