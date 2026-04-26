@@ -19,8 +19,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       final models = await _remote.getNotifications(page: page, limit: limit);
       return NotificationsResult.success(models);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -29,8 +33,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       final count = await _remote.getUnreadCount();
       return NotificationsResult.success(count);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -39,8 +47,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       await _remote.markAsRead(notificationId);
       return const NotificationsResult.success(null);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -49,8 +61,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       await _remote.markAllAsRead();
       return const NotificationsResult.success(null);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -61,8 +77,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       await _remote.deleteNotification(notificationId);
       return const NotificationsResult.success(null);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -72,8 +92,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       final model = await _remote.getPreferences();
       return NotificationsResult.success(model);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -92,8 +116,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       );
       await _remote.updatePreferences(model);
       return const NotificationsResult.success(null);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -108,8 +136,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
         platform: platform,
       );
       return const NotificationsResult.success(null);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -118,8 +150,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       await _remote.removeDevice(deviceId);
       return const NotificationsResult.success(null);
+    } on Failure catch (f) {
+      return NotificationsResult.failure(f);
     } catch (e) {
-      return NotificationsResult.failure(ServerFailure(e.toString()));
+      return NotificationsResult.failure(
+        const ServerFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
