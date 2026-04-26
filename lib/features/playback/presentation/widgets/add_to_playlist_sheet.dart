@@ -70,16 +70,10 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
           title: result.title,
           description: result.description,
           visibility: result.visibility,
+          initialTrackIds: [widget.track.id],
         );
 
     if (!mounted || playlist == null) return;
-
-    final added = await context.read<PlaylistsCubit>().addTrackToPlaylist(
-          playlistId: playlist.playlistId,
-          track: widget.track,
-        );
-
-    if (!mounted || !added) return;
 
     Navigator.pop(context);
 
@@ -90,7 +84,7 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         content: Text(
-          'Created "${playlist.title}" and added track',
+          'Created "${playlist.title}" with "${widget.track.title}"',
           style: const TextStyle(color: Colors.white),
         ),
       ),

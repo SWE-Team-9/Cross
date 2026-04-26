@@ -101,9 +101,14 @@ void main() {
         title: 'Coverage Playlist',
         description: '',
         visibility: PlaylistVisibility.publicPlaylist,
+        initialTrackIds: const <String>['coverage-track-1'],
       ),
     ).thenAnswer(
-      (_) async => _playlist(id: 'pl_new', title: 'Coverage Playlist'),
+      (_) async => _playlist(
+        id: 'pl_new',
+        title: 'Coverage Playlist',
+        tracks: const <Track>[track],
+      ),
     );
 
     getIt.registerFactory<PlaylistsCubit>(() => playlistsCubit);
@@ -153,7 +158,8 @@ void main() {
       expect(find.byIcon(Icons.check), findsOneWidget);
     });
 
-    testWidgets('creates a new playlist and adds the track', (tester) async {
+    testWidgets('creates a new playlist with the selected track',
+        (tester) async {
       await tester.pumpWidget(
         buildHost(buttonLabel: 'open create'),
       );
@@ -171,21 +177,22 @@ void main() {
       await tester.tap(find.text('Create'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Created "Coverage Playlist" and added track'),
+      expect(find.text('Created "Coverage Playlist" with "Song 1"'),
           findsOneWidget);
       verify(
         () => playlistsCubit.createPlaylist(
           title: 'Coverage Playlist',
           description: '',
           visibility: PlaylistVisibility.publicPlaylist,
+          initialTrackIds: const <String>['coverage-track-1'],
         ),
       ).called(1);
-      verify(
+      verifyNever(
         () => playlistsCubit.addTrackToPlaylist(
-          playlistId: 'pl_new',
-          track: track,
+          playlistId: any(named: 'playlistId'),
+          track: any(named: 'track'),
         ),
-      ).called(1);
+      );
 
       await tester.tap(find.text('open create'));
       await tester.pumpAndSettle();

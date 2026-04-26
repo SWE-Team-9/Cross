@@ -5,6 +5,7 @@ import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_ent
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/widgets/playlist_editor_sheet.dart';
+import 'package:soundcloud_clone/features/playlists/presentation/widgets/playlist_track_picker_sheet.dart';
 
 class PlaylistsPage extends StatefulWidget {
   const PlaylistsPage({super.key});
@@ -23,6 +24,7 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
   }
 
   Future<void> _createPlaylist() async {
+    final existingTitles = context.read<PlaylistsCubit>().state.playlists;
     final result = await PlaylistEditorSheet.show(
       context,
       title: 'Create playlist',
@@ -31,15 +33,43 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
 
     if (!mounted || result == null) return;
 
+    final duplicate = existingTitles.any(
+      (playlist) => _samePlaylistTitle(playlist.title, result.title),
+    );
+    if (duplicate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('A playlist with this name already exists')),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Choose tracks for this playlist')),
+    );
+
+    final selectedTracks = await PlaylistTrackPickerSheet.show(
+      context,
+      existingTrackIds: const <String>{},
+    );
+
+    if (!mounted || selectedTracks.isEmpty) return;
+
     final created = await context.read<PlaylistsCubit>().createPlaylist(
           title: result.title,
           description: result.description,
           visibility: result.visibility,
+          initialTrackIds:
+              selectedTracks.map((track) => track.id).toList(growable: false),
         );
 
     if (!mounted || created == null) return;
 
     context.push('/playlist/${created.playlistId}');
+  }
+
+  bool _samePlaylistTitle(String left, String right) {
+    return left.trim().toLowerCase() == right.trim().toLowerCase();
   }
 
   @override

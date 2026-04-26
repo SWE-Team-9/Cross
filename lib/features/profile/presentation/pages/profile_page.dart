@@ -13,6 +13,8 @@ import '../../../../core/utils/platform_url_utils.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
+import '../../../playlists/domain/entities/playlist_entity.dart';
+import '../../../playlists/domain/repositories/playlists_repository.dart';
 import '../../../social/data/repositories/social_repo.dart';
 import '../../../social/domain/events/social_events.dart';
 import '../../../upload/domain/entities/managed_track.dart';
@@ -81,6 +83,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _repostedTracks = const <ManagedTrack>[];
+  Future<List<PlaylistEntity>>? _profilePlaylistsFuture;
 
   bool get _isOwnProfile {
     final authState = context.read<AuthCubit>().state;
@@ -643,7 +646,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             children: [
               _buildLikedTracksTab(),
               _buildTracksTab(),
-              _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet'),
+              _buildPlaylistsTab(),
               _buildRepostedTracksTab(),
             ],
           ),
@@ -694,6 +697,83 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       emptyIcon: Icons.repeat,
       emptyMessage: 'No reposts yet',
       onPlayTap: _playTrack,
+    );
+  }
+
+  Widget _buildPlaylistsTab() {
+    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+      return _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet');
+    }
+
+    _profilePlaylistsFuture ??=
+        getIt<PlaylistsRepository>().getMyPlaylists(limit: 100);
+
+    return FutureBuilder<List<PlaylistEntity>>(
+      future: _profilePlaylistsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final playlists = snapshot.data ?? const <PlaylistEntity>[];
+        if (playlists.isEmpty) {
+          return _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet');
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            final next = getIt<PlaylistsRepository>().getMyPlaylists(
+              limit: 100,
+            );
+            setState(() {
+              _profilePlaylistsFuture = next;
+            });
+            await next;
+          },
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: playlists.length,
+            separatorBuilder: (_, __) => const Divider(
+              color: Colors.white12,
+              height: 1,
+            ),
+            itemBuilder: (context, index) {
+              final playlist = playlists[index];
+              return ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1C1C),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    playlist.visibility.isSecret
+                        ? Icons.lock_outline
+                        : Icons.queue_music,
+                    color: const Color(0xFFFF5500),
+                  ),
+                ),
+                title: Text(
+                  playlist.title,
+                  style: const TextStyle(color: Colors.white),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  '${playlist.tracksCount} tracks',
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+                trailing: const Icon(
+                  Icons.chevron_right,
+                  color: Colors.white54,
+                ),
+                onTap: () => context.push('/playlist/${playlist.playlistId}'),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

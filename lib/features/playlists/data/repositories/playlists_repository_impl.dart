@@ -22,11 +22,13 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
     required String title,
     required String description,
     required PlaylistVisibility visibility,
+    List<String> initialTrackIds = const <String>[],
   }) async {
     final dto = await remoteDataSource.createPlaylist(
       title: title,
       description: description,
       visibility: visibility,
+      initialTrackIds: initialTrackIds,
     );
     return dto.toEntity();
   }

@@ -10,6 +10,7 @@ abstract class PlaylistsRepository {
     required String title,
     required String description,
     required PlaylistVisibility visibility,
+    List<String> initialTrackIds = const <String>[],
   });
 
   Future<PlaylistEntity> getPlaylistDetails(String playlistId);
