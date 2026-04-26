@@ -32,6 +32,17 @@ class NotificationPreferencesSheet extends StatelessWidget {
         child: BlocBuilder<NotificationPreferencesBloc, NotificationPreferencesState>(
           builder: (context, state) {
             final prefs = state.preferences;
+            if (state.isLoading && !state.isSaving) {
+              return const SizedBox(
+                height: 220,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: _NotificationPrefsColors.orange,
+                  ),
+                ),
+              );
+            }
+
             return SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,12 +88,12 @@ class NotificationPreferencesSheet extends StatelessWidget {
                   _PrefSwitchTile(
                     label: 'Push notifications',
                     value: prefs.pushEnabled,
-                    onChanged: (v) => _toggle(context, 'push', v),
+                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'push', v),
                   ),
                   _PrefSwitchTile(
                     label: 'Email notifications',
                     value: prefs.emailEnabled,
-                    onChanged: (v) => _toggle(context, 'email', v),
+                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'email', v),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
@@ -91,22 +102,22 @@ class NotificationPreferencesSheet extends StatelessWidget {
                   _PrefSwitchTile(
                     label: 'Likes',
                     value: prefs.likesEnabled,
-                    onChanged: (v) => _toggle(context, 'likes', v),
+                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'likes', v),
                   ),
                   _PrefSwitchTile(
                     label: 'Comments',
                     value: prefs.commentsEnabled,
-                    onChanged: (v) => _toggle(context, 'comments', v),
+                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'comments', v),
                   ),
                   _PrefSwitchTile(
                     label: 'Follows',
                     value: prefs.followsEnabled,
-                    onChanged: (v) => _toggle(context, 'follows', v),
+                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'follows', v),
                   ),
                   _PrefSwitchTile(
                     label: 'Reposts',
                     value: prefs.repostsEnabled,
-                    onChanged: (v) => _toggle(context, 'reposts', v),
+                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'reposts', v),
                   ),
                 ],
               ),
@@ -127,7 +138,7 @@ class NotificationPreferencesSheet extends StatelessWidget {
 class _PrefSwitchTile extends StatelessWidget {
   final String label;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   const _PrefSwitchTile({
     required this.label,

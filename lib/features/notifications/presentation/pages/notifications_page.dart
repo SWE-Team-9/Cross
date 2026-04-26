@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
+import 'package:soundcloud_clone/features/notifications/domain/entities/notification_preferences_entity.dart';
 import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
@@ -153,11 +154,15 @@ class _NotificationList extends StatelessWidget {
   Widget build(BuildContext context) {
     final notifications = switch (state) {
       NotificationsLoaded(notifications: final n) => n,
-      // NotificationsLoadingMore(notifications: final n) => n,
       _ => const <NotificationEntity>[],
     };
 
-    if (notifications.isEmpty) {
+    final preferences = context.watch<NotificationPreferencesBloc>().state.preferences;
+    final filteredNotifications = notifications
+        .where((notification) => _passesTypeFilter(notification, preferences))
+        .toList(growable: false);
+
+    if (filteredNotifications.isEmpty) {
       return const _EmptyView();
     }
 
@@ -169,17 +174,17 @@ class _NotificationList extends StatelessWidget {
       child: ListView.separated(
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: notifications.length + (state is NotificationsLoadingMore ? 1 : 0),
+        itemCount: filteredNotifications.length + (state is NotificationsLoadingMore ? 1 : 0),
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          if (index == notifications.length) {
+          if (index == filteredNotifications.length) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 32),
               child: Center(child: CircularProgressIndicator(color: SoundCloudColors.orange)),
             );
           }
 
-          final notification = notifications[index];
+          final notification = filteredNotifications[index];
           return NotificationCard(
             notification: notification,
             onTap: () async {
@@ -193,6 +198,19 @@ class _NotificationList extends StatelessWidget {
         },
       ),
     );
+  }
+
+  bool _passesTypeFilter(
+    NotificationEntity notification,
+    NotificationPreferencesEntity preferences,
+  ) {
+    return switch (notification.type) {
+      NotificationType.like => preferences.likesEnabled,
+      NotificationType.comment => preferences.commentsEnabled,
+      NotificationType.follow => preferences.followsEnabled,
+      NotificationType.repost => preferences.repostsEnabled,
+      NotificationType.unknown => true,
+    };
   }
 
   Future<void> _navigateToContent(

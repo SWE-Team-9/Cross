@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/failure_message_mapper.dart';
 import '../../domain/entities/notification_preferences_entity.dart';
 import '../../domain/usecases/notification_preferences_use_cases.dart';
-// Ensure this import points to your NotificationsResult file
-import '../../domain/entities/notifications_result.dart'; 
+import '../../domain/entities/notifications_result.dart';
 
 abstract class NotificationPreferencesEvent extends Equatable {
   const NotificationPreferencesEvent();
@@ -115,10 +115,21 @@ class NotificationPreferencesBloc
         );
       case NotificationsFailure(failure: final f):
         emit(
-          state.copyWith(isLoading: false, error: f.message),
+          state.copyWith(
+            isLoading: false,
+            error: FailureMessageMapper.toUserMessage(
+              f,
+              fallback: 'Unable to load preferences right now. Please try again.',
+            ),
+          ),
         );
       default:
-        emit(state.copyWith(isLoading: false, error: 'Unexpected error'));
+        emit(
+          state.copyWith(
+            isLoading: false,
+            error: 'Unable to load preferences right now. Please try again.',
+          ),
+        );
     }
   }
 
@@ -139,7 +150,19 @@ class NotificationPreferencesBloc
     };
 
     emit(state.copyWith(preferences: updated, clearError: true));
-    add(SavePreferences(updated));
+
+    // Type toggles are used as in-app filtering controls.
+    // Persist only delivery-channel preferences to backend.
+    if (_requiresRemoteSave(event.key)) {
+      add(SavePreferences(updated));
+    }
+  }
+
+  bool _requiresRemoteSave(String key) {
+    return switch (key) {
+      'push' || 'email' => true,
+      _ => false,
+    };
   }
 
   Future<void> _onSavePreferences(
@@ -155,9 +178,22 @@ class NotificationPreferencesBloc
       case NotificationsSuccess():
         emit(state.copyWith(isSaving: false, clearError: true));
       case NotificationsFailure(failure: final f):
-        emit(state.copyWith(isSaving: false, error: f.message));
+        emit(
+          state.copyWith(
+            isSaving: false,
+            error: FailureMessageMapper.toUserMessage(
+              f,
+              fallback: 'Unable to save preferences right now. Please try again.',
+            ),
+          ),
+        );
       default:
-        emit(state.copyWith(isSaving: false, error: 'Failed to save preferences'));
+        emit(
+          state.copyWith(
+            isSaving: false,
+            error: 'Unable to save preferences right now. Please try again.',
+          ),
+        );
     }
   }
 }
