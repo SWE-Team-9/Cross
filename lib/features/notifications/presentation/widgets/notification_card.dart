@@ -31,7 +31,7 @@ class NotificationCard extends StatelessWidget {
         child: Container(
           color: notification.isRead
               ? Colors.transparent
-              : Theme.of(context).colorScheme.primary.withOpacity(0.08),
+              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,12 +55,10 @@ class NotificationCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       _relativeTime(notification.createdAt),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                          ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFFB3B3B3),
+                          fontWeight: FontWeight.w500,
+                        ),
                     ),
                   ],
                 ),
@@ -111,7 +109,7 @@ class _NotificationTypeIcon extends StatelessWidget {
 
     return CircleAvatar(
       radius: 16,
-      backgroundColor: color.withOpacity(0.15),
+      backgroundColor: color.withValues(alpha: 0.15),
       child: Icon(icon, size: 18, color: color),
     );
   }

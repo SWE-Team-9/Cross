@@ -3,6 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/notification_preferences_bloc.dart';
 
+class _NotificationPrefsColors {
+  static const orange = Color(0xFFFF5500);
+  static const deepBlack = Color(0xFF111111);
+  static const darkGrey = Color(0xFF222222);
+}
+
 class NotificationPreferencesSheet extends StatelessWidget {
   const NotificationPreferencesSheet({super.key});
 
@@ -10,6 +16,10 @@ class NotificationPreferencesSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: _NotificationPrefsColors.deepBlack,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (_) => const NotificationPreferencesSheet(),
     );
   }
@@ -18,9 +28,8 @@ class NotificationPreferencesSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-        child: BlocBuilder<NotificationPreferencesBloc,
-            NotificationPreferencesState>(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+        child: BlocBuilder<NotificationPreferencesBloc, NotificationPreferencesState>(
           builder: (context, state) {
             final prefs = state.preferences;
             return SingleChildScrollView(
@@ -33,8 +42,11 @@ class NotificationPreferencesSheet extends StatelessWidget {
                       const Text(
                         'Notification Preferences',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Inter',
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
                         ),
                       ),
                       const Spacer(),
@@ -42,18 +54,24 @@ class NotificationPreferencesSheet extends StatelessWidget {
                         const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: _NotificationPrefsColors.orange,
+                          ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 24),
                   if (state.error != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
                         state.error!,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.error),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          color: _NotificationPrefsColors.orange,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   _PrefSwitchTile(
@@ -66,7 +84,10 @@ class NotificationPreferencesSheet extends StatelessWidget {
                     value: prefs.emailEnabled,
                     onChanged: (v) => _toggle(context, 'email', v),
                   ),
-                  const Divider(height: 18),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(color: _NotificationPrefsColors.darkGrey),
+                  ),
                   _PrefSwitchTile(
                     label: 'Likes',
                     value: prefs.likesEnabled,
@@ -118,8 +139,18 @@ class _PrefSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return SwitchListTile.adaptive(
       value: value,
+      activeThumbColor: _NotificationPrefsColors.orange,
+      activeTrackColor: _NotificationPrefsColors.orange.withValues(alpha: 0.5),
       contentPadding: EdgeInsets.zero,
-      title: Text(label),
+      title: Text(
+        label,
+        style: const TextStyle(
+          fontFamily: 'Inter',
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       onChanged: onChanged,
     );
   }
