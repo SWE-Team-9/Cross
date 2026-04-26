@@ -15,6 +15,61 @@ void main() {
     dataSource = PlaylistTrackSearchRemoteDataSource(dioClient);
   });
 
+  group('getMyTracks', () {
+    test('resolves current user id and parses track payload', () async {
+      when(() => dioClient.get('/api/v1/auth/me')).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/auth/me'),
+          data: {
+            'user': {'id': 'user-1'},
+          },
+        ),
+      );
+      when(() => dioClient.get(
+            '/api/v1/users/user-1/tracks',
+            queryParameters: {'page': 1, 'limit': 50},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/users/user-1/tracks'),
+          data: {
+            'tracks': [
+              {
+                'trackId': 'trk_mine',
+                'title': 'My Upload',
+                'artistName': 'Ali',
+              },
+            ],
+          },
+        ),
+      );
+
+      final result = await dataSource.getMyTracks();
+
+      expect(result, hasLength(1));
+      expect(result.first.id, 'trk_mine');
+      expect(result.first.title, 'My Upload');
+      expect(result.first.artist, 'Ali');
+    });
+
+    test('uses provided user id without calling current user endpoint',
+        () async {
+      when(() => dioClient.get(
+            '/api/v1/users/user-2/tracks',
+            queryParameters: {'page': 1, 'limit': 50},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/users/user-2/tracks'),
+          data: const {'tracks': <dynamic>[]},
+        ),
+      );
+
+      final result = await dataSource.getMyTracks(userId: 'user-2');
+
+      expect(result, isEmpty);
+      verifyNever(() => dioClient.get('/api/v1/auth/me'));
+    });
+  });
+
   group('searchTracks', () {
     test('returns empty list for blank query and avoids network call',
         () async {

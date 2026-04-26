@@ -72,8 +72,19 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     required String title,
     required String description,
     required PlaylistVisibility visibility,
+    List<String> initialTrackIds = const <String>[],
   }) async {
     if (state.isSubmitting) return null;
+
+    if (_titleExists(title)) {
+      emit(
+        state.copyWith(
+          errorMessage: 'A playlist with this name already exists',
+          clearInfo: true,
+        ),
+      );
+      return null;
+    }
 
     emit(
       state.copyWith(
@@ -88,6 +99,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         title: title,
         description: description,
         visibility: visibility,
+        initialTrackIds: initialTrackIds,
       );
 
       final nextPlaylists = <PlaylistEntity>[created, ...state.playlists];
@@ -149,6 +161,16 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     PlaylistVisibility? visibility,
   }) async {
     if (state.isSubmitting) return;
+
+    if (title != null && _titleExists(title, excludingPlaylistId: playlistId)) {
+      emit(
+        state.copyWith(
+          errorMessage: 'A playlist with this name already exists',
+          clearInfo: true,
+        ),
+      );
+      return;
+    }
 
     emit(
       state.copyWith(
@@ -348,6 +370,30 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         trackId: trackId,
       );
 
+      final shouldDeletePlaylist = selected != null &&
+          selected.playlistId == playlistId &&
+          existingTracks != null &&
+          existingTracks.length <= 1;
+
+      if (shouldDeletePlaylist) {
+        await deletePlaylistUseCase(playlistId);
+
+        final updated = state.playlists
+            .where((playlist) => playlist.playlistId != playlistId)
+            .toList(growable: false);
+
+        emit(
+          state.copyWith(
+            isSubmitting: false,
+            playlists: updated,
+            clearSelectedPlaylist: true,
+            infoMessage: 'Playlist deleted',
+            clearError: true,
+          ),
+        );
+        return;
+      }
+
       final nextPlaylists = state.playlists.map((playlist) {
         if (playlist.playlistId != playlistId) return playlist;
         return playlist.copyWith(
@@ -509,4 +555,16 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     next[index] = playlist;
     return next;
   }
+
+  bool _titleExists(String title, {String? excludingPlaylistId}) {
+    final normalized = _normalizeTitle(title);
+    if (normalized.isEmpty) return false;
+
+    return state.playlists.any((playlist) {
+      if (playlist.playlistId == excludingPlaylistId) return false;
+      return _normalizeTitle(playlist.title) == normalized;
+    });
+  }
+
+  String _normalizeTitle(String title) => title.trim().toLowerCase();
 }

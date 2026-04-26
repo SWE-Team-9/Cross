@@ -75,7 +75,8 @@ void main() {
             data: {
               'title': 'Focus Mix',
               'description': 'Coding tracks',
-              'visibility': 'PRIVATE',
+              'visibility': 'SECRET',
+              'trackIds': ['trk_1'],
             },
           )).thenAnswer(
         (_) async => Response<dynamic>(
@@ -84,7 +85,7 @@ void main() {
             'playlistId': 'pl_101',
             'title': 'Focus Mix',
             'description': 'Coding tracks',
-            'visibility': 'PRIVATE',
+            'visibility': 'SECRET',
             'secretToken': 'sec_abc',
           },
         ),
@@ -94,6 +95,7 @@ void main() {
         title: 'Focus Mix',
         description: 'Coding tracks',
         visibility: PlaylistVisibility.privatePlaylist,
+        initialTrackIds: ['trk_1'],
       );
 
       expect(result.playlistId, 'pl_101');
@@ -117,6 +119,41 @@ void main() {
       expect(result.playlistId, 'pl_7');
       expect(result.title, 'Road Trip');
     });
+
+    test(
+      'parses owner-only secret token from documented details payload',
+      () async {
+        when(() => dioClient.get('/api/v1/playlists/pl_secret')).thenAnswer(
+          (_) async => Response<dynamic>(
+            requestOptions:
+                RequestOptions(path: '/api/v1/playlists/pl_secret'),
+            data: <String, dynamic>{
+              'data': <String, dynamic>{
+                'playlistId': 'pl_secret',
+                'title': 'Vibes',
+                'description': 'My favorite chill tracks',
+                'visibility': 'SECRET',
+                'secretToken': '2e8b35f8-98d2-4f78-8899-b5fb688d809a',
+                'owner': <String, dynamic>{
+                  'id': 'owner_1',
+                  'displayName': 'Menna',
+                },
+                'tracks': <dynamic>[],
+              },
+            },
+          ),
+        );
+
+        final result = await dataSource.getPlaylistDetails('pl_secret');
+
+        expect(result.playlistId, 'pl_secret');
+        expect(result.visibility, PlaylistVisibility.privatePlaylist);
+        expect(result.secretToken, '2e8b35f8-98d2-4f78-8899-b5fb688d809a');
+        expect(result.owner?.id, 'owner_1');
+        expect(result.owner?.displayName, 'Menna');
+        expect(result.tracks, isEmpty);
+      },
+    );
   });
 
   group('update/delete and track actions', () {
@@ -126,7 +163,7 @@ void main() {
             '/api/v1/playlists/pl_10',
             data: {
               'title': 'Updated',
-              'visibility': 'PRIVATE',
+              'visibility': 'SECRET',
             },
           )).thenAnswer(
         (_) async => Response<dynamic>(
@@ -145,7 +182,7 @@ void main() {
             '/api/v1/playlists/pl_10',
             data: {
               'title': 'Updated',
-              'visibility': 'PRIVATE',
+              'visibility': 'SECRET',
             },
           )).called(1);
     });

@@ -9,6 +9,38 @@ class PlaylistTrackSearchRemoteDataSource {
 
   PlaylistTrackSearchRemoteDataSource(this.dioClient);
 
+  Future<List<Track>> getMyTracks({
+    String? userId,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final resolvedUserId = userId?.trim().isNotEmpty == true
+        ? userId!.trim()
+        : await _getCurrentUserId();
+
+    if (resolvedUserId.isEmpty) return const <Track>[];
+
+    final response = await dioClient.get(
+      ApiConstants.userTracksPath(resolvedUserId),
+      queryParameters: {
+        'page': page,
+        'limit': limit,
+      },
+    );
+
+    return _parseTrackResponse(response.data);
+  }
+
+  Future<String> _getCurrentUserId() async {
+    final response = await dioClient.get(ApiConstants.currentUser);
+    final payload = _decode(response.data);
+    final user = _extractUserMap(payload);
+
+    return _asString(
+      user['id'] ?? user['userId'] ?? user['user_id'] ?? user['sub'],
+    );
+  }
+
   Future<List<Track>> searchTracks(
     String query, {
     int limit = 25,
@@ -41,7 +73,11 @@ class PlaylistTrackSearchRemoteDataSource {
       queryParameters: params,
     );
 
-    final payload = _decode(response.data);
+    return _parseTrackResponse(response.data);
+  }
+
+  List<Track> _parseTrackResponse(dynamic responseData) {
+    final payload = _decode(responseData);
     final list = _extractTrackList(payload);
 
     final tracks = list
@@ -81,6 +117,24 @@ class PlaylistTrackSearchRemoteDataSource {
     }
 
     return const <dynamic>[];
+  }
+
+  Map<String, dynamic> _extractUserMap(dynamic payload) {
+    if (payload is Map<String, dynamic>) {
+      final user = payload['user'];
+      if (user is Map) return _asMap(user);
+
+      final data = payload['data'];
+      if (data is Map<String, dynamic>) {
+        final nestedUser = data['user'];
+        if (nestedUser is Map) return _asMap(nestedUser);
+        return data;
+      }
+
+      return payload;
+    }
+
+    return <String, dynamic>{};
   }
 
   Track? _parseTrack(Map<String, dynamic> json) {

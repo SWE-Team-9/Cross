@@ -11,7 +11,7 @@ extension PlaylistVisibilityX on PlaylistVisibility {
       case PlaylistVisibility.publicPlaylist:
         return 'PUBLIC';
       case PlaylistVisibility.privatePlaylist:
-        return 'PRIVATE';
+        return 'SECRET';
     }
   }
 

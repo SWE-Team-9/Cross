@@ -44,12 +44,13 @@ class MockGetPlaylistEmbedCodeUseCase extends Mock
 
 PlaylistEntity _playlist({
   String id = 'pl_1',
+  String? title,
   List<Track> tracks = const <Track>[],
   int? count,
 }) {
   return PlaylistEntity(
     playlistId: id,
-    title: 'Playlist $id',
+    title: title ?? 'Playlist $id',
     description: 'desc',
     visibility: PlaylistVisibility.publicPlaylist,
     secretToken: null,
@@ -155,6 +156,7 @@ void main() {
             title: 'Focus',
             description: 'Coding',
             visibility: PlaylistVisibility.privatePlaylist,
+            initialTrackIds: const <String>[],
           ),
         ).thenAnswer(
           (_) async => _playlist(id: 'pl_new', count: 0),
@@ -185,6 +187,7 @@ void main() {
           title: 'Focus',
           description: 'Coding',
           visibility: PlaylistVisibility.privatePlaylist,
+          initialTrackIds: const <String>[],
         ),
       ).thenThrow(Exception('create failed'));
 
@@ -198,6 +201,26 @@ void main() {
       expect(created, isNull);
       expect(cubit.state.errorMessage, contains('create failed'));
     });
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'createPlaylist rejects duplicate title',
+      build: buildCubit,
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1', title: 'Focus')],
+      ),
+      act: (cubit) => cubit.createPlaylist(
+        title: ' focus ',
+        description: 'Coding',
+        visibility: PlaylistVisibility.publicPlaylist,
+      ),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.errorMessage, 'error', contains('already exists')),
+      ],
+      verify: (_) {
+        verifyZeroInteractions(create);
+      },
+    );
 
     blocTest<PlaylistsCubit, PlaylistsState>(
       'addTrackToPlaylist updates list count and tracks',
@@ -358,6 +381,28 @@ void main() {
     });
 
     blocTest<PlaylistsCubit, PlaylistsState>(
+      'updatePlaylist rejects duplicate title',
+      build: buildCubit,
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [
+          _playlist(id: 'pl_1', title: 'Focus'),
+          _playlist(id: 'pl_2', title: 'Chill'),
+        ],
+      ),
+      act: (cubit) => cubit.updatePlaylist(
+        playlistId: 'pl_2',
+        title: ' focus ',
+      ),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.errorMessage, 'error', contains('already exists')),
+      ],
+      verify: (_) {
+        verifyZeroInteractions(update);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
       'deletePlaylist removes entry and clears selected playlist',
       build: () {
         when(() => del('pl_1')).thenAnswer((_) async {});
@@ -461,6 +506,46 @@ void main() {
                 (s) => s.selectedPlaylist?.tracks.length, 'rolled back len', 2)
             .having((s) => s.errorMessage, 'error', contains('remove failed')),
       ],
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'removeTrackFromPlaylist deletes playlist when last track is removed',
+      build: () {
+        when(
+          () => removeTrack(
+            playlistId: 'pl_1',
+            trackId: 'trk_1',
+          ),
+        ).thenAnswer((_) async {});
+        when(() => del('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      seed: () {
+        final t1 = _track(id: 'trk_1');
+        final selected = _playlist(id: 'pl_1', tracks: [t1], count: 1);
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: selected,
+          playlists: [selected],
+        );
+      },
+      act: (cubit) => cubit.removeTrackFromPlaylist(
+        playlistId: 'pl_1',
+        trackId: 'trk_1',
+      ),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+                (s) => s.selectedPlaylist?.tracks.length, 'optimistic len', 0),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having((s) => s.playlists, 'playlists', isEmpty)
+            .having((s) => s.selectedPlaylist, 'selected', isNull)
+            .having((s) => s.infoMessage, 'info', 'Playlist deleted'),
+      ],
+      verify: (_) {
+        verify(() => del('pl_1')).called(1);
+      },
     );
 
     blocTest<PlaylistsCubit, PlaylistsState>(

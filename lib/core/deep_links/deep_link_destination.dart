@@ -26,6 +26,12 @@ final class PlaylistDeepLink extends DeepLinkDestination {
   final String playlistId;
 }
 
+final class SecretPlaylistDeepLink extends DeepLinkDestination {
+  const SecretPlaylistDeepLink({required this.secretToken});
+
+  final String secretToken;
+}
+
 final class SearchDeepLink extends DeepLinkDestination {
   const SearchDeepLink({required this.query});
 

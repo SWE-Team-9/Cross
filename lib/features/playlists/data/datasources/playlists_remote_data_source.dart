@@ -15,6 +15,7 @@ abstract class PlaylistsRemoteDataSource {
     required String title,
     required String description,
     required PlaylistVisibility visibility,
+    List<String> initialTrackIds = const <String>[],
   });
 
   Future<PlaylistDto> getPlaylistDetails(String playlistId);
@@ -91,6 +92,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     required String title,
     required String description,
     required PlaylistVisibility visibility,
+    List<String> initialTrackIds = const <String>[],
   }) async {
     final response = await dioClient.post(
       ApiConstants.playlistsBase,
@@ -98,6 +100,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
         'title': title,
         'description': description,
         'visibility': visibility.apiValue,
+        'trackIds': initialTrackIds,
       },
     );
 
