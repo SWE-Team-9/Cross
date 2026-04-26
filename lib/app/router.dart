@@ -81,6 +81,7 @@ String _trackPath(String trackId) => '/track/$trackId';
 String _secretPath(String token) => '/track/secret/$token';
 String _profilePath(String handle) => '/profile/$handle';
 String _playlistPath(String id) => '/playlist/$id';
+String _secretPlaylistPath(String token) => '/playlist/secret/$token';
 String _searchPath(String query) => '/search?q=$query';
 
 void _handleDeepLinkDestination(
@@ -102,6 +103,9 @@ void _handleDeepLinkDestination(
 
     case PlaylistDeepLink(:final playlistId):
       path = _playlistPath(playlistId);
+
+    case SecretPlaylistDeepLink(:final secretToken):
+      path = _secretPlaylistPath(secretToken);
 
     case SearchDeepLink(:final query):
       path = _searchPath(query);

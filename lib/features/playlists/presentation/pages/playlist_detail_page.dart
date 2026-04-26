@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
@@ -99,7 +98,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
   }
 
   Future<void> _copySecretLink(String token) async {
-    final link = '${ApiConstants.baseUrl}/api/v1/playlists/secret/$token';
+    final link = 'soundclone://playlist/secret/$token';
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -180,25 +179,70 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
   }
 
   Future<void> _openTrackPicker(PlaylistEntity playlist) async {
-    final picked = await PlaylistTrackPickerSheet.show(
+    final pickedTracks = await PlaylistTrackPickerSheet.show(
       context,
       existingTrackIds: playlist.tracks.map((track) => track.id).toSet(),
     );
 
-    if (!mounted || picked == null) return;
+    if (!mounted || pickedTracks.isEmpty) return;
 
-    final exists = playlist.tracks.any((track) => track.id == picked.id);
-    if (exists) {
+    var addedCount = 0;
+    for (final track in pickedTracks) {
+      final added = await context.read<PlaylistsCubit>().addTrackToPlaylist(
+            playlistId: playlist.playlistId,
+            track: track,
+          );
+      if (added) addedCount++;
+    }
+
+    if (!mounted || addedCount == 0) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Added $addedCount track(s)')),
+    );
+  }
+
+  Future<void> _playPlaylist(PlaylistEntity playlist,
+      {int startIndex = 0}) async {
+    final tracks = playlist.tracks;
+    if (tracks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Track is already in this playlist')),
+        const SnackBar(content: Text('This playlist has no tracks')),
       );
       return;
     }
 
-    await context.read<PlaylistsCubit>().addTrackToPlaylist(
+    final playerCubit = _playerCubit();
+    await playerCubit?.playFromContext(
+      tracks: tracks,
+      startIndex: startIndex,
+      source: 'playlist:${playlist.playlistId}',
+    );
+  }
+
+  PlayerCubit? _playerCubit() {
+    try {
+      return context.read<PlayerCubit>();
+    } catch (_) {
+      if (getIt.isRegistered<PlayerCubit>()) {
+        return getIt<PlayerCubit>();
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _removeTrack(PlaylistEntity playlist, Track track) async {
+    await context.read<PlaylistsCubit>().removeTrackFromPlaylist(
           playlistId: playlist.playlistId,
-          track: picked,
+          trackId: track.id,
         );
+
+    if (!mounted) return;
+
+    if (playlist.tracks.length <= 1) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -367,6 +411,17 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                     ],
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
+                      onPressed: tracks.isEmpty || state.isSubmitting
+                          ? null
+                          : () => _playPlaylist(playlist),
+                      icon: const Icon(Icons.play_arrow, color: Colors.white),
+                      label: const Text(
+                        'Play playlist',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
                       onPressed: state.isSubmitting
                           ? null
                           : () => _addCurrentTrack(playlist),
@@ -471,6 +526,10 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            onTap: () => _playPlaylist(
+                              playlist,
+                              startIndex: index,
+                            ),
                             trailing: IconButton(
                               icon: const Icon(
                                 Icons.remove_circle_outline,
@@ -478,12 +537,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                               ),
                               onPressed: state.isSubmitting
                                   ? null
-                                  : () => context
-                                      .read<PlaylistsCubit>()
-                                      .removeTrackFromPlaylist(
-                                        playlistId: playlist.playlistId,
-                                        trackId: track.id,
-                                      ),
+                                  : () => _removeTrack(playlist, track),
                             ),
                           );
                         },
