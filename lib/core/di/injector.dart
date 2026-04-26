@@ -131,6 +131,7 @@ import '../oauth/windows_oauth_callback_server.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -777,6 +778,12 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<CheckUploadLimitUseCase>()) {
     getIt.registerLazySingleton<CheckUploadLimitUseCase>(
       () => CheckUploadLimitUseCase(),
+    );
+  }
+
+  if (!getIt.isRegistered<SubscriptionCubit>()) {
+    getIt.registerLazySingleton<SubscriptionCubit>(
+      () => SubscriptionCubit(getIt<SubscriptionRepository>()),
     );
   }
 
