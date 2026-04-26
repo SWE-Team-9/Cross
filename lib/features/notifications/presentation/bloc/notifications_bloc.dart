@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/failure_message_mapper.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/repositories/notifications_repository.dart';
 import '../../domain/usecases/delete_notification_use_case.dart';
@@ -10,8 +11,7 @@ import '../../domain/usecases/get_notifications_use_case.dart';
 import '../../domain/usecases/get_unread_count_use_case.dart';
 import '../../domain/usecases/mark_all_notifications_as_read_use_case.dart';
 import '../../domain/usecases/mark_notification_as_read_use_case.dart';
-// Make sure this import is correct for your project structure
-import '../../domain/entities/notifications_result.dart'; 
+import '../../domain/entities/notifications_result.dart';
 
 part 'notifications_event.dart';
 part 'notifications_state.dart';
@@ -68,11 +68,10 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
 
     switch (notificationsResult) {
       case NotificationsSuccess(value: final notifications):
-        // Added the wildcard _ case here to fix the exhaustiveness error
         final count = switch (countResult) {
           NotificationsSuccess(value: final c) => c,
           NotificationsFailure() => 0,
-          _ => 0, 
+          _ => 0,
         };
         emit(
           NotificationsLoaded(
@@ -83,9 +82,20 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
           ),
         );
       case NotificationsFailure(failure: final f):
-        emit(NotificationsError(f.message));
+        emit(
+          NotificationsError(
+            FailureMessageMapper.toUserMessage(
+              f,
+              fallback: 'Unable to load notifications right now. Please try again.',
+            ),
+          ),
+        );
       default:
-        emit(const NotificationsError('An unexpected error occurred.'));
+        emit(
+          const NotificationsError(
+            'Unable to load notifications right now. Please try again.',
+          ),
+        );
     }
   }
 
@@ -119,7 +129,14 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
           ),
         );
       case NotificationsFailure(failure: final f):
-        emit(NotificationsError(f.message));
+        emit(
+          NotificationsError(
+            FailureMessageMapper.toUserMessage(
+              f,
+              fallback: 'Unable to load notifications right now. Please try again.',
+            ),
+          ),
+        );
       default:
         break;
     }
@@ -213,7 +230,6 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
 
     final result = await _getUnreadCount();
     
-    // Using a safe check here instead of switch to avoid exhaustiveness issues
     if (result is NotificationsSuccess<int>) {
       emit(current.copyWith(unreadCount: result.value));
     }
