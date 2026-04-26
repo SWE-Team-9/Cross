@@ -67,11 +67,11 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
     if (!mounted || result == null) return;
 
     final playlist = await context.read<PlaylistsCubit>().createPlaylist(
-          title: result.title,
-          description: result.description,
-          visibility: result.visibility,
-          initialTrackIds: [widget.track.id],
-        );
+      title: result.title,
+      description: result.description,
+      visibility: result.visibility,
+      initialTrackIds: [widget.track.id],
+    );
 
     if (!mounted || playlist == null) return;
 

@@ -125,8 +125,7 @@ void main() {
       () async {
         when(() => dioClient.get('/api/v1/playlists/pl_secret')).thenAnswer(
           (_) async => Response<dynamic>(
-            requestOptions:
-                RequestOptions(path: '/api/v1/playlists/pl_secret'),
+            requestOptions: RequestOptions(path: '/api/v1/playlists/pl_secret'),
             data: <String, dynamic>{
               'data': <String, dynamic>{
                 'playlistId': 'pl_secret',
