@@ -15,12 +15,12 @@ class AppConfig {
   /// Keep this as ROOT origin only.
   /// ApiConstants already appends `/api/v1/...`.
   static String get apiUrl {
-    const override = String.fromEnvironment('API_URL', defaultValue: '');
-    if (override.isNotEmpty) {
-      return _stripTrailingSlash(_stripApiV1Suffix(override));
-    }
+    // //const override = String.fromEnvironment('API_URL', defaultValue: '');
+    // if (override.isNotEmpty) {
+    //   return _stripTrailingSlash(_stripApiV1Suffix(override));
+    // }
 
-    return 'https://iqa3.tech';
+    return 'https://dev.iqa3.tech';
   }
 
   static const bool useMockTrackManagement = bool.fromEnvironment(
@@ -45,10 +45,10 @@ class AppConfig {
     return '6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5';
   }
 
-  static const String recaptchaWindowsWebUrl = String.fromEnvironment(
-    'RECAPTCHA_WINDOWS_WEB_URL',
-    defaultValue: 'https://inquisitive-seahorse-5af208.netlify.app',
-  );
+static const String recaptchaWindowsWebUrl = String.fromEnvironment(
+  'RECAPTCHA_WINDOWS_WEB_URL',
+  defaultValue: 'https://polite-piroshki-a48941.netlify.app',
+);
 
   // ── OAuth (Native App) ──────────────────────────────────────────────────
 

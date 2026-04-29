@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/platform_url_utils.dart';
 import '../../domain/entities/shared_track_entity.dart';
@@ -21,7 +22,12 @@ class MessageTrackPreviewCard extends StatelessWidget {
     final artworkUrl = PlatformUrlUtils.normalizeBackendUrl(track.artworkUrl);
 
     return InkWell(
-      onTap: onTap,
+      onTap: onTap ?? () {
+        context.pushNamed(
+          'track-detail',
+          pathParameters: {'trackId': track.id},
+        );
+      },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         constraints: const BoxConstraints(minWidth: 220, maxWidth: 280),
