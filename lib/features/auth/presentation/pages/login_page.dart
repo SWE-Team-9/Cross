@@ -165,57 +165,58 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _onLoginPressed() async {
-    if (!_formKey.currentState!.validate()) return;
+void _onLoginPressed() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isFetchingCaptcha = true;
-    });
+  setState(() {
+    _isFetchingCaptcha = true;
+  });
 
-    try {
-      String token = "";
+  try {
+    String token = "";
 
-      if (widget.captchaTokenProvider != null) {
-        token = await widget.captchaTokenProvider!(context);
-      } else {
-        if (Platform.isAndroid || Platform.isIOS) {
-          if (_recaptchaClient == null) {
-            _recaptchaClient =
-                await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
-          }
-          token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
-        } else if (Platform.isWindows) {
-          token = await _getWindowsCaptchaToken(context);
-        }
+    if (Platform.isWindows) {
+      // Captcha is disabled on backend for Windows.
+      // Do not open verification dialog.
+      token = "";
+    } else if (widget.captchaTokenProvider != null) {
+      token = await widget.captchaTokenProvider!(context);
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      if (_recaptchaClient == null) {
+        _recaptchaClient =
+            await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
       }
+      token = await _recaptchaClient!.execute(RecaptchaAction.LOGIN());
+    }
 
-      if (token.isNotEmpty && mounted) {
-        context.read<AuthCubit>().login(
-              email: _emailController.text.trim(),
-              password: _passwordController.text.trim(),
-              captchaToken: token,
-              rememberMe: _rememberMe,
-            );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Security verification failed. Please try again.',
-                style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.redAccent,
+    if (mounted) {
+      context.read<AuthCubit>().login(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+            captchaToken: token,
+            rememberMe: _rememberMe,
+          );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Security verification failed. Please try again.',
+            style: TextStyle(color: Colors.white),
           ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isFetchingCaptcha = false;
-        });
-      }
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isFetchingCaptcha = false;
+      });
     }
   }
-
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(

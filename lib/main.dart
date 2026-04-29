@@ -15,6 +15,7 @@ void main() async {
     config: AudioServiceConfig(
       androidNotificationChannelId: 'com.soundcloud.app',
       androidNotificationChannelName: 'Playback',
+      
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
     ),
