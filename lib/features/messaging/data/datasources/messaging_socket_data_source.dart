@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:cookie_jar/cookie_jar.dart';
-import 'package:web_socket_channel/io.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import '../../../../core/network/api_constants.dart';
 import '../dto/socket_message_event_dto.dart';
@@ -23,8 +22,7 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
   final StreamController<SocketMessageEventDto> _controller =
       StreamController<SocketMessageEventDto>.broadcast();
 
-  IOWebSocketChannel? _channel;
-  StreamSubscription? _subscription;
+  IO.Socket? _socket;
 
   bool _isConnected = false;
 
@@ -40,64 +38,98 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
 
   @override
   Future<void> connect() async {
-    if (_isConnected) return;
+    if (_isConnected || _socket?.connected == true) return;
 
-    final httpUri = Uri.parse(ApiConstants.baseUrl).resolve(
-      ApiConstants.messagingBase,
-    );
+    final baseUri = Uri.parse(ApiConstants.baseUrl);
 
-    final wsUri = httpUri.replace(
-      scheme: httpUri.scheme == 'https' ? 'wss' : 'ws',
-    );
-
-    final cookies = await cookieJar.loadForRequest(httpUri);
+    final cookies = await cookieJar.loadForRequest(baseUri);
     final cookieHeader = cookies
         .map((cookie) => '${cookie.name}=${cookie.value}')
         .join('; ');
 
-    _channel = IOWebSocketChannel.connect(
-      wsUri,
-      headers: cookieHeader.isEmpty ? null : {'Cookie': cookieHeader},
-      pingInterval: const Duration(seconds: 20),
+    print('Socket.IO base URL => ${ApiConstants.baseUrl}');
+    print('Socket.IO default path => /socket.io');
+    print('Socket.IO cookie exists => ${cookieHeader.isNotEmpty}');
+
+    _socket = IO.io(
+      ApiConstants.baseUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .setExtraHeaders(
+            cookieHeader.isEmpty
+                ? <String, String>{}
+                : {'Cookie': cookieHeader},
+          )
+          .enableReconnection()
+          .setReconnectionAttempts(5)
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(5000)
+          .build(),
     );
 
-    _subscription = _channel!.stream.listen(
-      (dynamic rawEvent) {
-        try {
-          final dynamic decoded =
-              rawEvent is String ? jsonDecode(rawEvent) : rawEvent;
+    _socket!.onConnect((_) {
+      _isConnected = true;
+      print('Socket.IO connected');
+    });
 
-          if (decoded is! Map) return;
+    _socket!.onDisconnect((_) {
+      _isConnected = false;
+      print('Socket.IO disconnected');
+    });
 
-          final dto = SocketMessageEventDto.fromJson(
-            Map<String, dynamic>.from(decoded)
-          );
+    _socket!.onConnectError((dynamic error) {
+      _isConnected = false;
+      print('Socket.IO connect error: $error');
+      _controller.addError(error);
+    });
 
-          _controller.add(dto);
-        } catch (e, stackTrace) {
-          _controller.addError(e, stackTrace);
-        }
-      },
-      onDone: () {
-        _isConnected = false;
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        _isConnected = false;
-        _controller.addError(error, stackTrace);
-      },
-      cancelOnError: false,
-    );
+    _socket!.onError((dynamic error) {
+      print('Socket.IO error: $error');
+      _controller.addError(error);
+    });
 
-    _isConnected = true;
+    _socket!.onReconnect((_) {
+      _isConnected = true;
+      print('Socket.IO reconnected');
+    });
+
+    _socket!.onReconnectError((dynamic error) {
+      _isConnected = false;
+      print('Socket.IO reconnect error: $error');
+      _controller.addError(error);
+    });
+
+    _socket!.onReconnectFailed((_) {
+      _isConnected = false;
+      print('Socket.IO reconnect failed');
+    });
+
+    _socket!.onAny((String event, dynamic data) {
+      print('Socket.IO event => $event');
+      print('Socket.IO data => $data');
+
+      try {
+        if (data is! Map) return;
+
+        final dto = SocketMessageEventDto.fromJson(
+          Map<String, dynamic>.from(data),
+        );
+
+        _controller.add(dto);
+      } catch (e, stackTrace) {
+        _controller.addError(e, stackTrace);
+      }
+    });
+
+    _socket!.connect();
   }
 
   @override
   Future<void> disconnect() async {
-    await _subscription?.cancel();
-    _subscription = null;
-
-    await _channel?.sink.close();
-    _channel = null;
+    _socket?.disconnect();
+    _socket?.dispose();
+    _socket = null;
 
     _isConnected = false;
   }

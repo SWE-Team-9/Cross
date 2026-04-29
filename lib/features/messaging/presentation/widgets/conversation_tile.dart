@@ -9,11 +9,13 @@ import 'unread_badge.dart';
 class ConversationTile extends StatelessWidget {
   final ConversationEntity conversation;
   final VoidCallback onTap;
+  final VoidCallback? onMorePressed;
 
   const ConversationTile({
     super.key,
     required this.conversation,
     required this.onTap,
+    this.onMorePressed,
   });
 
   @override
@@ -101,6 +103,22 @@ class ConversationTile extends StatelessWidget {
                 const SizedBox(height: 10),
                 UnreadBadge(count: conversation.unreadCount),
               ],
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: 'Conversation actions',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 36,
+                minHeight: 36,
+              ),
+              onPressed: onMorePressed,
+              icon: const Icon(
+                Icons.more_vert,
+                color: MessagingTheme.textMuted,
+                size: 21,
+              ),
             ),
           ],
         ),

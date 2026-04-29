@@ -151,6 +151,13 @@ class _InboxViewState extends State<_InboxView> {
                     inboxCubit.archiveConversation(
                       conversation.conversationId,
                     );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Color(0xFF2B2B2B),
+                        content: Text('Conversation archived'),
+                      ),
+                    );
                   },
                 )
               else
@@ -167,6 +174,13 @@ class _InboxViewState extends State<_InboxView> {
                     Navigator.pop(sheetContext);
                     inboxCubit.unarchiveConversation(
                       conversation.conversationId,
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Color(0xFF2B2B2B),
+                        content: Text('Conversation unarchived'),
+                      ),
                     );
                   },
                 ),
@@ -345,6 +359,10 @@ class _InboxViewState extends State<_InboxView> {
                   child: ConversationTile(
                     conversation: conversation,
                     onTap: () => widget.onOpenConversation(conversation),
+                    onMorePressed: () => _showConversationActions(
+                      context,
+                      conversation,
+                    ),
                   ),
                 );
               },
