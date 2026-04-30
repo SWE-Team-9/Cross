@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/entities/track_genre.dart';
 import '../bloc/track_management_state.dart';
 
 class TrackGenreOption {
@@ -48,6 +49,21 @@ class EditTrackMetadataForm extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final String? normalizedGenreName = normalizeTrackGenreName(form.genreName);
+    final bool hasSelectedGenre = genreOptions.any(
+      (genre) =>
+          genre.name == form.genreName || genre.name == normalizedGenreName,
+    );
+    final String? selectedGenreName = hasSelectedGenre
+        ? genreOptions
+            .firstWhere(
+              (genre) =>
+                  genre.name == form.genreName ||
+                  genre.name == normalizedGenreName,
+            )
+            .name
+        : null;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -84,8 +100,8 @@ class EditTrackMetadataForm extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              key: ValueKey(form.genreName),
-              initialValue: form.genreName,
+              key: ValueKey(selectedGenreName),
+              initialValue: selectedGenreName,
               decoration: InputDecoration(
                 labelText: 'Genre',
                 errorText: form.genreValidationError,
