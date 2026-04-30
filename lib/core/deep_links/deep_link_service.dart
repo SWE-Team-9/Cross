@@ -60,7 +60,6 @@ class DeepLinkService {
         now.difference(_lastEmittedAt!) < const Duration(seconds: 2);
 
     if (isRecentDuplicate) {
-      debugPrint('[DeepLinkService] Ignored duplicate ($source): $currentUri');
       return;
     }
 
@@ -73,7 +72,6 @@ class DeepLinkService {
     final DeepLinkDestination destination = DeepLinkParser.parse(uri);
     _lastDestination = destination;
     _controller.add(destination);
-    debugPrint('[DeepLinkService] Emitted: $destination');
   }
 
   Future<void> dispose() async {
