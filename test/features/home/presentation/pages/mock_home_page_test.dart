@@ -5,6 +5,8 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:bloc_test/bloc_test.dart';
+import 'package:soundcloud_clone/features/notifications/presentation/bloc/notifications_bloc.dart';
+import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
 
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
@@ -64,6 +66,12 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
+class MockNotificationsBloc
+  extends MockBloc<NotificationsEvent, NotificationsState>
+  implements NotificationsBloc {}
+
+late MockNotificationsBloc mockNotificationsBloc;
+
 // ─── Shared test user ─────────────────────────────────────────────────────────
 
 const _testUser = User(
@@ -91,6 +99,7 @@ Widget _buildApp(MockAuthCubit authCubit) {
         builder: (context, state) => MultiBlocProvider(
           providers: [
             BlocProvider<AuthCubit>.value(value: authCubit),
+                BlocProvider<NotificationsBloc>.value(value: mockNotificationsBloc),
             BlocProvider<PlayerCubit>(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
             ),
@@ -141,6 +150,12 @@ void main() {
   setUp(() async {
     await _setUp();
     mockAuthCubit = MockAuthCubit();
+    mockNotificationsBloc = MockNotificationsBloc();
+    when(() => mockNotificationsBloc.state).thenReturn(
+      NotificationsLoaded(notifications: <NotificationEntity>[], unreadCount: 0),
+    );
+    when(() => mockNotificationsBloc.stream)
+        .thenAnswer((_) => Stream<NotificationsState>.empty());
   });
 
   tearDown(() async {

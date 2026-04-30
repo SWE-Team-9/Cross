@@ -21,6 +21,8 @@ import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
+import 'package:soundcloud_clone/features/notifications/presentation/bloc/notifications_bloc.dart';
+import 'package:soundcloud_clone/features/notifications/presentation/bloc/notification_preferences_bloc.dart';
 
 // ── Fakes / Mocks ─────────────────────────────────────────────────────────────
 
@@ -79,6 +81,13 @@ class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 class MockSocialRepo extends Mock implements SocialRepo {}
 
+class MockNotificationsBloc extends MockBloc<NotificationsEvent, NotificationsState>
+    implements NotificationsBloc {}
+
+class MockNotificationPreferencesBloc
+    extends MockBloc<NotificationPreferencesEvent, NotificationPreferencesState>
+    implements NotificationPreferencesBloc {}
+
 // ── Helper: pump the full App widget ─────────────────────────────────────────
 
 Future<void> _pumpApp(
@@ -115,19 +124,28 @@ Future<void> _pumpApp(
 void main() {
   late MockAuthCubit authCubit;
   late MockSocialRepo mockSocialRepo;
+  late MockNotificationsBloc mockNotificationsBloc;
+  late MockNotificationPreferencesBloc mockNotificationPreferencesBloc;
 
   setUp(() async {
     await GetIt.I.reset();
 
     authCubit = MockAuthCubit();
     mockSocialRepo = MockSocialRepo();
+    mockNotificationsBloc = MockNotificationsBloc();
+    mockNotificationPreferencesBloc = MockNotificationPreferencesBloc();
+
+    // Mock states for notification blocs
+    when(() => mockNotificationsBloc.state)
+        .thenReturn(const NotificationsInitial());
+    when(() => mockNotificationPreferencesBloc.state)
+        .thenReturn(NotificationPreferencesState.initial());
 
     GetIt.I.registerSingleton<AudioPlayerService>(FakeAudioPlayerService());
     GetIt.I.registerSingleton<DeepLinkService>(FakeDeepLinkService());
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
     GetIt.I.registerLazySingleton<SocialRepo>(() => mockSocialRepo);
 
-    // ✅ ADD THIS
     GetIt.I.registerLazySingleton<SubscriptionRepository>(
       () => MockSubscriptionRepository(),
     );
@@ -140,6 +158,14 @@ void main() {
 
     GetIt.I.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(GetIt.I<AudioPlayerService>()),
+    );
+
+    GetIt.I.registerLazySingleton<NotificationsBloc>(
+      () => mockNotificationsBloc,
+    );
+
+    GetIt.I.registerLazySingleton<NotificationPreferencesBloc>(
+      () => mockNotificationPreferencesBloc,
     );
   });
 
