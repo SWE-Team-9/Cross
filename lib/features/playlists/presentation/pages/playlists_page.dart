@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
@@ -59,6 +60,7 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
           title: result.title,
           description: result.description,
           visibility: result.visibility,
+          coverImagePath: result.coverImagePath,
           initialTrackIds:
               selectedTracks.map((track) => track.id).toList(growable: false),
         );
@@ -149,21 +151,7 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
                                 : '${playlist.description} • ${playlist.tracksCount} tracks';
 
                             return ListTile(
-                              leading: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade900,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  playlist.visibility ==
-                                          PlaylistVisibility.privatePlaylist
-                                      ? Icons.lock_outline
-                                      : Icons.public,
-                                  color: const Color(0xFFFF5500),
-                                ),
-                              ),
+                              leading: _PlaylistListCover(playlist: playlist),
                               title: Text(
                                 playlist.title,
                                 style: const TextStyle(color: Colors.white),
@@ -200,6 +188,42 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _PlaylistListCover extends StatelessWidget {
+  const _PlaylistListCover({required this.playlist});
+
+  final PlaylistEntity playlist;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 44,
+        height: 44,
+        color: Colors.grey.shade900,
+        child: coverUrl == null
+            ? Icon(
+                playlist.visibility == PlaylistVisibility.privatePlaylist
+                    ? Icons.lock_outline
+                    : Icons.public,
+                color: const Color(0xFFFF5500),
+              )
+            : Image.network(
+                coverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.queue_music,
+                  color: Color(0xFFFF5500),
+                ),
+              ),
+      ),
     );
   }
 }
