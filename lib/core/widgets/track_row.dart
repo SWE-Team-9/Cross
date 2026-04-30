@@ -55,7 +55,8 @@ class TrackRow extends StatelessWidget {
                   ? Colors.white.withValues(alpha: 0.05)
                   : Colors.transparent,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 child: Row(
                   children: [
                     Container(
@@ -125,7 +126,8 @@ class TrackRow extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      onPressed: () => TrackOptionsSheet.show(context, track: track),
+                      onPressed: () =>
+                          TrackOptionsSheet.show(context, track: track),
                       icon: const Icon(
                         Icons.more_vert,
                         color: Color(0xFF666666),
@@ -147,7 +149,8 @@ class TrackRow extends StatelessWidget {
       }
 
       final defaultState = PlayerUIState(
-        playerState: const PlayerState(status: PlayerStatus.idle, position: Duration.zero),
+        playerState: const PlayerState(
+            status: PlayerStatus.idle, position: Duration.zero),
       );
       return buildForState(defaultState);
     });

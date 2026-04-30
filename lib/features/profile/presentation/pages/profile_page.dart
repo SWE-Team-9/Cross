@@ -1329,9 +1329,11 @@ class _ManagedProfileTracksTab extends StatelessWidget {
               track: _toTrackRowData(managedTrack),
               source: source,
             ),
-            if (managedTrack.description != null && managedTrack.description!.trim().isNotEmpty)
+            if (managedTrack.description != null &&
+                managedTrack.description!.trim().isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 child: Text(
                   managedTrack.description!,
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -1341,7 +1343,8 @@ class _ManagedProfileTracksTab extends StatelessWidget {
               ),
             if (managedTrack.tags.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 child: Text(
                   '#${managedTrack.tags.join(' · #')}',
                   style: const TextStyle(color: Colors.white54, fontSize: 11),
