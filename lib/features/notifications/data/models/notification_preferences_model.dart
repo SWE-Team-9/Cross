@@ -2,8 +2,6 @@ import '../../domain/entities/notification_preferences_entity.dart';
 
 class NotificationPreferencesModel extends NotificationPreferencesEntity {
   const NotificationPreferencesModel({
-    required super.pushEnabled,
-    required super.emailEnabled,
     required super.likesEnabled,
     required super.commentsEnabled,
     required super.followsEnabled,
@@ -11,11 +9,7 @@ class NotificationPreferencesModel extends NotificationPreferencesEntity {
   });
 
   factory NotificationPreferencesModel.fromJson(Map<String, dynamic> json) {
-    final push = json['push'];
-    final email = json['email'];
     return NotificationPreferencesModel(
-      pushEnabled: (json['pushEnabled'] ?? push ?? true) == true,
-      emailEnabled: (json['emailEnabled'] ?? email ?? false) == true,
       likesEnabled: (json['likesEnabled'] ?? json['likes'] ?? true) == true,
       commentsEnabled:
           (json['commentsEnabled'] ?? json['comments'] ?? true) == true,
@@ -30,8 +24,6 @@ class NotificationPreferencesModel extends NotificationPreferencesEntity {
     NotificationPreferencesEntity entity,
   ) {
     return NotificationPreferencesModel(
-      pushEnabled: entity.pushEnabled,
-      emailEnabled: entity.emailEnabled,
       likesEnabled: entity.likesEnabled,
       commentsEnabled: entity.commentsEnabled,
       followsEnabled: entity.followsEnabled,
@@ -41,12 +33,10 @@ class NotificationPreferencesModel extends NotificationPreferencesEntity {
 
   Map<String, dynamic> toJson() {
     return {
-      'pushEnabled': pushEnabled,
-      'emailEnabled': emailEnabled,
-      'likesEnabled': likesEnabled,
-      'commentsEnabled': commentsEnabled,
-      'followsEnabled': followsEnabled,
-      'repostsEnabled': repostsEnabled,
+      'likes': likesEnabled,
+      'comments': commentsEnabled,
+      'follows': followsEnabled,
+      'reposts': repostsEnabled,
     };
   }
 }

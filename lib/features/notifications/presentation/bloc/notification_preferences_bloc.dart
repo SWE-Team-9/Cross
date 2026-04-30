@@ -140,8 +140,6 @@ class NotificationPreferencesBloc
     final current = state.preferences;
 
     final updated = switch (event.key) {
-      'push' => current.copyWith(pushEnabled: event.value),
-      'email' => current.copyWith(emailEnabled: event.value),
       'likes' => current.copyWith(likesEnabled: event.value),
       'comments' => current.copyWith(commentsEnabled: event.value),
       'follows' => current.copyWith(followsEnabled: event.value),
@@ -151,18 +149,12 @@ class NotificationPreferencesBloc
 
     emit(state.copyWith(preferences: updated, clearError: true));
 
-    // Type toggles are used as in-app filtering controls.
-    // Persist only delivery-channel preferences to backend.
-    if (_requiresRemoteSave(event.key)) {
+    if (event.key == 'likes' ||
+        event.key == 'comments' ||
+        event.key == 'follows' ||
+        event.key == 'reposts') {
       add(SavePreferences(updated));
     }
-  }
-
-  bool _requiresRemoteSave(String key) {
-    return switch (key) {
-      'push' || 'email' => true,
-      _ => false,
-    };
   }
 
   Future<void> _onSavePreferences(

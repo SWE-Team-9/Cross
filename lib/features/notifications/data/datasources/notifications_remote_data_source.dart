@@ -7,6 +7,8 @@ abstract class NotificationsRemoteDataSource {
   Future<List<NotificationModel>> getNotifications({
     int page = 1,
     int limit = 20,
+    String? type,
+    bool? isRead,
   });
 
   Future<int> getUnreadCount();
@@ -40,10 +42,20 @@ class NotificationsRemoteDataSourceImpl
   Future<List<NotificationModel>> getNotifications({
     int page = 1,
     int limit = 20,
+    String? type,
+    bool? isRead,
   }) async {
+    final query = <String, dynamic>{'page': page, 'limit': limit};
+    if (type != null && type.isNotEmpty) {
+      query['type'] = type;
+    }
+    if (isRead != null) {
+      query['isRead'] = isRead;
+    }
+
     final response = await _client.get(
       _base,
-      queryParameters: {'page': page, 'limit': limit},
+      queryParameters: query,
     );
 
     final payload = _extractPayload(response.data);

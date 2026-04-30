@@ -6,8 +6,12 @@ class NotificationModel extends NotificationEntity {
     required super.type,
     required super.message,
     required super.actorId,
+    required super.actorDisplayName,
+    required super.actorHandle,
+    required super.actorAvatarUrl,
     required super.entityType,
     required super.entityId,
+    required super.trackName,
     required super.isRead,
     required super.createdAt,
   });
@@ -32,6 +36,29 @@ class NotificationModel extends NotificationEntity {
       json['actorHandle'],
       json['actorUsername'],
       json['actorId'],
+    ]);
+    final actorDisplayName = _firstNonEmpty([
+      actorMap['displayName'],
+      actorMap['name'],
+      actorMap['fullName'],
+      json['actorDisplayName'],
+      json['actorName'],
+    ]);
+    final actorHandle = _firstNonEmpty([
+      actorMap['handle'],
+      actorMap['username'],
+      actorMap['userName'],
+      json['actorHandle'],
+      json['actorUsername'],
+    ]);
+    final actorAvatarUrl = _firstNonEmpty([
+      actorMap['avatarUrl'],
+      actorMap['avatar'],
+      actorMap['profilePicture'],
+      actorMap['imageUrl'],
+      json['actorAvatarUrl'],
+      json['actorAvatar'],
+      json['avatarUrl'],
     ]);
 
     final target = json['target'] ?? json['entity'];
@@ -91,8 +118,12 @@ class NotificationModel extends NotificationEntity {
       type: notificationType,
       message: message,
       actorId: actorId,
+      actorDisplayName: actorDisplayName,
+      actorHandle: actorHandle,
+      actorAvatarUrl: actorAvatarUrl,
       entityType: entityType,
       entityId: entityId,
+      trackName: trackName,
       isRead: isRead,
       createdAt: DateTime.tryParse(rawDate) ?? DateTime.now(),
     );
@@ -211,8 +242,12 @@ class NotificationModel extends NotificationEntity {
       'type': type.name,
       'message': message,
       'actorId': actorId,
+      'actorDisplayName': actorDisplayName,
+      'actorHandle': actorHandle,
+      'actorAvatarUrl': actorAvatarUrl,
       'entityType': entityType,
       'entityId': entityId,
+      'trackName': trackName,
       'isRead': isRead,
       'createdAt': createdAt.toIso8601String(),
     };

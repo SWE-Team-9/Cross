@@ -15,9 +15,16 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
   Future<NotificationsResult<List<NotificationEntity>>> getNotifications({
     int page = 1,
     int limit = 20,
+    String? type,
+    bool? isRead,
   }) async {
     try {
-      final models = await _remote.getNotifications(page: page, limit: limit);
+      final models = await _remote.getNotifications(
+        page: page,
+        limit: limit,
+        type: type,
+        isRead: isRead,
+      );
       return NotificationsResult.success(models);
     } on Failure catch (f) {
       return NotificationsResult.failure(f);
@@ -107,8 +114,6 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
   ) async {
     try {
       final model = NotificationPreferencesModel(
-        pushEnabled: preferences.pushEnabled,
-        emailEnabled: preferences.emailEnabled,
         likesEnabled: preferences.likesEnabled,
         commentsEnabled: preferences.commentsEnabled,
         followsEnabled: preferences.followsEnabled,
