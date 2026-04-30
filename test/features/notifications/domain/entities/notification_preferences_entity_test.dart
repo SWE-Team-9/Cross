@@ -20,7 +20,8 @@ void main() {
       repostsEnabled: false,
     );
 
-    final copied = entity.copyWith(commentsEnabled: false, repostsEnabled: true);
+    final copied =
+        entity.copyWith(commentsEnabled: false, repostsEnabled: true);
 
     expect(copied.likesEnabled, true);
     expect(copied.commentsEnabled, false);

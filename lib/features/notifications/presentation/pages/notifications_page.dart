@@ -63,7 +63,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         textTheme: Theme.of(context).textTheme.apply(
               bodyColor: Colors.white,
               displayColor: Colors.white,
-              fontFamily: 'Inter', 
+              fontFamily: 'Inter',
             ),
         appBarTheme: const AppBarTheme(
           backgroundColor: SoundCloudColors.deepBlack,
@@ -88,10 +88,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
           builder: (context, state) {
             return switch (state) {
               NotificationsInitial() => const SizedBox.shrink(),
-              NotificationsLoading() =>
-                const Center(child: CircularProgressIndicator(color: SoundCloudColors.orange)),
-              NotificationsError(message: final msg) => _ErrorView(message: msg),
-              NotificationsLoaded() || NotificationsLoadingMore() => _NotificationList(
+              NotificationsLoading() => const Center(
+                  child: CircularProgressIndicator(
+                      color: SoundCloudColors.orange)),
+              NotificationsError(message: final msg) =>
+                _ErrorView(message: msg),
+              NotificationsLoaded() ||
+              NotificationsLoadingMore() =>
+                _NotificationList(
                   state: state,
                   scrollController: _scrollController,
                 ),
@@ -157,7 +161,8 @@ class _NotificationList extends StatelessWidget {
       _ => const <NotificationEntity>[],
     };
 
-    final preferences = context.watch<NotificationPreferencesBloc>().state.preferences;
+    final preferences =
+        context.watch<NotificationPreferencesBloc>().state.preferences;
     final filteredNotifications = notifications
         .where((notification) => _passesTypeFilter(notification, preferences))
         .toList(growable: false);
@@ -174,13 +179,16 @@ class _NotificationList extends StatelessWidget {
       child: ListView.separated(
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: filteredNotifications.length + (state is NotificationsLoadingMore ? 1 : 0),
+        itemCount: filteredNotifications.length +
+            (state is NotificationsLoadingMore ? 1 : 0),
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {
           if (index == filteredNotifications.length) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: CircularProgressIndicator(color: SoundCloudColors.orange)),
+              child: Center(
+                  child: CircularProgressIndicator(
+                      color: SoundCloudColors.orange)),
             );
           }
 
@@ -188,11 +196,15 @@ class _NotificationList extends StatelessWidget {
           return NotificationCard(
             notification: notification,
             onTap: () async {
-              context.read<NotificationsBloc>().add(MarkNotificationRead(notification.id));
+              context
+                  .read<NotificationsBloc>()
+                  .add(MarkNotificationRead(notification.id));
               await _navigateToContent(context, notification);
             },
             onDelete: () {
-              context.read<NotificationsBloc>().add(DeleteNotification(notification.id));
+              context
+                  .read<NotificationsBloc>()
+                  .add(DeleteNotification(notification.id));
             },
           );
         },
@@ -464,10 +476,10 @@ class _NotificationList extends StatelessWidget {
       final detail = result.detail;
       if (result.failure == null && detail != null && context.mounted) {
         await context.read<PlayerCubit>().playFromContext(
-              tracks: [detail.toPlaybackTrack()],
-              startIndex: 0,
-              source: 'notifications',
-            );
+          tracks: [detail.toPlaybackTrack()],
+          startIndex: 0,
+          source: 'notifications',
+        );
       }
     } catch (_) {
       // Keep navigation resilient even if playback setup fails.
@@ -489,8 +501,6 @@ class _NotificationList extends StatelessWidget {
 
     return '';
   }
-
- 
 }
 
 class _EmptyView extends StatelessWidget {
@@ -546,7 +556,8 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 60, color: SoundCloudColors.orange),
+            const Icon(Icons.error_outline,
+                size: 60, color: SoundCloudColors.orange),
             const SizedBox(height: 16),
             Text(
               message,
@@ -565,7 +576,8 @@ class _ErrorView extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: SoundCloudColors.orange,
                   foregroundColor: Colors.white,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero),
                   elevation: 0,
                   textStyle: const TextStyle(
                     fontFamily: 'Inter',
@@ -574,7 +586,9 @@ class _ErrorView extends StatelessWidget {
                     letterSpacing: 1.0,
                   ),
                 ),
-                onPressed: () => context.read<NotificationsBloc>().add(const LoadNotifications()),
+                onPressed: () => context
+                    .read<NotificationsBloc>()
+                    .add(const LoadNotifications()),
                 child: const Text('RETRY'),
               ),
             ),

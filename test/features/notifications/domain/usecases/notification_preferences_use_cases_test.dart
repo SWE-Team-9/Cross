@@ -6,7 +6,8 @@ import 'package:soundcloud_clone/features/notifications/domain/entities/notifica
 import 'package:soundcloud_clone/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:soundcloud_clone/features/notifications/domain/usecases/notification_preferences_use_cases.dart';
 
-class MockNotificationsRepository extends Mock implements NotificationsRepository {}
+class MockNotificationsRepository extends Mock
+    implements NotificationsRepository {}
 
 void main() {
   late MockNotificationsRepository repo;

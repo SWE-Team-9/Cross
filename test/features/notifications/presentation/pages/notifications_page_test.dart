@@ -25,13 +25,16 @@ void main() {
     mockNotificationsBloc = MockNotificationsBloc();
     mockPrefsBloc = MockNotificationPreferencesBloc();
 
-    when(() => mockNotificationsBloc.stream).thenAnswer((_) => const Stream<NotificationsState>.empty());
-    when(() => mockPrefsBloc.stream).thenAnswer((_) => const Stream<NotificationPreferencesState>.empty());
+    when(() => mockNotificationsBloc.stream)
+        .thenAnswer((_) => const Stream<NotificationsState>.empty());
+    when(() => mockPrefsBloc.stream)
+        .thenAnswer((_) => const Stream<NotificationPreferencesState>.empty());
   });
 
   testWidgets('shows empty view when no notifications', (tester) async {
     when(() => mockNotificationsBloc.state).thenReturn(
-      NotificationsLoaded(notifications: <NotificationEntity>[], unreadCount: 0),
+      NotificationsLoaded(
+          notifications: <NotificationEntity>[], unreadCount: 0),
     );
 
     when(() => mockPrefsBloc.state).thenReturn(
@@ -43,7 +46,8 @@ void main() {
         home: MultiBlocProvider(
           providers: [
             BlocProvider<NotificationsBloc>.value(value: mockNotificationsBloc),
-            BlocProvider<NotificationPreferencesBloc>.value(value: mockPrefsBloc),
+            BlocProvider<NotificationPreferencesBloc>.value(
+                value: mockPrefsBloc),
           ],
           child: const NotificationsPage(),
         ),
@@ -68,7 +72,8 @@ void main() {
     );
 
     when(() => mockNotificationsBloc.state).thenReturn(
-      NotificationsLoaded(notifications: <NotificationEntity>[notification], unreadCount: 1),
+      NotificationsLoaded(
+          notifications: <NotificationEntity>[notification], unreadCount: 1),
     );
 
     when(() => mockPrefsBloc.state).thenReturn(
@@ -80,7 +85,8 @@ void main() {
         home: MultiBlocProvider(
           providers: [
             BlocProvider<NotificationsBloc>.value(value: mockNotificationsBloc),
-            BlocProvider<NotificationPreferencesBloc>.value(value: mockPrefsBloc),
+            BlocProvider<NotificationPreferencesBloc>.value(
+                value: mockPrefsBloc),
           ],
           child: const NotificationsPage(),
         ),

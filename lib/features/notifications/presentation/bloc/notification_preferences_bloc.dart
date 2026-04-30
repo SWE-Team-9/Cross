@@ -119,7 +119,8 @@ class NotificationPreferencesBloc
             isLoading: false,
             error: FailureMessageMapper.toUserMessage(
               f,
-              fallback: 'Unable to load preferences right now. Please try again.',
+              fallback:
+                  'Unable to load preferences right now. Please try again.',
             ),
           ),
         );
@@ -175,7 +176,8 @@ class NotificationPreferencesBloc
             isSaving: false,
             error: FailureMessageMapper.toUserMessage(
               f,
-              fallback: 'Unable to save preferences right now. Please try again.',
+              fallback:
+                  'Unable to save preferences right now. Please try again.',
             ),
           ),
         );

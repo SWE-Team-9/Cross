@@ -11,7 +11,8 @@ class FailureMessageMapper {
       AuthFailure() => 'Please sign in and try again.',
       ForbiddenFailure() => 'You do not have permission to do this action.',
       NotFoundFailure() => 'The requested data could not be found.',
-      ValidationFailure() => 'The request is invalid. Please review and try again.',
+      ValidationFailure() =>
+        'The request is invalid. Please review and try again.',
       ServerFailure() => fallback,
       _ => fallback,
     };
