@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/message_type.dart';
 import '../../domain/entities/realtime_message_event_entity.dart';
 import '../../domain/usecases/connect_messaging_socket_usecase.dart';
 import '../../domain/usecases/delete_message_usecase.dart';
@@ -32,6 +33,27 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     required this.connectMessagingSocketUseCase,
   }) : super(ChatThreadState.initial());
 
+  String? _getKnownSenderId() {
+    for (final m in state.messages) {
+      if (m.receiverId == _receiverId) {
+        return m.senderId;
+      } else if (m.senderId == _receiverId) {
+        return m.receiverId;
+      }
+    }
+    return null;
+  }
+
+  MessageEntity _patchMessage(MessageEntity message, String fallbackText) {
+    return message.copyWith(
+      text: (message.text == null || message.text!.trim().isEmpty)
+          ? fallbackText
+          : message.text,
+      senderId: message.senderId ?? _getKnownSenderId(),
+      createdAt: message.createdAt.toLocal(),
+    );
+  }
+
   Future<void> load({
     required String conversationId,
     required String receiverId,
@@ -58,7 +80,11 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
         limit: 50,
       );
 
-      final sorted = _sortMessages(pageData.messages);
+      final localMessages = pageData.messages.map((m) => m.copyWith(
+        createdAt: m.createdAt.toLocal(),
+      )).toList();
+
+      final sorted = _sortMessages(localMessages);
 
       emit(
         state.copyWith(
@@ -101,9 +127,13 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
         limit: 50,
       );
 
+      final localMessages = pageData.messages.map((m) => m.copyWith(
+        createdAt: m.createdAt.toLocal(),
+      )).toList();
+
       final merged = _sortMessages([
         ...state.messages,
-        ...pageData.messages,
+        ...localMessages,
       ]);
 
       emit(
@@ -149,9 +179,14 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
         text: trimmed,
       );
 
+      final patchedMessage = _patchMessage(message, trimmed).copyWith(
+        createdAt: DateTime.now(),
+        type: MessageType.text,
+      );
+
       final merged = _sortMessages([
         ...state.messages,
-        message,
+        patchedMessage,
       ]);
 
       emit(
@@ -177,9 +212,9 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
       emit(
         state.copyWith(
-          messages: state.messages
-              .where((message) => message.id != messageId)
-              .toList(growable: false),
+          messages: state.messages.map((message) {
+            return message.id == messageId ? message.copyWith(text: '') : message;
+          }).toList(growable: false),
           clearError: true,
         ),
       );
@@ -194,9 +229,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
     try {
       await markConversationReadUseCase(conversationId);
-    } catch (_) {
-      // Do not block opening or using the chat if marking as read fails.
-    }
+    } catch (_) {}
   }
 
   Future<void> _connectSocket() async {
@@ -232,20 +265,37 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
     switch (event.type) {
       case RealtimeMessageEventType.newMessage:
-        final message = event.message;
-        if (message == null) return;
+        final incomingMessage = event.message;
+        if (incomingMessage == null) return;
 
-        final exists = state.messages.any(
-          (item) => item.id == message.id,
-        );
-        if (exists) {
+        final index = state.messages.indexWhere((item) => item.id == incomingMessage.id);
+
+        String fallbackText = '';
+        if (index != -1) {
+          fallbackText = state.messages[index].text ?? '';
+        }
+
+        final patchedMessage = _patchMessage(incomingMessage, fallbackText);
+
+        if (index != -1) {
+          final updatedList = List<MessageEntity>.from(state.messages);
+          updatedList[index] = patchedMessage;
+
+          emit(
+            state.copyWith(
+              messages: _sortMessages(updatedList),
+              isSocketConnected: true,
+              clearError: true,
+            ),
+          );
+
           unawaited(markCurrentConversationAsRead());
           return;
         }
 
         final merged = _sortMessages([
           ...state.messages,
-          message,
+          patchedMessage,
         ]);
 
         emit(
@@ -265,9 +315,11 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
         emit(
           state.copyWith(
-            messages: state.messages
-                .where((message) => message.id != messageId)
-                .toList(growable: false),
+            messages: state.messages.map((message) {
+              return message.id == messageId
+                  ? message.copyWith(text: '')
+                  : message;
+            }).toList(growable: false),
             isSocketConnected: true,
             clearError: true,
           ),
@@ -316,9 +368,6 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   @override
   Future<void> close() async {
     await _socketSub?.cancel();
-
-    // Do not disconnect the shared messaging socket here.
-    // The Home unread badge may still be listening through UnreadCountCubit.
     return super.close();
   }
 }
