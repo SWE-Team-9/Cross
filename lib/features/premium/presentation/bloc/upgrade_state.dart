@@ -10,26 +10,30 @@ enum UpgradeStatus {
 class UpgradeState extends Equatable {
   final String selectedPlan;
   final UpgradeStatus status;
+  final String? checkoutUrl; // ✅ ADD THIS
   final String? errorMessage;
 
   const UpgradeState({
     this.selectedPlan = 'PRO',
     this.status = UpgradeStatus.initial,
+    this.checkoutUrl,
     this.errorMessage,
   });
 
   UpgradeState copyWith({
     String? selectedPlan,
     UpgradeStatus? status,
+    String? checkoutUrl, // ✅ ADD
     String? errorMessage,
   }) {
     return UpgradeState(
       selectedPlan: selectedPlan ?? this.selectedPlan,
       status: status ?? this.status,
+      checkoutUrl: checkoutUrl ?? this.checkoutUrl, // ✅ ADD
       errorMessage: errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [selectedPlan, status, errorMessage];
+  List<Object?> get props => [selectedPlan, status, checkoutUrl, errorMessage];
 }
