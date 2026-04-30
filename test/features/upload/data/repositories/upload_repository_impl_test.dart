@@ -163,7 +163,7 @@ void main() {
         ).called(1);
       });
 
-      test('serializes tags as repeated tags[] fields for multipart upload',
+      test('serializes tags as repeated tags fields for multipart upload',
           () async {
         final temp = await Directory.systemTemp.createTemp('upload_repo_test4');
         final tempFile = File('${temp.path}/audio4.wav');
@@ -209,7 +209,7 @@ void main() {
         ).captured.single as FormData;
 
         final tagFields = captured.fields
-            .where((entry) => entry.key == 'tags[]')
+            .where((entry) => entry.key == 'tags')
             .map((entry) => entry.value)
             .toList();
 
