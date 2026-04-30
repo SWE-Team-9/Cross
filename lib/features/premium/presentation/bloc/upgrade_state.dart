@@ -35,6 +35,5 @@ class UpgradeState extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [selectedPlan, status, checkoutUrl, errorMessage];
+  List<Object?> get props => [selectedPlan, status, checkoutUrl, errorMessage];
 }
