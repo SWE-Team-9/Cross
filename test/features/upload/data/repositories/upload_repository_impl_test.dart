@@ -216,6 +216,57 @@ void main() {
         expect(tagFields, equals(const ['lofi']));
       });
 
+      test('converts genre slugs to api labels for multipart upload', () async {
+        final temp = await Directory.systemTemp.createTemp('upload_repo_test5');
+        final tempFile = File('${temp.path}/audio5.wav');
+        await tempFile.writeAsBytes(const [1, 2, 3]);
+
+        final repoWithClient = UploadRepositoryImpl(
+          mockAudioFilePickerDataSource,
+          dioClient: mockDioClient,
+        );
+
+        final picked = PickedAudioFile(
+          name: 'audio5.wav',
+          extension: 'wav',
+          sizeInBytes: 3,
+          path: tempFile.path,
+        );
+
+        when(
+          () => mockDioClient.post(
+            any(),
+            data: any(named: 'data'),
+            options: any(named: 'options'),
+          ),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(path: ApiConstants.tracks),
+            data: {'trackId': 'track-5', 'status': 'PROCESSING'},
+          ),
+        );
+
+        await repoWithClient.uploadTrack(
+          file: picked,
+          title: 'Song',
+          genre: 'sha3by',
+        );
+
+        final captured = verify(
+          () => mockDioClient.post(
+            ApiConstants.tracks,
+            data: captureAny(named: 'data'),
+            options: any(named: 'options'),
+          ),
+        ).captured.single as FormData;
+
+        final genreField = captured.fields.singleWhere(
+          (entry) => entry.key == 'genre',
+        );
+
+        expect(genreField.value, 'Sha3by');
+      });
+
       test('extracts nested track payload and default status', () async {
         final temp = await Directory.systemTemp.createTemp('upload_repo_test2');
         final tempFile = File('${temp.path}/audio2.wav');
