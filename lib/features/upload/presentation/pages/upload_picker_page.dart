@@ -661,7 +661,7 @@ class _UploadMetadataCard extends StatelessWidget {
               context,
               'Tags',
               hint: 'lofi, chill, arabic',
-              helper: 'Comma separated. Up to 10 tags.',
+              helper: 'Comma separated. Up to 10 tags, 30 chars each.',
             ),
           ),
           const SizedBox(height: 16),
