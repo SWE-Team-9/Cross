@@ -2,13 +2,16 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
-import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 import 'package:soundcloud_clone/features/interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
 import 'package:soundcloud_clone/features/interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/conversation_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/participant_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/start_direct_conversation_cubit.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
@@ -16,6 +19,8 @@ import 'package:soundcloud_clone/features/profile/domain/usecases/update_profile
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/pages/profile_page.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 
 import '../../helpers/profile_test_fixtures.dart';
 
@@ -33,6 +38,9 @@ class MockGetMyLikedTracksUseCase extends Mock
 class MockGetMyRepostedTracksUseCase extends Mock
     implements GetMyRepostedTracksUseCase {}
 
+class MockGetOrCreateDirectConversationUseCase extends Mock
+    implements GetOrCreateDirectConversationUseCase {}
+
 class TestProfileCubit extends ProfileCubit {
   TestProfileCubit({
     required super.getProfileUseCase,
@@ -46,12 +54,16 @@ class TestProfileCubit extends ProfileCubit {
 }
 
 void main() {
+  final getIt = GetIt.I;
+
   late MockAuthCubit mockAuthCubit;
   late MockGetProfileUseCase mockGetProfileUseCase;
   late MockUpdateProfileUseCase mockUpdateProfileUseCase;
   late MockProfileRepository mockProfileRepository;
   late MockGetMyLikedTracksUseCase mockGetMyLikedTracksUseCase;
   late MockGetMyRepostedTracksUseCase mockGetMyRepostedTracksUseCase;
+  late MockGetOrCreateDirectConversationUseCase
+      mockGetOrCreateDirectConversationUseCase;
   late TestProfileCubit profileCubit;
 
   late ProfileEntity profileWithoutAvatar;
@@ -59,7 +71,7 @@ void main() {
   late ProfileEntity profileWithoutBio;
   late ProfileEntity profileWithoutLocation;
   late ProfileEntity profileWithoutGenres;
-  late ProfileEntity profileForOwnUser; // Add this
+  late ProfileEntity profileForOwnUser;
 
   const ownUser = User(
     id: '1',
@@ -77,13 +89,17 @@ void main() {
     avatarUrl: null,
   );
 
-  setUp(() {
+  setUp(() async {
+    await getIt.reset();
+
     mockAuthCubit = MockAuthCubit();
     mockGetProfileUseCase = MockGetProfileUseCase();
     mockUpdateProfileUseCase = MockUpdateProfileUseCase();
     mockProfileRepository = MockProfileRepository();
     mockGetMyLikedTracksUseCase = MockGetMyLikedTracksUseCase();
     mockGetMyRepostedTracksUseCase = MockGetMyRepostedTracksUseCase();
+    mockGetOrCreateDirectConversationUseCase =
+        MockGetOrCreateDirectConversationUseCase();
 
     profileCubit = TestProfileCubit(
       getProfileUseCase: mockGetProfileUseCase,
@@ -91,6 +107,31 @@ void main() {
       profileRepository: mockProfileRepository,
       getMyLikedTracksUseCase: mockGetMyLikedTracksUseCase,
       getMyRepostedTracksUseCase: mockGetMyRepostedTracksUseCase,
+    );
+
+    getIt.registerFactory<StartDirectConversationCubit>(
+      () => StartDirectConversationCubit(
+        getOrCreateDirectConversationUseCase:
+            mockGetOrCreateDirectConversationUseCase,
+      ),
+    );
+
+    when(
+      () => mockGetOrCreateDirectConversationUseCase(
+        receiverId: any(named: 'receiverId'),
+      ),
+    ).thenAnswer(
+      (_) async => const ConversationEntity(
+        conversationId: 'conversation-1',
+        participant: ParticipantEntity(
+          id: 'receiver-1',
+          displayName: 'Test User',
+          handle: 'testuser',
+          avatarUrl: null,
+        ),
+        lastMessage: null,
+        unreadCount: 0,
+      ),
     );
 
     profileWithoutAvatar = ProfileEntity(
@@ -109,11 +150,10 @@ void main() {
       followingCount: tProfileEntity.followingCount,
     );
 
-    // Add profile for own user with matching handle
     profileForOwnUser = ProfileEntity(
       id: tProfileEntity.id,
       displayName: 'Ahmed Hassan',
-      handle: 'ahmed-hassan-beats', // Matches ownUser.handle
+      handle: 'ahmed-hassan-beats',
       bio: 'Music producer',
       location: 'Cairo, Egypt',
       avatarUrl: null,
@@ -203,6 +243,7 @@ void main() {
 
   tearDown(() async {
     await profileCubit.close();
+    await getIt.reset();
   });
 
   Widget buildTestWidget() {
@@ -403,14 +444,12 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pump();
 
-      // Tap the Tracks tab
       final tracksTab = find.widgetWithText(Tab, 'Tracks');
       await tester.ensureVisible(tracksTab);
       await tester.pumpAndSettle();
       await tester.tap(tracksTab);
       await tester.pumpAndSettle();
 
-      // NestedScrollView + TabBarView — scroll to make list items visible
       await tester.drag(
         find.byType(NestedScrollView),
         const Offset(0, -200),
@@ -613,7 +652,9 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'New email'), 'bad-email');
+        find.widgetWithText(TextFormField, 'New email'),
+        'bad-email',
+      );
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Current password'),
         'password123',
@@ -650,8 +691,10 @@ void main() {
       await tester.tap(find.text('Send link'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Wait 30 seconds before resending.'),
-          findsOneWidget);
+      expect(
+        find.textContaining('Wait 30 seconds before resending.'),
+        findsOneWidget,
+      );
       verifyNever(
         () => mockAuthCubit.requestEmailChange(
           newEmail: any(named: 'newEmail'),

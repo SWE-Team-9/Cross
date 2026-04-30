@@ -89,6 +89,37 @@ abstract class ApiConstants {
   static const String myLikedTracks = '/api/v1/interactions/me/likes';
   static const String myRepostedTracks = '/api/v1/interactions/me/reposts';
 
+  // ── Messaging ─────────────────────────────────────────────────────────────
+  static const String messagingBase = '/api/v1/messages';
+  static const String messagingConversationsPath =
+      '$messagingBase/conversations';
+  static const String messagingDirectConversationPath =
+      '$messagingConversationsPath/direct';
+  static const String messagingShareTrackPath = '$messagingBase/share/track';
+  static const String messagingSharePlaylistPath =
+      '$messagingBase/share/playlist';
+  static const String messagingUnreadCountPath = '$messagingBase/unread-count';
+
+  static String messagingConversationByIdPath(String conversationId) =>
+      '$messagingConversationsPath/$conversationId';
+
+  static String messagingConversationMetaPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/meta';
+
+  static String messagingMarkConversationReadPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/read';
+
+  static String messagingMarkConversationUnreadPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/unread';
+
+  static String messagingArchiveConversationPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/archive';
+
+  static String messagingUnarchiveConversationPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/unarchive';
+
+  static String messagingMessageByIdPath(String messageId) =>
+      '$messagingBase/$messageId';
   // ── Playlists ───────────────────────────────────────────────────────────
   static const String playlistsBase = '/api/v1/playlists';
   static const String myPlaylists = '$playlistsBase/me';

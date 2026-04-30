@@ -1,58 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>reCAPTCHA Verification</title>
-    
-    <script src="https://www.google.com/recaptcha/enterprise.js?render=6Le9r5YsAAAAAK6BbL381ibXXvcmSuPU08ounUh1"></script>
+  <title>reCAPTCHA Verification</title>
 
-    <style>
-        body {
-            background-color: #111111;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            color: white;
-            font-family: sans-serif;
-        }
-        .loader {
-            border: 4px solid #333;
-            border-top: 4px solid #ff5500; 
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+  <script src="https://www.google.com/recaptcha/enterprise.js?render=6LcXF8osAAAAAC3Nc0YDEVF7pdxDRZAUJLUSrwwL"></script>
+
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 200px;
+    }
+
+    button {
+      padding: 14px 28px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    textarea {
+      width: 600px;
+      max-width: 90vw;
+      height: 150px;
+      margin-top: 16px;
+    }
+  </style>
 </head>
+
 <body>
+  <h3>reCAPTCHA Button Test</h3>
 
-    <div class="loader"></div>
+  <form id="demo-form" onsubmit="return false;">
+    <button
+      class="g-recaptcha"
+      data-sitekey="6LcXF8osAAAAAC3Nc0YDEVF7pdxDRZAUJLUSrwwL"
+      data-callback="onSubmit"
+      data-action="LOGIN"
+    >
+      Verify
+    </button>
+  </form>
 
-    <script>
-        function executeRecaptcha() {
-            grecaptcha.enterprise.ready(function() {
-                grecaptcha.enterprise.execute('6Le9r5YsAAAAAK6BbL381ibXXvcmSuPU08ounUh1', { action: 'login' })
-                    .then(function(token) {
-                        if (window.chrome && window.chrome.webview) {
-                            window.chrome.webview.postMessage(token);
-                        } else {
-                            console.log("Token generated successfully:", token);
-                        }
-                    })
-                    .catch(function(error) {
-                        console.error("reCAPTCHA Error:", error);
-                    });
-            });
-        }
-        window.onload = executeRecaptcha;
-    </script>
+  <div id="status"></div>
+
+  <script>
+    function onSubmit(token) {
+      console.log("TOKEN:", token);
+
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(token);
+      }
+
+      document.getElementById("status").innerHTML =
+        "Verification Success<br><textarea readonly>" + token + "</textarea>";
+    }
+  </script>
 </body>
 </html>

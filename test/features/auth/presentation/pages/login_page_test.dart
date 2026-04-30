@@ -1,31 +1,38 @@
+import 'dart:io';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/login_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/routes/auth_routes.dart';
-import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 void main() {
   late MockAuthCubit authCubit;
-  Future<String> defaultCaptchaProvider(BuildContext _) async => 'test-captcha';
+
+  Future<String> defaultCaptchaProvider(BuildContext _) async => '';
 
   setUp(() {
     authCubit = MockAuthCubit();
+
     when(() => authCubit.state).thenReturn(AuthInitial());
     when(() => authCubit.stream)
         .thenAnswer((_) => const Stream<AuthState>.empty());
-    when(() => authCubit.login(
-          email: any(named: 'email'),
-          password: any(named: 'password'),
-          rememberMe: any(named: 'rememberMe'),
-          captchaToken: any(named: 'captchaToken'),
-        )).thenAnswer((_) async {});
+
+    when(
+      () => authCubit.login(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+        rememberMe: any(named: 'rememberMe'),
+        captchaToken: any(named: 'captchaToken'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   Widget buildTestWidget({
@@ -86,12 +93,14 @@ void main() {
       expect(find.text('Please enter your email'), findsOneWidget);
       expect(find.text('Please enter your password'), findsOneWidget);
 
-      verifyNever(() => authCubit.login(
-            email: any(named: 'email'),
-            password: any(named: 'password'),
-            rememberMe: any(named: 'rememberMe'),
-            captchaToken: any(named: 'captchaToken'),
-          ));
+      verifyNever(
+        () => authCubit.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          rememberMe: any(named: 'rememberMe'),
+          captchaToken: any(named: 'captchaToken'),
+        ),
+      );
     });
 
     testWidgets('toggles remember me checkbox', (tester) async {
@@ -170,7 +179,10 @@ void main() {
       expect(find.text('Verify Now'), findsOneWidget);
 
       await tester.enterText(
-          find.byType(TextFormField).first, 'ali@example.com');
+        find.byType(TextFormField).first,
+        'ali@example.com',
+      );
+
       await tester.tap(find.text('Verify Now'));
       await tester.pumpAndSettle();
 
@@ -211,15 +223,18 @@ void main() {
       await tester.pump();
 
       expect(find.text('Please enter your password'), findsOneWidget);
-      verifyNever(() => authCubit.login(
-            email: any(named: 'email'),
-            password: any(named: 'password'),
-            rememberMe: any(named: 'rememberMe'),
-            captchaToken: any(named: 'captchaToken'),
-          ));
+
+      verifyNever(
+        () => authCubit.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          rememberMe: any(named: 'rememberMe'),
+          captchaToken: any(named: 'captchaToken'),
+        ),
+      );
     });
 
-    testWidgets('submits login with captcha token when form is valid',
+    testWidgets('submits login with empty captcha token when form is valid',
         (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pump();
@@ -238,15 +253,18 @@ void main() {
       await tester.tap(find.text('Log in'));
       await tester.pump();
 
-      verify(() => authCubit.login(
-            email: 'valid@example.com',
-            password: 'ValidPass123!',
-            rememberMe: true,
-            captchaToken: 'test-captcha',
-          )).called(1);
+      verify(
+        () => authCubit.login(
+          email: 'valid@example.com',
+          password: 'ValidPass123!',
+          rememberMe: true,
+          captchaToken: '',
+        ),
+      ).called(1);
     });
 
-    testWidgets('shows snackbar when captcha fetching fails', (tester) async {
+    testWidgets('handles captcha provider failure according to platform',
+        (tester) async {
       Future<String> failingCaptchaProvider(BuildContext _) async {
         throw Exception('captcha failed');
       }
@@ -264,19 +282,35 @@ void main() {
         find.byType(TextFormField).at(1),
         'ValidPass123!',
       );
+
       await tester.tap(find.text('Log in'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Security verification failed. Please try again.'),
-        findsOneWidget,
-      );
-      verifyNever(() => authCubit.login(
+      if (Platform.isWindows) {
+        // On Windows captcha is intentionally skipped by LoginPage.
+        verify(
+          () => authCubit.login(
+            email: 'valid@example.com',
+            password: 'ValidPass123!',
+            rememberMe: false,
+            captchaToken: '',
+          ),
+        ).called(1);
+      } else {
+        expect(
+          find.text('Security verification failed. Please try again.'),
+          findsOneWidget,
+        );
+
+        verifyNever(
+          () => authCubit.login(
             email: any(named: 'email'),
             password: any(named: 'password'),
             rememberMe: any(named: 'rememberMe'),
             captchaToken: any(named: 'captchaToken'),
-          ));
+          ),
+        );
+      }
     });
 
     testWidgets('shows loading indicator when auth state is loading',
