@@ -1,4 +1,5 @@
 import '../entities/picked_audio_file.dart';
+import '../entities/picked_image_file.dart';
 
 typedef UploadProgressCallback = void Function(double progress);
 
@@ -20,6 +21,7 @@ abstract class UploadRepository {
   Future<UploadTrackResult> uploadTrack({
     required PickedAudioFile file,
     required String title,
+    PickedImageFile? coverArt,
     String? genre,
     String? description,
     DateTime? releaseDate,

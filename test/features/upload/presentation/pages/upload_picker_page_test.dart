@@ -264,7 +264,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(textFieldWithLabel('Track title'), 'My Track');
-      await selectGenre(tester, 'Pop');
+      await selectGenre(tester, 'pop');
       await tester.enterText(textFieldWithLabel('Tags'), 'lofi, chill');
       await tester.enterText(textFieldWithLabel('Description'), 'Description');
       await tester.pump();
@@ -286,7 +286,7 @@ void main() {
       expect(tagsField.controller!.text, isEmpty);
       expect(descriptionField.controller!.text, isEmpty);
       expect(genreField.initialValue, isNull);
-      expect(find.text('Pop'), findsNothing);
+      expect(find.text('pop'), findsNothing);
     });
 
     testWidgets('upload button passes full metadata to cubit', (tester) async {
@@ -301,7 +301,7 @@ void main() {
       when(
         () => mockUploadPickerCubit.uploadSelectedFile(
           title: 'My Track',
-          genre: 'Pop',
+          genre: 'pop',
           tagsInput: 'lofi, chill',
           description: 'Nice description',
           visibility: TrackManagementVisibility.publicTrack,
@@ -312,7 +312,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(textFieldWithLabel('Track title'), 'My Track');
-      await selectGenre(tester, 'Pop');
+      await selectGenre(tester, 'pop');
       await tester.enterText(textFieldWithLabel('Tags'), 'lofi, chill');
       await tester.enterText(
         textFieldWithLabel('Description'),
@@ -329,7 +329,7 @@ void main() {
       verify(
         () => mockUploadPickerCubit.uploadSelectedFile(
           title: 'My Track',
-          genre: 'Pop',
+          genre: 'pop',
           tagsInput: 'lofi, chill',
           description: 'Nice description',
           visibility: TrackManagementVisibility.publicTrack,
