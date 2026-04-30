@@ -68,7 +68,7 @@ class UploadRepositoryImpl implements UploadRepository {
       );
     }
     for (final tag in sanitizedTags) {
-      formData.fields.add(MapEntry('tags[]', tag));
+      formData.fields.add(MapEntry('tags', tag));
     }
     formData.files.add(
       MapEntry(
