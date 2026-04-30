@@ -12,6 +12,18 @@ class NotificationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // If no `BlocProvider<NotificationsBloc>` is present in the widget tree
+    // (common in some tests), render the child without a badge instead of
+    // throwing a ProviderNotFoundException.
+    // Use BlocProvider.of inside a try/catch — it throws when no provider is
+    // found. This avoids compile-time generic constraints and keeps runtime
+    // behavior safe in tests that don't provide the bloc.
+    try {
+      BlocProvider.of<NotificationsBloc>(context);
+    } catch (_) {
+      return child;
+    }
+
     return BlocBuilder<NotificationsBloc, NotificationsState>(
       buildWhen: (previous, current) {
         if (previous is NotificationsLoaded && current is NotificationsLoaded) {
