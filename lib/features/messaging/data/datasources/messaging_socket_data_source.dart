@@ -25,6 +25,7 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
   IO.Socket? _socket;
 
   bool _isConnected = false;
+  bool _hasEmittedConnectionError = false;
 
   MessagingSocketDataSourceImpl({
     required this.cookieJar,
@@ -51,11 +52,11 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
     print('Socket.IO cookie exists => ${cookieHeader.isNotEmpty}');
 
     _socket = IO.io(
-      ApiConstants.baseUrl,
+      'http:dev.iqa3.tech',
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
-          .setPath(ApiConstants.messagingBase)
+          .setPath('/messages')
           .setExtraHeaders(
             cookieHeader.isEmpty
                 ? <String, String>{}
@@ -69,6 +70,7 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
 
     _socket!.onConnect((_) {
       _isConnected = true;
+      _hasEmittedConnectionError = false;
       print('Socket.IO connected');
     });
 
@@ -80,23 +82,29 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
     _socket!.onConnectError((dynamic error) {
       _isConnected = false;
       print('Socket.IO connect error: $error');
-      _controller.addError(error);
+      if (!_hasEmittedConnectionError) {
+        _controller.addError(error);
+        _hasEmittedConnectionError = true;
+      }
     });
 
     _socket!.onError((dynamic error) {
       print('Socket.IO error: $error');
-      _controller.addError(error);
+      if (!_hasEmittedConnectionError) {
+        _controller.addError(error);
+        _hasEmittedConnectionError = true;
+      }
     });
 
     _socket!.onReconnect((_) {
       _isConnected = true;
+      _hasEmittedConnectionError = false;
       print('Socket.IO reconnected');
     });
 
     _socket!.onReconnectError((dynamic error) {
       _isConnected = false;
       print('Socket.IO reconnect error: $error');
-      _controller.addError(error);
     });
 
     _socket!.onAny((String event, dynamic data) {
