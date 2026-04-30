@@ -39,8 +39,10 @@ void main() {
           TextEditingController(text: 'New Description');
       final tagsController = TextEditingController(text: 'demo');
 
-      tester.binding.window.physicalSizeTestValue = const Size(800, 1200);
+      // ignore: deprecated_member_use
       addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+      // ignore: deprecated_member_use
+      tester.binding.window.physicalSizeTestValue = const Size(800, 1200);
 
       await tester.pumpWidget(
         MaterialApp(
