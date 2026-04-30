@@ -28,7 +28,7 @@ class MockHomePage extends StatefulWidget {
 
 class _MockHomePageState extends State<MockHomePage> {
   int _selectedTab = 0;
-  String _selectedGenre = 'ELECTRONIC';
+  String _selectedGenre = 'electronic';
   bool _isLoadingTrending = false;
   String? _trendingError;
   List<dynamic>? _trendingRawTrackPool;
@@ -36,12 +36,40 @@ class _MockHomePageState extends State<MockHomePage> {
   List<Track> _trendingTracks = const <Track>[];
 
   final _genres = const [
-    'ELECTRONIC',
-    'FOLK',
-    'HOUSE',
-    'TECHNO',
-    'POP',
-    'HIP-HOP',
+    'None',
+    'electronic',
+    'hip-hop',
+    'pop',
+    'rock',
+    'alternative',
+    'ambient',
+    'classical',
+    'jazz',
+    'r-b-soul',
+    'metal',
+    'folk-singer-songwriter',
+    'country',
+    'reggaeton',
+    'dancehall',
+    'drum-bass',
+    'house',
+    'techno',
+    'deep-house',
+    'trance',
+    'lo-fi',
+    'indie',
+    'punk',
+    'blues',
+    'latin',
+    'afrobeat',
+    'trap',
+    'experimental',
+    'world',
+    'gospel',
+    'spoken-word',
+    'quran',
+    'sha3by',
+    'islamic',
   ];
 
   @override
