@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
-
 import 'package:soundcloud_clone/app/router.dart' as app_router;
 import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_service.dart';
@@ -29,6 +27,10 @@ import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_count_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/pages/edit_profile_page.dart';
@@ -43,12 +45,6 @@ import 'package:soundcloud_clone/features/upload/presentation/bloc/track_managem
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
-import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
-import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
-import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
-import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
-import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
   double _currentVolume = 1;
@@ -170,10 +166,10 @@ void main() {
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(
       RecentlyPlayedCubit(),
     );
-
     GetIt.I.registerLazySingleton<SubscriptionRepository>(
       () => MockSubscriptionRepository(),
     );
+
     GetIt.I.registerFactory<TrackManagementCubit>(() => trackManagementCubit);
 
     GetIt.I.registerFactory<UnreadCountCubit>(
@@ -198,6 +194,7 @@ void main() {
 
     when(() => authCubit.forgotPassword(email: any(named: 'email')))
         .thenAnswer((_) async {});
+
     when(
       () => authCubit.resetPassword(
         code: any(named: 'code'),
@@ -205,8 +202,10 @@ void main() {
         newPasswordConfirm: any(named: 'newPasswordConfirm'),
       ),
     ).thenAnswer((_) async {});
+
     when(() => authCubit.verifyEmail(code: any(named: 'code')))
         .thenAnswer((_) async {});
+
     when(() => authCubit.sendEmailVerification(email: any(named: 'email')))
         .thenAnswer((_) async {});
 
@@ -238,6 +237,7 @@ void main() {
   }) async {
     tester.view.physicalSize = const Size(1200, 1800);
     tester.view.devicePixelRatio = 1.0;
+
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
@@ -276,7 +276,7 @@ void main() {
           BlocProvider<ProfileCubit>.value(value: profileCubit),
           BlocProvider<UploadPickerCubit>.value(value: uploadPickerCubit),
           Provider<SocialRepo>.value(value: mockSocialRepo),
-          BlocProvider(
+          BlocProvider<SubscriptionCubit>(
             create: (_) => SubscriptionCubit(MockSubscriptionRepository())
               ..loadSubscription(),
           ),
@@ -290,9 +290,16 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle(const Duration(seconds: 5));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+
+  Future<void> pumpRouteChange(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
   }
 
   group('AppRouter Tests', () {
@@ -306,16 +313,15 @@ void main() {
       );
 
       final router = app_router.createRouter();
+
       await tester.pumpWidget(
         MultiBlocProvider(
           providers: [
             BlocProvider<AuthCubit>.value(value: authCubit),
-
             BlocProvider<PlayerCubit>(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
             ),
-
-            BlocProvider(
+            BlocProvider<SubscriptionCubit>(
               create: (_) => SubscriptionCubit(MockSubscriptionRepository())
                 ..loadSubscription(),
             ),
@@ -325,6 +331,7 @@ void main() {
           ),
         ),
       );
+
       await tester.pump();
 
       verify(() => authCubit.checkAuthStatus()).called(1);
@@ -510,8 +517,6 @@ void main() {
         initialLocation: app_router.AppRoutes.feed,
       );
 
-      await tester.pump(const Duration(seconds: 1));
-
       expect(find.byType(FeedPage), findsOneWidget);
     });
 
@@ -554,7 +559,7 @@ void main() {
       );
 
       await tester.tap(find.text('Go Home'));
-      await tester.pumpAndSettle();
+      await pumpRouteChange(tester);
 
       expect(find.text('GET PRO'), findsOneWidget);
     });
