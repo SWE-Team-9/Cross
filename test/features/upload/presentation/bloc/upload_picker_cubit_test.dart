@@ -152,6 +152,7 @@ void main() {
       verifyNever(() => mockUploadRepository.uploadTrack(
             file: any(named: 'file'),
             title: any(named: 'title'),
+            coverArt: any(named: 'coverArt'),
           ));
     },
   );
@@ -170,6 +171,7 @@ void main() {
       when(() => mockUploadRepository.uploadTrack(
             file: any(named: 'file'),
             title: any(named: 'title'),
+            coverArt: any(named: 'coverArt'),
             genre: any(named: 'genre'),
             description: any(named: 'description'),
             tags: any(named: 'tags'),
@@ -219,6 +221,7 @@ void main() {
       when(() => mockUploadRepository.uploadTrack(
             file: any(named: 'file'),
             title: any(named: 'title'),
+            coverArt: any(named: 'coverArt'),
             genre: any(named: 'genre'),
             description: any(named: 'description'),
             tags: any(named: 'tags'),
@@ -363,6 +366,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -419,6 +423,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>['lofi'],
@@ -478,6 +483,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -511,6 +517,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -573,6 +580,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -654,6 +662,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -719,6 +728,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -785,6 +795,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
