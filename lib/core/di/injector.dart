@@ -128,10 +128,10 @@ import '../oauth/oauth_pending_request_store.dart';
 import '../oauth/windows_oauth_callback_server.dart';
 
 // Premium
-import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/subscription_repository_impl.dart';
 
 final getIt = GetIt.instance;
 
@@ -771,7 +771,7 @@ Future<void> setupDependencies() async {
 
   if (!getIt.isRegistered<SubscriptionRepository>()) {
     getIt.registerLazySingleton<SubscriptionRepository>(
-      () => MockSubscriptionRepository(),
+      () => SubscriptionRepositoryImpl(getIt<DioClient>()),
     );
   }
 
