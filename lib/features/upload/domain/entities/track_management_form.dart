@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'managed_track.dart';
+import 'track_genre.dart';
 import 'track_management_visibility.dart';
 
 class TrackManagementForm extends Equatable {
@@ -42,8 +43,7 @@ class TrackManagementForm extends Equatable {
   }
 
   String? get normalizedGenreName {
-    final value = (genreName ?? '').trim();
-    return value.isEmpty ? null : value;
+    return normalizeTrackGenreName(genreName);
   }
 
   List<String> get sanitizedTags {
@@ -123,7 +123,7 @@ class TrackManagementForm extends Equatable {
   bool hasMetadataChangesComparedTo(ManagedTrack track) {
     return normalizedTitle != track.title.trim() ||
         normalizedDescription != _normalizeNullable(track.description) ||
-        normalizedGenreName != _normalizeNullable(track.genreName) ||
+        normalizedGenreName != _normalizeGenreNullable(track.genreName) ||
         _normalizeDateOnly(releaseDate) !=
             _normalizeDateOnly(track.releaseDate) ||
         !_sameTags(sanitizedTags, track.tags);
@@ -195,6 +195,10 @@ class TrackManagementForm extends Equatable {
 String? _normalizeNullable(String? value) {
   final normalized = (value ?? '').trim();
   return normalized.isEmpty ? null : normalized;
+}
+
+String? _normalizeGenreNullable(String? value) {
+  return normalizeTrackGenreName(value);
 }
 
 bool _sameTags(List<String> first, List<String> second) {
