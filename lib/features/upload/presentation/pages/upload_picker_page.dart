@@ -1,4 +1,7 @@
 // coverage:ignore-file
+import 'dart:io' show File;
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
+import '../../domain/entities/picked_image_file.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../bloc/upload_picker_cubit.dart';
 import '../bloc/upload_picker_state.dart';
@@ -25,6 +29,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
   late final TextEditingController _tagsController;
   late final TextEditingController _descriptionController;
   String? _selectedGenre;
+  PickedImageFile? _selectedCoverArt;
   DateTime? _selectedReleaseDate;
 
   TrackManagementVisibility _selectedVisibility =
@@ -71,6 +76,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
     setState(() {
       _selectedVisibility = TrackManagementVisibility.privateTrack;
       _selectedGenre = null;
+      _selectedCoverArt = null;
       _selectedReleaseDate = null;
     });
 
@@ -113,6 +119,51 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
         );
       },
     );
+  }
+
+  Future<void> _pickCoverArt() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowMultiple: false,
+        allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+      );
+
+      if (result == null || result.files.isEmpty || !mounted) return;
+
+      final file = result.files.single;
+      final path = file.path;
+      if (path == null || path.trim().isEmpty) {
+        _showUploadMessage('Selected cover image path is unavailable.');
+        return;
+      }
+
+      setState(() {
+        _selectedCoverArt = PickedImageFile(
+          name: file.name,
+          extension: (file.extension ?? file.name.split('.').last)
+              .trim()
+              .toLowerCase(),
+          sizeInBytes: file.size,
+          path: path,
+        );
+      });
+    } catch (_) {
+      if (!mounted) return;
+      _showUploadMessage('Unable to select cover image. Please try again.');
+    }
+  }
+
+  void _showUploadMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF1A1A1A),
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
@@ -283,7 +334,14 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                       _UploadMetadataCard(
                         titleController: _titleController,
                         selectedGenre: _selectedGenre,
+                        selectedCoverArt: _selectedCoverArt,
                         selectedReleaseDate: _selectedReleaseDate,
+                        onCoverArtChanged: (coverArt) {
+                          setState(() {
+                            _selectedCoverArt = coverArt;
+                          });
+                        },
+                        onPickCoverArt: _pickCoverArt,
                         onReleaseDateChanged: (date) {
                           setState(() {
                             _selectedReleaseDate = date;
@@ -365,6 +423,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
 
                                       cubit.uploadSelectedFile(
                                         title: _titleController.text,
+                                        coverArt: _selectedCoverArt,
                                         genre: _selectedGenre,
                                         tagsInput: _tagsController.text,
                                         description:
@@ -534,7 +593,10 @@ class _UploadMetadataCard extends StatelessWidget {
   const _UploadMetadataCard({
     required this.titleController,
     required this.selectedGenre,
+    required this.selectedCoverArt,
     required this.selectedReleaseDate,
+    required this.onCoverArtChanged,
+    required this.onPickCoverArt,
     required this.onReleaseDateChanged,
     required this.genreOptions,
     required this.onGenreChanged,
@@ -545,7 +607,10 @@ class _UploadMetadataCard extends StatelessWidget {
 
   final TextEditingController titleController;
   final String? selectedGenre;
+  final PickedImageFile? selectedCoverArt;
   final DateTime? selectedReleaseDate;
+  final ValueChanged<PickedImageFile?> onCoverArtChanged;
+  final VoidCallback onPickCoverArt;
   final ValueChanged<DateTime?> onReleaseDateChanged;
   final List<String> genreOptions;
   final ValueChanged<String?> onGenreChanged;
@@ -594,6 +659,13 @@ class _UploadMetadataCard extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 20),
+          _CoverArtPicker(
+            coverArt: selectedCoverArt,
+            enabled: isEnabled,
+            onPick: onPickCoverArt,
+            onRemove: () => onCoverArtChanged(null),
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: titleController,
             enabled: isEnabled,
@@ -679,6 +751,91 @@ class _UploadMetadataCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CoverArtPicker extends StatelessWidget {
+  const _CoverArtPicker({
+    required this.coverArt,
+    required this.enabled,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  final PickedImageFile? coverArt;
+  final bool enabled;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = coverArt;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 88,
+          height: 88,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: selected == null
+              ? const Icon(Icons.image_outlined, color: Colors.white54)
+              : Image.file(
+                  File(selected.path),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.broken_image_outlined),
+                ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                selected?.name ?? 'Track cover',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                selected == null
+                    ? 'JPEG, PNG, or WebP.'
+                    : selected.formattedSize,
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: enabled ? onPick : null,
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                    label: Text(selected == null ? 'Choose cover' : 'Replace'),
+                  ),
+                  if (selected != null)
+                    IconButton(
+                      tooltip: 'Remove cover',
+                      onPressed: enabled ? onRemove : null,
+                      icon: const Icon(Icons.close),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
