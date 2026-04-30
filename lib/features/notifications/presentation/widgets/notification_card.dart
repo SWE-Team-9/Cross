@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'package:soundcloud_clone/core/di/injector.dart';
+import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
+
 import '../../domain/entities/notification_entity.dart';
 
-class NotificationCard extends StatelessWidget {
+class NotificationCard extends StatefulWidget {
   final NotificationEntity notification;
   final VoidCallback onTap;
   final VoidCallback onDelete;
@@ -15,11 +18,38 @@ class NotificationCard extends StatelessWidget {
   });
 
   @override
+  State<NotificationCard> createState() => _NotificationCardState();
+}
+
+class _NotificationCardState extends State<NotificationCard> {
+  Future<String>? _resolvedTitleFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedTitleFuture = _shouldResolveTrackTitle(widget.notification)
+        ? _fetchTrackTitle(widget.notification.entityId)
+        : Future.value('');
+  }
+
+  @override
+  void didUpdateWidget(covariant NotificationCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.notification.id != widget.notification.id ||
+        oldWidget.notification.entityId != widget.notification.entityId ||
+        oldWidget.notification.message != widget.notification.message) {
+      _resolvedTitleFuture = _shouldResolveTrackTitle(widget.notification)
+          ? _fetchTrackTitle(widget.notification.entityId)
+          : Future.value('');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Dismissible(
-      key: ValueKey('notification_${notification.id}'),
+      key: ValueKey('notification_${widget.notification.id}'),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDelete(),
+      onDismissed: (_) => widget.onDelete(),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -27,55 +57,54 @@ class NotificationCard extends StatelessWidget {
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Container(
-          color: notification.isRead
+          color: widget.notification.isRead
               ? Colors.transparent
               : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ActorAvatarWithTypeBadge(notification: notification),
+              _ActorAvatarWithTypeBadge(notification: widget.notification),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      notification.message,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: notification.isRead
-                                ? FontWeight.w400
-                                : FontWeight.w600,
-                          ),
+                    FutureBuilder<String>(
+                      future: _resolvedTitleFuture,
+                      builder: (context, snapshot) {
+                        final title = snapshot.data?.trim() ?? '';
+                        final message = _buildMessageWithTitle(
+                          widget.notification.message,
+                          title,
+                        );
+
+                        return Text(
+                          message,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: widget.notification.isRead
+                                    ? FontWeight.w400
+                                    : FontWeight.w600,
+                              ),
+                        );
+                      },
                     ),
-                    if (_shouldShowTrackName(notification)) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        'Track: ${notification.trackName}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFFB3B3B3),
-                              fontWeight: FontWeight.w500,
-                            ),
-                      ),
-                    ],
                     const SizedBox(height: 6),
                     Text(
-                      _relativeTime(notification.createdAt),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFFB3B3B3),
-                          fontWeight: FontWeight.w500,
-                        ),
+                      _relativeTime(widget.notification.createdAt),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFFB3B3B3),
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
                   ],
                 ),
               ),
-              if (!notification.isRead)
+              if (!widget.notification.isRead)
                 Container(
                   width: 8,
                   height: 8,
@@ -92,6 +121,37 @@ class NotificationCard extends StatelessWidget {
     );
   }
 
+  bool _shouldResolveTrackTitle(NotificationEntity notification) {
+    if (notification.entityId.trim().isEmpty) return false;
+    if (notification.trackName.trim().isNotEmpty) return false;
+
+    return switch (notification.type) {
+      NotificationType.like ||
+      NotificationType.comment ||
+      NotificationType.repost => true,
+      _ => false,
+    };
+  }
+
+  Future<String> _fetchTrackTitle(String trackId) async {
+    if (!getIt.isRegistered<GetTrackDetailUseCase>()) return '';
+
+    try {
+      final result = await getIt<GetTrackDetailUseCase>()(trackId.trim());
+      return result.detail?.title.trim() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _buildMessageWithTitle(String message, String title) {
+    final base = message.trim();
+    final track = title.trim();
+    if (base.isEmpty || track.isEmpty) return base;
+    if (base.toLowerCase().contains(track.toLowerCase())) return base;
+    return '$base $track';
+  }
+
   String _relativeTime(DateTime dateTime) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
@@ -101,16 +161,6 @@ class NotificationCard extends StatelessWidget {
     if (diff.inDays < 1) return '${diff.inHours}h';
     if (diff.inDays < 7) return '${diff.inDays}d';
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-  }
-
-  bool _shouldShowTrackName(NotificationEntity notification) {
-    if (notification.trackName.trim().isEmpty) return false;
-    return switch (notification.type) {
-      NotificationType.like ||
-      NotificationType.comment ||
-      NotificationType.repost => true,
-      _ => false,
-    };
   }
 }
 

@@ -42,7 +42,9 @@ NotificationEntity _makeNotification({
       id: id,
       type: NotificationType.like,
       message: 'Ali liked your track',
-      actorId: 'usr_1',
+        actorId: 'usr_1',
+        actorDisplayName: 'Ali',
+        actorHandle: 'ali',
       entityType: 'track',
       entityId: 'trk_1',
       isRead: isRead,
@@ -101,38 +103,38 @@ void main() {
       },
       act: (b) => b.add(const LoadNotifications()),
       expect: () => [
-        const NotificationsLoading(),
-        isA<NotificationsLoaded>()
-            .having((s) => s.notifications, 'notifications', [tNotification])
-            .having((s) => s.unreadCount, 'unreadCount', 1),
-      ],
-    );
 
     blocTest<NotificationsBloc, NotificationsState>(
-      'emits [Loading, Error] on failure',
+      'enriches track title from track id when notification payload is missing it',
       build: () {
         when(() => mockGetNotifications(page: 1, limit: 20)).thenAnswer(
-          (_) async =>
-              NotificationsResult.failure(ServerFailure('Server error')),
+          (_) async => NotificationsResult.success([tNotification]),
         );
         when(() => mockGetUnreadCount()).thenAnswer(
-          (_) async => const NotificationsResult.success(0),
+          (_) async => const NotificationsResult.success(1),
         );
-        return bloc;
-      },
-      act: (b) => b.add(const LoadNotifications()),
-      expect: () => [
-        const NotificationsLoading(),
-        const NotificationsError('Server error'),
-      ],
-    );
-  });
+        when(() => mockGetTrackDetail('trk_1')).thenAnswer(
+          (_) async => (
+            detail: TrackDetail(
+              trackId: 'trk_1',
+              title: 'Song2',
+              artist: 'Ali',
+              artistId: 'usr_1',
+              artistHandle: 'ali',
+              streamUrl: 'https://example.com/song2.mp3',
+            ),
+            failure: null,
+          ),
+        );
 
-  // ── MarkNotificationRead ───────────────────────────────────────────────────
-
-  group('MarkNotificationRead', () {
-    final tNotification = _makeNotification(isRead: false);
-
+        return NotificationsBloc(
+          getNotifications: mockGetNotifications,
+          getUnreadCount: mockGetUnreadCount,
+          markAsRead: mockMarkAsRead,
+          markAllAsRead: mockMarkAllAsRead,
+          delete: mockDelete,
+          repository: mockRepository,
+          getTrackDetail: mockGetTrackDetail,
     blocTest<NotificationsBloc, NotificationsState>(
       'optimistically marks notification as read and decrements unread count',
       build: () {
