@@ -11,7 +11,8 @@ import 'package:soundcloud_clone/features/notifications/data/models/notification
 import 'package:soundcloud_clone/features/notifications/data/models/notification_preferences_model.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notification_preferences_entity.dart';
 
-class FakeNotificationsRemoteDataSource implements NotificationsRemoteDataSource {
+class FakeNotificationsRemoteDataSource
+    implements NotificationsRemoteDataSource {
   @override
   Future<void> deleteNotification(String notificationId) async {}
 
@@ -22,32 +23,41 @@ class FakeNotificationsRemoteDataSource implements NotificationsRemoteDataSource
   Future<void> markAsRead(String notificationId) async {}
 
   @override
-  Stream<NotificationModel> get notificationStream => const Stream<NotificationModel>.empty();
+  Stream<NotificationModel> get notificationStream =>
+      const Stream<NotificationModel>.empty();
 
   @override
-  Future<List<NotificationModel>> getNotifications({int page = 1, int limit = 20, String? type, bool? isRead}) async => <NotificationModel>[];
+  Future<List<NotificationModel>> getNotifications(
+          {int page = 1, int limit = 20, String? type, bool? isRead}) async =>
+      <NotificationModel>[];
 
   @override
   Future<int> getUnreadCount() async => 0;
 
   @override
-  Future<NotificationPreferencesModel> getPreferences() async => NotificationPreferencesModel.fromEntity(NotificationPreferencesEntity.defaults());
+  Future<NotificationPreferencesModel> getPreferences() async =>
+      NotificationPreferencesModel.fromEntity(
+          NotificationPreferencesEntity.defaults());
 
   @override
-  Future<void> registerDevice({required String deviceToken, required String platform}) async {}
+  Future<void> registerDevice(
+      {required String deviceToken, required String platform}) async {}
 
   @override
   Future<void> removeDevice(String deviceId) async {}
 
   @override
-  Future<void> updatePreferences(NotificationPreferencesModel preferences) async {}
+  Future<void> updatePreferences(
+      NotificationPreferencesModel preferences) async {}
 }
+
 void main() {
   test('registerNotificationsModule registers expected types', () async {
     final sl = GetIt.asNewInstance();
 
     // Pre-register a fake remote data source so registerNotificationsModule does not require DioClient
-    sl.registerLazySingleton<NotificationsRemoteDataSource>(() => FakeNotificationsRemoteDataSource());
+    sl.registerLazySingleton<NotificationsRemoteDataSource>(
+        () => FakeNotificationsRemoteDataSource());
 
     registerNotificationsModule(sl);
 

@@ -29,7 +29,8 @@ class NotificationPreferencesSheet extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-        child: BlocBuilder<NotificationPreferencesBloc, NotificationPreferencesState>(
+        child: BlocBuilder<NotificationPreferencesBloc,
+            NotificationPreferencesState>(
           builder: (context, state) {
             final prefs = state.preferences;
             if (state.isLoading && !state.isSaving) {
@@ -88,22 +89,30 @@ class NotificationPreferencesSheet extends StatelessWidget {
                   _PrefSwitchTile(
                     label: 'Likes',
                     value: prefs.likesEnabled,
-                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'likes', v),
+                    onChanged: state.isSaving
+                        ? null
+                        : (v) => _toggle(context, 'likes', v),
                   ),
                   _PrefSwitchTile(
                     label: 'Comments',
                     value: prefs.commentsEnabled,
-                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'comments', v),
+                    onChanged: state.isSaving
+                        ? null
+                        : (v) => _toggle(context, 'comments', v),
                   ),
                   _PrefSwitchTile(
                     label: 'Follows',
                     value: prefs.followsEnabled,
-                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'follows', v),
+                    onChanged: state.isSaving
+                        ? null
+                        : (v) => _toggle(context, 'follows', v),
                   ),
                   _PrefSwitchTile(
                     label: 'Reposts',
                     value: prefs.repostsEnabled,
-                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'reposts', v),
+                    onChanged: state.isSaving
+                        ? null
+                        : (v) => _toggle(context, 'reposts', v),
                   ),
                 ],
               ),

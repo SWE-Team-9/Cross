@@ -43,7 +43,8 @@ void main() {
 
   test('MarkNotificationAsReadUseCase forwards id', () async {
     const expected = NotificationsResult<void>.success(null);
-    when(() => repository.markAsRead('not_2')).thenAnswer((_) async => expected);
+    when(() => repository.markAsRead('not_2'))
+        .thenAnswer((_) async => expected);
 
     final result = await MarkNotificationAsReadUseCase(repository)('not_2');
 

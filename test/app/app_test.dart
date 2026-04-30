@@ -81,7 +81,8 @@ class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 class MockSocialRepo extends Mock implements SocialRepo {}
 
-class MockNotificationsBloc extends MockBloc<NotificationsEvent, NotificationsState>
+class MockNotificationsBloc
+    extends MockBloc<NotificationsEvent, NotificationsState>
     implements NotificationsBloc {}
 
 class MockNotificationPreferencesBloc

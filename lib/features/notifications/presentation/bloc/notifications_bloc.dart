@@ -63,7 +63,8 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
   ) async {
     emit(const NotificationsLoading());
 
-    final notificationsResult = await _getNotifications(page: 1, limit: _pageSize);
+    final notificationsResult =
+        await _getNotifications(page: 1, limit: _pageSize);
     final countResult = await _getUnreadCount();
 
     switch (notificationsResult) {
@@ -86,7 +87,8 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
           NotificationsError(
             FailureMessageMapper.toUserMessage(
               f,
-              fallback: 'Unable to load notifications right now. Please try again.',
+              fallback:
+                  'Unable to load notifications right now. Please try again.',
             ),
           ),
         );
@@ -133,7 +135,8 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
           NotificationsError(
             FailureMessageMapper.toUserMessage(
               f,
-              fallback: 'Unable to load notifications right now. Please try again.',
+              fallback:
+                  'Unable to load notifications right now. Please try again.',
             ),
           ),
         );
@@ -229,7 +232,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     if (current is! NotificationsLoaded) return;
 
     final result = await _getUnreadCount();
-    
+
     if (result is NotificationsSuccess<int>) {
       emit(current.copyWith(unreadCount: result.value));
     }

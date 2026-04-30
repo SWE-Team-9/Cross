@@ -67,8 +67,8 @@ class FakeAudioPlayerService implements AudioPlayerService {
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 class MockNotificationsBloc
-  extends MockBloc<NotificationsEvent, NotificationsState>
-  implements NotificationsBloc {}
+    extends MockBloc<NotificationsEvent, NotificationsState>
+    implements NotificationsBloc {}
 
 late MockNotificationsBloc mockNotificationsBloc;
 
@@ -99,7 +99,7 @@ Widget _buildApp(MockAuthCubit authCubit) {
         builder: (context, state) => MultiBlocProvider(
           providers: [
             BlocProvider<AuthCubit>.value(value: authCubit),
-                BlocProvider<NotificationsBloc>.value(value: mockNotificationsBloc),
+            BlocProvider<NotificationsBloc>.value(value: mockNotificationsBloc),
             BlocProvider<PlayerCubit>(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
             ),
@@ -152,7 +152,8 @@ void main() {
     mockAuthCubit = MockAuthCubit();
     mockNotificationsBloc = MockNotificationsBloc();
     when(() => mockNotificationsBloc.state).thenReturn(
-      NotificationsLoaded(notifications: <NotificationEntity>[], unreadCount: 0),
+      NotificationsLoaded(
+          notifications: <NotificationEntity>[], unreadCount: 0),
     );
     when(() => mockNotificationsBloc.stream)
         .thenAnswer((_) => Stream<NotificationsState>.empty());

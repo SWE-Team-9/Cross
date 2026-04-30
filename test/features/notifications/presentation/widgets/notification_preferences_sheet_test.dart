@@ -11,7 +11,8 @@ class MockNotificationPreferencesBloc
     extends MockBloc<NotificationPreferencesEvent, NotificationPreferencesState>
     implements NotificationPreferencesBloc {}
 
-class _FakeNotificationPreferencesEvent extends Fake implements NotificationPreferencesEvent {}
+class _FakeNotificationPreferencesEvent extends Fake
+    implements NotificationPreferencesEvent {}
 
 void main() {
   setUpAll(() {
@@ -22,12 +23,14 @@ void main() {
 
   setUp(() {
     mockBloc = MockNotificationPreferencesBloc();
-    when(() => mockBloc.stream).thenAnswer((_) => const Stream<NotificationPreferencesState>.empty());
+    when(() => mockBloc.stream)
+        .thenAnswer((_) => const Stream<NotificationPreferencesState>.empty());
   });
 
   testWidgets('shows loading indicator when loading', (tester) async {
     when(() => mockBloc.state).thenReturn(
-      NotificationPreferencesState.initial().copyWith(isLoading: true, isSaving: false),
+      NotificationPreferencesState.initial()
+          .copyWith(isLoading: true, isSaving: false),
     );
 
     await tester.pumpWidget(
@@ -43,9 +46,11 @@ void main() {
   });
 
   testWidgets('renders switches and toggles dispatch events', (tester) async {
-    final prefs = NotificationPreferencesEntity.defaults().copyWith(likesEnabled: true, commentsEnabled: false);
+    final prefs = NotificationPreferencesEntity.defaults()
+        .copyWith(likesEnabled: true, commentsEnabled: false);
     when(() => mockBloc.state).thenReturn(
-      NotificationPreferencesState.initial().copyWith(isLoading: false, preferences: prefs),
+      NotificationPreferencesState.initial()
+          .copyWith(isLoading: false, preferences: prefs),
     );
 
     await tester.pumpWidget(

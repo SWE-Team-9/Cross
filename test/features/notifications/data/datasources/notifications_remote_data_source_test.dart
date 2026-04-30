@@ -71,8 +71,11 @@ void main() {
 
     test('returns empty list when payload structure is unknown', () async {
       when(
-        () => client.get('/api/v1/notifications', queryParameters: {'page': 1, 'limit': 20}),
-      ).thenAnswer((_) async => responseWith({'data': {'foo': 'bar'}}));
+        () => client.get('/api/v1/notifications',
+            queryParameters: {'page': 1, 'limit': 20}),
+      ).thenAnswer((_) async => responseWith({
+            'data': {'foo': 'bar'}
+          }));
 
       final result = await dataSource.getNotifications();
 
@@ -83,7 +86,9 @@ void main() {
   group('getUnreadCount', () {
     test('reads count from map payload', () async {
       when(() => client.get('/api/v1/notifications/unread-count'))
-          .thenAnswer((_) async => responseWith({'data': {'count': 5}}));
+          .thenAnswer((_) async => responseWith({
+                'data': {'count': 5}
+              }));
 
       final result = await dataSource.getUnreadCount();
 
@@ -101,7 +106,9 @@ void main() {
 
     test('falls back to zero for invalid payload', () async {
       when(() => client.get('/api/v1/notifications/unread-count'))
-          .thenAnswer((_) async => responseWith({'data': {'count': 'abc'}}));
+          .thenAnswer((_) async => responseWith({
+                'data': {'count': 'abc'}
+              }));
 
       final result = await dataSource.getUnreadCount();
 

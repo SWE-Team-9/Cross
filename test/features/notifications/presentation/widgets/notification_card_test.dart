@@ -37,13 +37,17 @@ void main() {
       createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
     );
 
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: NotificationCard(notification: n, onTap: () {}, onDelete: () {}))));
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: NotificationCard(
+                notification: n, onTap: () {}, onDelete: () {}))));
 
     expect(find.text('JD'), findsOneWidget);
     expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
   });
 
-  testWidgets('shows unread indicator and bold text when unread', (tester) async {
+  testWidgets('shows unread indicator and bold text when unread',
+      (tester) async {
     final n = NotificationEntity(
       id: 'n2',
       type: NotificationType.comment,
@@ -58,7 +62,10 @@ void main() {
       createdAt: DateTime.now().subtract(const Duration(minutes: 2)),
     );
 
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: NotificationCard(notification: n, onTap: () {}, onDelete: () {}))));
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: NotificationCard(
+                notification: n, onTap: () {}, onDelete: () {}))));
     await tester.pumpAndSettle();
 
     expect(find.byType(Container), findsWidgets); // unread dot exists
@@ -66,7 +73,8 @@ void main() {
     expect(find.textContaining('commented'), findsOneWidget);
   });
 
-  testWidgets('fetches track title when entityId present and trackName empty', (tester) async {
+  testWidgets('fetches track title when entityId present and trackName empty',
+      (tester) async {
     final n = NotificationEntity(
       id: 'n3',
       type: NotificationType.like,
@@ -93,7 +101,10 @@ void main() {
           failure: null,
         ));
 
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: NotificationCard(notification: n, onTap: () {}, onDelete: () {}))));
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: NotificationCard(
+                notification: n, onTap: () {}, onDelete: () {}))));
     // allow FutureBuilder to complete
     await tester.pumpAndSettle();
 

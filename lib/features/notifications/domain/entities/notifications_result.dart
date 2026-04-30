@@ -7,5 +7,6 @@ part 'notifications_result.freezed.dart';
 @freezed
 class NotificationsResult<T> with _$NotificationsResult<T> {
   const factory NotificationsResult.success(T value) = NotificationsSuccess<T>;
-  const factory NotificationsResult.failure(Failure failure) = NotificationsFailure<T>;
+  const factory NotificationsResult.failure(Failure failure) =
+      NotificationsFailure<T>;
 }

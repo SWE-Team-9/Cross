@@ -85,11 +85,12 @@ class _NotificationCardState extends State<NotificationCard> {
                           message,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: widget.notification.isRead
-                                    ? FontWeight.w400
-                                    : FontWeight.w600,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: widget.notification.isRead
+                                        ? FontWeight.w400
+                                        : FontWeight.w600,
+                                  ),
                         );
                       },
                     ),
@@ -128,7 +129,8 @@ class _NotificationCardState extends State<NotificationCard> {
     return switch (notification.type) {
       NotificationType.like ||
       NotificationType.comment ||
-      NotificationType.repost => true,
+      NotificationType.repost =>
+        true,
       _ => false,
     };
   }
@@ -183,7 +185,8 @@ class _ActorAvatarWithTypeBadge extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: const Color(0xFF2A2A2A),
-            backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+            backgroundImage:
+                avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
             child: avatarUrl.isEmpty
                 ? Text(
                     displayLabel,
@@ -213,11 +216,14 @@ class _ActorAvatarWithTypeBadge extends StatelessWidget {
     if (source.isEmpty) return '?';
 
     final clean = source.startsWith('@') ? source.substring(1) : source;
-    final parts = clean.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+    final parts =
+        clean.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
     if (parts.isEmpty) return clean[0].toUpperCase();
 
     if (parts.length == 1) {
-      return parts.first.substring(0, parts.first.length >= 2 ? 2 : 1).toUpperCase();
+      return parts.first
+          .substring(0, parts.first.length >= 2 ? 2 : 1)
+          .toUpperCase();
     }
 
     return (parts[0][0] + parts[1][0]).toUpperCase();

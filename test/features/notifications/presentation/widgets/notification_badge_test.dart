@@ -16,8 +16,10 @@ void main() {
 
   setUp(() {
     mockBloc = MockNotificationsBloc();
-    when(() => mockBloc.stream).thenAnswer((_) => Stream<NotificationsState>.empty());
-    when(() => mockBloc.state).thenReturn(NotificationsLoaded(notifications: <NotificationEntity>[], unreadCount: 0));
+    when(() => mockBloc.stream)
+        .thenAnswer((_) => Stream<NotificationsState>.empty());
+    when(() => mockBloc.state).thenReturn(NotificationsLoaded(
+        notifications: <NotificationEntity>[], unreadCount: 0));
   });
 
   testWidgets('renders child without badge when no provider', (tester) async {
@@ -34,7 +36,8 @@ void main() {
   });
 
   testWidgets('shows badge when unread count > 0', (tester) async {
-    when(() => mockBloc.state).thenReturn(NotificationsLoaded(notifications: <NotificationEntity>[], unreadCount: 5));
+    when(() => mockBloc.state).thenReturn(NotificationsLoaded(
+        notifications: <NotificationEntity>[], unreadCount: 5));
 
     await tester.pumpWidget(
       MaterialApp(
@@ -53,7 +56,8 @@ void main() {
   });
 
   testWidgets('shows 99+ when unread count > 99', (tester) async {
-    when(() => mockBloc.state).thenReturn(NotificationsLoaded(notifications: <NotificationEntity>[], unreadCount: 150));
+    when(() => mockBloc.state).thenReturn(NotificationsLoaded(
+        notifications: <NotificationEntity>[], unreadCount: 150));
 
     await tester.pumpWidget(
       MaterialApp(

@@ -74,8 +74,8 @@ class NotificationModel extends NotificationEntity {
       targetMap['targetType'],
     ]).toLowerCase();
 
-    final isUserEntity =
-        entityType == 'user' || NotificationType.fromString(typeRaw) == NotificationType.follow;
+    final isUserEntity = entityType == 'user' ||
+        NotificationType.fromString(typeRaw) == NotificationType.follow;
 
     final entityId = _firstNonEmpty([
       if (isUserEntity) ...[
@@ -274,11 +274,11 @@ class NotificationModel extends NotificationEntity {
         final isTrackContext = parentKey == 'track' ||
             parentKey == 'trackData' ||
             parentKey == 'track_data' ||
-      parentKey == 'entity' ||
-      parentKey == 'target' ||
-      parentKey == 'resource' ||
-      parentKey == 'item' ||
-      parentKey == 'subject' ||
+            parentKey == 'entity' ||
+            parentKey == 'target' ||
+            parentKey == 'resource' ||
+            parentKey == 'item' ||
+            parentKey == 'subject' ||
             map['type']?.toString().toLowerCase() == 'track' ||
             map['entityType']?.toString().toLowerCase() == 'track' ||
             map['targetType']?.toString().toLowerCase() == 'track';
@@ -330,8 +330,8 @@ class NotificationModel extends NotificationEntity {
       if (value.isNotEmpty) return value;
     }
 
-    final afterTrack = RegExp(r'\btrack\b\s+(.+)$', caseSensitive: false)
-        .firstMatch(text);
+    final afterTrack =
+        RegExp(r'\btrack\b\s+(.+)$', caseSensitive: false).firstMatch(text);
     if (afterTrack != null) {
       final value = afterTrack.group(1)?.trim() ?? '';
       if (value.isNotEmpty) return value;

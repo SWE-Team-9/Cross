@@ -215,7 +215,8 @@ void main() {
       act: (b) => b.add(const MarkAllNotificationsRead()),
       expect: () => [
         isA<NotificationsLoaded>()
-            .having((s) => s.notifications.every((n) => n.isRead), 'allRead', true)
+            .having(
+                (s) => s.notifications.every((n) => n.isRead), 'allRead', true)
             .having((s) => s.unreadCount, 'unreadCount', 0),
       ],
     );
