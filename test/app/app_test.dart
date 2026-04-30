@@ -128,8 +128,6 @@ Future<void> _pumpApp(
     MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>.value(value: authCubit),
-
-        
         BlocProvider(
           create: (_) => SubscriptionCubit(MockSubscriptionRepository())
             ..loadSubscription(),
