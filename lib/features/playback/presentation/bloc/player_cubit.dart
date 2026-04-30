@@ -5,6 +5,8 @@ import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:get_it/get_it.dart';
 
 import 'player_ui_state.dart';
 
@@ -117,6 +119,18 @@ class PlayerCubit extends Cubit<PlayerUIState> {
       playedTrackIds: played,
       showMiniPlayer: true,
     ));
+
+    final offlineCubit = GetIt.I<OfflineCubit>();
+    final selectedTrack = playableTracks[safeIndex];
+
+    if (offlineCubit.isDownloaded(selectedTrack.id)) {
+      final path = offlineCubit.getPath(selectedTrack.id);
+
+      if (path != null) {
+        await _audioService.playLocalFile(path);
+        return;
+      }
+    }
 
     await _audioService.playFromContext(
       tracks: playableTracks,
