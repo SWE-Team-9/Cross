@@ -131,7 +131,7 @@ class EditTrackMetadataForm extends StatelessWidget {
               decoration: InputDecoration(
                 labelText: 'Tags',
                 hintText: 'comma, separated, tags',
-                helperText: 'Up to 10 tags. Each tag should be under 50 chars.',
+                helperText: 'Up to 10 tags. Each tag should be under 30 chars.',
                 errorText: form.tagsValidationError,
                 border: const OutlineInputBorder(),
               ),
