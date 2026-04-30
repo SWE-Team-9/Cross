@@ -168,7 +168,10 @@ class _LibraryPageState extends State<LibraryPage> {
                   onTap: () => _goToOwnProfile(state),
                 ),
               ),
-              _LibraryItem(title: 'Playlists', onTap: () {}),
+              _LibraryItem(
+                title: 'Playlists',
+                onTap: () => context.push('/playlists'),
+              ),
               _LibraryItem(title: 'Albums', onTap: () {}),
               BlocBuilder<AuthCubit, AuthState>(
                 builder: (context, state) {

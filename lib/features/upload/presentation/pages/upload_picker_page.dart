@@ -11,6 +11,7 @@ import '../bloc/upload_picker_cubit.dart';
 import '../bloc/upload_picker_state.dart';
 import '../constants/track_genres.dart';
 import '../widgets/selected_audio_file_card.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 
 class UploadPickerPage extends StatefulWidget {
   const UploadPickerPage({super.key});
@@ -233,6 +234,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                     ),
                   ),
                 );
+                context.read<SubscriptionCubit>().refreshAfterPayment();
               }
             },
             builder: (context, state) {
