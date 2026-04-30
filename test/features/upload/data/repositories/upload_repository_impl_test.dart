@@ -9,6 +9,7 @@ import 'package:soundcloud_clone/features/upload/data/datasources/audio_file_pic
 import 'package:soundcloud_clone/features/upload/data/dto/picked_audio_file_dto.dart';
 import 'package:soundcloud_clone/features/upload/data/repositories/upload_repository_impl.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/picked_audio_file.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/picked_image_file.dart';
 
 class MockAudioFilePickerDataSource extends Mock
     implements AudioFilePickerDataSource {}
@@ -265,6 +266,61 @@ void main() {
         );
 
         expect(genreField.value, 'Sha3by');
+      });
+
+      test('adds coverArt file when cover image is provided', () async {
+        final temp = await Directory.systemTemp.createTemp('upload_repo_cover');
+        final audioFile = File('${temp.path}/audio.wav');
+        final coverFile = File('${temp.path}/cover.png');
+        await audioFile.writeAsBytes(const [1, 2, 3]);
+        await coverFile.writeAsBytes(const [4, 5, 6]);
+
+        final repoWithClient = UploadRepositoryImpl(
+          mockAudioFilePickerDataSource,
+          dioClient: mockDioClient,
+        );
+
+        final picked = PickedAudioFile(
+          name: 'audio.wav',
+          extension: 'wav',
+          sizeInBytes: 3,
+          path: audioFile.path,
+        );
+        final coverArt = PickedImageFile(
+          name: 'cover.png',
+          extension: 'png',
+          sizeInBytes: 3,
+          path: coverFile.path,
+        );
+
+        when(
+          () => mockDioClient.post(
+            any(),
+            data: any(named: 'data'),
+            options: any(named: 'options'),
+          ),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(path: ApiConstants.tracks),
+            data: {'trackId': 'track-cover', 'status': 'PROCESSING'},
+          ),
+        );
+
+        await repoWithClient.uploadTrack(
+          file: picked,
+          title: 'Song',
+          coverArt: coverArt,
+        );
+
+        final captured = verify(
+          () => mockDioClient.post(
+            ApiConstants.tracks,
+            data: captureAny(named: 'data'),
+            options: any(named: 'options'),
+          ),
+        ).captured.single as FormData;
+
+        expect(captured.files.any((entry) => entry.key == 'coverArt'), isTrue);
       });
 
       test('extracts nested track payload and default status', () async {
