@@ -17,11 +17,9 @@ class SharedTrackDto {
     return SharedTrackDto(
       id: (json['id'] ?? json['trackId'] ?? json['track_id'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
-      artist: (json['artist'] ??
-              json['artistName'] ??
-              json['artist_name'] ??
-              '')
-          .toString(),
+      artist:
+          (json['artist'] ?? json['artistName'] ?? json['artist_name'] ?? '')
+              .toString(),
       artworkUrl: (json['artworkUrl'] ??
               json['artwork_url'] ??
               json['coverArtUrl'] ??

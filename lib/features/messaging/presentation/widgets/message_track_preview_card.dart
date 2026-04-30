@@ -22,12 +22,13 @@ class MessageTrackPreviewCard extends StatelessWidget {
     final artworkUrl = PlatformUrlUtils.normalizeBackendUrl(track.artworkUrl);
 
     return InkWell(
-      onTap: onTap ?? () {
-        context.pushNamed(
-          'track-detail',
-          pathParameters: {'trackId': track.id},
-        );
-      },
+      onTap: onTap ??
+          () {
+            context.pushNamed(
+              'track-detail',
+              pathParameters: {'trackId': track.id},
+            );
+          },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         constraints: const BoxConstraints(minWidth: 220, maxWidth: 280),

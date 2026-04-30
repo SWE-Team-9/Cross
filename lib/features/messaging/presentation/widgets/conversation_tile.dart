@@ -20,8 +20,8 @@ class ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarUrl =
-        PlatformUrlUtils.normalizeBackendUrl(conversation.participant.avatarUrl);
+    final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(
+        conversation.participant.avatarUrl);
 
     return InkWell(
       onTap: onTap,

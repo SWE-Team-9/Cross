@@ -45,10 +45,10 @@ class AppConfig {
     return '6LcxwJYsAAAAAOOjnV1K6O-Sx7hx02ltn85ugKK5';
   }
 
-static const String recaptchaWindowsWebUrl = String.fromEnvironment(
-  'RECAPTCHA_WINDOWS_WEB_URL',
-  defaultValue: 'https://polite-piroshki-a48941.netlify.app',
-);
+  static const String recaptchaWindowsWebUrl = String.fromEnvironment(
+    'RECAPTCHA_WINDOWS_WEB_URL',
+    defaultValue: 'https://polite-piroshki-a48941.netlify.app',
+  );
 
   // ── OAuth (Native App) ──────────────────────────────────────────────────
 
@@ -77,18 +77,18 @@ static const String recaptchaWindowsWebUrl = String.fromEnvironment(
     return oauthAndroidRedirectUri;
   }
 
-  static String _stripTrailingSlash(String value) {
-    if (value.endsWith('/')) {
-      return value.substring(0, value.length - 1);
-    }
-    return value;
-  }
+  // static String _stripTrailingSlash(String value) {
+  //   if (value.endsWith('/')) {
+  //     return value.substring(0, value.length - 1);
+  //   }
+  //   return value;
+  // }
 
-  static String _stripApiV1Suffix(String value) {
-    final normalized = value.trim();
-    if (normalized.endsWith('/api/v1')) {
-      return normalized.substring(0, normalized.length - '/api/v1'.length);
-    }
-    return normalized;
-  }
+  // static String _stripApiV1Suffix(String value) {
+  //   final normalized = value.trim();
+  //   if (normalized.endsWith('/api/v1')) {
+  //     return normalized.substring(0, normalized.length - '/api/v1'.length);
+  //   }
+  //   return normalized;
+  // }
 }

@@ -45,16 +45,14 @@ class ConversationEntity {
     return ConversationEntity(
       conversationId: conversationId ?? this.conversationId,
       participant: participant ?? this.participant,
-      lastMessage:
-          clearLastMessage ? null : (lastMessage ?? this.lastMessage),
+      lastMessage: clearLastMessage ? null : (lastMessage ?? this.lastMessage),
       unreadCount: unreadCount ?? this.unreadCount,
       updatedAt: clearUpdatedAt ? null : (updatedAt ?? this.updatedAt),
       isArchived: isArchived ?? this.isArchived,
       isBlockedByMe: isBlockedByMe ?? this.isBlockedByMe,
       hasBlockedMe: hasBlockedMe ?? this.hasBlockedMe,
       canMessage: canMessage ?? this.canMessage,
-      blockReason:
-          clearBlockReason ? null : (blockReason ?? this.blockReason),
+      blockReason: clearBlockReason ? null : (blockReason ?? this.blockReason),
     );
   }
 }

@@ -42,15 +42,13 @@ class ConversationDto {
       lastMessage: _messageOrNull(json['lastMessage'] ?? json['last_message']),
       unreadCount: _toInt(json['unreadCount'] ?? json['unread_count']) ?? 0,
       updatedAt: _dateOrNull(json['updatedAt'] ?? json['updated_at']),
-      isArchived:
-          _toBool(json['isArchived'] ?? json['is_archived']) ?? false,
+      isArchived: _toBool(json['isArchived'] ?? json['is_archived']) ?? false,
       isBlockedByMe:
           _toBool(json['isBlockedByMe'] ?? json['is_blocked_by_me']) ?? false,
       hasBlockedMe:
           _toBool(json['hasBlockedMe'] ?? json['has_blocked_me']) ?? false,
       canMessage: _toBool(json['canMessage'] ?? json['can_message']) ?? true,
-      blockReason:
-          (json['blockReason'] ?? json['block_reason'])?.toString(),
+      blockReason: (json['blockReason'] ?? json['block_reason'])?.toString(),
     );
   }
 
@@ -72,7 +70,8 @@ class ConversationDto {
   static MessageDto? _messageOrNull(dynamic value) {
     if (value == null) return null;
     if (value is Map<String, dynamic>) return MessageDto.fromJson(value);
-    if (value is Map) return MessageDto.fromJson(Map<String, dynamic>.from(value));
+    if (value is Map)
+      return MessageDto.fromJson(Map<String, dynamic>.from(value));
     return null;
   }
 

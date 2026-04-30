@@ -701,7 +701,6 @@ Future<void> setupDependencies() async {
     );
   }
 
-
   // ── Profile Feature ──────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<profile_data.ProfileRemoteDataSource>()) {

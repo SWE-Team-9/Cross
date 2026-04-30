@@ -10,7 +10,8 @@ import '../messaging_theme.dart';
 class ConversationPickerSheet extends StatefulWidget {
   final String title;
   final String actionLabel;
-  final Future<void> Function(ConversationEntity conversation) onConversationSelected;
+  final Future<void> Function(ConversationEntity conversation)
+      onConversationSelected;
 
   const ConversationPickerSheet({
     super.key,
@@ -205,9 +206,8 @@ class _ConversationPickerSheetState extends State<ConversationPickerSheet> {
               color: MessagingTheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected
-                    ? MessagingTheme.accent
-                    : MessagingTheme.border,
+                color:
+                    isSelected ? MessagingTheme.accent : MessagingTheme.border,
               ),
             ),
             child: Row(
