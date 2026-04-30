@@ -96,6 +96,8 @@ class NotificationModel extends NotificationEntity {
     ]);
 
     final trackName = _extractTrackName(
+      type: notificationType,
+      baseMessage: baseMessage,
       rootJson: json,
       targetMap: targetMap,
     );
@@ -103,6 +105,11 @@ class NotificationModel extends NotificationEntity {
     final message = _buildDisplayMessage(
       type: notificationType,
       baseMessage: baseMessage,
+      actorLabel: _actorLabel(
+        displayName: actorDisplayName,
+        handle: actorHandle,
+        fallbackId: actorId,
+      ),
       trackName: trackName,
     );
 
@@ -132,20 +139,38 @@ class NotificationModel extends NotificationEntity {
   static String _buildDisplayMessage({
     required NotificationType type,
     required String baseMessage,
+    required String actorLabel,
     required String trackName,
   }) {
     final normalizedMessage = baseMessage.trim();
+    final normalizedActor = actorLabel.trim();
     final normalizedTrack = trackName.trim();
+
+    if (type == NotificationType.like ||
+        type == NotificationType.comment ||
+        type == NotificationType.repost) {
+      if (normalizedTrack.isNotEmpty) {
+        return switch (type) {
+          NotificationType.like =>
+            '$normalizedActor liked your track $normalizedTrack',
+          NotificationType.repost =>
+            '$normalizedActor reposted your track $normalizedTrack',
+          NotificationType.comment =>
+            '$normalizedActor commented on your track $normalizedTrack',
+          _ => normalizedMessage,
+        };
+      }
+    }
 
     if (normalizedMessage.isEmpty) {
       if (normalizedTrack.isNotEmpty) {
         return switch (type) {
           NotificationType.like =>
-            'Someone liked your track "$normalizedTrack"',
+            '$normalizedActor liked your track $normalizedTrack',
           NotificationType.repost =>
-            'Someone reposted your track "$normalizedTrack"',
+            '$normalizedActor reposted your track $normalizedTrack',
           NotificationType.comment =>
-            'Someone commented on your track "$normalizedTrack"',
+            '$normalizedActor commented on your track $normalizedTrack',
           _ => baseMessage,
         };
       }
@@ -165,24 +190,76 @@ class NotificationModel extends NotificationEntity {
       return normalizedMessage;
     }
 
-    return '$normalizedMessage "$normalizedTrack"';
+    return '$normalizedMessage $normalizedTrack';
+  }
+
+  static String _actorLabel({
+    required String displayName,
+    required String handle,
+    required String fallbackId,
+  }) {
+    final byName = displayName.trim();
+    if (byName.isNotEmpty) return byName;
+
+    final byHandle = handle.trim();
+    if (byHandle.isNotEmpty) {
+      return byHandle.startsWith('@') ? byHandle.substring(1) : byHandle;
+    }
+
+    final byId = fallbackId.trim();
+    if (byId.isNotEmpty) return byId;
+    return 'Someone';
   }
 
   static String _extractTrackName({
+    required NotificationType type,
+    required String baseMessage,
     required Map<String, dynamic> rootJson,
     required Map<String, dynamic> targetMap,
   }) {
     final direct = _firstNonEmpty([
       targetMap['title'],
       targetMap['name'],
+      targetMap['displayName'],
+      targetMap['entityName'],
+      targetMap['entityTitle'],
       targetMap['trackName'],
       targetMap['trackTitle'],
+      rootJson['entityName'],
+      rootJson['entityTitle'],
+      rootJson['displayName'],
       rootJson['trackName'],
       rootJson['trackTitle'],
       rootJson['track_name'],
       rootJson['track_title'],
     ]);
     if (direct.isNotEmpty) return direct;
+
+    String fromKnownMaps(dynamic node) {
+      if (node is! Map) return '';
+      final map = Map<String, dynamic>.from(node);
+      return _firstNonEmpty([
+        map['title'],
+        map['name'],
+        map['displayName'],
+        map['entityName'],
+        map['entityTitle'],
+        map['trackName'],
+        map['trackTitle'],
+      ]);
+    }
+
+    final fromEntityMap = fromKnownMaps(rootJson['entity']);
+    if (fromEntityMap.isNotEmpty) return fromEntityMap;
+
+    final fromTargetMap = fromKnownMaps(rootJson['target']);
+    if (fromTargetMap.isNotEmpty) return fromTargetMap;
+
+    final fromTrackMap = fromKnownMaps(rootJson['track']);
+    if (fromTrackMap.isNotEmpty) return fromTrackMap;
+
+    final fromEntityIdMap = fromKnownMaps(rootJson['entityId']);
+    if (fromEntityIdMap.isNotEmpty) return fromEntityIdMap;
 
     final visited = <Object>{};
 
@@ -197,6 +274,11 @@ class NotificationModel extends NotificationEntity {
         final isTrackContext = parentKey == 'track' ||
             parentKey == 'trackData' ||
             parentKey == 'track_data' ||
+      parentKey == 'entity' ||
+      parentKey == 'target' ||
+      parentKey == 'resource' ||
+      parentKey == 'item' ||
+      parentKey == 'subject' ||
             map['type']?.toString().toLowerCase() == 'track' ||
             map['entityType']?.toString().toLowerCase() == 'track' ||
             map['targetType']?.toString().toLowerCase() == 'track';
@@ -225,7 +307,37 @@ class NotificationModel extends NotificationEntity {
       return '';
     }
 
-    return walk(rootJson);
+    final deepResult = walk(rootJson);
+    if (deepResult.isNotEmpty) return deepResult;
+
+    if (type == NotificationType.like ||
+        type == NotificationType.comment ||
+        type == NotificationType.repost) {
+      final fromMessage = _extractTrackFromMessage(baseMessage);
+      if (fromMessage.isNotEmpty) return fromMessage;
+    }
+
+    return '';
+  }
+
+  static String _extractTrackFromMessage(String message) {
+    final text = message.trim();
+    if (text.isEmpty) return '';
+
+    final quoted = RegExp(r'"([^"]+)"').firstMatch(text);
+    if (quoted != null) {
+      final value = quoted.group(1)?.trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+
+    final afterTrack = RegExp(r'\btrack\b\s+(.+)$', caseSensitive: false)
+        .firstMatch(text);
+    if (afterTrack != null) {
+      final value = afterTrack.group(1)?.trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+
+    return '';
   }
 
   static String _firstNonEmpty(List<dynamic> values) {
