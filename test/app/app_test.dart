@@ -13,6 +13,11 @@ import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_count_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
@@ -29,16 +34,22 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Stream<app_state.PlayerState> get playerStateStream => const Stream.empty();
+
   @override
   Future<void> play(track) async {}
+
   @override
   Future<void> pause() async {}
+
   @override
   Future<void> resume() async {}
+
   @override
   Future<void> stop() async {}
+
   @override
   Future<void> seek(Duration position) async {}
+
   @override
   Future<void> setVolume(double volume) async {
     _currentVolume = volume;
@@ -52,6 +63,7 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> dispose() async {}
+
   @override
   Future<void> playFromContext({
     required List<Track> tracks,
@@ -63,14 +75,19 @@ class FakeAudioPlayerService implements AudioPlayerService {
 class FakeDeepLinkService implements DeepLinkService {
   @override
   Stream<DeepLinkDestination> get stream => const Stream.empty();
+
   @override
   DeepLinkDestination? consumeLastDestination() => null;
+
   @override
   DeepLinkDestination? peekLastDestination() => null;
+
   @override
   void markLastDestinationConsumed() {}
+
   @override
   Future<void> init() async {}
+
   @override
   Future<void> dispose() async {}
 }
@@ -79,17 +96,30 @@ class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
 class MockSocialRepo extends Mock implements SocialRepo {}
 
+class MockGetUnreadCountUseCase extends Mock implements GetUnreadCountUseCase {}
+
+class MockConnectMessagingSocketUseCase extends Mock
+    implements ConnectMessagingSocketUseCase {}
+
 // ── Helper: pump the full App widget ─────────────────────────────────────────
 
 Future<void> _pumpApp(
   WidgetTester tester,
-  MockAuthCubit authCubit,
-) async {
-  when(() => authCubit.state).thenReturn(AuthInitial());
+  MockAuthCubit authCubit, {
+  AuthState? authState,
+}) async {
+  // Important: fully unmount any previous router tree before mounting App.
+  // This prevents Duplicate GlobalKey errors from GoRouter's internal keys.
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
+
+  final state = authState ?? AuthInitial();
+
+  when(() => authCubit.state).thenReturn(state);
   whenListen(
     authCubit,
-    Stream<AuthState>.fromIterable([AuthInitial()]),
-    initialState: AuthInitial(),
+    Stream<AuthState>.fromIterable([state]),
+    initialState: state,
   );
   when(() => authCubit.checkAuthStatus()).thenAnswer((_) async {});
   when(() => authCubit.remainingResendSeconds).thenReturn(0);
@@ -98,8 +128,6 @@ Future<void> _pumpApp(
     MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>.value(value: authCubit),
-
-        // ✅ THIS IS THE MISSING PIECE
         BlocProvider(
           create: (_) => SubscriptionCubit(MockSubscriptionRepository())
             ..loadSubscription(),
@@ -115,19 +143,34 @@ Future<void> _pumpApp(
 void main() {
   late MockAuthCubit authCubit;
   late MockSocialRepo mockSocialRepo;
+  late MockGetUnreadCountUseCase getUnreadCountUseCase;
+  late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
 
   setUp(() async {
     await GetIt.I.reset();
 
+    isTrackSheetOpen.value = false;
+
     authCubit = MockAuthCubit();
     mockSocialRepo = MockSocialRepo();
+    getUnreadCountUseCase = MockGetUnreadCountUseCase();
+    connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+
+    when(() => getUnreadCountUseCase()).thenAnswer(
+      (_) async => const UnreadCountEntity(count: 0),
+    );
+
+    when(() => connectMessagingSocketUseCase()).thenAnswer((_) async {});
+
+    when(() => connectMessagingSocketUseCase.eventsStream).thenAnswer(
+      (_) => const Stream<RealtimeMessageEventEntity>.empty(),
+    );
 
     GetIt.I.registerSingleton<AudioPlayerService>(FakeAudioPlayerService());
     GetIt.I.registerSingleton<DeepLinkService>(FakeDeepLinkService());
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
     GetIt.I.registerLazySingleton<SocialRepo>(() => mockSocialRepo);
 
-    // ✅ ADD THIS
     GetIt.I.registerLazySingleton<SubscriptionRepository>(
       () => MockSubscriptionRepository(),
     );
@@ -141,9 +184,18 @@ void main() {
     GetIt.I.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(GetIt.I<AudioPlayerService>()),
     );
+
+    GetIt.I.registerFactory<UnreadCountCubit>(
+      () => UnreadCountCubit(
+        getUnreadCountUseCase: getUnreadCountUseCase,
+        connectMessagingSocketUseCase: connectMessagingSocketUseCase,
+      ),
+    );
   });
 
   tearDown(() async {
+    isTrackSheetOpen.value = false;
+
     await GetIt.I.reset();
   });
 
@@ -237,13 +289,11 @@ void main() {
         ),
       );
 
-      when(() => authCubit.state).thenReturn(authenticatedState);
-      whenListen(
+      await _pumpApp(
+        tester,
         authCubit,
-        Stream<AuthState>.fromIterable([authenticatedState]),
-        initialState: authenticatedState,
+        authState: authenticatedState,
       );
-      when(() => authCubit.checkAuthStatus()).thenAnswer((_) async {});
 
       await tester.pumpWidget(
         MultiBlocProvider(
@@ -274,6 +324,7 @@ void main() {
       await _pumpApp(tester, authCubit);
 
       await tester.pump(const Duration(milliseconds: 300));
+
       expect(tester.takeException(), isNull);
     });
   });
