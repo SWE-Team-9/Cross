@@ -6,6 +6,8 @@ abstract class NotificationsRepository {
   Future<NotificationsResult<List<NotificationEntity>>> getNotifications({
     int page = 1,
     int limit = 20,
+    String? type,
+    bool? isRead,
   });
 
   Future<NotificationsResult<int>> getUnreadCount();

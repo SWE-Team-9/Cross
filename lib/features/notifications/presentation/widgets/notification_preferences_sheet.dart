@@ -6,7 +6,7 @@ import '../bloc/notification_preferences_bloc.dart';
 class _NotificationPrefsColors {
   static const orange = Color(0xFFFF5500);
   static const deepBlack = Color(0xFF111111);
-  static const darkGrey = Color(0xFF222222);
+  // static const darkGrey = Color(0xFF222222);
 }
 
 class NotificationPreferencesSheet extends StatelessWidget {
@@ -85,20 +85,6 @@ class NotificationPreferencesSheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                  _PrefSwitchTile(
-                    label: 'Push notifications',
-                    value: prefs.pushEnabled,
-                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'push', v),
-                  ),
-                  _PrefSwitchTile(
-                    label: 'Email notifications',
-                    value: prefs.emailEnabled,
-                    onChanged: state.isSaving ? null : (v) => _toggle(context, 'email', v),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(color: _NotificationPrefsColors.darkGrey),
-                  ),
                   _PrefSwitchTile(
                     label: 'Likes',
                     value: prefs.likesEnabled,

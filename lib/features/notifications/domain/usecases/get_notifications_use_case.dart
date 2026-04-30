@@ -10,7 +10,14 @@ class GetNotificationsUseCase {
   Future<NotificationsResult<List<NotificationEntity>>> call({
     int page = 1,
     int limit = 20,
+    String? type,
+    bool? isRead,
   }) {
-    return _repository.getNotifications(page: page, limit: limit);
+    return _repository.getNotifications(
+      page: page,
+      limit: limit,
+      type: type,
+      isRead: isRead,
+    );
   }
 }
