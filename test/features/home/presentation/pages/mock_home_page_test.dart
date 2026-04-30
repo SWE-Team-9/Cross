@@ -19,7 +19,6 @@ import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_c
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
-import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 
