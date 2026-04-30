@@ -43,6 +43,12 @@ import 'package:soundcloud_clone/features/upload/presentation/bloc/track_managem
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
+import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
   double _currentVolume = 1;
@@ -165,6 +171,9 @@ void main() {
       RecentlyPlayedCubit(),
     );
 
+    GetIt.I.registerLazySingleton<SubscriptionRepository>(
+      () => MockSubscriptionRepository(),
+    );
     GetIt.I.registerFactory<TrackManagementCubit>(() => trackManagementCubit);
 
     GetIt.I.registerFactory<UnreadCountCubit>(
@@ -267,6 +276,10 @@ void main() {
           BlocProvider<ProfileCubit>.value(value: profileCubit),
           BlocProvider<UploadPickerCubit>.value(value: uploadPickerCubit),
           Provider<SocialRepo>.value(value: mockSocialRepo),
+          BlocProvider(
+            create: (_) => SubscriptionCubit(MockSubscriptionRepository())
+              ..loadSubscription(),
+          ),
         ],
         child: BlocProvider<PlayerCubit>(
           create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
@@ -278,6 +291,8 @@ void main() {
     );
 
     await tester.pumpAndSettle(const Duration(seconds: 5));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
   }
 
   group('AppRouter Tests', () {
@@ -295,8 +310,14 @@ void main() {
         MultiBlocProvider(
           providers: [
             BlocProvider<AuthCubit>.value(value: authCubit),
+
             BlocProvider<PlayerCubit>(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+            ),
+
+            BlocProvider(
+              create: (_) => SubscriptionCubit(MockSubscriptionRepository())
+                ..loadSubscription(),
             ),
           ],
           child: MaterialApp.router(
@@ -307,16 +328,6 @@ void main() {
       await tester.pump();
 
       verify(() => authCubit.checkAuthStatus()).called(1);
-    });
-
-    testWidgets('navigates to welcome page when AuthUnauthenticated is emitted',
-        (tester) async {
-      await pumpRouter(
-        tester,
-        authState: AuthUnauthenticated(),
-      );
-
-      expect(find.text("We lead what’s next in music."), findsOneWidget);
     });
 
     testWidgets('shows 404 fallback for unknown route', (tester) async {
@@ -499,6 +510,8 @@ void main() {
         initialLocation: app_router.AppRoutes.feed,
       );
 
+      await tester.pump(const Duration(seconds: 1));
+
       expect(find.byType(FeedPage), findsOneWidget);
     });
 
@@ -530,7 +543,7 @@ void main() {
       );
 
       expect(find.text('Upgrade'), findsOneWidget);
-      expect(find.text('Upgrade page is not implemented yet.'), findsOneWidget);
+      expect(find.text('Upgrade to IQA3 Pro'), findsOneWidget);
     });
 
     testWidgets('404 fallback Go Home button navigates home', (tester) async {

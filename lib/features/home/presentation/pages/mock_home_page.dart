@@ -17,6 +17,7 @@ import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_cou
 import 'package:soundcloud_clone/features/messaging/presentation/routes/messaging_routes.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -612,13 +613,52 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'GET PRO',
-            style: TextStyle(
-              color: Color(0xFFFF5500),
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
+          Builder(
+            builder: (context) {
+              final sub = context.watch<SubscriptionCubit>().state;
+
+              final plan = sub?.subscriptionType ?? 'FREE';
+              final isPremium = plan != 'FREE';
+
+              Color badgeColor;
+              String badgeLabel;
+
+              if (plan == 'GO_PLUS') {
+                badgeColor = const Color(0xFF4B9EFF);
+                badgeLabel = 'GO+';
+              } else if (plan == 'PRO') {
+                badgeColor = const Color(0xFF1DB954);
+                badgeLabel = 'PRO';
+              } else {
+                badgeColor = const Color(0xFFFF5500);
+                badgeLabel = 'GET PRO';
+              }
+
+              return GestureDetector(
+                onTap: isPremium ? null : () => context.go('/upgrade'),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: badgeColor.withValues(alpha: 0.5),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
           const Spacer(),
           if (authState is AuthAuthenticated)

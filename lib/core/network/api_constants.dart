@@ -120,4 +120,26 @@ abstract class ApiConstants {
 
   static String messagingMessageByIdPath(String messageId) =>
       '$messagingBase/$messageId';
+  // ── Playlists ───────────────────────────────────────────────────────────
+  static const String playlistsBase = '/api/v1/playlists';
+  static const String myPlaylists = '$playlistsBase/me';
+
+  static String playlistByIdPath(String playlistId) =>
+      '$playlistsBase/$playlistId';
+
+  static String playlistTracksPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/tracks';
+
+  static String removeTrackFromPlaylistPath(
+          String playlistId, String trackId) =>
+      '${playlistTracksPath(playlistId)}/$trackId';
+
+  static String reorderPlaylistPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/reorder';
+
+  static String resolveSecretPlaylistPath(String secretToken) =>
+      '$playlistsBase/secret/$secretToken';
+
+  static String playlistEmbedPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/embed';
 }

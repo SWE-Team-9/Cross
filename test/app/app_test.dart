@@ -23,6 +23,9 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cu
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 
 // ── Fakes / Mocks ─────────────────────────────────────────────────────────────
 
@@ -122,8 +125,16 @@ Future<void> _pumpApp(
   when(() => authCubit.remainingResendSeconds).thenReturn(0);
 
   await tester.pumpWidget(
-    BlocProvider<AuthCubit>.value(
-      value: authCubit,
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthCubit>.value(value: authCubit),
+
+        
+        BlocProvider(
+          create: (_) => SubscriptionCubit(MockSubscriptionRepository())
+            ..loadSubscription(),
+        ),
+      ],
       child: const App(),
     ),
   );
@@ -161,6 +172,10 @@ void main() {
     GetIt.I.registerSingleton<DeepLinkService>(FakeDeepLinkService());
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
     GetIt.I.registerLazySingleton<SocialRepo>(() => mockSocialRepo);
+
+    GetIt.I.registerLazySingleton<SubscriptionRepository>(
+      () => MockSubscriptionRepository(),
+    );
 
     GetIt.I.registerFactory<AuthCubit>(() => authCubit);
 
@@ -282,6 +297,18 @@ void main() {
         authState: authenticatedState,
       );
 
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthCubit>.value(value: authCubit),
+            BlocProvider(
+              create: (_) => SubscriptionCubit(MockSubscriptionRepository())
+                ..loadSubscription(),
+            ),
+          ],
+          child: const App(),
+        ),
+      );
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       expect(tester.takeException(), isNull);
