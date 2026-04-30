@@ -42,19 +42,14 @@ class TrackManagementRemoteDataSourceImpl
       body['genre'] = apiGenre;
     }
 
-    final dynamic response = form.coverArtPath == null
-        ? await _dioClient.put(
-            '/api/v1/tracks/$trackId', // تم إضافة /api/v1
-            data: body,
-          )
-        : await _dioClient.put(
-            '/api/v1/tracks/$trackId', // تم إضافة /api/v1
-            data: await _buildCoverArtFormData(
-              body: body,
-              coverArtPath: form.coverArtPath!,
-            ),
-            options: Options(contentType: 'multipart/form-data'),
-          );
+    final dynamic response = await _dioClient.put(
+      '/api/v1/tracks/$trackId', // تم إضافة /api/v1
+      data: await _buildTrackMetadataFormData(
+        body: body,
+        coverArtPath: form.coverArtPath,
+      ),
+      options: Options(contentType: 'multipart/form-data'),
+    );
 
     final Map<String, dynamic> payload = _extractPayloadMap(response);
 
@@ -86,9 +81,9 @@ class TrackManagementRemoteDataSourceImpl
   }
 }
 
-Future<FormData> _buildCoverArtFormData({
+Future<FormData> _buildTrackMetadataFormData({
   required Map<String, dynamic> body,
-  required String coverArtPath,
+  required String? coverArtPath,
 }) async {
   final formData = FormData();
 
@@ -106,12 +101,14 @@ Future<FormData> _buildCoverArtFormData({
     formData.fields.add(MapEntry(entry.key, value.toString()));
   }
 
-  formData.files.add(
-    MapEntry(
-      'coverArt',
-      await MultipartFile.fromFile(coverArtPath),
-    ),
-  );
+  if (coverArtPath != null && coverArtPath.trim().isNotEmpty) {
+    formData.files.add(
+      MapEntry(
+        'coverArt',
+        await MultipartFile.fromFile(coverArtPath),
+      ),
+    );
+  }
 
   return formData;
 }
