@@ -13,8 +13,13 @@ void main() {
     expect(result.subscriptionType, 'FREE');
   });
 
-  test('subscribe upgrades to PRO', () async {
-    final result = await repo.subscribe('PRO');
-    expect(result.subscriptionType, 'PRO');
+  test('createCheckout returns URL', () async {
+    final url = await repo.createCheckout('PRO');
+    expect(url, isNotEmpty);
+  });
+
+  test('getPlans returns list of plans', () async {
+    final plans = await repo.getPlans();
+    expect(plans.isNotEmpty, true);
   });
 }

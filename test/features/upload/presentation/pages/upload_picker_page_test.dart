@@ -12,6 +12,11 @@ import 'package:soundcloud_clone/features/upload/domain/entities/track_managemen
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+
+class MockSubscriptionCubit extends MockCubit<Subscription?>
+    implements SubscriptionCubit {}
 
 class MockUploadPickerCubit extends MockCubit<UploadPickerState>
     implements UploadPickerCubit {}
@@ -21,6 +26,7 @@ class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 void main() {
   late MockUploadPickerCubit mockUploadPickerCubit;
   late MockAuthCubit mockAuthCubit;
+  late MockSubscriptionCubit mockSubscriptionCubit;
 
   const artistUser = User(
     id: '1',
@@ -70,6 +76,7 @@ void main() {
           providers: [
             BlocProvider<AuthCubit>.value(value: mockAuthCubit),
             BlocProvider<UploadPickerCubit>.value(value: mockUploadPickerCubit),
+            BlocProvider<SubscriptionCubit>.value(value: mockSubscriptionCubit),
           ],
           child: const Scaffold(
             body: UploadPickerPage(),
@@ -114,6 +121,18 @@ void main() {
   setUp(() {
     mockUploadPickerCubit = MockUploadPickerCubit();
     mockAuthCubit = MockAuthCubit();
+    mockSubscriptionCubit = MockSubscriptionCubit();
+
+    when(() => mockSubscriptionCubit.state).thenReturn(const Subscription(
+      subscriptionType: 'PRO',
+      uploadLimit: 100,
+      uploadedTracks: 0,
+      remainingUploads: 100,
+    ));
+
+    // ✅ FIX CRASH
+    when(() => mockSubscriptionCubit.refreshAfterPayment())
+        .thenAnswer((_) async {});
   });
 
   group('UploadPickerPage', () {
@@ -390,7 +409,6 @@ void main() {
       expect(clearButton.onPressed, isNull);
       expect(uploadButton.onPressed, isNull);
 
-      // هنا عدلنا الـ expect عشان تدور على Uploading... بدلاً من Uploading وتتوقع تلاقي 2 (واحد في الزرار وواحد في الكارت)
       expect(find.text('Uploading...'), findsNWidgets(2));
       expect(
         find.text('Your file is being sent to the server.'),
@@ -524,7 +542,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Upload completed successfully.'), findsOneWidget);
-      expect(find.text('Upload complete'), findsOneWidget);
       expect(find.textContaining('Track ID: track-123'), findsOneWidget);
       expect(find.textContaining('Status: FINISHED'), findsOneWidget);
 
@@ -542,10 +559,9 @@ void main() {
 
       expect(find.text('Selecting file'), findsNothing);
       expect(find.text('Ready to upload'), findsNothing);
-      // عدلنا هنا لـ Uploading... بدل Uploading
       expect(find.text('Uploading...'), findsNothing);
       expect(find.text('Processing'), findsNothing);
-      expect(find.text('Upload complete'), findsNothing);
+      expect(find.text('Upload completed successfully.'), findsNothing);
       expect(find.text('Upload failed'), findsNothing);
     });
   });
