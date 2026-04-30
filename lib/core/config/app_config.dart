@@ -20,7 +20,7 @@ class AppConfig {
       return _stripTrailingSlash(_stripApiV1Suffix(override));
     }
 
-    return 'https://iqa3.tech';
+    return 'https://dev.iqa3.tech';
   }
 
   static const bool useMockTrackManagement = bool.fromEnvironment(

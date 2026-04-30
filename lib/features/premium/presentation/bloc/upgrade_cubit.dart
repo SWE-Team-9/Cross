@@ -1,6 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/subscription_repository.dart';
-import '../../domain/entities/subscription.dart';
 import 'upgrade_state.dart';
 
 class UpgradeCubit extends Cubit<UpgradeState> {
@@ -8,27 +7,22 @@ class UpgradeCubit extends Cubit<UpgradeState> {
 
   UpgradeCubit(this.repository) : super(const UpgradeState());
 
-  // 🔹 Change selected plan (PRO / GO+ later)
+  // 🔹 Change selected plan
   void selectPlan(String plan) {
     emit(state.copyWith(selectedPlan: plan));
   }
 
-  // 🔹 Simulate subscription
+  // 🔹 Start checkout flow
   Future<void> subscribe() async {
     emit(state.copyWith(status: UpgradeStatus.loading));
 
     try {
-      final Subscription result =
-          await repository.subscribe(state.selectedPlan);
+      final url = await repository.createCheckout(state.selectedPlan);
 
-      if (result.subscriptionType == state.selectedPlan) {
-        emit(state.copyWith(status: UpgradeStatus.success));
-      } else {
-        emit(state.copyWith(
-          status: UpgradeStatus.error,
-          errorMessage: 'Subscription failed',
-        ));
-      }
+      emit(state.copyWith(
+        status: UpgradeStatus.success,
+        checkoutUrl: url,
+      ));
     } catch (e) {
       emit(state.copyWith(
         status: UpgradeStatus.error,
