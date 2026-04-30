@@ -74,8 +74,8 @@ class TrackManagementForm extends Equatable {
       return 'Title is required.';
     }
 
-    if (normalizedTitle.length > 255) {
-      return 'Title must be 255 characters or fewer.';
+    if (normalizedTitle.length > 100) {
+      return 'Title must be 100 characters or fewer.';
     }
 
     return null;
@@ -106,8 +106,8 @@ class TrackManagementForm extends Equatable {
     }
 
     for (final tag in tags) {
-      if (tag.length > 50) {
-        return 'Each tag must be 50 characters or fewer.';
+      if (tag.length > 30) {
+        return 'Each tag must be 30 characters or fewer.';
       }
     }
 
