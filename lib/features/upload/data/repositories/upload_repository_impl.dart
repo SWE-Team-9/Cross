@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/picked_audio_file.dart';
+import '../../domain/entities/track_genre.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../datasources/audio_file_picker_data_source.dart';
 
@@ -46,7 +47,7 @@ class UploadRepositoryImpl implements UploadRepository {
     }
 
     final String normalizedTitle = title.trim();
-    final String? normalizedGenre = _normalizeOptional(genre);
+    final String? normalizedGenre = trackGenreApiValue(genre);
     final String? normalizedDescription = _normalizeOptional(description);
     final List<String> sanitizedTags = _sanitizeTags(tags);
 
