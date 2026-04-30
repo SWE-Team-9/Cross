@@ -13,6 +13,7 @@ class TrackManagementForm extends Equatable {
     this.genreName,
     this.tags = const <String>[],
     this.releaseDate,
+    this.coverArtPath,
   });
 
   factory TrackManagementForm.fromTrack(ManagedTrack track) {
@@ -33,6 +34,7 @@ class TrackManagementForm extends Equatable {
   final String? genreName;
   final List<String> tags;
   final DateTime? releaseDate;
+  final String? coverArtPath;
   final TrackManagementVisibility visibility;
 
   String get normalizedTitle => title.trim();
@@ -126,6 +128,7 @@ class TrackManagementForm extends Equatable {
         normalizedGenreName != _normalizeGenreNullable(track.genreName) ||
         _normalizeDateOnly(releaseDate) !=
             _normalizeDateOnly(track.releaseDate) ||
+        _normalizeNullable(coverArtPath) != null ||
         !_sameTags(sanitizedTags, track.tags);
   }
 
@@ -167,6 +170,8 @@ class TrackManagementForm extends Equatable {
     List<String>? tags,
     DateTime? releaseDate,
     bool clearReleaseDate = false,
+    String? coverArtPath,
+    bool clearCoverArtPath = false,
     TrackManagementVisibility? visibility,
   }) {
     return TrackManagementForm(
@@ -176,6 +181,8 @@ class TrackManagementForm extends Equatable {
       genreName: clearGenreName ? null : (genreName ?? this.genreName),
       tags: tags ?? this.tags,
       releaseDate: clearReleaseDate ? null : (releaseDate ?? this.releaseDate),
+      coverArtPath:
+          clearCoverArtPath ? null : (coverArtPath ?? this.coverArtPath),
       visibility: visibility ?? this.visibility,
     );
   }
@@ -188,6 +195,7 @@ class TrackManagementForm extends Equatable {
         genreName,
         tags,
         releaseDate,
+        coverArtPath,
         visibility,
       ];
 }
