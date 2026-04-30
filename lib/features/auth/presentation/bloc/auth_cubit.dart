@@ -216,11 +216,6 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> handleOAuthCallbackDeepLink(
     OAuthCallbackDeepLink destination,
   ) async {
-    print('🔵 handleOAuthCallbackDeepLink entered');
-    print('🔵 destination.code = ${destination.code}');
-    print('🔵 destination.state = ${destination.state}');
-    print('🔵 destination.error = ${destination.error}');
-    print('🔵 destination.errorDescription = ${destination.errorDescription}');
     await handleOAuthCallback(
       code: destination.code,
       state: destination.state,
@@ -287,10 +282,6 @@ class AuthCubit extends Cubit<AuthState> {
       final expectedState = _pendingOAuthState ?? pending?.state;
       final codeVerifier = _pendingOAuthCodeVerifier ?? pending?.codeVerifier;
       final redirectUri = _pendingOAuthRedirectUri ?? pending?.redirectUri;
-
-      print('🟣 expectedState = $expectedState');
-      print('🟣 codeVerifier present = ${codeVerifier != null}');
-      print('🟣 redirectUri = $redirectUri');
 
       emit(
         AuthOAuthDiagnostic(
@@ -376,19 +367,11 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
 
-      print('🚀 about to call exchangeOAuthCodeForSession');
-      print('🚀 code = ${code.trim()}');
-      print('🚀 redirectUri = $redirectUri');
-      print('🚀 codeVerifier length = ${codeVerifier.length}');
-
       await authRepository.exchangeOAuthCodeForSession(
         code: code.trim(),
         redirectUri: redirectUri,
         codeVerifier: codeVerifier,
       );
-
-      print('✅ exchangeOAuthCodeForSession completed');
-      print('✅ about to call getCurrentUserUseCase');
 
       emit(
         AuthOAuthDiagnostic(

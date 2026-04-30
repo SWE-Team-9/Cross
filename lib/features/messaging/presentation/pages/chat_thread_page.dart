@@ -46,8 +46,7 @@ class ChatThreadPage extends StatelessWidget {
         sendTextMessageUseCase: GetIt.I<SendTextMessageUseCase>(),
         markConversationReadUseCase: GetIt.I<MarkConversationReadUseCase>(),
         deleteMessageUseCase: GetIt.I<DeleteMessageUseCase>(),
-        connectMessagingSocketUseCase:
-            GetIt.I<ConnectMessagingSocketUseCase>(),
+        connectMessagingSocketUseCase: GetIt.I<ConnectMessagingSocketUseCase>(),
       )..load(
           conversationId: conversationId,
           receiverId: receiverId,

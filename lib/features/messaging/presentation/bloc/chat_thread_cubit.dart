@@ -70,7 +70,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
         ),
       );
 
-      await markConversationReadUseCase(conversationId);
+      await markCurrentConversationAsRead();
       await _connectSocket();
     } catch (e) {
       emit(
@@ -188,6 +188,17 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     }
   }
 
+  Future<void> markCurrentConversationAsRead() async {
+    final conversationId = _conversationId;
+    if (conversationId == null || conversationId.isEmpty) return;
+
+    try {
+      await markConversationReadUseCase(conversationId);
+    } catch (_) {
+      // Do not block opening or using the chat if marking as read fails.
+    }
+  }
+
   Future<void> _connectSocket() async {
     try {
       await connectMessagingSocketUseCase();
@@ -216,80 +227,85 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     }
   }
 
-void _handleSocketEvent(RealtimeMessageEventEntity event) {
-  if (event.conversationId != _conversationId) return;
+  void _handleSocketEvent(RealtimeMessageEventEntity event) {
+    if (event.conversationId != _conversationId) return;
 
-  switch (event.type) {
-    case RealtimeMessageEventType.newMessage:
-      final message = event.message;
-      if (message == null) return;
+    switch (event.type) {
+      case RealtimeMessageEventType.newMessage:
+        final message = event.message;
+        if (message == null) return;
 
-      final exists = state.messages.any(
-        (item) => item.id == message.id,
-      );
-      if (exists) return;
+        final exists = state.messages.any(
+          (item) => item.id == message.id,
+        );
+        if (exists) {
+          unawaited(markCurrentConversationAsRead());
+          return;
+        }
 
-      final merged = _sortMessages([
-        ...state.messages,
-        message,
-      ]);
+        final merged = _sortMessages([
+          ...state.messages,
+          message,
+        ]);
 
-      emit(
-        state.copyWith(
-          messages: merged,
-          isSocketConnected: true,
-          clearError: true,
-        ),
-      );
-      break;
+        emit(
+          state.copyWith(
+            messages: merged,
+            isSocketConnected: true,
+            clearError: true,
+          ),
+        );
 
-    case RealtimeMessageEventType.messageDeleted:
-      final messageId = event.messageId;
-      if (messageId == null || messageId.isEmpty) return;
+        unawaited(markCurrentConversationAsRead());
+        break;
 
-      emit(
-        state.copyWith(
-          messages: state.messages
-              .where((message) => message.id != messageId)
-              .toList(growable: false),
-          isSocketConnected: true,
-          clearError: true,
-        ),
-      );
-      break;
+      case RealtimeMessageEventType.messageDeleted:
+        final messageId = event.messageId;
+        if (messageId == null || messageId.isEmpty) return;
 
-    case RealtimeMessageEventType.userBlocked:
-      _canMessage = false;
-      emit(
-        state.copyWith(
-          isSocketConnected: true,
-          errorMessage: event.blockReason ?? 'You cannot message this user.',
-        ),
-      );
-      break;
+        emit(
+          state.copyWith(
+            messages: state.messages
+                .where((message) => message.id != messageId)
+                .toList(growable: false),
+            isSocketConnected: true,
+            clearError: true,
+          ),
+        );
+        break;
 
-    case RealtimeMessageEventType.userUnblocked:
-      _canMessage = true;
-      emit(
-        state.copyWith(
-          isSocketConnected: true,
-          clearError: true,
-        ),
-      );
-      break;
+      case RealtimeMessageEventType.userBlocked:
+        _canMessage = false;
+        emit(
+          state.copyWith(
+            isSocketConnected: true,
+            errorMessage: event.blockReason ?? 'You cannot message this user.',
+          ),
+        );
+        break;
 
-    case RealtimeMessageEventType.conversationRead:
-    case RealtimeMessageEventType.conversationUpdated:
-    case RealtimeMessageEventType.unreadCountUpdated:
-    case RealtimeMessageEventType.unknown:
-      emit(
-        state.copyWith(
-          isSocketConnected: true,
-        ),
-      );
-      break;
+      case RealtimeMessageEventType.userUnblocked:
+        _canMessage = true;
+        emit(
+          state.copyWith(
+            isSocketConnected: true,
+            clearError: true,
+          ),
+        );
+        break;
+
+      case RealtimeMessageEventType.conversationRead:
+      case RealtimeMessageEventType.conversationUpdated:
+      case RealtimeMessageEventType.unreadCountUpdated:
+      case RealtimeMessageEventType.unknown:
+        emit(
+          state.copyWith(
+            isSocketConnected: true,
+          ),
+        );
+        break;
+    }
   }
-}
 
   List<MessageEntity> _sortMessages(List<MessageEntity> messages) {
     final list = [...messages];

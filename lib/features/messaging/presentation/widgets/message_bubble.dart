@@ -27,9 +27,8 @@ class MessageBubble extends StatelessWidget {
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
-        onLongPress: isMine && onDelete != null
-            ? () => _showDeleteSheet(context)
-            : null,
+        onLongPress:
+            isMine && onDelete != null ? () => _showDeleteSheet(context) : null,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 310),
           child: Container(
@@ -57,7 +56,8 @@ class MessageBubble extends StatelessWidget {
                     child: Text(
                       message.text!.trim(),
                       style: TextStyle(
-                        color: isMine ? Colors.white : MessagingTheme.textPrimary,
+                        color:
+                            isMine ? Colors.white : MessagingTheme.textPrimary,
                         fontSize: 14,
                         height: 1.35,
                       ),

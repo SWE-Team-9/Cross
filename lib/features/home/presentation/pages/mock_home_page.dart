@@ -18,7 +18,6 @@ import 'package:soundcloud_clone/features/messaging/presentation/routes/messagin
 
 import '/features/profile/presentation/routes/profile_routes.dart';
 
-
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
 

@@ -35,8 +35,7 @@ class ConversationListPageDto {
     final page = _toInt(json['page']) ?? 1;
     final limit = _toInt(json['limit']) ?? conversations.length;
     final total = _toInt(json['total']) ?? conversations.length;
-    final explicitHasMore =
-        _toBool(json['hasMore'] ?? json['has_more']);
+    final explicitHasMore = _toBool(json['hasMore'] ?? json['has_more']);
 
     return ConversationListPageDto(
       conversations: conversations,

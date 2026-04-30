@@ -268,7 +268,8 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
     );
   }
 
-  Future<void> _shareTrackToConversation(BuildContext context, Track track) async {
+  Future<void> _shareTrackToConversation(
+      BuildContext context, Track track) async {
     await showShareTrackToConversationSheet(
       context: context,
       trackId: track.id,

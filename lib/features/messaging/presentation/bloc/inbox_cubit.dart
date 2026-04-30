@@ -139,10 +139,9 @@ class InboxCubit extends Cubit<InboxState> {
         state.copyWith(
           conversations: state.conversations
               .map(
-                (conversation) =>
-                    conversation.conversationId == conversationId
-                        ? conversation.copyWith(unreadCount: 0)
-                        : conversation,
+                (conversation) => conversation.conversationId == conversationId
+                    ? conversation.copyWith(unreadCount: 0)
+                    : conversation,
               )
               .toList(growable: false),
           clearError: true,
@@ -161,10 +160,9 @@ class InboxCubit extends Cubit<InboxState> {
         state.copyWith(
           conversations: state.conversations
               .map(
-                (conversation) =>
-                    conversation.conversationId == conversationId
-                        ? conversation.copyWith(unreadCount: 1)
-                        : conversation,
+                (conversation) => conversation.conversationId == conversationId
+                    ? conversation.copyWith(unreadCount: 1)
+                    : conversation,
               )
               .toList(growable: false),
           clearError: true,
