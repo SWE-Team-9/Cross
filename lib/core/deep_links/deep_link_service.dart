@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart';
 
 import 'deep_link_destination.dart';
 import 'deep_link_parser.dart';

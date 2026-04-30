@@ -8,6 +8,8 @@ class ManagedTrack extends Equatable {
   const ManagedTrack({
     required this.id,
     required this.title,
+    this.artistName,
+    this.artistHandle,
     required this.visibility,
     this.status = TrackStatus.PROCESSING,
     this.waveformData = const WaveformData.empty(),
@@ -20,10 +22,14 @@ class ManagedTrack extends Equatable {
     this.durationInSeconds,
     this.secretToken,
     this.isDeleted = false,
+    this.likesCount = 0,
+    this.repostsCount = 0,
   });
 
   final String id;
   final String title;
+  final String? artistName;
+  final String? artistHandle;
   final String? description;
   final int? genreId;
   final String? genreName;
@@ -37,10 +43,16 @@ class ManagedTrack extends Equatable {
 
   final TrackStatus status;
   final WaveformData waveformData;
+  final int likesCount;
+  final int repostsCount;
 
   ManagedTrack copyWith({
     String? id,
     String? title,
+    String? artistName,
+    bool clearArtistName = false,
+    String? artistHandle,
+    bool clearArtistHandle = false,
     String? description,
     bool clearDescription = false,
     int? genreId,
@@ -58,12 +70,17 @@ class ManagedTrack extends Equatable {
     String? secretToken,
     bool clearSecretToken = false,
     bool? isDeleted,
+    int? likesCount,
+    int? repostsCount,
     TrackStatus? status,
     WaveformData? waveformData,
   }) {
     return ManagedTrack(
       id: id ?? this.id,
       title: title ?? this.title,
+      artistName: clearArtistName ? null : (artistName ?? this.artistName),
+      artistHandle:
+          clearArtistHandle ? null : (artistHandle ?? this.artistHandle),
       description: clearDescription ? null : (description ?? this.description),
       genreId: clearGenreId ? null : (genreId ?? this.genreId),
       genreName: clearGenreName ? null : (genreName ?? this.genreName),
@@ -76,6 +93,8 @@ class ManagedTrack extends Equatable {
           : (durationInSeconds ?? this.durationInSeconds),
       secretToken: clearSecretToken ? null : (secretToken ?? this.secretToken),
       isDeleted: isDeleted ?? this.isDeleted,
+      likesCount: likesCount ?? this.likesCount,
+      repostsCount: repostsCount ?? this.repostsCount,
       status: status ?? this.status,
       waveformData: waveformData ?? this.waveformData,
     );
@@ -85,6 +104,8 @@ class ManagedTrack extends Equatable {
   List<Object?> get props => [
         id,
         title,
+        artistName,
+        artistHandle,
         description,
         genreId,
         genreName,
@@ -95,6 +116,8 @@ class ManagedTrack extends Equatable {
         durationInSeconds,
         secretToken,
         isDeleted,
+        likesCount,
+        repostsCount,
         status,
         waveformData,
       ];

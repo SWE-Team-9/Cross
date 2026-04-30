@@ -126,7 +126,7 @@ class InteractionsRemoteDataSourceImpl implements InteractionsRemoteDataSource {
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
-    return _extractInteractionTrackDtos(responseData);
+    return await _extractInteractionTrackDtos(responseData);
   }
 
   @override
@@ -136,22 +136,55 @@ class InteractionsRemoteDataSourceImpl implements InteractionsRemoteDataSource {
     final responseData =
         response.data is String ? jsonDecode(response.data) : response.data;
 
-    return _extractInteractionTrackDtos(responseData);
+    return await _extractInteractionTrackDtos(responseData);
   }
 
-  List<ManagedTrackDto> _extractInteractionTrackDtos(dynamic responseData) {
+  Future<List<ManagedTrackDto>> _extractInteractionTrackDtos(
+      dynamic responseData) async {
     final List<dynamic> rawItems = _extractItemsList(responseData);
 
-    return rawItems.whereType<Map<String, dynamic>>().map((item) {
+    final List<Future<ManagedTrackDto>> futures = rawItems
+        .whereType<Map<String, dynamic>>()
+        .map<Future<ManagedTrackDto>>((item) async {
       final dynamic rawTrack = item['track'];
 
+      ManagedTrackDto dto;
       if (rawTrack is Map<String, dynamic>) {
-        return ManagedTrackDto.fromJson(rawTrack);
+        dto = ManagedTrackDto.fromJson(rawTrack);
+      } else {
+        // fallback لو الـ API رجعت التراك مباشرة
+        dto = ManagedTrackDto.fromJson(item);
       }
 
-      // fallback لو الـ API رجعت التراك مباشرة
-      return ManagedTrackDto.fromJson(item);
+      // If the dto lacks artist or likes metadata, try fetching full track
+      // details from the tracks endpoint as a fallback.
+      final bool missingArtist = dto.artistName == null;
+      final bool missingLikes = dto.likesCount == null;
+
+      if ((missingArtist || missingLikes) && dto.id.isNotEmpty) {
+        try {
+          final trackResponse = await dioClient.get(
+            ApiConstants.trackByIdPath(dto.id),
+          );
+
+          final trackData = trackResponse.data is String
+              ? jsonDecode(trackResponse.data)
+              : trackResponse.data;
+
+          final dynamic raw = trackData['data'] ?? trackData;
+          if (raw is Map<String, dynamic>) {
+            // prefer the parsed fallback track dto when available
+            return ManagedTrackDto.fromJson(raw);
+          }
+        } catch (_) {
+          // ignore and return original dto
+        }
+      }
+
+      return dto;
     }).toList(growable: false);
+
+    return await Future.wait(futures);
   }
 
   List<dynamic> _extractItemsList(dynamic responseData) {

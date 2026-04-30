@@ -52,8 +52,7 @@ class _RegisterPageState extends State<RegisterPage> {
       try {
         _recaptchaClient =
             await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
-      } catch (e) {
-      }
+      } catch (e) {}
     }
   }
 
