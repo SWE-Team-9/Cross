@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../domain/entities/managed_track.dart';
 import '../../domain/entities/track_management_visibility.dart';
@@ -54,6 +55,47 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
     _descriptionController.dispose();
     _tagsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickCoverArt(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowMultiple: false,
+        allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+      );
+
+      if (result == null || result.files.isEmpty || !context.mounted) return;
+
+      final path = result.files.single.path;
+      if (path == null || path.trim().isEmpty) {
+        _showCoverArtError(
+            context, 'Selected cover image path is unavailable.');
+        return;
+      }
+
+      context.read<TrackManagementCubit>().updateCoverArtPath(path);
+    } catch (_) {
+      if (!context.mounted) return;
+      _showCoverArtError(
+          context, 'Unable to select cover image. Please try again.');
+    }
+  }
+
+  void _showCoverArtError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF2A0000),
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: Colors.redAccent, width: 1),
+          ),
+        ),
+      );
   }
 
   @override
@@ -274,6 +316,10 @@ class _TrackManagementPageState extends State<TrackManagementPage> {
                                 onReleaseDateChanged: context
                                     .read<TrackManagementCubit>()
                                     .updateReleaseDate,
+                                onPickCoverArt: () => _pickCoverArt(context),
+                                onCoverArtCleared: () => context
+                                    .read<TrackManagementCubit>()
+                                    .updateCoverArtPath(null),
                                 onGenreChanged: context
                                     .read<TrackManagementCubit>()
                                     .updateGenre,
