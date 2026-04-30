@@ -38,6 +38,7 @@ class TrackManagementRepositoryFake implements TrackManagementRepository {
       genreName: form.genreName,
       clearGenreName: form.genreName == null,
       tags: form.sanitizedTags,
+      artworkUrl: form.coverArtPath ?? currentTrack.artworkUrl,
       visibility: form.visibility,
     );
 
