@@ -57,7 +57,7 @@ void main() {
       expect(emptyTitleForm.titleValidationError, 'Title is required.');
 
       final longTitleForm = TrackManagementForm(
-        title: 'a' * 256,
+        title: 'a' * 101,
         description: 'Desc',
         genreId: 1,
         genreName: 'Ambient',
@@ -66,7 +66,7 @@ void main() {
 
       expect(
         longTitleForm.titleValidationError,
-        'Title must be 255 characters or fewer.',
+        'Title must be 100 characters or fewer.',
       );
     });
 
@@ -101,13 +101,13 @@ void main() {
         description: 'Desc',
         genreId: 1,
         genreName: 'Ambient',
-        tags: <String>['a' * 51],
+        tags: <String>['a' * 31],
         visibility: TrackManagementVisibility.publicTrack,
       );
 
       expect(
         form.tagsValidationError,
-        'Each tag must be 50 characters or fewer.',
+        'Each tag must be 30 characters or fewer.',
       );
     });
 
