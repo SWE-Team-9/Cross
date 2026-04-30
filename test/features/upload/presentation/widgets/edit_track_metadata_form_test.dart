@@ -55,6 +55,8 @@ void main() {
               onDescriptionChanged: (_) {},
               onTagsChanged: (_) {},
               onReleaseDateChanged: (_) {},
+              onPickCoverArt: () {},
+              onCoverArtCleared: () {},
               onGenreChanged: (_) {},
               onSave: () => saveCount++,
               onReset: () => resetCount++,
