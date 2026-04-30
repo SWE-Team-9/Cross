@@ -137,6 +137,28 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       return;
     }
 
+    final List<String> parsedTags = _parseTagsInput(tagsInput);
+    final String? normalizedDescription = _normalizeOptional(description);
+    final String? metadataValidationError = _uploadMetadataValidationError(
+      title: normalizedTitle,
+      description: normalizedDescription,
+      tags: parsedTags,
+    );
+
+    if (metadataValidationError != null) {
+      emit(
+        state.copyWith(
+          status: UploadPickerStatus.failure,
+          errorMessage: metadataValidationError,
+          clearFailureType: true,
+          clearUploadProgress: true,
+          clearUploadedVisibility: true,
+          clearPrivateShareToken: true,
+        ),
+      );
+      return;
+    }
+
     Subscription subscription;
 
     try {
@@ -190,9 +212,9 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         file: pickedAudioFile,
         title: normalizedTitle,
         genre: _normalizeOptional(genre),
-        description: _normalizeOptional(description),
+        description: normalizedDescription,
         releaseDate: releaseDate,
-        tags: _parseTagsInput(tagsInput),
+        tags: parsedTags,
         onProgress: (progress) {
           emit(
             state.copyWith(
@@ -482,6 +504,28 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
   String? _normalizeOptional(String? value) {
     final String normalized = (value ?? '').trim();
     return normalized.isEmpty ? null : normalized;
+  }
+
+  String? _uploadMetadataValidationError({
+    required String title,
+    required String? description,
+    required List<String> tags,
+  }) {
+    if (title.length > 100) {
+      return 'Title must be 100 characters or fewer.';
+    }
+
+    if (description != null && description.length > 5000) {
+      return 'Description must be 5000 characters or fewer.';
+    }
+
+    for (final tag in tags) {
+      if (tag.length > 30) {
+        return 'Each tag must be 30 characters or fewer.';
+      }
+    }
+
+    return null;
   }
 
   String _readableError(Object error) {
