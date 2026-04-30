@@ -378,16 +378,16 @@ void main() {
     await _pumpHome(tester, mockAuthCubit);
 
     await tester.dragUntilVisible(
-      find.text('FOLK'),
+      find.text('folk-singer-songwriter'),
       find.byType(SingleChildScrollView),
       const Offset(0, -100),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('FOLK'));
+    await tester.tap(find.text('folk-singer-songwriter'));
     await tester.pumpAndSettle();
 
-    expect(find.text('FOLK'), findsOneWidget);
+    expect(find.text('folk-singer-songwriter'), findsOneWidget);
   });
 
   testWidgets('renders related tracks and mix cards', (tester) async {
@@ -435,9 +435,9 @@ void main() {
 
     await _pumpHome(tester, mockAuthCubit);
 
-    expect(find.text('ELECTRONIC'), findsOneWidget);
-    expect(find.text('FOLK'), findsOneWidget);
-    expect(find.text('HOUSE'), findsOneWidget);
+    expect(find.text('electronic'), findsOneWidget);
+    expect(find.text('hip-hop'), findsOneWidget);
+    expect(find.text('house'), findsOneWidget);
   });
 
   testWidgets('keeps authenticated home content visible', (tester) async {
