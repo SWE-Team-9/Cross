@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -139,6 +141,38 @@ void main() {
         () => dataSource.updateTrackMetadata(trackId: 'track-1', form: form),
         throwsA(isA<FormatException>()),
       );
+    });
+
+    test('sends multipart coverArt when cover path is selected', () async {
+      final temp = await Directory.systemTemp.createTemp('managed_cover_test');
+      final coverFile = File('${temp.path}/cover.png');
+      await coverFile.writeAsBytes(const [1, 2, 3]);
+
+      final formWithCover = form.copyWith(coverArtPath: coverFile.path);
+
+      when(() => mockDioClient.put(
+            '/api/v1/tracks/track-1',
+            data: any(named: 'data'),
+            options: any(named: 'options'),
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
+          data: trackJson(),
+        ),
+      );
+
+      await dataSource.updateTrackMetadata(
+        trackId: 'track-1',
+        form: formWithCover,
+      );
+
+      final captured = verify(() => mockDioClient.put(
+            '/api/v1/tracks/track-1',
+            data: captureAny(named: 'data'),
+            options: any(named: 'options'),
+          )).captured.single as FormData;
+
+      expect(captured.files.any((entry) => entry.key == 'coverArt'), isTrue);
     });
   });
 
