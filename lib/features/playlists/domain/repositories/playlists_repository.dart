@@ -15,12 +15,25 @@ abstract class PlaylistsRepository {
 
   Future<PlaylistEntity> getPlaylistDetails(String playlistId);
 
+  Future<PlaylistEntity> getPlaylistEditDetails(String playlistId);
+
   Future<void> updatePlaylist({
     required String playlistId,
     String? title,
     String? description,
     PlaylistVisibility? visibility,
   });
+
+  Future<String?> uploadPlaylistCover({
+    required String playlistId,
+    required String filePath,
+  });
+
+  Future<List<PlaylistEntity>> getRecentPlaylists({int limit = 10});
+
+  Future<void> likePlaylist(String playlistId);
+
+  Future<void> unlikePlaylist(String playlistId);
 
   Future<void> deletePlaylist(String playlistId);
 

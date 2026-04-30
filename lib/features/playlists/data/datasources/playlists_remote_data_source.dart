@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/playlists/data/dto/playlist_dto.dart';
@@ -20,12 +21,25 @@ abstract class PlaylistsRemoteDataSource {
 
   Future<PlaylistDto> getPlaylistDetails(String playlistId);
 
+  Future<PlaylistDto> getPlaylistEditDetails(String playlistId);
+
   Future<void> updatePlaylist({
     required String playlistId,
     String? title,
     String? description,
     PlaylistVisibility? visibility,
   });
+
+  Future<String?> uploadPlaylistCover({
+    required String playlistId,
+    required String filePath,
+  });
+
+  Future<List<PlaylistDto>> getRecentPlaylists({int limit = 10});
+
+  Future<void> likePlaylist(String playlistId);
+
+  Future<void> unlikePlaylist(String playlistId);
 
   Future<void> deletePlaylist(String playlistId);
 
@@ -123,6 +137,18 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
   }
 
   @override
+  Future<PlaylistDto> getPlaylistEditDetails(String playlistId) async {
+    final response = await dioClient.get(
+      ApiConstants.playlistEditPath(playlistId),
+    );
+
+    final payload = _decode(response.data);
+    final data = _extractData(payload);
+
+    return PlaylistDto.fromJson(_asMap(data));
+  }
+
+  @override
   Future<void> updatePlaylist({
     required String playlistId,
     String? title,
@@ -137,6 +163,67 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
         if (visibility != null) 'visibility': visibility.apiValue,
       },
     );
+  }
+
+  @override
+  Future<String?> uploadPlaylistCover({
+    required String playlistId,
+    required String filePath,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath),
+    });
+
+    final response = await dioClient.dio.post(
+      ApiConstants.playlistCoverPath(playlistId),
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+
+    final payload = _decode(response.data);
+    final data = _extractData(payload);
+    final map = _asMap(data);
+    return _normalizeNullable(
+      (map['coverImageUrl'] ??
+                  map['cover_image_url'] ??
+                  map['url'] ??
+                  _asMap(map['data'])['coverImageUrl'])
+              ?.toString() ??
+          '',
+    );
+  }
+
+  @override
+  Future<List<PlaylistDto>> getRecentPlaylists({int limit = 10}) async {
+    final response = await dioClient.get(
+      ApiConstants.recentPlaylists,
+      queryParameters: {'limit': limit},
+    );
+
+    final payload = _decode(response.data);
+    final data = _extractData(payload);
+    final rawList = data is Map<String, dynamic>
+        ? data['playlists'] ?? data['items'] ?? data['data']
+        : payload is Map<String, dynamic>
+            ? payload['playlists'] ?? payload['items'] ?? payload['data']
+            : payload;
+
+    if (rawList is! List) return const <PlaylistDto>[];
+
+    return rawList
+        .map((item) => PlaylistDto.fromJson(_asMap(item)))
+        .where((playlist) => playlist.playlistId.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> likePlaylist(String playlistId) async {
+    await dioClient.post(ApiConstants.likePlaylistPath(playlistId));
+  }
+
+  @override
+  Future<void> unlikePlaylist(String playlistId) async {
+    await dioClient.delete(ApiConstants.likePlaylistPath(playlistId));
   }
 
   @override
@@ -231,4 +318,8 @@ Map<String, dynamic> _asMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) return Map<String, dynamic>.from(value);
   return <String, dynamic>{};
+}
+
+String? _normalizeNullable(String value) {
+  return value.trim().isEmpty ? null : value.trim();
 }
