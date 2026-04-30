@@ -125,6 +125,26 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
     );
   }
 
+  void updateCoverArtPath(String? value) {
+    if (!state.hasTrack) {
+      return;
+    }
+
+    final normalized = (value ?? '').trim();
+
+    emit(
+      state.copyWith(
+        status: TrackManagementStatus.ready,
+        form: state.form!.copyWith(
+          coverArtPath: normalized.isEmpty ? null : normalized,
+          clearCoverArtPath: normalized.isEmpty,
+        ),
+        clearSuccessMessage: true,
+        clearErrorMessage: true,
+      ),
+    );
+  }
+
   void updateVisibility(TrackManagementVisibility visibility) {
     if (!state.hasTrack) {
       return;
@@ -181,6 +201,9 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
         clearDescription: form.normalizedDescription == null,
         genreName: form.normalizedGenreName,
         clearGenreName: form.normalizedGenreName == null,
+        artworkUrl: form.coverArtPath ??
+            apiTrack.artworkUrl ??
+            state.currentTrack!.artworkUrl,
         tags: form.sanitizedTags,
         releaseDate: form.releaseDate,
         clearReleaseDate: form.releaseDate == null,
