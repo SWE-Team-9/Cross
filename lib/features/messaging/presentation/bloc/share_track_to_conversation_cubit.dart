@@ -107,7 +107,8 @@ class ShareTrackToConversationCubit
       emit(
         state.copyWith(
           isSharing: false,
-          successMessage: 'Track sent to ${conversation.participant.displayName}',
+          successMessage:
+              'Track sent to ${conversation.participant.displayName}',
           clearError: true,
         ),
       );

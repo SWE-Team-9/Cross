@@ -27,8 +27,7 @@ class InboxPage extends StatelessWidget {
       create: (_) => InboxCubit(
         getConversationsUseCase: GetIt.I<GetConversationsUseCase>(),
         markConversationReadUseCase: GetIt.I<MarkConversationReadUseCase>(),
-        markConversationUnreadUseCase:
-            GetIt.I<MarkConversationUnreadUseCase>(),
+        markConversationUnreadUseCase: GetIt.I<MarkConversationUnreadUseCase>(),
         archiveConversationUseCase: GetIt.I<ArchiveConversationUseCase>(),
         unarchiveConversationUseCase: GetIt.I<UnarchiveConversationUseCase>(),
       )..loadInitial(),
@@ -68,6 +67,17 @@ class _InboxViewState extends State<_InboxView> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _openConversationAsRead(
+    BuildContext context,
+    ConversationEntity conversation,
+  ) {
+    context.read<InboxCubit>().markConversationAsRead(
+          conversation.conversationId,
+        );
+
+    widget.onOpenConversation(conversation);
   }
 
   void _showConversationActions(
@@ -151,13 +161,6 @@ class _InboxViewState extends State<_InboxView> {
                     inboxCubit.archiveConversation(
                       conversation.conversationId,
                     );
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: Color(0xFF2B2B2B),
-                        content: Text('Conversation archived'),
-                      ),
-                    );
                   },
                 )
               else
@@ -174,13 +177,6 @@ class _InboxViewState extends State<_InboxView> {
                     Navigator.pop(sheetContext);
                     inboxCubit.unarchiveConversation(
                       conversation.conversationId,
-                    );
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: Color(0xFF2B2B2B),
-                        content: Text('Conversation unarchived'),
-                      ),
                     );
                   },
                 ),
@@ -358,7 +354,10 @@ class _InboxViewState extends State<_InboxView> {
                   ),
                   child: ConversationTile(
                     conversation: conversation,
-                    onTap: () => widget.onOpenConversation(conversation),
+                    onTap: () => _openConversationAsRead(
+                      context,
+                      conversation,
+                    ),
                     onMorePressed: () => _showConversationActions(
                       context,
                       conversation,

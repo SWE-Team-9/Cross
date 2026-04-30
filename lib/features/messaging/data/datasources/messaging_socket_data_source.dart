@@ -43,12 +43,11 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
     final baseUri = Uri.parse(ApiConstants.baseUrl);
 
     final cookies = await cookieJar.loadForRequest(baseUri);
-    final cookieHeader = cookies
-        .map((cookie) => '${cookie.name}=${cookie.value}')
-        .join('; ');
+    final cookieHeader =
+        cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
 
     print('Socket.IO base URL => ${ApiConstants.baseUrl}');
-    print('Socket.IO default path => /socket.io');
+    print('Socket.IO path => ${ApiConstants.messagingBase}');
     print('Socket.IO cookie exists => ${cookieHeader.isNotEmpty}');
 
     _socket = IO.io(
@@ -56,6 +55,7 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
+          .setPath(ApiConstants.messagingBase)
           .setExtraHeaders(
             cookieHeader.isEmpty
                 ? <String, String>{}
@@ -64,7 +64,6 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
           .enableReconnection()
           .setReconnectionAttempts(5)
           .setReconnectionDelay(1000)
-          .setReconnectionDelayMax(5000)
           .build(),
     );
 
@@ -98,11 +97,6 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
       _isConnected = false;
       print('Socket.IO reconnect error: $error');
       _controller.addError(error);
-    });
-
-    _socket!.onReconnectFailed((_) {
-      _isConnected = false;
-      print('Socket.IO reconnect failed');
     });
 
     _socket!.onAny((String event, dynamic data) {

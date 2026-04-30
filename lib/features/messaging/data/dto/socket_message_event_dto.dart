@@ -52,8 +52,7 @@ class SocketMessageEventDto {
             json['unreadCount'] ??
             json['unread_count'],
       ),
-      isBlockedByMe:
-          _toBool(json['isBlockedByMe'] ?? json['is_blocked_by_me']),
+      isBlockedByMe: _toBool(json['isBlockedByMe'] ?? json['is_blocked_by_me']),
       hasBlockedMe: _toBool(json['hasBlockedMe'] ?? json['has_blocked_me']),
       canMessage: _toBool(json['canMessage'] ?? json['can_message']),
       blockReason: (json['blockReason'] ?? json['block_reason'])?.toString(),
@@ -139,7 +138,9 @@ class SocketMessageEventDto {
 
   static String? _extractConversationIdFromConversation(dynamic value) {
     if (value is Map) {
-      return (value['conversationId'] ?? value['conversation_id'] ?? value['id'])
+      return (value['conversationId'] ??
+              value['conversation_id'] ??
+              value['id'])
           ?.toString();
     }
     return null;
