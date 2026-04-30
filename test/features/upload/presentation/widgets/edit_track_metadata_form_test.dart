@@ -39,27 +39,32 @@ void main() {
           TextEditingController(text: 'New Description');
       final tagsController = TextEditingController(text: 'demo');
 
+      tester.binding.window.physicalSizeTestValue = const Size(800, 1200);
+      addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: EditTrackMetadataForm(
-              state: state,
-              titleController: titleController,
-              descriptionController: descriptionController,
-              tagsController: tagsController,
-              genreOptions: const [
-                TrackGenreOption(name: 'Ambient'),
-                TrackGenreOption(name: 'Electronic'),
-              ],
-              onTitleChanged: (_) {},
-              onDescriptionChanged: (_) {},
-              onTagsChanged: (_) {},
-              onReleaseDateChanged: (_) {},
-              onPickCoverArt: () {},
-              onCoverArtCleared: () {},
-              onGenreChanged: (_) {},
-              onSave: () => saveCount++,
-              onReset: () => resetCount++,
+            body: SingleChildScrollView(
+              child: EditTrackMetadataForm(
+                state: state,
+                titleController: titleController,
+                descriptionController: descriptionController,
+                tagsController: tagsController,
+                genreOptions: const [
+                  TrackGenreOption(name: 'Ambient'),
+                  TrackGenreOption(name: 'Electronic'),
+                ],
+                onTitleChanged: (_) {},
+                onDescriptionChanged: (_) {},
+                onTagsChanged: (_) {},
+                onReleaseDateChanged: (_) {},
+                onPickCoverArt: () {},
+                onCoverArtCleared: () {},
+                onGenreChanged: (_) {},
+                onSave: () => saveCount++,
+                onReset: () => resetCount++,
+              ),
             ),
           ),
         ),
@@ -69,8 +74,24 @@ void main() {
       expect(find.text('Save Details'), findsOneWidget);
       expect(find.text('Reset'), findsOneWidget);
 
+      // Scroll down to make buttons visible
+      await tester.dragUntilVisible(
+        find.text('Save Details'),
+        find.byType(SingleChildScrollView),
+        const Offset(0, -100),
+      );
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Save Details'));
       await tester.pump();
+
+      // Scroll down again for reset button
+      await tester.dragUntilVisible(
+        find.text('Reset'),
+        find.byType(SingleChildScrollView),
+        const Offset(0, -100),
+      );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Reset'));
       await tester.pump();

@@ -154,3 +154,4 @@ fastlane/README.md
 # Dependency directories
 node_modules/
 linux/flutter/generated_plugin_registrant.cc
+*.txt
