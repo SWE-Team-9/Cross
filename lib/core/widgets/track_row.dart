@@ -12,19 +12,23 @@ import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_det
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
 
 class TrackRow extends StatelessWidget {
   final Track track;
   final List<Track>? queue;
   final bool showLikesCount;
-  final String source; // ✅ NEW
+  final String source;
 
   const TrackRow({
     super.key,
     required this.track,
     this.queue,
     this.showLikesCount = false,
-    this.source = "unknown", // ✅ DEFAULT
+    this.source = "unknown",
   });
 
   @override
@@ -36,7 +40,6 @@ class TrackRow extends StatelessWidget {
             final isCurrentTrack = state.currentTrack?.id == track.id;
             final isPlaying = isCurrentTrack && state.isPlaying;
             final wasPlayed = state.wasPlayed(track.id);
-
             final opacity = wasPlayed && !isCurrentTrack ? 0.45 : 1.0;
 
             return Opacity(
@@ -44,35 +47,76 @@ class TrackRow extends StatelessWidget {
               child: InkWell(
                 onTap: () => _playTrack(context),
                 splashColor: Colors.white10,
+                highlightColor: Colors.white.withValues(alpha: 0.03),
                 child: Container(
-                  color: isCurrentTrack
-                      ? Colors.white.withValues(alpha: 0.05) // ✅ UI IMPROVEMENT
-                      : Colors.transparent,
+                  decoration: BoxDecoration(
+                    color: isCurrentTrack
+                        ? const Color(0xFFFF5500).withValues(alpha: 0.06)
+                        : Colors.transparent,
+                    border: isCurrentTrack
+                        ? Border(
+                            left: BorderSide(
+                              color: const Color(0xFFFF5500)
+                                  .withValues(alpha: 0.7),
+                              width: 2,
+                            ),
+                          )
+                        : null,
+                  ),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: EdgeInsets.only(
+                      left: isCurrentTrack ? 12 : 14,
+                      right: 14,
+                      top: 8,
+                      bottom: 8,
+                    ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            color: Colors.grey[800],
-                            image: track.artworkUrl != null
-                                ? DecorationImage(
-                                    image: NetworkImage(track.artworkUrl!),
-                                    fit: BoxFit.cover,
-                                    onError: (_, __) {},
-                                  )
-                                : null,
-                          ),
-                          child: track.artworkUrl == null
-                              ? const Icon(Icons.music_note,
-                                  color: Colors.white)
-                              : null,
+                        // Artwork
+                        Stack(
+                          children: [
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(6),
+                                color: const Color(0xFF1E1E1E),
+                                image: track.artworkUrl != null
+                                    ? DecorationImage(
+                                        image: NetworkImage(track.artworkUrl!),
+                                        fit: BoxFit.cover,
+                                        onError: (_, __) {},
+                                      )
+                                    : null,
+                              ),
+                              child: track.artworkUrl == null
+                                  ? Icon(
+                                      Icons.music_note,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.4),
+                                      size: 22,
+                                    )
+                                  : null,
+                            ),
+                            if (isPlaying)
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(6),
+                                    color: Colors.black.withValues(alpha: 0.45),
+                                  ),
+                                  child: const Icon(
+                                    Icons.equalizer,
+                                    color: Color(0xFFFF5500),
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(width: 12),
+
+                        // Title + subtitle
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,23 +124,23 @@ class TrackRow extends StatelessWidget {
                               Text(
                                 track.title,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: isCurrentTrack
+                                      ? Colors.white
+                                      : Colors.white,
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: isCurrentTrack
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 3),
                               if (isPlaying)
-                                const Row(
+                                Row(
                                   children: [
-                                    Icon(
-                                      Icons.equalizer,
-                                      color: Color(0xFFFF5500),
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
+                                    _WaveformIcon(),
+                                    const SizedBox(width: 5),
+                                    const Text(
                                       'Now Playing',
                                       style: TextStyle(
                                         color: Color(0xFFFF5500),
@@ -109,24 +153,75 @@ class TrackRow extends StatelessWidget {
                               else
                                 Text(
                                   showLikesCount
-                                      ? '${track.artist} - ${track.likesCount} likes'
+                                      ? '${track.artist} · ${track.likesCount} likes'
                                       : track.artist,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFF999999),
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.45),
                                     fontSize: 12,
                                   ),
                                 ),
                             ],
                           ),
                         ),
-                        IconButton(
-                          onPressed: () =>
-                              TrackOptionsSheet.show(context, track: track),
-                          icon: const Icon(
-                            Icons.more_vert,
-                            color: Color(0xFF666666),
-                          ),
+
+                        // Actions
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            BlocBuilder<SubscriptionCubit, Subscription?>(
+                              builder: (context, sub) {
+                                final canDownload = sub?.canDownload ?? false;
+                                if (!canDownload) return const SizedBox();
+
+                                return BlocBuilder<OfflineCubit, OfflineState>(
+                                  builder: (context, offlineState) {
+                                    final offlineCubit =
+                                        context.read<OfflineCubit>();
+                                    final isDownloaded =
+                                        offlineCubit.isDownloaded(track.id);
+
+                                    return _DownloadButton(
+                                      isDownloaded: isDownloaded,
+                                      onTap: () async {
+                                        try {
+                                          await offlineCubit.download(track.id);
+                                          if (!context.mounted) return;
+                                          _showDownloadSnackbar(context, true);
+                                        } catch (e) {
+                                          if (!context.mounted) return;
+                                          if (e
+                                              .toString()
+                                              .contains('UPGRADE_REQUIRED')) {
+                                            Navigator.pushNamed(
+                                                context, '/upgrade');
+                                          } else {
+                                            _showDownloadSnackbar(
+                                                context, false);
+                                          }
+                                        }
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 2),
+                            GestureDetector(
+                              onTap: () =>
+                                  TrackOptionsSheet.show(context, track: track),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.more_vert,
+                                  color: Colors.white.withValues(alpha: 0.35),
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -137,6 +232,56 @@ class TrackRow extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  void _showDownloadSnackbar(BuildContext context, bool success) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor:
+            success ? const Color(0xFF1A1A1A) : const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(
+            color: success
+                ? const Color(0xFFFF5500).withValues(alpha: 0.4)
+                : Colors.red.withValues(alpha: 0.4),
+            width: 0.5,
+          ),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        duration: const Duration(seconds: 2),
+        content: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: success
+                    ? const Color(0xFFFF5500).withValues(alpha: 0.15)
+                    : Colors.red.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(
+                success ? Icons.download_done_rounded : Icons.error_outline,
+                color: success ? const Color(0xFFFF5500) : Colors.red,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              success ? 'Saved for offline listening' : 'Download failed',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -188,7 +333,6 @@ class TrackRow extends StatelessWidget {
 
   void _openComments(BuildContext context) {
     Navigator.pop(context);
-
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -298,4 +442,106 @@ class TrackRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Download Button ──────────────────────────────────────────────────────────
+class _DownloadButton extends StatelessWidget {
+  final bool isDownloaded;
+  final VoidCallback onTap;
+
+  const _DownloadButton({
+    required this.isDownloaded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: isDownloaded
+              ? const Color(0xFFFF5500).withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isDownloaded
+                ? const Color(0xFFFF5500).withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.15),
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          isDownloaded
+              ? Icons.download_done_rounded
+              : Icons.arrow_downward_rounded,
+          color: isDownloaded
+              ? const Color(0xFFFF5500)
+              : Colors.white.withValues(alpha: 0.5),
+          size: 15,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Animated waveform bars ───────────────────────────────────────────────────
+class _WaveformIcon extends StatefulWidget {
+  @override
+  State<_WaveformIcon> createState() => _WaveformIconState();
+}
+
+class _WaveformIconState extends State<_WaveformIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        final v = _ctrl.value;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _bar(4 + 6 * v),
+            const SizedBox(width: 2),
+            _bar(10 - 6 * v),
+            const SizedBox(width: 2),
+            _bar(6 + 4 * v),
+            const SizedBox(width: 2),
+            _bar(10 - 4 * v),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _bar(double h) => Container(
+        width: 2.5,
+        height: h,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF5500),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      );
 }

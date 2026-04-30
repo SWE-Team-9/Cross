@@ -15,6 +15,7 @@ import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_state.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/routes/messaging_routes.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
@@ -398,8 +399,18 @@ class _MockHomePageState extends State<MockHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<UnreadCountCubit>(
-      create: (_) => getIt<UnreadCountCubit>()..load(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<UnreadCountCubit>(
+          create: (_) => getIt<UnreadCountCubit>()..load(),
+        ),
+        BlocProvider<OfflineCubit>(
+          create: (_) => getIt<OfflineCubit>(),
+        ),
+        BlocProvider<SubscriptionCubit>(
+          create: (_) => getIt<SubscriptionCubit>()..loadSubscription(),
+        ),
+      ],
       child: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthUnauthenticated) {
