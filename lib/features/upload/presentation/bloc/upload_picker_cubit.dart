@@ -5,6 +5,7 @@ import '../../../../core/errors/upload_picker_exceptions.dart';
 import '../../domain/entities/managed_track.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../../domain/entities/track_status.dart';
+import '../../domain/entities/picked_image_file.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../../domain/usecases/pick_audi_file_usecase.dart';
 import '../../domain/usecases/update_track_visibility_usecase.dart';
@@ -99,6 +100,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
 
   Future<void> uploadSelectedFile({
     required String title,
+    PickedImageFile? coverArt,
     String? genre,
     String? tagsInput,
     String? description,
@@ -211,6 +213,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       final uploadResult = await _uploadRepository.uploadTrack(
         file: pickedAudioFile,
         title: normalizedTitle,
+        coverArt: coverArt,
         genre: _normalizeOptional(genre),
         description: normalizedDescription,
         releaseDate: releaseDate,
