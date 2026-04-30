@@ -29,6 +29,28 @@ void main() {
     'tags': <String>['night', 'synth'],
   };
 
+  void expectMetadataFormData(FormData formData) {
+    expect(
+      formData.fields.where((entry) => entry.key == 'title').single.value,
+      metadataRequestBody['title'],
+    );
+    expect(
+      formData.fields.where((entry) => entry.key == 'description').single.value,
+      metadataRequestBody['description'],
+    );
+    expect(
+      formData.fields.where((entry) => entry.key == 'genre').single.value,
+      metadataRequestBody['genre'],
+    );
+    expect(
+      formData.fields
+          .where((entry) => entry.key == 'tags')
+          .map((entry) => entry.value)
+          .toList(),
+      metadataRequestBody['tags'],
+    );
+  }
+
   Map<String, dynamic> trackJson({
     String id = 'track-1',
     String title = 'City Lights',
@@ -60,7 +82,8 @@ void main() {
     test('parses payload from response.data.track', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: metadataRequestBody,
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -80,16 +103,20 @@ void main() {
       expect(result.genreId, 2);
       expect(result.genreName, 'Electronic');
 
-      verify(() => mockDioClient.put(
+      final captured = verify(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: metadataRequestBody,
-          )).called(1);
+            data: captureAny(named: 'data'),
+            options: any(named: 'options'),
+          )).captured.single as FormData;
+      expectMetadataFormData(captured);
+      expect(captured.files, isEmpty);
     });
 
     test('parses payload from response.data.data', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: metadataRequestBody,
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -110,7 +137,8 @@ void main() {
     test('parses payload from direct map response', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: metadataRequestBody,
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -129,7 +157,8 @@ void main() {
     test('throws FormatException on unexpected response shape', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: metadataRequestBody,
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
