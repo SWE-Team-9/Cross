@@ -20,6 +20,13 @@ void main() {
     visibility: TrackManagementVisibility.privateTrack,
   );
 
+  const metadataRequestBody = <String, dynamic>{
+    'title': 'City Lights',
+    'description': 'Updated description',
+    'genre': 'Electronic',
+    'tags': <String>['night', 'synth'],
+  };
+
   Map<String, dynamic> trackJson({
     String id = 'track-1',
     String title = 'City Lights',
@@ -51,7 +58,7 @@ void main() {
     test('parses payload from response.data.track', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: metadataRequestBody,
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -73,14 +80,14 @@ void main() {
 
       verify(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: metadataRequestBody,
           )).called(1);
     });
 
     test('parses payload from response.data.data', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: metadataRequestBody,
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -101,7 +108,7 @@ void main() {
     test('parses payload from direct map response', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: metadataRequestBody,
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -120,7 +127,7 @@ void main() {
     test('throws FormatException on unexpected response shape', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: metadataRequestBody,
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
