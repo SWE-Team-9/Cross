@@ -1,5 +1,6 @@
 import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/managed_track.dart';
+import '../../domain/entities/track_genre.dart';
 import '../../domain/entities/track_management_form.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../dto/managed_track_dto.dart';
@@ -31,9 +32,17 @@ class TrackManagementRemoteDataSourceImpl
     required String trackId,
     required TrackManagementForm form,
   }) async {
+    final body = form.toMetadataRequestBody();
+    final apiGenre = trackGenreApiValue(form.normalizedGenreName);
+    if (apiGenre == null) {
+      body.remove('genre');
+    } else {
+      body['genre'] = apiGenre;
+    }
+
     final dynamic response = await _dioClient.put(
       '/api/v1/tracks/$trackId', // تم إضافة /api/v1
-      data: form.toMetadataRequestBody(),
+      data: body,
     );
 
     final Map<String, dynamic> payload = _extractPayloadMap(response);
