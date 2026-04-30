@@ -2,18 +2,16 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:soundcloud_clone/core/errors/failure.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
+import 'package:soundcloud_clone/features/notifications/domain/entities/notifications_result.dart';
 import 'package:soundcloud_clone/features/notifications/domain/repositories/notifications_repository.dart';
-import 'package:soundcloud_clone/features/notifications/domain/result/notifications_result.dart';
 import 'package:soundcloud_clone/features/notifications/domain/usecases/delete_notification_use_case.dart';
 import 'package:soundcloud_clone/features/notifications/domain/usecases/get_notifications_use_case.dart';
 import 'package:soundcloud_clone/features/notifications/domain/usecases/get_unread_count_use_case.dart';
 import 'package:soundcloud_clone/features/notifications/domain/usecases/mark_all_notifications_as_read_use_case.dart';
 import 'package:soundcloud_clone/features/notifications/domain/usecases/mark_notification_as_read_use_case.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/bloc/notifications_bloc.dart';
-import 'package:soundcloud_clone/core/errors/failure.dart';
-
-// ── Mocks ─────────────────────────────────────────────────────────────────────
 
 class MockGetNotificationsUseCase extends Mock
     implements GetNotificationsUseCase {}
@@ -32,26 +30,25 @@ class MockDeleteNotificationUseCase extends Mock
 class MockNotificationsRepository extends Mock
     implements NotificationsRepository {}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-NotificationEntity _makeNotification({
+NotificationEntity makeNotification({
   String id = 'not_1',
   bool isRead = false,
-}) =>
-    NotificationEntity(
-      id: id,
-      type: NotificationType.like,
-      message: 'Ali liked your track',
-        actorId: 'usr_1',
-        actorDisplayName: 'Ali',
-        actorHandle: 'ali',
-      entityType: 'track',
-      entityId: 'trk_1',
-      isRead: isRead,
-      createdAt: DateTime(2026, 3, 7),
-    );
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
+  NotificationType type = NotificationType.like,
+}) {
+  return NotificationEntity(
+    id: id,
+    type: type,
+    message: 'Ali liked your track Song2',
+    actorId: 'usr_1',
+    actorDisplayName: 'Ali',
+    actorHandle: 'ali',
+    entityType: 'track',
+    entityId: 'trk_1',
+    trackName: 'Song2',
+    isRead: isRead,
+    createdAt: DateTime(2026, 3, 7),
+  );
+}
 
 void main() {
   late NotificationsBloc bloc;
@@ -83,68 +80,110 @@ void main() {
     );
   });
 
-  tearDown(() => bloc.close());
-
-  // ── LoadNotifications ──────────────────────────────────────────────────────
+  tearDown(() async {
+    await bloc.close();
+  });
 
   group('LoadNotifications', () {
-    final tNotification = _makeNotification();
+    test('initial state is NotificationsInitial', () {
+      expect(bloc.state, const NotificationsInitial());
+    });
 
     blocTest<NotificationsBloc, NotificationsState>(
-      'emits [Loading, Loaded] on success',
+      'emits loading then loaded on success',
       build: () {
         when(() => mockGetNotifications(page: 1, limit: 20)).thenAnswer(
-          (_) async => NotificationsResult.success([tNotification]),
+          (_) async => NotificationsResult.success([makeNotification()]),
         );
-        when(() => mockGetUnreadCount()).thenAnswer(
-          (_) async => const NotificationsResult.success(1),
-        );
+        when(() => mockGetUnreadCount())
+            .thenAnswer((_) async => const NotificationsResult.success(1));
         return bloc;
       },
       act: (b) => b.add(const LoadNotifications()),
       expect: () => [
+        const NotificationsLoading(),
+        isA<NotificationsLoaded>()
+            .having((s) => s.notifications.length, 'length', 1)
+            .having((s) => s.unreadCount, 'unreadCount', 1)
+            .having((s) => s.currentPage, 'currentPage', 1),
+      ],
+    );
 
     blocTest<NotificationsBloc, NotificationsState>(
-      'enriches track title from track id when notification payload is missing it',
+      'emits error when notifications call fails',
       build: () {
         when(() => mockGetNotifications(page: 1, limit: 20)).thenAnswer(
-          (_) async => NotificationsResult.success([tNotification]),
-        );
-        when(() => mockGetUnreadCount()).thenAnswer(
-          (_) async => const NotificationsResult.success(1),
-        );
-        when(() => mockGetTrackDetail('trk_1')).thenAnswer(
-          (_) async => (
-            detail: TrackDetail(
-              trackId: 'trk_1',
-              title: 'Song2',
-              artist: 'Ali',
-              artistId: 'usr_1',
-              artistHandle: 'ali',
-              streamUrl: 'https://example.com/song2.mp3',
-            ),
-            failure: null,
+          (_) async => NotificationsResult.failure(
+            const ServerFailure('Server error'),
           ),
         );
+        when(() => mockGetUnreadCount())
+            .thenAnswer((_) async => const NotificationsResult.success(0));
+        return bloc;
+      },
+      act: (b) => b.add(const LoadNotifications()),
+      expect: () => [
+        const NotificationsLoading(),
+        const NotificationsError(
+          'Unable to load notifications right now. Please try again.',
+        ),
+      ],
+    );
+  });
 
-        return NotificationsBloc(
-          getNotifications: mockGetNotifications,
-          getUnreadCount: mockGetUnreadCount,
-          markAsRead: mockMarkAsRead,
-          markAllAsRead: mockMarkAllAsRead,
-          delete: mockDelete,
-          repository: mockRepository,
-          getTrackDetail: mockGetTrackDetail,
+  group('LoadMoreNotifications', () {
+    final existing = [makeNotification(id: 'not_1')];
+    final nextPage = [makeNotification(id: 'not_2')];
+
     blocTest<NotificationsBloc, NotificationsState>(
-      'optimistically marks notification as read and decrements unread count',
+      'appends page and updates current page',
       build: () {
-        when(() => mockMarkAsRead('not_1')).thenAnswer(
-          (_) async => const NotificationsResult.success(null),
+        when(() => mockGetNotifications(page: 2, limit: 20)).thenAnswer(
+          (_) async => NotificationsResult.success(nextPage),
         );
         return bloc;
       },
       seed: () => NotificationsLoaded(
-        notifications: [tNotification],
+        notifications: existing,
+        unreadCount: 1,
+        hasMore: true,
+        currentPage: 1,
+      ),
+      act: (b) => b.add(const LoadMoreNotifications()),
+      expect: () => [
+        isA<NotificationsLoadingMore>(),
+        isA<NotificationsLoaded>()
+            .having((s) => s.notifications.length, 'merged count', 2)
+            .having((s) => s.currentPage, 'currentPage', 2),
+      ],
+    );
+
+    blocTest<NotificationsBloc, NotificationsState>(
+      'does nothing if hasMore is false',
+      build: () => bloc,
+      seed: () => NotificationsLoaded(
+        notifications: existing,
+        unreadCount: 0,
+        hasMore: false,
+        currentPage: 1,
+      ),
+      act: (b) => b.add(const LoadMoreNotifications()),
+      expect: () => <NotificationsState>[],
+    );
+  });
+
+  group('MarkNotificationRead', () {
+    final unread = makeNotification(id: 'not_1', isRead: false);
+
+    blocTest<NotificationsBloc, NotificationsState>(
+      'optimistically marks one as read and decrements unread',
+      build: () {
+        when(() => mockMarkAsRead('not_1'))
+            .thenAnswer((_) async => const NotificationsResult.success(null));
+        return bloc;
+      },
+      seed: () => NotificationsLoaded(
+        notifications: [unread],
         unreadCount: 1,
       ),
       act: (b) => b.add(const MarkNotificationRead('not_1')),
@@ -156,54 +195,44 @@ void main() {
     );
   });
 
-  // ── MarkAllNotificationsRead ───────────────────────────────────────────────
-
   group('MarkAllNotificationsRead', () {
-    final tNotifications = [
-      _makeNotification(id: 'not_1', isRead: false),
-      _makeNotification(id: 'not_2', isRead: false),
+    final notifs = [
+      makeNotification(id: 'not_1', isRead: false),
+      makeNotification(id: 'not_2', isRead: false),
     ];
 
     blocTest<NotificationsBloc, NotificationsState>(
-      'marks all as read and sets unreadCount to 0',
+      'marks all read and sets unreadCount to zero',
       build: () {
-        when(() => mockMarkAllAsRead()).thenAnswer(
-          (_) async => const NotificationsResult.success(null),
-        );
+        when(() => mockMarkAllAsRead())
+            .thenAnswer((_) async => const NotificationsResult.success(null));
         return bloc;
       },
       seed: () => NotificationsLoaded(
-        notifications: tNotifications,
+        notifications: notifs,
         unreadCount: 2,
       ),
       act: (b) => b.add(const MarkAllNotificationsRead()),
       expect: () => [
         isA<NotificationsLoaded>()
-            .having(
-              (s) => s.notifications.every((n) => n.isRead),
-              'all read',
-              true,
-            )
+            .having((s) => s.notifications.every((n) => n.isRead), 'allRead', true)
             .having((s) => s.unreadCount, 'unreadCount', 0),
       ],
     );
   });
 
-  // ── DeleteNotification ─────────────────────────────────────────────────────
-
   group('DeleteNotification', () {
-    final tNotification = _makeNotification();
+    final notif = makeNotification(id: 'not_1');
 
     blocTest<NotificationsBloc, NotificationsState>(
       'removes notification from list',
       build: () {
-        when(() => mockDelete('not_1')).thenAnswer(
-          (_) async => const NotificationsResult.success(null),
-        );
+        when(() => mockDelete('not_1'))
+            .thenAnswer((_) async => const NotificationsResult.success(null));
         return bloc;
       },
       seed: () => NotificationsLoaded(
-        notifications: [tNotification],
+        notifications: [notif],
         unreadCount: 0,
       ),
       act: (b) => b.add(const DeleteNotification('not_1')),
@@ -214,27 +243,21 @@ void main() {
     );
   });
 
-  // ── RealtimeNotificationReceived ───────────────────────────────────────────
-
   group('RealtimeNotificationReceived', () {
-    final tExisting = _makeNotification(id: 'not_1');
-    final tNew = _makeNotification(id: 'not_realtime');
+    final existing = makeNotification(id: 'not_1');
+    final realtime = makeNotification(id: 'not_realtime', isRead: false);
 
     blocTest<NotificationsBloc, NotificationsState>(
-      'prepends new notification and increments unread count',
+      'prepends realtime notification and increments unread count',
       build: () => bloc,
       seed: () => NotificationsLoaded(
-        notifications: [tExisting],
+        notifications: [existing],
         unreadCount: 0,
       ),
-      act: (b) => b.add(RealtimeNotificationReceived(tNew)),
+      act: (b) => b.add(RealtimeNotificationReceived(realtime)),
       expect: () => [
         isA<NotificationsLoaded>()
-            .having(
-              (s) => s.notifications.first.id,
-              'first notification is new',
-              'not_realtime',
-            )
+            .having((s) => s.notifications.first.id, 'first id', 'not_realtime')
             .having((s) => s.unreadCount, 'unreadCount', 1),
       ],
     );
