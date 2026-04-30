@@ -320,6 +320,43 @@ void main() {
   );
 
   blocTest<UploadPickerCubit, UploadPickerState>(
+    'uploadSelectedFile emits failure when title exceeds api limit',
+    build: buildCubit,
+    seed: () => const UploadPickerState(
+      status: UploadPickerStatus.ready,
+      pickedAudioFile: tPickedAudioFile,
+    ),
+    act: (cubit) => cubit.uploadSelectedFile(title: 'a' * 101),
+    expect: () => [
+      const UploadPickerState(
+        status: UploadPickerStatus.failure,
+        pickedAudioFile: tPickedAudioFile,
+        errorMessage: 'Title must be 100 characters or fewer.',
+      ),
+    ],
+  );
+
+  blocTest<UploadPickerCubit, UploadPickerState>(
+    'uploadSelectedFile emits failure when tag exceeds api limit',
+    build: buildCubit,
+    seed: () => const UploadPickerState(
+      status: UploadPickerStatus.ready,
+      pickedAudioFile: tPickedAudioFile,
+    ),
+    act: (cubit) => cubit.uploadSelectedFile(
+      title: 'My Track',
+      tagsInput: 'short, ${'a' * 31}',
+    ),
+    expect: () => [
+      const UploadPickerState(
+        status: UploadPickerStatus.failure,
+        pickedAudioFile: tPickedAudioFile,
+        errorMessage: 'Each tag must be 30 characters or fewer.',
+      ),
+    ],
+  );
+
+  blocTest<UploadPickerCubit, UploadPickerState>(
     'uploadSelectedFile emits [uploading, processing, success] when upload and processing succeed immediately',
     build: () {
       when(
