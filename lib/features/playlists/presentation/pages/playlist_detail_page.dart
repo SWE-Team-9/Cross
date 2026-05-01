@@ -665,13 +665,14 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
               overflow: TextOverflow.ellipsis,
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.code),
-                onPressed: state.isSubmitting
-                    ? null
-                    : () => _openEmbedCode(playlist.playlistId),
-                tooltip: 'Get embed code',
-              ),
+              if (isOwner)
+                IconButton(
+                  icon: const Icon(Icons.code),
+                  onPressed: state.isSubmitting
+                      ? null
+                      : () => _openEmbedCode(playlist.playlistId),
+                  tooltip: 'Get embed code',
+                ),
               IconButton(
                 icon: const Icon(Icons.share_outlined),
                 onPressed:

@@ -212,8 +212,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
 
     final response = await dioClient.get(
       ApiConstants.playlistByIdPath(playlistId),
-      queryParameters:
-          queryParameters.isEmpty ? null : queryParameters,
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
 
     final payload = _decode(response.data);
@@ -440,8 +439,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
 
     final response = await dioClient.get(
       ApiConstants.playlistEmbedPath(playlistId),
-      queryParameters:
-          queryParameters.isEmpty ? null : queryParameters,
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
 
     final payload = _decode(response.data);
