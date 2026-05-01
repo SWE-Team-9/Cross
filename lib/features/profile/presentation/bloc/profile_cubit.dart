@@ -105,11 +105,7 @@ class ProfileCubit extends Cubit<ProfileState> {
             );
           },
         );
-        // ignore: avoid_print
-        print('LIKED TRACKS COUNT: ${likedTracks.length}');
       } catch (e) {
-        // ignore: avoid_print
-        print('LIKED TRACKS ERROR: $e');
         likedTracks = const <ManagedTrack>[];
       }
 
@@ -122,11 +118,7 @@ class ProfileCubit extends Cubit<ProfileState> {
             );
           },
         );
-        // ignore: avoid_print
-        print('REPOSTED TRACKS COUNT: ${repostedTracks.length}');
       } catch (e) {
-        // ignore: avoid_print
-        print('REPOSTED TRACKS ERROR: $e');
         repostedTracks = const <ManagedTrack>[];
       }
       emit(

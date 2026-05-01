@@ -7,9 +7,11 @@ class PlaylistDto {
   final String description;
   final PlaylistVisibility visibility;
   final String? secretToken;
+  final String? coverImageUrl;
   final PlaylistOwner? owner;
   final List<Track> tracks;
   final int tracksCount;
+  final bool isLiked;
 
   const PlaylistDto({
     required this.playlistId,
@@ -17,9 +19,11 @@ class PlaylistDto {
     required this.description,
     required this.visibility,
     required this.secretToken,
+    required this.coverImageUrl,
     required this.owner,
     required this.tracks,
     required this.tracksCount,
+    required this.isLiked,
   });
 
   factory PlaylistDto.fromJson(Map<String, dynamic> json) {
@@ -57,9 +61,30 @@ class PlaylistDto {
       secretToken: _normalizeNullable(
         _asString(json['secretToken'] ?? json['secret_token']),
       ),
+      coverImageUrl: _normalizeNullable(
+        _asString(
+          json['coverImageUrl'] ??
+              json['cover_image_url'] ??
+              json['coverUrl'] ??
+              json['cover_url'] ??
+              json['artworkUrl'] ??
+              json['artwork_url'],
+        ),
+      ),
       owner: owner,
       tracks: tracks,
       tracksCount: trackCount,
+      isLiked: _asBool(
+        json['isLiked'] ??
+            json['is_liked'] ??
+            json['liked'] ??
+            json['viewerLiked'] ??
+            json['viewer_liked'] ??
+            _asMap(json['viewer'])['isLiked'] ??
+            _asMap(json['viewer'])['liked'] ??
+            _asMap(json['userState'])['liked'] ??
+            _asMap(json['user_state'])['liked'],
+      ),
     );
   }
 
@@ -70,9 +95,11 @@ class PlaylistDto {
       description: description,
       visibility: visibility,
       secretToken: secretToken,
+      coverImageUrl: coverImageUrl,
       owner: owner,
       tracks: tracks,
       tracksCount: tracksCount,
+      isLiked: isLiked,
     );
   }
 }
@@ -165,4 +192,11 @@ int? _asInt(dynamic value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value.toString());
+}
+
+bool _asBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().trim().toLowerCase() ?? '';
+  return normalized == 'true' || normalized == '1' || normalized == 'yes';
 }

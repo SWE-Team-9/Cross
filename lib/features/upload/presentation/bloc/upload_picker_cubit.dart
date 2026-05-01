@@ -5,6 +5,7 @@ import '../../../../core/errors/upload_picker_exceptions.dart';
 import '../../domain/entities/managed_track.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../../domain/entities/track_status.dart';
+import '../../domain/entities/picked_image_file.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../../domain/usecases/pick_audi_file_usecase.dart';
 import '../../domain/usecases/update_track_visibility_usecase.dart';
@@ -99,6 +100,7 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
 
   Future<void> uploadSelectedFile({
     required String title,
+    PickedImageFile? coverArt,
     String? genre,
     String? tagsInput,
     String? description,
@@ -128,6 +130,28 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
         state.copyWith(
           status: UploadPickerStatus.failure,
           errorMessage: 'Please enter a track title before uploading.',
+          clearFailureType: true,
+          clearUploadProgress: true,
+          clearUploadedVisibility: true,
+          clearPrivateShareToken: true,
+        ),
+      );
+      return;
+    }
+
+    final List<String> parsedTags = _parseTagsInput(tagsInput);
+    final String? normalizedDescription = _normalizeOptional(description);
+    final String? metadataValidationError = _uploadMetadataValidationError(
+      title: normalizedTitle,
+      description: normalizedDescription,
+      tags: parsedTags,
+    );
+
+    if (metadataValidationError != null) {
+      emit(
+        state.copyWith(
+          status: UploadPickerStatus.failure,
+          errorMessage: metadataValidationError,
           clearFailureType: true,
           clearUploadProgress: true,
           clearUploadedVisibility: true,
@@ -189,10 +213,11 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       final uploadResult = await _uploadRepository.uploadTrack(
         file: pickedAudioFile,
         title: normalizedTitle,
+        coverArt: coverArt,
         genre: _normalizeOptional(genre),
-        description: _normalizeOptional(description),
+        description: normalizedDescription,
         releaseDate: releaseDate,
-        tags: _parseTagsInput(tagsInput),
+        tags: parsedTags,
         onProgress: (progress) {
           emit(
             state.copyWith(
@@ -482,6 +507,28 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
   String? _normalizeOptional(String? value) {
     final String normalized = (value ?? '').trim();
     return normalized.isEmpty ? null : normalized;
+  }
+
+  String? _uploadMetadataValidationError({
+    required String title,
+    required String? description,
+    required List<String> tags,
+  }) {
+    if (title.length > 100) {
+      return 'Title must be 100 characters or fewer.';
+    }
+
+    if (description != null && description.length > 5000) {
+      return 'Description must be 5000 characters or fewer.';
+    }
+
+    for (final tag in tags) {
+      if (tag.length > 30) {
+        return 'Each tag must be 30 characters or fewer.';
+      }
+    }
+
+    return null;
   }
 
   String _readableError(Object error) {

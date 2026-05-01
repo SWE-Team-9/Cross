@@ -1,5 +1,9 @@
+import 'dart:io' show File;
+
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/platform_url_utils.dart';
+import '../../domain/entities/track_genre.dart';
 import '../bloc/track_management_state.dart';
 
 class TrackGenreOption {
@@ -22,6 +26,8 @@ class EditTrackMetadataForm extends StatelessWidget {
     required this.onDescriptionChanged,
     required this.onTagsChanged,
     required this.onReleaseDateChanged,
+    required this.onPickCoverArt,
+    required this.onCoverArtCleared,
     required this.onGenreChanged,
     required this.onSave,
     required this.onReset,
@@ -36,6 +42,8 @@ class EditTrackMetadataForm extends StatelessWidget {
   final ValueChanged<String> onDescriptionChanged;
   final ValueChanged<String> onTagsChanged;
   final ValueChanged<DateTime?> onReleaseDateChanged;
+  final VoidCallback onPickCoverArt;
+  final VoidCallback onCoverArtCleared;
   final ValueChanged<String> onGenreChanged;
   final VoidCallback onSave;
   final VoidCallback onReset;
@@ -48,6 +56,21 @@ class EditTrackMetadataForm extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final String? normalizedGenreName = normalizeTrackGenreName(form.genreName);
+    final bool hasSelectedGenre = genreOptions.any(
+      (genre) =>
+          genre.name == form.genreName || genre.name == normalizedGenreName,
+    );
+    final String? selectedGenreName = hasSelectedGenre
+        ? genreOptions
+            .firstWhere(
+              (genre) =>
+                  genre.name == form.genreName ||
+                  genre.name == normalizedGenreName,
+            )
+            .name
+        : null;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -59,6 +82,14 @@ class EditTrackMetadataForm extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
+            _TrackCoverPicker(
+              localCoverPath: form.coverArtPath,
+              artworkUrl: state.currentTrack?.artworkUrl,
+              enabled: !state.isBusy && !state.isDeleted,
+              onPick: onPickCoverArt,
+              onClear: onCoverArtCleared,
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: titleController,
               enabled: !state.isBusy && !state.isDeleted,
@@ -84,8 +115,8 @@ class EditTrackMetadataForm extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              key: ValueKey(form.genreName),
-              initialValue: form.genreName,
+              key: ValueKey(selectedGenreName),
+              initialValue: selectedGenreName,
               decoration: InputDecoration(
                 labelText: 'Genre',
                 errorText: form.genreValidationError,
@@ -115,7 +146,7 @@ class EditTrackMetadataForm extends StatelessWidget {
               decoration: InputDecoration(
                 labelText: 'Tags',
                 hintText: 'comma, separated, tags',
-                helperText: 'Up to 10 tags. Each tag should be under 50 chars.',
+                helperText: 'Up to 10 tags. Each tag should be under 30 chars.',
                 errorText: form.tagsValidationError,
                 border: const OutlineInputBorder(),
               ),
@@ -169,6 +200,103 @@ class EditTrackMetadataForm extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TrackCoverPicker extends StatelessWidget {
+  const _TrackCoverPicker({
+    required this.localCoverPath,
+    required this.artworkUrl,
+    required this.enabled,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final String? localCoverPath;
+  final String? artworkUrl;
+  final bool enabled;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedArtworkUrl =
+        PlatformUrlUtils.normalizeBackendUrl(artworkUrl);
+    final hasLocalCover =
+        localCoverPath != null && localCoverPath!.trim().isNotEmpty;
+    final hasArtwork =
+        normalizedArtworkUrl != null && normalizedArtworkUrl.trim().isNotEmpty;
+
+    return Row(
+      children: [
+        Container(
+          width: 88,
+          height: 88,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: hasLocalCover
+              ? Image.file(
+                  File(localCoverPath!),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.broken_image_outlined),
+                )
+              : hasArtwork
+                  ? Image.network(
+                      normalizedArtworkUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.broken_image_outlined),
+                    )
+                  : const Icon(Icons.image_outlined, color: Colors.white54),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                hasLocalCover
+                    ? localCoverPath!.split(RegExp(r'[\\/]')).last
+                    : 'Track cover',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                hasLocalCover ? 'New cover selected' : 'JPEG, PNG, or WebP.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: enabled ? onPick : null,
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                    label: Text(
+                      hasLocalCover || hasArtwork ? 'Replace' : 'Choose cover',
+                    ),
+                  ),
+                  if (hasLocalCover)
+                    IconButton(
+                      tooltip: 'Clear selected cover',
+                      onPressed: enabled ? onClear : null,
+                      icon: const Icon(Icons.close),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
