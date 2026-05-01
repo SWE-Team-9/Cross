@@ -68,6 +68,113 @@ void main() {
     });
   });
 
+  group('getTopPlaylists', () {
+    test('flattens playlists grouped by genre', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/top',
+            queryParameters: {'limit': 10},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/top'),
+          data: <String, dynamic>{
+            'genres': <dynamic>[
+              <String, dynamic>{
+                'genre': 'Electronic',
+                'playlists': <dynamic>[
+                  <String, dynamic>{
+                    'playlistId': 'pl_electronic',
+                    'title': 'Late Night Drive',
+                    'visibility': 'PUBLIC',
+                    'likesCount': 48,
+                  },
+                ],
+              },
+              <String, dynamic>{
+                'genre': 'Rock',
+                'playlists': <dynamic>[
+                  <String, dynamic>{
+                    'playlistId': 'pl_rock',
+                    'title': 'Garage Mix',
+                    'visibility': 'PUBLIC',
+                    'likesCount': 31,
+                    'genre': 'alternative',
+                  },
+                ],
+              },
+            ],
+          },
+        ),
+      );
+
+      final result = await dataSource.getTopPlaylists();
+
+      expect(result, hasLength(2));
+      expect(result.first.playlistId, 'pl_electronic');
+      expect(result.first.genre, 'Electronic');
+      expect(result.first.likesCount, 48);
+      expect(result.last.playlistId, 'pl_rock');
+      expect(result.last.genre, 'alternative');
+      expect(result.last.likesCount, 31);
+    });
+
+    test('flattens playlists grouped by genre under data', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/top',
+            queryParameters: {'limit': 5},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/top'),
+          data: <String, dynamic>{
+            'data': <String, dynamic>{
+              'genres': <dynamic>[
+                <String, dynamic>{
+                  'genre_name': 'Hip-Hop',
+                  'items': <dynamic>[
+                    <String, dynamic>{
+                      'playlistId': 'pl_hiphop',
+                      'title': 'Bars',
+                      'visibility': 'PUBLIC',
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ),
+      );
+
+      final result = await dataSource.getTopPlaylists(limit: 5);
+
+      expect(result, hasLength(1));
+      expect(result.single.playlistId, 'pl_hiphop');
+      expect(result.single.genre, 'Hip-Hop');
+    });
+
+    test('returns empty list when grouped top playlists are empty', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/top',
+            queryParameters: {'limit': 10},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/top'),
+          data: <String, dynamic>{
+            'genres': <dynamic>[
+              <String, dynamic>{
+                'genre': 'Electronic',
+                'playlists': <dynamic>[],
+              },
+            ],
+          },
+        ),
+      );
+
+      final result = await dataSource.getTopPlaylists();
+
+      expect(result, isEmpty);
+    });
+  });
+
+
   group('createPlaylist', () {
     test('sends visibility API value and parses created playlist', () async {
       when(() => dioClient.post(
