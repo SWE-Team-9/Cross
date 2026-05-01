@@ -17,6 +17,7 @@ import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_cou
 import 'package:soundcloud_clone/features/messaging/presentation/routes/messaging_routes.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_top_playlists_usecase.dart';
+import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
@@ -39,8 +40,9 @@ class _MockHomePageState extends State<MockHomePage> {
   List<Track> _trendingTracks = const <Track>[];
   bool _isLoadingTopPlaylists = false;
   List<PlaylistEntity> _topPlaylists = const <PlaylistEntity>[];
+  List<String> _visibleGenres = const <String>[_topLikeGenre];
 
-  final _genres = const [
+  final _fallbackGenres = const [
     _topLikeGenre,
     'electronic',
     'hip-hop',
@@ -72,7 +74,6 @@ class _MockHomePageState extends State<MockHomePage> {
     'world',
     'gospel',
     'spoken-word',
-    'quran',
     'sha3by',
     'islamic',
   ];
@@ -80,8 +81,38 @@ class _MockHomePageState extends State<MockHomePage> {
   @override
   void initState() {
     super.initState();
+    _loadFavoriteGenres();
     _loadTrendingTracks();
     _loadTopPlaylists();
+  }
+
+  Future<void> _loadFavoriteGenres() async {
+    if (!getIt.isRegistered<ProfileRepository>()) return;
+
+    try {
+      final profile = await getIt<ProfileRepository>().getMyProfile();
+      final genres = profile.favoriteGenres
+          .map((genre) => genre.trim().toLowerCase())
+          .where((genre) => genre.isNotEmpty && genre != 'quran')
+          .where(_fallbackGenres.contains)
+          .toSet()
+          .toList(growable: false);
+
+      if (!mounted) return;
+      setState(() {
+        _visibleGenres = <String>[_topLikeGenre, ...genres];
+        if (!_visibleGenres.contains(_selectedGenre)) {
+          _selectedGenre = _visibleGenres.first;
+        }
+      });
+      _filterCachedTrendingTracks();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _visibleGenres = const <String>[_topLikeGenre];
+        _selectedGenre = _topLikeGenre;
+      });
+    }
   }
 
   Future<void> _loadTopPlaylists() async {
@@ -118,11 +149,12 @@ class _MockHomePageState extends State<MockHomePage> {
 
     try {
       final rawList = await _fetchTrendingRawTracks(_selectedGenre);
-      final tracks = rawList
+      final mappedTracks = rawList
           .map(_mapToTrack)
           .whereType<Track>()
           .take(5)
           .toList(growable: false);
+      final tracks = await Future.wait(mappedTracks.map(_withTrackDetails));
 
       if (!mounted) return;
       setState(() {
@@ -161,6 +193,78 @@ class _MockHomePageState extends State<MockHomePage> {
     return _extractTracksList(response.data);
   }
 
+  Future<Track> _withTrackDetails(Track track) async {
+    try {
+      final response = await GetIt.I<DioClient>().get(
+        ApiConstants.trackByIdPath(track.id),
+      );
+      final detail = _asMap(_extractData(response.data));
+      if (detail.isEmpty) return track;
+      final stats = _asMap(detail['stats']);
+
+      final artistValue = detail['artist'];
+      final artistMap =
+          artistValue is Map ? Map<String, dynamic>.from(artistValue) : null;
+      final uploaderMap = _asMap(
+        detail['uploader'] ?? detail['user'] ?? detail['owner'],
+      );
+      final artist = (detail['artistName'] ??
+              detail['artist_name'] ??
+              (artistValue is String ? artistValue : null) ??
+              artistMap?['displayName'] ??
+              artistMap?['display_name'] ??
+              artistMap?['name'] ??
+              uploaderMap['displayName'] ??
+              uploaderMap['display_name'] ??
+              uploaderMap['username'] ??
+              track.artist)
+          .toString()
+          .trim();
+
+      return track.copyWith(
+        title: (detail['title'] ?? track.title).toString(),
+        artist: artist.isEmpty ? track.artist : artist,
+        artworkUrl: (detail['coverArtUrl'] ??
+                detail['cover_art_url'] ??
+                detail['artworkUrl'] ??
+                track.artworkUrl)
+            ?.toString(),
+        handle: (artistMap?['handle'] ??
+                uploaderMap['handle'] ??
+                uploaderMap['username'] ??
+                track.handle)
+            ?.toString(),
+        artistId: (artistMap?['id'] ??
+                artistMap?['userId'] ??
+                uploaderMap['id'] ??
+                uploaderMap['userId'] ??
+                detail['artistId'] ??
+                detail['artist_id'] ??
+                track.artistId)
+            ?.toString(),
+        likesCount: _asInt(
+          detail['likesCount'] ??
+              detail['likes_count'] ??
+              stats['likesCount'] ??
+              stats['likes_count'] ??
+              track.likesCount,
+        ),
+        repostsCount: _asInt(
+          detail['repostsCount'] ??
+              detail['reposts_count'] ??
+              stats['repostsCount'] ??
+              stats['reposts_count'] ??
+              track.repostsCount,
+        ),
+        durationMs: _asInt(
+          detail['durationMs'] ?? detail['duration_ms'] ?? track.durationMs,
+        ),
+      );
+    } catch (_) {
+      return track;
+    }
+  }
+
   List<dynamic> _extractTracksList(dynamic responseData) {
     if (responseData is List) return responseData;
     if (responseData is Map<String, dynamic>) {
@@ -181,6 +285,22 @@ class _MockHomePageState extends State<MockHomePage> {
       }
     }
     return const <dynamic>[];
+  }
+
+  dynamic _extractData(dynamic responseData) {
+    if (responseData is Map<String, dynamic>)
+      return responseData['data'] ?? responseData;
+    if (responseData is Map) {
+      final typed = Map<String, dynamic>.from(responseData);
+      return typed['data'] ?? typed;
+    }
+    return responseData;
+  }
+
+  Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return <String, dynamic>{};
   }
 
   Track? _mapToTrack(dynamic raw) {
@@ -208,8 +328,8 @@ class _MockHomePageState extends State<MockHomePage> {
     final likesCount = _asInt(
       source['likesCount'] ??
           source['likes_count'] ??
-          source['recentLikes'] ??
-          stats['likesCount'],
+          stats['likesCount'] ??
+          stats['likes_count'],
     );
     final repostsCount = _asInt(
       source['repostsCount'] ??
@@ -319,9 +439,9 @@ class _MockHomePageState extends State<MockHomePage> {
                           ),
                           const _SectionHeader(title: 'Mixed for you'),
                           _MixesRow(userHandle: currentHandle),
-                          const _SectionHeader(title: 'Trending by genre'),
+                          const _SectionHeader(title: 'Your favorite genres'),
                           _GenreChips(
-                            genres: _genres,
+                            genres: _visibleGenres,
                             selected: _selectedGenre,
                             onSelect: (g) {
                               setState(() => _selectedGenre = g);
