@@ -4,22 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
+import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_cubit.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_state.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
-import 'package:soundcloud_clone/features/playlists/data/local/recent_playlists_store.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
-import 'package:soundcloud_clone/features/playlists/domain/repositories/playlists_repository.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
+import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
-import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/settings/presentation/page/settings_page.dart';
-import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -30,10 +29,7 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   late final RecentlyPlayedCubit _historyCubit;
-  bool _isLoadingRecentPlaylists = false;
-  List<PlaylistEntity> _recentPlaylists = const <PlaylistEntity>[];
-  bool _isLoadingLikedPlaylists = false;
-  List<PlaylistEntity> _likedPlaylists = const <PlaylistEntity>[];
+  late final LibraryCubit _libraryCubit;
 
   void _goToOwnProfile(AuthState state) {
     if (state is! AuthAuthenticated || state.user.handle.isEmpty) return;
@@ -44,86 +40,13 @@ class _LibraryPageState extends State<LibraryPage> {
   void initState() {
     super.initState();
     _historyCubit = GetIt.I<RecentlyPlayedCubit>()..loadListeningHistory();
-    _loadRecentPlaylists();
-    _loadLikedPlaylists();
+    _libraryCubit = GetIt.I<LibraryCubit>()..loadLibraryPlaylists();
   }
 
-  Future<void> _loadRecentPlaylists() async {
-    final localPlaylists = await const RecentPlaylistsStore().load(limit: 10);
-    if (mounted && localPlaylists.isNotEmpty) {
-      setState(() {
-        _recentPlaylists = localPlaylists;
-      });
-    }
-
-    if (!GetIt.I.isRegistered<GetRecentPlaylistsUseCase>()) return;
-
-    setState(() {
-      _isLoadingRecentPlaylists = true;
-    });
-
-    try {
-      final playlists = await GetIt.I<GetRecentPlaylistsUseCase>()(limit: 10);
-      if (!mounted) return;
-      setState(() {
-        _recentPlaylists = _mergePlaylists(playlists, localPlaylists);
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _recentPlaylists = localPlaylists;
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingRecentPlaylists = false;
-      });
-    }
-  }
-
-  Future<void> _loadLikedPlaylists() async {
-    if (!GetIt.I.isRegistered<PlaylistsRepository>()) return;
-
-    setState(() {
-      _isLoadingLikedPlaylists = true;
-    });
-
-    try {
-      final playlists =
-          await GetIt.I<PlaylistsRepository>().getLikedPlaylists(limit: 20);
-      if (!mounted) return;
-      setState(() {
-        _likedPlaylists = playlists;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _likedPlaylists = const <PlaylistEntity>[];
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingLikedPlaylists = false;
-      });
-    }
-  }
-
-  List<PlaylistEntity> _mergePlaylists(
-    List<PlaylistEntity> primary,
-    List<PlaylistEntity> fallback,
-  ) {
-    final merged = <PlaylistEntity>[];
-    final seenIds = <String>{};
-
-    for (final playlist in [...primary, ...fallback]) {
-      if (playlist.playlistId.isEmpty || !seenIds.add(playlist.playlistId)) {
-        continue;
-      }
-      merged.add(playlist);
-      if (merged.length >= 10) break;
-    }
-
-    return merged;
+  @override
+  void dispose() {
+    _libraryCubit.close();
+    super.dispose();
   }
 
   Future<Track> _ensurePlayableTrack(Track track) async {
@@ -177,11 +100,13 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _historyCubit,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<RecentlyPlayedCubit>.value(value: _historyCubit),
+        BlocProvider<LibraryCubit>.value(value: _libraryCubit),
+      ],
       child: Scaffold(
         backgroundColor: Colors.black,
-        // ── Shared Bottom Nav (index 3 = Library) ──────────────────────────
         bottomNavigationBar: const BottomNavBar(selected: 3),
         appBar: AppBar(
           backgroundColor: Colors.black,
@@ -254,87 +179,91 @@ class _LibraryPageState extends State<LibraryPage> {
             const SizedBox(width: 8),
           ],
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
-              BlocBuilder<AuthCubit, AuthState>(
-                builder: (context, state) => _LibraryItem(
-                  title: 'Your likes',
-                  onTap: () => _goToOwnProfile(state),
-                ),
-              ),
-              _LibraryItem(
-                title: 'Playlists',
-                onTap: () => context.push('/playlists'),
-              ),
-              _LibraryItem(title: 'Albums', onTap: () {}),
-              BlocBuilder<AuthCubit, AuthState>(
-                builder: (context, state) {
-                  return _LibraryItem(
-                    title: 'Following',
-                    onTap: () {
-                      if (state is AuthAuthenticated) {
-                        context.push('/following/${state.user.handle}');
-                      }
+        body: BlocBuilder<LibraryCubit, LibraryState>(
+          builder: (context, libraryState) {
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) => _LibraryItem(
+                      title: 'Your likes',
+                      onTap: () => _goToOwnProfile(state),
+                    ),
+                  ),
+                  _LibraryItem(
+                    title: 'Playlists',
+                    onTap: () => context.push('/playlists'),
+                  ),
+                  _LibraryItem(title: 'Albums', onTap: () {}),
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) {
+                      return _LibraryItem(
+                        title: 'Following',
+                        onTap: () {
+                          if (state is AuthAuthenticated) {
+                            context.push('/following/${state.user.handle}');
+                          }
+                        },
+                      );
                     },
-                  );
-                },
+                  ),
+                  _LibraryItem(
+                    title: 'Suggested users',
+                    onTap: () => context.push('/suggested-users'),
+                  ),
+                  _LibraryItem(title: 'Stations', onTap: () {}),
+                  _LibraryItem(title: 'Your insights', onTap: () {}),
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) => _LibraryItem(
+                      title: 'Your uploads',
+                      onTap: () => _goToOwnProfile(state),
+                    ),
+                  ),
+                  _LibraryItem(
+                    title: 'Downloaded tracks',
+                    onTap: () => context.push('/library/downloads/tracks'),
+                  ),
+                  _LibraryItem(
+                    title: 'Downloaded playlists',
+                    onTap: () => context.push('/library/downloads/playlists'),
+                  ),
+                  const SizedBox(height: 20),
+                  _PlaylistSection(
+                    title: 'Liked playlists',
+                    loading: libraryState.isLoadingLikedPlaylists,
+                    playlists: libraryState.likedPlaylists,
+                    emptyMessage: 'No liked playlists yet',
+                  ),
+                  const SizedBox(height: 20),
+                  BlocBuilder<RecentlyPlayedCubit, List<Track>>(
+                    builder: (context, tracks) {
+                      if (tracks.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 14),
+                          child: Text(
+                            'No recently played tracks yet',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        );
+                      }
+                      return RecentlyPlayedRow(
+                        tracks: tracks,
+                        onTrackTap: _playTrack,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _RecentPlaylistsSection(
+                    loading: libraryState.isLoadingRecentPlaylists,
+                    playlists: libraryState.recentPlaylists,
+                  ),
+                  const SizedBox(height: 100),
+                ],
               ),
-              _LibraryItem(
-                title: 'Suggested users',
-                onTap: () => context.push('/suggested-users'),
-              ),
-              _LibraryItem(title: 'Stations', onTap: () {}),
-              _LibraryItem(title: 'Your insights', onTap: () {}),
-              BlocBuilder<AuthCubit, AuthState>(
-                builder: (context, state) => _LibraryItem(
-                  title: 'Your uploads',
-                  onTap: () => _goToOwnProfile(state),
-                ),
-              ),
-              _LibraryItem(
-                title: 'Downloaded tracks',
-                onTap: () => context.push('/library/downloads/tracks'),
-              ),
-              _LibraryItem(
-                title: 'Downloaded playlists',
-                onTap: () => context.push('/library/downloads/playlists'),
-              ),
-              const SizedBox(height: 20),
-              _PlaylistSection(
-                title: 'Liked playlists',
-                loading: _isLoadingLikedPlaylists,
-                playlists: _likedPlaylists,
-                emptyMessage: 'No liked playlists yet',
-              ),
-              const SizedBox(height: 20),
-              BlocBuilder<RecentlyPlayedCubit, List<Track>>(
-                builder: (context, tracks) {
-                  if (tracks.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 14),
-                      child: Text(
-                        'No recently played tracks yet',
-                        style: TextStyle(color: Colors.white54),
-                      ),
-                    );
-                  }
-                  return RecentlyPlayedRow(
-                    tracks: tracks,
-                    onTrackTap: _playTrack,
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              _RecentPlaylistsSection(
-                loading: _isLoadingRecentPlaylists,
-                playlists: _recentPlaylists,
-              ),
-              const SizedBox(height: 100),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -461,8 +390,9 @@ class _RecentPlaylistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final coverUrl =
-        PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
+    final coverUrl = PlatformUrlUtils.normalizeBackendUrl(
+      playlist.coverImageUrl,
+    );
     final owner = playlist.owner?.displayName.trim() ?? '';
 
     return GestureDetector(
