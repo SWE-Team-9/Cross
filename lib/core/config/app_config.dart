@@ -21,6 +21,8 @@ class AppConfig {
     // }
 
     return 'https://dev.iqa3.tech';
+    //return 'http://10.0.2.2:3006';
+    //return 'http://localhost:3006';
   }
 
   static const bool useMockTrackManagement = bool.fromEnvironment(
