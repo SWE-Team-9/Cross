@@ -4,6 +4,9 @@ class PlaylistsState {
   final List<PlaylistEntity> playlists;
   final PlaylistEntity? selectedPlaylist;
   final bool isLoadingMyPlaylists;
+  final bool isLoadingMoreMyPlaylists;
+  final int myPlaylistsPage;
+  final bool hasMoreMyPlaylists;
   final bool isLoadingDetails;
   final bool isLoadingEditDetails;
   final bool isSubmitting;
@@ -16,6 +19,9 @@ class PlaylistsState {
     required this.playlists,
     required this.selectedPlaylist,
     required this.isLoadingMyPlaylists,
+    required this.isLoadingMoreMyPlaylists,
+    required this.myPlaylistsPage,
+    required this.hasMoreMyPlaylists,
     required this.isLoadingDetails,
     required this.isLoadingEditDetails,
     required this.isSubmitting,
@@ -30,6 +36,9 @@ class PlaylistsState {
       playlists: <PlaylistEntity>[],
       selectedPlaylist: null,
       isLoadingMyPlaylists: false,
+      isLoadingMoreMyPlaylists: false,
+      myPlaylistsPage: 0,
+      hasMoreMyPlaylists: true,
       isLoadingDetails: false,
       isLoadingEditDetails: false,
       isSubmitting: false,
@@ -45,6 +54,9 @@ class PlaylistsState {
     PlaylistEntity? selectedPlaylist,
     bool clearSelectedPlaylist = false,
     bool? isLoadingMyPlaylists,
+    bool? isLoadingMoreMyPlaylists,
+    int? myPlaylistsPage,
+    bool? hasMoreMyPlaylists,
     bool? isLoadingDetails,
     bool? isLoadingEditDetails,
     bool? isSubmitting,
@@ -62,6 +74,10 @@ class PlaylistsState {
           ? null
           : (selectedPlaylist ?? this.selectedPlaylist),
       isLoadingMyPlaylists: isLoadingMyPlaylists ?? this.isLoadingMyPlaylists,
+      isLoadingMoreMyPlaylists:
+          isLoadingMoreMyPlaylists ?? this.isLoadingMoreMyPlaylists,
+      myPlaylistsPage: myPlaylistsPage ?? this.myPlaylistsPage,
+      hasMoreMyPlaylists: hasMoreMyPlaylists ?? this.hasMoreMyPlaylists,
       isLoadingDetails: isLoadingDetails ?? this.isLoadingDetails,
       isLoadingEditDetails: isLoadingEditDetails ?? this.isLoadingEditDetails,
       isSubmitting: isSubmitting ?? this.isSubmitting,
