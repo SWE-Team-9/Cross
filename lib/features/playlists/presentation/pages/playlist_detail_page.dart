@@ -572,7 +572,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                                   const SizedBox(width: 8),
                                   Flexible(
                                     child: Text(
-                                      '${playlist.tracksCount} tracks',
+                                      '${playlist.tracksCount} tracks • ${playlist.likesCount} likes',
                                       style: const TextStyle(
                                         color: Colors.white60,
                                       ),
