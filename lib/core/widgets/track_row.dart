@@ -17,6 +17,7 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_s
 import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 
 enum _DownloadSnack { saved, alreadySaved, failed }
 
@@ -175,6 +176,9 @@ class TrackRow extends StatelessWidget {
     if (selectedTrack.audioUrl.trim().isNotEmpty ||
         (selectedTrack.localPath != null &&
             selectedTrack.localPath!.trim().isNotEmpty)) {
+      if (getIt.isRegistered<RecentlyPlayedCubit>()) {
+        getIt<RecentlyPlayedCubit>().addTrack(selectedTrack);
+      }
       await playerCubit.playFromContext(
         tracks: playableTracks,
         startIndex: safeIndex,
@@ -206,8 +210,13 @@ class TrackRow extends StatelessWidget {
       return;
     }
 
+    final playbackTrack =
+        _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
+    if (getIt.isRegistered<RecentlyPlayedCubit>()) {
+      getIt<RecentlyPlayedCubit>().addTrack(playbackTrack);
+    }
     await playerCubit.playFromContext(
-      tracks: [_withOfflinePath(detail.toPlaybackTrack(), offlineCubit)],
+      tracks: [playbackTrack],
       startIndex: 0,
       source: source,
     );
@@ -241,7 +250,7 @@ class TrackRow extends StatelessWidget {
                 }
 
                 try {
-                  await offlineCubit.download(track.id);
+                  await offlineCubit.downloadTrack(track);
                   if (!context.mounted) return;
                   _showDownloadSnackbar(context, _DownloadSnack.saved);
                 } catch (e) {

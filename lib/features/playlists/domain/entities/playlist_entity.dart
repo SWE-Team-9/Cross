@@ -52,6 +52,10 @@ class PlaylistEntity {
   final PlaylistVisibility visibility;
   final String? genre;
   final int? genreId;
+  final String? slug;
+  final String playlistType;
+  final DateTime? releaseDate;
+  final List<String> tags;
   final String? secretToken;
   final String? coverImageUrl;
   final PlaylistOwner? owner;
@@ -67,6 +71,10 @@ class PlaylistEntity {
     required this.visibility,
     this.genre,
     this.genreId,
+    this.slug,
+    this.playlistType = 'PLAYLIST',
+    this.releaseDate,
+    this.tags = const <String>[],
     required this.secretToken,
     required this.coverImageUrl,
     required this.owner,
@@ -87,6 +95,12 @@ class PlaylistEntity {
     bool clearGenre = false,
     int? genreId,
     bool clearGenreId = false,
+    String? slug,
+    bool clearSlug = false,
+    String? playlistType,
+    DateTime? releaseDate,
+    bool clearReleaseDate = false,
+    List<String>? tags,
     String? secretToken,
     bool clearSecretToken = false,
     String? coverImageUrl,
@@ -104,6 +118,10 @@ class PlaylistEntity {
       visibility: visibility ?? this.visibility,
       genre: clearGenre ? null : (genre ?? this.genre),
       genreId: clearGenreId ? null : (genreId ?? this.genreId),
+      slug: clearSlug ? null : (slug ?? this.slug),
+      playlistType: playlistType ?? this.playlistType,
+      releaseDate: clearReleaseDate ? null : (releaseDate ?? this.releaseDate),
+      tags: tags ?? this.tags,
       secretToken: clearSecretToken ? null : (secretToken ?? this.secretToken),
       coverImageUrl:
           clearCoverImageUrl ? null : (coverImageUrl ?? this.coverImageUrl),

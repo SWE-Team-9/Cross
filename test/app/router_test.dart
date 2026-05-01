@@ -28,6 +28,7 @@ import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_mess
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_count_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
@@ -120,12 +121,19 @@ class FakeOfflineRepository implements OfflineRepository {
   late final DioClient dio;
 
   final Map<String, String> _storage = {};
+  final Map<String, Track> _trackDetails = {};
+  final Map<String, PlaylistEntity> _playlists = {};
 
   @override
   Future<String> downloadTrack(String trackId) async {
     final path = '/fake/$trackId.mp3';
     _storage[trackId] = path;
     return path;
+  }
+
+  @override
+  Future<Track?> fetchTrackDetails(String trackId) async {
+    return _trackDetails[trackId];
   }
 
   @override
@@ -136,6 +144,30 @@ class FakeOfflineRepository implements OfflineRepository {
   @override
   Future<void> saveDownloadedTracks(Map<String, String> data) async {
     _storage
+      ..clear()
+      ..addAll(data);
+  }
+
+  @override
+  Future<Map<String, Track>> getDownloadedTrackDetails() async {
+    return _trackDetails;
+  }
+
+  @override
+  Future<void> saveDownloadedTrackDetails(Map<String, Track> data) async {
+    _trackDetails
+      ..clear()
+      ..addAll(data);
+  }
+
+  @override
+  Future<Map<String, PlaylistEntity>> getDownloadedPlaylists() async {
+    return _playlists;
+  }
+
+  @override
+  Future<void> saveDownloadedPlaylists(Map<String, PlaylistEntity> data) async {
+    _playlists
       ..clear()
       ..addAll(data);
   }
