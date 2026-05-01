@@ -20,6 +20,9 @@ import 'package:soundcloud_clone/features/upload/domain/entities/track_genre.dar
 
 import 'playlists_state.dart';
 
+const int _kPlaylistTitleMaxLength = 100;
+const int _kPlaylistDescriptionMaxLength = 500;
+
 class PlaylistsCubit extends Cubit<PlaylistsState> {
   static const _likedPlaylistsStore = LikedPlaylistsStore();
 
@@ -94,7 +97,24 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   }) async {
     if (state.isSubmitting) return null;
 
-    if (_titleExists(title)) {
+    final normalizedTitle = title.trim();
+    final normalizedDescription = description.trim();
+
+    final validationMessage = _validatePlaylistInput(
+      title: normalizedTitle,
+      description: normalizedDescription,
+    );
+    if (validationMessage != null) {
+      emit(
+        state.copyWith(
+          errorMessage: validationMessage,
+          clearInfo: true,
+        ),
+      );
+      return null;
+    }
+
+    if (_titleExists(normalizedTitle)) {
       emit(
         state.copyWith(
           errorMessage: 'A playlist with this name already exists',
@@ -104,6 +124,16 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       return null;
     }
 
+    final normalizedTrackIds = _normalizeTrackIds(initialTrackIds);
+    if (normalizedTrackIds.length != initialTrackIds.length) {
+      emit(
+        state.copyWith(
+          errorMessage: 'Playlist tracks contain invalid or duplicate IDs',
+          clearInfo: true,
+        ),
+      );
+      return null;
+    }
     emit(
       state.copyWith(
         isSubmitting: true,
@@ -114,10 +144,10 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
 
     try {
       var created = await createPlaylistUseCase(
-        title: title,
-        description: description,
+        title: normalizedTitle,
+        description: normalizedDescription,
         visibility: visibility,
-        initialTrackIds: initialTrackIds,
+        initialTrackIds: normalizedTrackIds,
         genre: genre,
       );
       created = created.copyWith(
@@ -212,7 +242,26 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   }) async {
     if (state.isSubmitting) return;
 
-    if (title != null && _titleExists(title, excludingPlaylistId: playlistId)) {
+    final normalizedTitle = title?.trim();
+    final normalizedDescription = description?.trim();
+
+    final validationMessage = _validatePlaylistInput(
+      title: normalizedTitle,
+      description: normalizedDescription,
+      allowEmptyTitle: title == null,
+    );
+    if (validationMessage != null) {
+      emit(
+        state.copyWith(
+          errorMessage: validationMessage,
+          clearInfo: true,
+        ),
+      );
+      return;
+    }
+
+    if (normalizedTitle != null &&
+        _titleExists(normalizedTitle, excludingPlaylistId: playlistId)) {
       emit(
         state.copyWith(
           errorMessage: 'A playlist with this name already exists',
@@ -221,7 +270,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       );
       return;
     }
-
     emit(
       state.copyWith(
         isSubmitting: true,
@@ -233,15 +281,14 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     try {
       await updatePlaylistUseCase(
         playlistId: playlistId,
-        title: title,
-        description: description,
+        title: normalizedTitle,
+        description: normalizedDescription,
         visibility: visibility,
         genreId: genreId,
         playlistType: playlistType,
         releaseDate: releaseDate,
         tags: tags,
       );
-
       String? uploadedCoverUrl;
       if (coverImagePath != null && coverImagePath.trim().isNotEmpty) {
         final uploader = uploadPlaylistCoverUseCase;
@@ -258,8 +305,8 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
 
       if (current != null && current.playlistId == playlistId) {
         nextSelected = current.copyWith(
-          title: title,
-          description: description,
+          title: normalizedTitle,
+          description: normalizedDescription,
           visibility: visibility,
           genre: genre,
           clearGenre: genre != null && genre.trim().isEmpty,
@@ -512,19 +559,41 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   }) async {
     if (state.isSubmitting) return false;
 
-    emit(state.copyWith(isSubmitting: true, clearError: true, clearInfo: true));
+    final normalizedTrackId = track.id.trim();
+    if (normalizedTrackId.isEmpty) {
+      emit(
+        state.copyWith(
+          errorMessage: 'Track ID is required',
+          clearInfo: true,
+        ),
+      );
+      return false;
+    }
 
+    final selected = state.selectedPlaylist;
+    if (selected != null &&
+        selected.playlistId == playlistId &&
+        selected.tracks.any((item) => item.id.trim() == normalizedTrackId)) {
+      emit(
+        state.copyWith(
+          infoMessage: 'Track is already in this playlist',
+          clearError: true,
+        ),
+      );
+      return false;
+    }
+
+    emit(state.copyWith(isSubmitting: true, clearError: true, clearInfo: true));
     try {
       await addTrackToPlaylistUseCase(
         playlistId: playlistId,
-        trackId: track.id,
+        trackId: normalizedTrackId,
       );
 
-      final selected = state.selectedPlaylist;
       PlaylistEntity? updatedSelected = selected;
       if (selected != null && selected.playlistId == playlistId) {
         final alreadyExists =
-            selected.tracks.any((item) => item.id == track.id);
+            selected.tracks.any((item) => item.id.trim() == normalizedTrackId);
         final nextTracks =
             alreadyExists ? selected.tracks : [...selected.tracks, track];
         updatedSelected = selected.copyWith(
@@ -537,7 +606,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       final nextPlaylists = state.playlists.map((playlist) {
         if (playlist.playlistId != playlistId) return playlist;
         final alreadyExists =
-            playlist.tracks.any((item) => item.id == track.id);
+            playlist.tracks.any((item) => item.id.trim() == normalizedTrackId);
         final nextCount =
             alreadyExists ? playlist.tracksCount : playlist.tracksCount + 1;
         final nextTracks = playlist.tracks.isEmpty
@@ -682,6 +751,27 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     if (selected == null || selected.playlistId != playlistId) return;
 
     final previousTracks = selected.tracks;
+    final reorderValidationMessage = _validateReorderTracks(
+      currentTracks: previousTracks,
+      orderedTracks: orderedTracks,
+    );
+
+    if (reorderValidationMessage != null) {
+      emit(
+        state.copyWith(
+          errorMessage: reorderValidationMessage,
+          clearInfo: true,
+        ),
+      );
+      return;
+    }
+
+    final currentIds = previousTracks.map((track) => track.id.trim()).toList();
+    final orderedIds = orderedTracks.map((track) => track.id.trim()).toList();
+
+    if (_sameStringOrder(currentIds, orderedIds)) {
+      return;
+    }
 
     emit(
       state.copyWith(
@@ -695,8 +785,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     try {
       await reorderPlaylistTracksUseCase(
         playlistId: playlistId,
-        orderedTrackIds:
-            orderedTracks.map((track) => track.id).toList(growable: false),
+        orderedTrackIds: orderedIds,
       );
 
       emit(
@@ -876,6 +965,87 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   }
 
   String _normalizeTitle(String title) => title.trim().toLowerCase();
+
+  String? _validatePlaylistInput({
+    required String? title,
+    required String? description,
+    bool allowEmptyTitle = false,
+  }) {
+    final normalizedTitle = title?.trim() ?? '';
+    final normalizedDescription = description?.trim() ?? '';
+
+    if (!allowEmptyTitle && normalizedTitle.isEmpty) {
+      return 'Playlist title is required';
+    }
+
+    if (normalizedTitle.length > _kPlaylistTitleMaxLength) {
+      return 'Playlist title must be $_kPlaylistTitleMaxLength characters or less';
+    }
+
+    if (normalizedDescription.length > _kPlaylistDescriptionMaxLength) {
+      return 'Playlist description must be $_kPlaylistDescriptionMaxLength characters or less';
+    }
+
+    return null;
+  }
+
+  List<String> _normalizeTrackIds(List<String> trackIds) {
+    final normalized = <String>[];
+    final seen = <String>{};
+
+    for (final trackId in trackIds) {
+      final value = trackId.trim();
+      if (value.isEmpty || seen.contains(value)) continue;
+      seen.add(value);
+      normalized.add(value);
+    }
+
+    return normalized;
+  }
+
+  String? _validateReorderTracks({
+    required List<Track> currentTracks,
+    required List<Track> orderedTracks,
+  }) {
+    final currentIds = currentTracks.map((track) => track.id.trim()).toList();
+    final orderedIds = orderedTracks.map((track) => track.id.trim()).toList();
+
+    if (orderedIds.any((id) => id.isEmpty)) {
+      return 'Playlist tracks contain invalid IDs';
+    }
+
+    if (orderedIds.toSet().length != orderedIds.length) {
+      return 'Playlist tracks contain duplicate IDs';
+    }
+
+    if (currentIds.length != orderedIds.length) {
+      return 'Reordered tracks must match the current playlist tracks';
+    }
+
+    final currentSet = currentIds.toSet();
+    final orderedSet = orderedIds.toSet();
+
+    if (currentSet.length != currentIds.length ||
+        currentSet.length != orderedSet.length) {
+      return 'Reordered tracks must match the current playlist tracks';
+    }
+
+    if (!currentSet.containsAll(orderedSet)) {
+      return 'Reordered tracks must match the current playlist tracks';
+    }
+
+    return null;
+  }
+
+  bool _sameStringOrder(List<String> first, List<String> second) {
+    if (first.length != second.length) return false;
+
+    for (var index = 0; index < first.length; index++) {
+      if (first[index] != second[index]) return false;
+    }
+
+    return true;
+  }
 
   String _playlistErrorMessage(Object error) {
     final normalized = error.toString().toLowerCase();
