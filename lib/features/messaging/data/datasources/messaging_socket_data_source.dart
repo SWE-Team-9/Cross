@@ -55,7 +55,7 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
       'http://10.0.2.2:3006/messages',
       IO.OptionBuilder()
           .setTransports(['websocket'])
-          .disableAutoConnect()
+          // .disableAutoConnect()
           // .setPath('/messages')
           .setExtraHeaders(
             cookieHeader.isEmpty

@@ -132,7 +132,6 @@ class ConversationTile extends StatelessWidget {
 
     switch (lastMessage.type) {
       case MessageType.text:
-        if (lastMessage.isDeleted) return 'Message deleted';
         return lastMessage.text?.trim().isNotEmpty == true
             ? lastMessage.text!.trim()
             : 'Text message';

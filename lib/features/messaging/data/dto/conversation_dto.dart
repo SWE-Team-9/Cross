@@ -42,7 +42,7 @@ class ConversationDto {
       lastMessage: _messageOrNull(json['lastMessage'] ?? json['last_message']),
       unreadCount: _toInt(json['unreadCount'] ?? json['unread_count']) ?? 0,
       updatedAt:
-          _dateOrNull(json['updatedAt'] ?? json['updated_at'])?.toLocal(),
+          _dateOrNull(json['updatedAt'] ?? json['updated_at']),
       isArchived: _toBool(json['isArchived'] ?? json['is_archived']) ?? false,
       isBlockedByMe:
           _toBool(json['isBlockedByMe'] ?? json['is_blocked_by_me']) ?? false,
