@@ -31,6 +31,11 @@ abstract class PlaylistsRepository {
 
   Future<List<PlaylistEntity>> getRecentPlaylists({int limit = 10});
 
+  Future<List<PlaylistEntity>> getLikedPlaylists({
+    int page = 1,
+    int limit = 20,
+  });
+
   Future<List<PlaylistEntity>> searchPublicPlaylists(
     String query, {
     int page = 1,

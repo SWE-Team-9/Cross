@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/conversation_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/conversation_list_page_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/participant_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/archive_conversation_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversations_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_unread_usecase.dart';
@@ -25,6 +29,9 @@ class MockArchiveConversationUseCase extends Mock
 class MockUnarchiveConversationUseCase extends Mock
     implements UnarchiveConversationUseCase {}
 
+class MockConnectMessagingSocketUseCase extends Mock
+    implements ConnectMessagingSocketUseCase {}
+
 void main() {
   group('InboxCubit', () {
     late MockGetConversationsUseCase getConversationsUseCase;
@@ -32,6 +39,8 @@ void main() {
     late MockMarkConversationUnreadUseCase markConversationUnreadUseCase;
     late MockArchiveConversationUseCase archiveConversationUseCase;
     late MockUnarchiveConversationUseCase unarchiveConversationUseCase;
+    late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
+    late StreamController<RealtimeMessageEventEntity> socketController;
     late InboxCubit cubit;
 
     const participant = ParticipantEntity(
@@ -77,6 +86,13 @@ void main() {
       markConversationUnreadUseCase = MockMarkConversationUnreadUseCase();
       archiveConversationUseCase = MockArchiveConversationUseCase();
       unarchiveConversationUseCase = MockUnarchiveConversationUseCase();
+      connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+      socketController =
+          StreamController<RealtimeMessageEventEntity>.broadcast();
+
+      when(() => connectMessagingSocketUseCase()).thenAnswer((_) async {});
+      when(() => connectMessagingSocketUseCase.eventsStream)
+          .thenAnswer((_) => socketController.stream);
 
       cubit = InboxCubit(
         getConversationsUseCase: getConversationsUseCase,
@@ -84,11 +100,13 @@ void main() {
         markConversationUnreadUseCase: markConversationUnreadUseCase,
         archiveConversationUseCase: archiveConversationUseCase,
         unarchiveConversationUseCase: unarchiveConversationUseCase,
+        connectMessagingSocketUseCase: connectMessagingSocketUseCase,
       );
     });
 
     tearDown(() async {
       await cubit.close();
+      await socketController.close();
     });
 
     test('loadInitial loads conversations', () async {

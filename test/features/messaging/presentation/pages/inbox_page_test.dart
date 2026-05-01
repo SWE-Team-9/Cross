@@ -9,7 +9,9 @@ import 'package:soundcloud_clone/features/messaging/domain/entities/conversation
 import 'package:soundcloud_clone/features/messaging/domain/entities/message_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/message_type.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/participant_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/archive_conversation_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversations_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_unread_usecase.dart';
@@ -31,6 +33,9 @@ class MockArchiveConversationUseCase extends Mock
 class MockUnarchiveConversationUseCase extends Mock
     implements UnarchiveConversationUseCase {}
 
+class MockConnectMessagingSocketUseCase extends Mock
+    implements ConnectMessagingSocketUseCase {}
+
 void main() {
   final getIt = GetIt.I;
 
@@ -39,6 +44,8 @@ void main() {
   late MockMarkConversationUnreadUseCase markConversationUnreadUseCase;
   late MockArchiveConversationUseCase archiveConversationUseCase;
   late MockUnarchiveConversationUseCase unarchiveConversationUseCase;
+  late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
+  late StreamController<RealtimeMessageEventEntity> socketController;
 
   const participant = ParticipantEntity(
     id: 'user-1',
@@ -103,6 +110,8 @@ void main() {
     markConversationUnreadUseCase = MockMarkConversationUnreadUseCase();
     archiveConversationUseCase = MockArchiveConversationUseCase();
     unarchiveConversationUseCase = MockUnarchiveConversationUseCase();
+    connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+    socketController = StreamController<RealtimeMessageEventEntity>.broadcast();
 
     getIt.registerSingleton<GetConversationsUseCase>(getConversationsUseCase);
     getIt.registerSingleton<MarkConversationReadUseCase>(
@@ -117,6 +126,13 @@ void main() {
     getIt.registerSingleton<UnarchiveConversationUseCase>(
       unarchiveConversationUseCase,
     );
+    getIt.registerSingleton<ConnectMessagingSocketUseCase>(
+      connectMessagingSocketUseCase,
+    );
+
+    when(() => connectMessagingSocketUseCase()).thenAnswer((_) async {});
+    when(() => connectMessagingSocketUseCase.eventsStream)
+        .thenAnswer((_) => socketController.stream);
 
     when(
       () => markConversationReadUseCase(any()),
@@ -137,16 +153,17 @@ void main() {
 
   tearDown(() async {
     await getIt.reset();
+    await socketController.close();
   });
 
   Future<void> pumpPage(
     WidgetTester tester, {
-    ValueChanged<ConversationEntity>? onOpenConversation,
+    Future<void> Function(ConversationEntity conversation)? onOpenConversation,
   }) {
     return tester.pumpWidget(
       MaterialApp(
         home: InboxPage(
-          onOpenConversation: onOpenConversation ?? (_) {},
+          onOpenConversation: onOpenConversation ?? (_) async {},
         ),
       ),
     );
@@ -270,7 +287,9 @@ void main() {
 
     await pumpPage(
       tester,
-      onOpenConversation: (conversation) => opened = conversation,
+      onOpenConversation: (conversation) async {
+        opened = conversation;
+      },
     );
     await tester.pumpAndSettle();
 

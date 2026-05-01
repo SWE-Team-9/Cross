@@ -6,9 +6,11 @@ import 'package:get_it/get_it.dart';
 import '../../../../core/models/track.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/platform_url_utils.dart';
+import '../../../interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
 import '../../../playlists/data/datasources/playlist_track_search_remote_data_source.dart';
 import '../../../playlists/domain/entities/playlist_entity.dart';
 import '../../../playlists/domain/repositories/playlists_repository.dart';
+import '../../../upload/domain/entities/managed_track.dart';
 import '../messaging_theme.dart';
 
 typedef ShareTrackCallback = Future<void> Function(Track track);
@@ -16,7 +18,7 @@ typedef SharePlaylistCallback = Future<void> Function(PlaylistEntity playlist);
 
 enum _ShareKind { tracks, playlists }
 
-enum _ShareSource { mine, public }
+enum _ShareSource { mine, liked }
 
 class ShareMessageItemSheet extends StatefulWidget {
   const ShareMessageItemSheet({
@@ -57,14 +59,13 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
 
   _ShareKind _kind = _ShareKind.tracks;
   _ShareSource _source = _ShareSource.mine;
-  Timer? _debounce;
 
   bool _isLoading = false;
   String? _error;
   List<Track> _myTracks = const <Track>[];
-  List<Track> _publicTracks = const <Track>[];
+  List<Track> _likedTracks = const <Track>[];
   List<PlaylistEntity> _myPlaylists = const <PlaylistEntity>[];
-  List<PlaylistEntity> _publicPlaylists = const <PlaylistEntity>[];
+  List<PlaylistEntity> _likedPlaylists = const <PlaylistEntity>[];
 
   @override
   void initState() {
@@ -76,24 +77,11 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _loadCurrentView() async {
-    final query = _searchController.text.trim();
-
-    if (_source == _ShareSource.public && query.isEmpty) {
-      setState(() {
-        _isLoading = false;
-        _error = null;
-        _publicTracks = const <Track>[];
-        _publicPlaylists = const <PlaylistEntity>[];
-      });
-      return;
-    }
-
     setState(() {
       _isLoading = true;
       _error = null;
@@ -110,10 +98,11 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
             _myTracks = tracks;
           });
         } else {
-          final tracks = await _trackSearch.searchTracks(query, limit: 30);
+          final tracks =
+              _likedTracks.isEmpty ? await _loadLikedTracks() : _likedTracks;
           if (!mounted) return;
           setState(() {
-            _publicTracks = tracks;
+            _likedTracks = tracks;
           });
         }
       } else {
@@ -127,13 +116,12 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
             _myPlaylists = playlists;
           });
         } else {
-          final playlists = await repository.searchPublicPlaylists(
-            query,
-            limit: 30,
-          );
+          final playlists = _likedPlaylists.isEmpty
+              ? await repository.getLikedPlaylists(limit: 100)
+              : _likedPlaylists;
           if (!mounted) return;
           setState(() {
-            _publicPlaylists = playlists;
+            _likedPlaylists = playlists;
           });
         }
       }
@@ -151,13 +139,9 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
     }
   }
 
-  void _scheduleReload() {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () {
-      if (mounted) {
-        unawaited(_loadCurrentView());
-      }
-    });
+  Future<List<Track>> _loadLikedTracks() async {
+    final managedTracks = await GetIt.I<GetMyLikedTracksUseCase>()();
+    return managedTracks.map(_managedTrackToTrack).toList(growable: false);
   }
 
   void _setKind(_ShareKind kind) {
@@ -179,9 +163,9 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
   }
 
   List<Track> get _visibleTracks {
-    final tracks = _source == _ShareSource.mine ? _myTracks : _publicTracks;
+    final tracks = _source == _ShareSource.mine ? _myTracks : _likedTracks;
     final query = _searchController.text.trim().toLowerCase();
-    if (_source == _ShareSource.public || query.isEmpty) return tracks;
+    if (query.isEmpty) return tracks;
     return tracks.where((track) {
       return track.title.toLowerCase().contains(query) ||
           track.artist.toLowerCase().contains(query);
@@ -190,9 +174,9 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
 
   List<PlaylistEntity> get _visiblePlaylists {
     final playlists =
-        _source == _ShareSource.mine ? _myPlaylists : _publicPlaylists;
+        _source == _ShareSource.mine ? _myPlaylists : _likedPlaylists;
     final query = _searchController.text.trim().toLowerCase();
-    if (_source == _ShareSource.public || query.isEmpty) return playlists;
+    if (query.isEmpty) return playlists;
     return playlists.where((playlist) {
       final owner = playlist.owner?.displayName.toLowerCase() ?? '';
       return playlist.title.toLowerCase().contains(query) ||
@@ -256,9 +240,7 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
                 controller: _searchController,
                 source: _source,
                 kind: _kind,
-                onChanged: (_) => _source == _ShareSource.public
-                    ? _scheduleReload()
-                    : setState(() {}),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 10),
               Expanded(child: _buildResults()),
@@ -270,15 +252,6 @@ class _ShareMessageItemSheetState extends State<ShareMessageItemSheet> {
   }
 
   Widget _buildResults() {
-    if (_source == _ShareSource.public &&
-        _searchController.text.trim().isEmpty) {
-      return _EmptyState(
-        icon: Icons.search,
-        label:
-            'Search public ${_kind == _ShareKind.tracks ? 'tracks' : 'playlists'}',
-      );
-    }
-
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: MessagingTheme.accent),
@@ -389,10 +362,10 @@ class _SourceTabs extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _PillButton(
-            label: 'Public',
-            icon: Icons.public,
-            selected: source == _ShareSource.public,
-            onTap: () => onChanged(_ShareSource.public),
+            label: 'Liked',
+            icon: Icons.favorite_border,
+            selected: source == _ShareSource.liked,
+            onTap: () => onChanged(_ShareSource.liked),
           ),
         ),
       ],
@@ -467,7 +440,7 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final itemLabel = kind == _ShareKind.tracks ? 'tracks' : 'playlists';
-    final sourceLabel = source == _ShareSource.mine ? 'your' : 'public';
+    final sourceLabel = source == _ShareSource.mine ? 'your' : 'liked';
 
     return TextField(
       controller: controller,
@@ -494,6 +467,22 @@ class _SearchField extends StatelessWidget {
       ),
     );
   }
+}
+
+Track _managedTrackToTrack(ManagedTrack track) {
+  return Track(
+    id: track.id,
+    title: track.title,
+    artist: track.artistName ?? track.artistHandle ?? 'Unknown artist',
+    audioUrl: '',
+    artworkUrl: track.artworkUrl,
+    handle: track.artistHandle,
+    likesCount: track.likesCount,
+    repostsCount: track.repostsCount,
+    durationMs: track.durationInSeconds == null
+        ? null
+        : track.durationInSeconds! * 1000,
+  );
 }
 
 class _TrackTile extends StatelessWidget {

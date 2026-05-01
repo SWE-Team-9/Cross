@@ -24,6 +24,8 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showTimestamp = message.createdAt.year > 2000;
+
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
@@ -50,7 +52,16 @@ class MessageBubble extends StatelessWidget {
               crossAxisAlignment:
                   isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                if ((message.text ?? '').trim().isNotEmpty)
+                if (message.isDeleted)
+                  Text(
+                    'Message deleted',
+                    style: TextStyle(
+                      color: isMine ? Colors.white70 : MessagingTheme.textMuted,
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  )
+                else if ((message.text ?? '').trim().isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
@@ -77,15 +88,17 @@ class MessageBubble extends StatelessWidget {
                     isMine: isMine,
                     onTap: onPlaylistTap,
                   ),
-                const SizedBox(height: 6),
-                Text(
-                  _formatTime(message.createdAt),
-                  style: TextStyle(
-                    color: isMine ? Colors.white70 : MessagingTheme.textMuted,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
+                if (showTimestamp) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _formatTime(message.createdAt.toLocal()),
+                    style: TextStyle(
+                      color: isMine ? Colors.white70 : MessagingTheme.textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -105,9 +118,9 @@ class MessageBubble extends StatelessWidget {
         return SafeArea(
           child: ListTile(
             leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-            title: const Text(
-              'Delete message',
-              style: TextStyle(color: Colors.white),
+            title: Text(
+              message.isDeleted ? 'Delete completely' : 'Delete message',
+              style: const TextStyle(color: Colors.white),
             ),
             onTap: () {
               Navigator.pop(context);
