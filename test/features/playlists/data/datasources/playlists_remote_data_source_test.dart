@@ -436,6 +436,19 @@ void main() {
       verify(() => dioClient.delete('/api/v1/playlists/pl_12')).called(1);
     });
 
+    test('recordPlaylistPlayback hits playlist play endpoint', () async {
+      when(() => dioClient.post('/api/v1/playlists/pl_12/play')).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/pl_12/play'),
+          data: const <String, dynamic>{},
+        ),
+      );
+
+      await dataSource.recordPlaylistPlayback('pl_12');
+
+      verify(() => dioClient.post('/api/v1/playlists/pl_12/play')).called(1);
+    });
+
     test('addTrackToPlaylist sends track id body', () async {
       when(() => dioClient.post(
             '/api/v1/playlists/pl_3/tracks',
