@@ -179,6 +179,11 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
   }
 
   @override
+  Future<void> recordPlaylistPlayback(String playlistId) {
+    return remoteDataSource.recordPlaylistPlayback(playlistId);
+  }
+
+  @override
   Future<void> addTrackToPlaylist({
     required String playlistId,
     required String trackId,
