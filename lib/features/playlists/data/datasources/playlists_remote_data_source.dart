@@ -70,6 +70,8 @@ abstract class PlaylistsRemoteDataSource {
 
   Future<void> unlikePlaylist(String playlistId);
 
+  Future<void> recordPlaylistPlayback(String playlistId);
+
   Future<void> addTrackToPlaylist({
     required String playlistId,
     required String trackId,
@@ -368,6 +370,11 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
   @override
   Future<void> unlikePlaylist(String playlistId) async {
     await dioClient.delete(ApiConstants.likePlaylistPath(playlistId));
+  }
+
+  @override
+  Future<void> recordPlaylistPlayback(String playlistId) async {
+    await dioClient.post(ApiConstants.playlistPlayPath(playlistId));
   }
 
   @override
