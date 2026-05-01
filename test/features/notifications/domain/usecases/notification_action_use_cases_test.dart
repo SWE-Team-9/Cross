@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
-import 'package:soundcloud_clone/features/notifications/domain/entities/notification_preferences_entity.dart';
+// import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
+// import 'package:soundcloud_clone/features/notifications/domain/entities/notification_preferences_entity.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notifications_result.dart';
 import 'package:soundcloud_clone/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:soundcloud_clone/features/notifications/domain/usecases/delete_notification_use_case.dart';

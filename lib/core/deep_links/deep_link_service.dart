@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart';
 
 import 'deep_link_destination.dart';
 import 'deep_link_parser.dart';
@@ -60,7 +59,6 @@ class DeepLinkService {
         now.difference(_lastEmittedAt!) < const Duration(seconds: 2);
 
     if (isRecentDuplicate) {
-      debugPrint('[DeepLinkService] Ignored duplicate ($source): $currentUri');
       return;
     }
 
@@ -73,7 +71,6 @@ class DeepLinkService {
     final DeepLinkDestination destination = DeepLinkParser.parse(uri);
     _lastDestination = destination;
     _controller.add(destination);
-    debugPrint('[DeepLinkService] Emitted: $destination');
   }
 
   Future<void> dispose() async {

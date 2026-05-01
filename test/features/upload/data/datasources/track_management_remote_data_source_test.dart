@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -19,6 +21,35 @@ void main() {
     tags: <String>['night', 'synth'],
     visibility: TrackManagementVisibility.privateTrack,
   );
+
+  const metadataRequestBody = <String, dynamic>{
+    'title': 'City Lights',
+    'description': 'Updated description',
+    'genre': 'Electronic',
+    'tags': <String>['night', 'synth'],
+  };
+
+  void expectMetadataFormData(FormData formData) {
+    expect(
+      formData.fields.where((entry) => entry.key == 'title').single.value,
+      metadataRequestBody['title'],
+    );
+    expect(
+      formData.fields.where((entry) => entry.key == 'description').single.value,
+      metadataRequestBody['description'],
+    );
+    expect(
+      formData.fields.where((entry) => entry.key == 'genre').single.value,
+      metadataRequestBody['genre'],
+    );
+    expect(
+      formData.fields
+          .where((entry) => entry.key == 'tags')
+          .map((entry) => entry.value)
+          .toList(),
+      metadataRequestBody['tags'],
+    );
+  }
 
   Map<String, dynamic> trackJson({
     String id = 'track-1',
@@ -51,7 +82,8 @@ void main() {
     test('parses payload from response.data.track', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -71,16 +103,20 @@ void main() {
       expect(result.genreId, 2);
       expect(result.genreName, 'Electronic');
 
-      verify(() => mockDioClient.put(
+      final captured = verify(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
-          )).called(1);
+            data: captureAny(named: 'data'),
+            options: any(named: 'options'),
+          )).captured.single as FormData;
+      expectMetadataFormData(captured);
+      expect(captured.files, isEmpty);
     });
 
     test('parses payload from response.data.data', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -101,7 +137,8 @@ void main() {
     test('parses payload from direct map response', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -120,7 +157,8 @@ void main() {
     test('throws FormatException on unexpected response shape', () async {
       when(() => mockDioClient.put(
             '/api/v1/tracks/track-1',
-            data: form.toMetadataRequestBody(),
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           )).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
@@ -132,6 +170,38 @@ void main() {
         () => dataSource.updateTrackMetadata(trackId: 'track-1', form: form),
         throwsA(isA<FormatException>()),
       );
+    });
+
+    test('sends multipart coverArt when cover path is selected', () async {
+      final temp = await Directory.systemTemp.createTemp('managed_cover_test');
+      final coverFile = File('${temp.path}/cover.png');
+      await coverFile.writeAsBytes(const [1, 2, 3]);
+
+      final formWithCover = form.copyWith(coverArtPath: coverFile.path);
+
+      when(() => mockDioClient.put(
+            '/api/v1/tracks/track-1',
+            data: any(named: 'data'),
+            options: any(named: 'options'),
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/tracks/track-1'),
+          data: trackJson(),
+        ),
+      );
+
+      await dataSource.updateTrackMetadata(
+        trackId: 'track-1',
+        form: formWithCover,
+      );
+
+      final captured = verify(() => mockDioClient.put(
+            '/api/v1/tracks/track-1',
+            data: captureAny(named: 'data'),
+            options: any(named: 'options'),
+          )).captured.single as FormData;
+
+      expect(captured.files.any((entry) => entry.key == 'coverArt'), isTrue);
     });
   });
 

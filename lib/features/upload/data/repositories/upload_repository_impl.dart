@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/picked_audio_file.dart';
+import '../../domain/entities/picked_image_file.dart';
+import '../../domain/entities/track_genre.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../datasources/audio_file_picker_data_source.dart';
 
@@ -25,6 +27,7 @@ class UploadRepositoryImpl implements UploadRepository {
   Future<UploadTrackResult> uploadTrack({
     required PickedAudioFile file,
     required String title,
+    PickedImageFile? coverArt,
     String? genre,
     String? description,
     DateTime? releaseDate,
@@ -46,7 +49,7 @@ class UploadRepositoryImpl implements UploadRepository {
     }
 
     final String normalizedTitle = title.trim();
-    final String? normalizedGenre = _normalizeOptional(genre);
+    final String? normalizedGenre = trackGenreApiValue(genre);
     final String? normalizedDescription = _normalizeOptional(description);
     final List<String> sanitizedTags = _sanitizeTags(tags);
 
@@ -67,7 +70,7 @@ class UploadRepositoryImpl implements UploadRepository {
       );
     }
     for (final tag in sanitizedTags) {
-      formData.fields.add(MapEntry('tags[]', tag));
+      formData.fields.add(MapEntry('tags', tag));
     }
     formData.files.add(
       MapEntry(
@@ -78,6 +81,17 @@ class UploadRepositoryImpl implements UploadRepository {
         ),
       ),
     );
+    if (coverArt != null) {
+      formData.files.add(
+        MapEntry(
+          'coverArt',
+          await MultipartFile.fromFile(
+            coverArt.path,
+            filename: coverArt.name,
+          ),
+        ),
+      );
+    }
 
     final response = onProgress == null
         ? await dioClient.post(

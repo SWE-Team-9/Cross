@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-
-import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
@@ -13,6 +12,14 @@ import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_state.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/routes/messaging_routes.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
+
+import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/widgets/notification_badge.dart';
 
@@ -25,26 +32,83 @@ class MockHomePage extends StatefulWidget {
 
 class _MockHomePageState extends State<MockHomePage> {
   int _selectedTab = 0;
-  String _selectedGenre = 'ELECTRONIC';
+  String _selectedGenre = 'electronic';
   bool _isLoadingTrending = false;
   String? _trendingError;
   List<dynamic>? _trendingRawTrackPool;
   Future<List<dynamic>>? _trendingRawTrackPoolRequest;
   List<Track> _trendingTracks = const <Track>[];
+  bool _isLoadingRecentPlaylists = false;
+  List<PlaylistEntity> _recentPlaylists = const <PlaylistEntity>[];
 
   final _genres = const [
-    'ELECTRONIC',
-    'FOLK',
-    'HOUSE',
-    'TECHNO',
-    'POP',
-    'HIP-HOP',
+    'None',
+    'electronic',
+    'hip-hop',
+    'pop',
+    'rock',
+    'alternative',
+    'ambient',
+    'classical',
+    'jazz',
+    'r-b-soul',
+    'metal',
+    'folk-singer-songwriter',
+    'country',
+    'reggaeton',
+    'dancehall',
+    'drum-bass',
+    'house',
+    'techno',
+    'deep-house',
+    'trance',
+    'lo-fi',
+    'indie',
+    'punk',
+    'blues',
+    'latin',
+    'afrobeat',
+    'trap',
+    'experimental',
+    'world',
+    'gospel',
+    'spoken-word',
+    'quran',
+    'sha3by',
+    'islamic',
   ];
 
   @override
   void initState() {
     super.initState();
     _loadTrendingTracks();
+    _loadRecentPlaylists();
+  }
+
+  Future<void> _loadRecentPlaylists() async {
+    if (!getIt.isRegistered<GetRecentPlaylistsUseCase>()) return;
+
+    setState(() {
+      _isLoadingRecentPlaylists = true;
+    });
+
+    try {
+      final playlists = await getIt<GetRecentPlaylistsUseCase>()(limit: 10);
+      if (!mounted) return;
+      setState(() {
+        _recentPlaylists = playlists;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _recentPlaylists = const <PlaylistEntity>[];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingRecentPlaylists = false;
+      });
+    }
   }
 
   Future<void> _loadTrendingTracks() async {
@@ -367,87 +431,93 @@ class _MockHomePageState extends State<MockHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthUnauthenticated) {
-          context.go('/welcome');
-        } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
-        }
-      },
-      builder: (context, state) {
-        String currentHandle = '';
-        if (state is AuthAuthenticated) {
-          currentHandle = state.user.handle;
-        }
+    return BlocProvider<UnreadCountCubit>(
+      create: (_) => getIt<UnreadCountCubit>()..load(),
+      child: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthUnauthenticated) {
+            context.go('/welcome');
+          } else if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          String currentHandle = '';
+          if (state is AuthAuthenticated) {
+            currentHandle = state.user.handle;
+          }
 
-        return Scaffold(
-          backgroundColor: Colors.black,
-          // ── Bottom Nav ──────────────────────────────────────────────────
-          bottomNavigationBar: BottomNavBar(
-            selected: _selectedTab,
-            onTap: (i) {
-              setState(() => _selectedTab = i);
-              switch (i) {
-                case 0:
-                  break;
-                case 1:
-                  context.go('/feed');
-                  break;
-                case 2:
-                  context.go('/search');
-                  break;
-                case 3:
-                  context.go('/library');
-                  break;
-                case 4:
-                  context.go('/upgrade');
-                  break;
-              }
-            },
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                _TopBar(
-                  currentUserHandle: currentHandle,
-                  authState: state,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SectionHeader(title: 'More of what you like'),
-                        const _RelatedTracksRow(),
-                        const _SectionHeader(title: 'Mixed for you'),
-                        _MixesRow(userHandle: currentHandle),
-                        const _SectionHeader(title: 'Trending by genre'),
-                        _GenreChips(
-                          genres: _genres,
-                          selected: _selectedGenre,
-                          onSelect: (g) {
-                            setState(() => _selectedGenre = g);
-                            _filterCachedTrendingTracks();
-                          },
-                        ),
-                        _TrendingByGenreTracks(
-                          loading: _isLoadingTrending,
-                          error: _trendingError,
-                          tracks: _trendingTracks,
-                        ),
-                        const SizedBox(height: 100),
-                      ],
+          return Scaffold(
+            backgroundColor: Colors.black,
+            bottomNavigationBar: BottomNavBar(
+              selected: _selectedTab,
+              onTap: (i) {
+                setState(() => _selectedTab = i);
+                switch (i) {
+                  case 0:
+                    break;
+                  case 1:
+                    context.go('/feed');
+                    break;
+                  case 2:
+                    context.go('/search');
+                    break;
+                  case 3:
+                    context.go('/library');
+                    break;
+                  case 4:
+                    context.go('/upgrade');
+                    break;
+                }
+              },
+            ),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  _TopBar(
+                    currentUserHandle: currentHandle,
+                    authState: state,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionHeader(title: 'More of what you like'),
+                          const _RelatedTracksRow(),
+                          _RecentPlaylistsRow(
+                            loading: _isLoadingRecentPlaylists,
+                            playlists: _recentPlaylists,
+                          ),
+                          const _SectionHeader(title: 'Mixed for you'),
+                          _MixesRow(userHandle: currentHandle),
+                          const _SectionHeader(title: 'Trending by genre'),
+                          _GenreChips(
+                            genres: _genres,
+                            selected: _selectedGenre,
+                            onSelect: (g) {
+                              setState(() => _selectedGenre = g);
+                              _filterCachedTrendingTracks();
+                            },
+                          ),
+                          _TrendingByGenreTracks(
+                            loading: _isLoadingTrending,
+                            error: _trendingError,
+                            tracks: _trendingTracks,
+                          ),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -511,7 +581,120 @@ class _TrendingByGenreTracks extends StatelessWidget {
   }
 }
 
-// ── Top bar ───────────────────────────────────────────────────────────────────
+class _RecentPlaylistsRow extends StatelessWidget {
+  const _RecentPlaylistsRow({
+    required this.loading,
+    required this.playlists,
+  });
+
+  final bool loading;
+  final List<PlaylistEntity> playlists;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading && playlists.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: SizedBox(
+          height: 96,
+          child: Center(
+            child: CircularProgressIndicator(color: Color(0xFFFF5500)),
+          ),
+        ),
+      );
+    }
+
+    if (playlists.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'Recently played playlists'),
+        SizedBox(
+          height: 190,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            itemCount: playlists.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              return _RecentPlaylistCard(playlist: playlists[index]);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentPlaylistCard extends StatelessWidget {
+  const _RecentPlaylistCard({required this.playlist});
+
+  final PlaylistEntity playlist;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
+    final ownerName = playlist.owner?.displayName.trim() ?? '';
+
+    return GestureDetector(
+      onTap: () => context.push('/playlist/${playlist.playlistId}'),
+      child: SizedBox(
+        width: 140,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                width: 140,
+                height: 140,
+                color: const Color(0xFF242424),
+                child: coverUrl == null
+                    ? const Icon(
+                        Icons.queue_music,
+                        color: Colors.white54,
+                        size: 38,
+                      )
+                    : Image.network(
+                        coverUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.queue_music,
+                          color: Colors.white54,
+                          size: 38,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              playlist.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              ownerName.isEmpty ? 'Playlist' : ownerName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF999999),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TopBar extends StatelessWidget {
   final String currentUserHandle;
   final AuthState authState;
@@ -609,25 +792,7 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Builder(
-            builder: (context) {
-              final sub = context.watch<SubscriptionCubit>().state;
-
-              final isPro = sub?.subscriptionType == 'PRO';
-
-              return GestureDetector(
-                onTap: isPro ? null : () => context.go('/upgrade'),
-                child: Text(
-                  isPro ? 'PRO' : 'GET PRO',
-                  style: TextStyle(
-                    color: isPro ? Colors.green : const Color(0xFFFF5500),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              );
-            },
-          ),
+          const _SubscriptionBadge(),
           const Spacer(),
           if (authState is AuthAuthenticated)
             _IconBtn(
@@ -692,11 +857,93 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: 2),
           _IconBtn(icon: Icons.cast, onTap: () {}),
+          BlocBuilder<UnreadCountCubit, UnreadCountState>(
+            builder: (context, unreadState) {
+              return _BadgeIconBtn(
+                icon: Icons.forum_outlined,
+                count: unreadState.count,
+                onTap: () => MessagingRoutes.goToInbox(context),
+              );
+            },
+          ),
           _IconBtn(
             icon: Icons.upload_outlined,
             onTap: () => context.push('/upload-picker'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SubscriptionBadge extends StatelessWidget {
+  const _SubscriptionBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = _subscriptionCubitOf(context);
+
+    if (cubit == null) {
+      return _buildBadge(context, null);
+    }
+
+    return BlocBuilder<SubscriptionCubit, Subscription?>(
+      bloc: cubit,
+      builder: (context, subscription) => _buildBadge(context, subscription),
+    );
+  }
+
+  SubscriptionCubit? _subscriptionCubitOf(BuildContext context) {
+    try {
+      return context.read<SubscriptionCubit>();
+    } catch (_) {
+      final getIt = GetIt.I;
+      if (getIt.isRegistered<SubscriptionCubit>()) {
+        return getIt<SubscriptionCubit>();
+      }
+      return null;
+    }
+  }
+
+  Widget _buildBadge(BuildContext context, Subscription? subscription) {
+    final plan = subscription?.subscriptionType ?? 'FREE';
+    final isPremium = plan != 'FREE';
+
+    Color badgeColor;
+    String badgeLabel;
+
+    if (plan == 'GO_PLUS') {
+      badgeColor = const Color(0xFF4B9EFF);
+      badgeLabel = 'GO+';
+    } else if (plan == 'PRO') {
+      badgeColor = const Color(0xFF1DB954);
+      badgeLabel = 'PRO';
+    } else {
+      badgeColor = const Color(0xFFFF5500);
+      badgeLabel = 'GET PRO';
+    }
+
+    return GestureDetector(
+      onTap: isPremium ? null : () => context.go('/upgrade'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: badgeColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: badgeColor.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          badgeLabel,
+          style: TextStyle(
+            color: badgeColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+          ),
+        ),
       ),
     );
   }
@@ -715,6 +962,62 @@ class _IconBtn extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: Colors.white70, size: 22),
+      ),
+    );
+  }
+}
+
+class _BadgeIconBtn extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final VoidCallback onTap;
+
+  const _BadgeIconBtn({
+    required this.icon,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon, color: Colors.white70, size: 22),
+            if (count > 0)
+              Positioned(
+                right: -8,
+                top: -8,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5500),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.black, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1006,8 +1309,6 @@ class _GenreChips extends StatelessWidget {
     );
   }
 }
-
-// ── Data classes ──────────────────────────────────────────────────────────────
 
 class _AlbumData {
   final String label, sub, handle, topText;

@@ -17,6 +17,7 @@ import '../features/playback/presentation/widgets/mini_player.dart';
 import '../features/notifications/presentation/bloc/notification_preferences_bloc.dart';
 import '../features/notifications/presentation/bloc/notifications_bloc.dart';
 import '../features/social/data/repositories/social_repo.dart';
+import 'package:go_router/go_router.dart';
 import 'router.dart';
 
 // Routes where the mini-player must stay hidden (auth/onboarding/full player).
@@ -44,7 +45,10 @@ bool _shouldHideMiniPlayerForPath(String path) {
 }
 
 class App extends StatelessWidget {
-  const App({super.key});
+  App({super.key, GoRouter? routerConfig})
+      : routerConfig = routerConfig ?? router;
+
+  final GoRouter routerConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +84,7 @@ class App extends StatelessWidget {
             primarySwatch: Colors.orange,
             useMaterial3: true,
           ),
-          routerConfig: router,
+          routerConfig: routerConfig,
           builder: (context, child) {
             return BlocBuilder<PlayerCubit, PlayerUIState>(
               builder: (context, playerState) {

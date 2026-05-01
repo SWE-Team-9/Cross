@@ -4,7 +4,6 @@
 import 'dart:async';
 
 // Third-party
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
@@ -47,8 +46,6 @@ class TrackLoaderCubit extends Cubit<TrackLoaderState> {
   /// Loads a public track by its UUID.
   /// Called when deep link is soundclone://track/{trackId}
   Future<void> loadByTrackId(String trackId) async {
-    debugPrint('[TrackLoader] Loading trackId: $trackId');
-
     if (trackId.isEmpty) {
       emit(const TrackLoaderError(message: 'Invalid track link.'));
       return;
@@ -57,19 +54,13 @@ class TrackLoaderCubit extends Cubit<TrackLoaderState> {
     emit(const TrackLoaderLoading());
 
     final result = await _getTrackDetail(trackId);
-    debugPrint(
-      '[TrackLoader] Result — detail: ${result.detail}, failure: ${result.failure}',
-    );
 
     if (result.failure != null) {
-      debugPrint('[TrackLoader] Failure: ${result.failure}');
       emit(TrackLoaderError(message: _mapFailureMessage(result.failure!)));
       return;
     }
 
     final detail = result.detail!;
-    debugPrint('[TrackLoader] Playing: ${detail.title}');
-
     // Hand off to PlayerCubit — converts TrackDetail → Track internally
     unawaited(_playerCubit.play(detail.toPlaybackTrack()));
 
