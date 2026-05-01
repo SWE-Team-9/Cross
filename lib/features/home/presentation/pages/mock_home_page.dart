@@ -19,6 +19,7 @@ import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_ent
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 
 class MockHomePage extends StatefulWidget {
@@ -790,53 +791,7 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Builder(
-            builder: (context) {
-              final sub = context.watch<SubscriptionCubit>().state;
-
-              final plan = sub?.subscriptionType ?? 'FREE';
-              final isPremium = plan != 'FREE';
-
-              Color badgeColor;
-              String badgeLabel;
-
-              if (plan == 'GO_PLUS') {
-                badgeColor = const Color(0xFF4B9EFF);
-                badgeLabel = 'GO+';
-              } else if (plan == 'PRO') {
-                badgeColor = const Color(0xFF1DB954);
-                badgeLabel = 'PRO';
-              } else {
-                badgeColor = const Color(0xFFFF5500);
-                badgeLabel = 'GET PRO';
-              }
-
-              return GestureDetector(
-                onTap: isPremium ? null : () => context.go('/upgrade'),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: badgeColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: badgeColor.withValues(alpha: 0.5),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    badgeLabel,
-                    style: TextStyle(
-                      color: badgeColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          const _SubscriptionBadge(),
           const Spacer(),
           if (authState is AuthAuthenticated)
             _IconBtn(
@@ -901,6 +856,79 @@ class _TopBar extends StatelessWidget {
             onTap: () => context.push('/upload-picker'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SubscriptionBadge extends StatelessWidget {
+  const _SubscriptionBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = _subscriptionCubitOf(context);
+
+    if (cubit == null) {
+      return _buildBadge(context, null);
+    }
+
+    return BlocBuilder<SubscriptionCubit, Subscription?>(
+      bloc: cubit,
+      builder: (context, subscription) => _buildBadge(context, subscription),
+    );
+  }
+
+  SubscriptionCubit? _subscriptionCubitOf(BuildContext context) {
+    try {
+      return context.read<SubscriptionCubit>();
+    } catch (_) {
+      final getIt = GetIt.I;
+      if (getIt.isRegistered<SubscriptionCubit>()) {
+        return getIt<SubscriptionCubit>();
+      }
+      return null;
+    }
+  }
+
+  Widget _buildBadge(BuildContext context, Subscription? subscription) {
+    final plan = subscription?.subscriptionType ?? 'FREE';
+    final isPremium = plan != 'FREE';
+
+    Color badgeColor;
+    String badgeLabel;
+
+    if (plan == 'GO_PLUS') {
+      badgeColor = const Color(0xFF4B9EFF);
+      badgeLabel = 'GO+';
+    } else if (plan == 'PRO') {
+      badgeColor = const Color(0xFF1DB954);
+      badgeLabel = 'PRO';
+    } else {
+      badgeColor = const Color(0xFFFF5500);
+      badgeLabel = 'GET PRO';
+    }
+
+    return GestureDetector(
+      onTap: isPremium ? null : () => context.go('/upgrade'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: badgeColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: badgeColor.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          badgeLabel,
+          style: TextStyle(
+            color: badgeColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+          ),
+        ),
       ),
     );
   }

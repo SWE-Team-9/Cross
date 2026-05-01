@@ -43,7 +43,7 @@ class ChatThreadPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authState = context.read<AuthCubit>().state;
+    final authState = _authStateOf(context);
     final currentUserId =
         authState is AuthAuthenticated ? authState.user.id : null;
 
@@ -55,8 +55,9 @@ class ChatThreadPage extends StatelessWidget {
         markConversationReadUseCase: GetIt.I<MarkConversationReadUseCase>(),
         deleteMessageUseCase: GetIt.I<DeleteMessageUseCase>(),
         connectMessagingSocketUseCase: GetIt.I<ConnectMessagingSocketUseCase>(),
-        shareTrackMessageUseCase: GetIt.I<ShareTrackMessageUseCase>(),
-        sharePlaylistMessageUseCase: GetIt.I<SharePlaylistMessageUseCase>(),
+        shareTrackMessageUseCase: _getItOrNull<ShareTrackMessageUseCase>(),
+        sharePlaylistMessageUseCase:
+            _getItOrNull<SharePlaylistMessageUseCase>(),
       )..load(
           conversationId: conversationId,
           receiverId: receiverId,
@@ -74,6 +75,23 @@ class ChatThreadPage extends StatelessWidget {
         onBack: onBack,
       ),
     );
+  }
+
+  AuthState? _authStateOf(BuildContext context) {
+    try {
+      return context.read<AuthCubit>().state;
+    } catch (_) {
+      final getIt = GetIt.I;
+      if (getIt.isRegistered<AuthCubit>()) {
+        return getIt<AuthCubit>().state;
+      }
+      return null;
+    }
+  }
+
+  T? _getItOrNull<T extends Object>() {
+    final getIt = GetIt.I;
+    return getIt.isRegistered<T>() ? getIt<T>() : null;
   }
 }
 
