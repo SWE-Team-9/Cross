@@ -1,3 +1,3 @@
 class RecentlyPlayedState {
-  const RecentlyPlayedState();
+  // TODO: define states later
 }

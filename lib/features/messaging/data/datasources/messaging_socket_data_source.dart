@@ -25,7 +25,6 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
   IO.Socket? _socket;
 
   bool _isConnected = false;
-  bool _hasEmittedConnectionError = false;
 
   MessagingSocketDataSourceImpl({
     required this.cookieJar,
@@ -70,7 +69,6 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
 
     _socket!.onConnect((_) {
       _isConnected = true;
-      _hasEmittedConnectionError = false;
       print('Socket.IO connected');
     });
 
@@ -82,29 +80,23 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
     _socket!.onConnectError((dynamic error) {
       _isConnected = false;
       print('Socket.IO connect error: $error');
-      if (!_hasEmittedConnectionError) {
-        _controller.addError(error);
-        _hasEmittedConnectionError = true;
-      }
+      _controller.addError(error);
     });
 
     _socket!.onError((dynamic error) {
       print('Socket.IO error: $error');
-      if (!_hasEmittedConnectionError) {
-        _controller.addError(error);
-        _hasEmittedConnectionError = true;
-      }
+      _controller.addError(error);
     });
 
     _socket!.onReconnect((_) {
       _isConnected = true;
-      _hasEmittedConnectionError = false;
       print('Socket.IO reconnected');
     });
 
     _socket!.onReconnectError((dynamic error) {
       _isConnected = false;
       print('Socket.IO reconnect error: $error');
+      _controller.addError(error);
     });
 
     _socket!.onAny((String event, dynamic data) {

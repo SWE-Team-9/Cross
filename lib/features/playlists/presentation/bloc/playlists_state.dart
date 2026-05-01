@@ -5,7 +5,6 @@ class PlaylistsState {
   final PlaylistEntity? selectedPlaylist;
   final bool isLoadingMyPlaylists;
   final bool isLoadingDetails;
-  final bool isLoadingEditDetails;
   final bool isSubmitting;
   final bool isReordering;
   final String? embedCode;
@@ -17,7 +16,6 @@ class PlaylistsState {
     required this.selectedPlaylist,
     required this.isLoadingMyPlaylists,
     required this.isLoadingDetails,
-    required this.isLoadingEditDetails,
     required this.isSubmitting,
     required this.isReordering,
     required this.embedCode,
@@ -31,7 +29,6 @@ class PlaylistsState {
       selectedPlaylist: null,
       isLoadingMyPlaylists: false,
       isLoadingDetails: false,
-      isLoadingEditDetails: false,
       isSubmitting: false,
       isReordering: false,
       embedCode: null,
@@ -46,7 +43,6 @@ class PlaylistsState {
     bool clearSelectedPlaylist = false,
     bool? isLoadingMyPlaylists,
     bool? isLoadingDetails,
-    bool? isLoadingEditDetails,
     bool? isSubmitting,
     bool? isReordering,
     String? embedCode,
@@ -63,7 +59,6 @@ class PlaylistsState {
           : (selectedPlaylist ?? this.selectedPlaylist),
       isLoadingMyPlaylists: isLoadingMyPlaylists ?? this.isLoadingMyPlaylists,
       isLoadingDetails: isLoadingDetails ?? this.isLoadingDetails,
-      isLoadingEditDetails: isLoadingEditDetails ?? this.isLoadingEditDetails,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isReordering: isReordering ?? this.isReordering,
       embedCode: clearEmbedCode ? null : (embedCode ?? this.embedCode),

@@ -6,15 +6,11 @@ import 'package:soundcloud_clone/features/playlists/domain/usecases/create_playl
 import 'package:soundcloud_clone/features/playlists/domain/usecases/delete_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_my_playlists_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_details_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_edit_details_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/like_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/update_playlist_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/upload_playlist_cover_usecase.dart';
 
 import 'playlists_state.dart';
 
@@ -22,33 +18,25 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   final GetMyPlaylistsUseCase getMyPlaylistsUseCase;
   final CreatePlaylistUseCase createPlaylistUseCase;
   final GetPlaylistDetailsUseCase getPlaylistDetailsUseCase;
-  final GetPlaylistEditDetailsUseCase? getPlaylistEditDetailsUseCase;
   final UpdatePlaylistUseCase updatePlaylistUseCase;
-  final UploadPlaylistCoverUseCase? uploadPlaylistCoverUseCase;
   final DeletePlaylistUseCase deletePlaylistUseCase;
   final AddTrackToPlaylistUseCase addTrackToPlaylistUseCase;
   final RemoveTrackFromPlaylistUseCase removeTrackFromPlaylistUseCase;
   final ReorderPlaylistTracksUseCase reorderPlaylistTracksUseCase;
   final ResolveSecretPlaylistUseCase resolveSecretPlaylistUseCase;
   final GetPlaylistEmbedCodeUseCase getPlaylistEmbedCodeUseCase;
-  final LikePlaylistUseCase? likePlaylistUseCase;
-  final UnlikePlaylistUseCase? unlikePlaylistUseCase;
 
   PlaylistsCubit({
     required this.getMyPlaylistsUseCase,
     required this.createPlaylistUseCase,
     required this.getPlaylistDetailsUseCase,
-    this.getPlaylistEditDetailsUseCase,
     required this.updatePlaylistUseCase,
-    this.uploadPlaylistCoverUseCase,
     required this.deletePlaylistUseCase,
     required this.addTrackToPlaylistUseCase,
     required this.removeTrackFromPlaylistUseCase,
     required this.reorderPlaylistTracksUseCase,
     required this.resolveSecretPlaylistUseCase,
     required this.getPlaylistEmbedCodeUseCase,
-    this.likePlaylistUseCase,
-    this.unlikePlaylistUseCase,
   }) : super(PlaylistsState.initial());
 
   Future<void> loadMyPlaylists({bool refresh = false}) async {
@@ -85,7 +73,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
-    String? coverImagePath,
   }) async {
     if (state.isSubmitting) return null;
 
@@ -108,23 +95,12 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     );
 
     try {
-      var created = await createPlaylistUseCase(
+      final created = await createPlaylistUseCase(
         title: title,
         description: description,
         visibility: visibility,
         initialTrackIds: initialTrackIds,
       );
-
-      if (coverImagePath != null && coverImagePath.trim().isNotEmpty) {
-        final uploader = uploadPlaylistCoverUseCase;
-        if (uploader != null) {
-          final coverImageUrl = await uploader(
-            playlistId: created.playlistId,
-            filePath: coverImagePath.trim(),
-          );
-          created = created.copyWith(coverImageUrl: coverImageUrl);
-        }
-      }
 
       final nextPlaylists = <PlaylistEntity>[created, ...state.playlists];
 
@@ -183,7 +159,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    String? coverImagePath,
   }) async {
     if (state.isSubmitting) return;
 
@@ -213,17 +188,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         visibility: visibility,
       );
 
-      String? uploadedCoverUrl;
-      if (coverImagePath != null && coverImagePath.trim().isNotEmpty) {
-        final uploader = uploadPlaylistCoverUseCase;
-        if (uploader != null) {
-          uploadedCoverUrl = await uploader(
-            playlistId: playlistId,
-            filePath: coverImagePath.trim(),
-          );
-        }
-      }
-
       final current = state.selectedPlaylist;
       PlaylistEntity? nextSelected = current;
 
@@ -232,7 +196,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           title: title,
           description: description,
           visibility: visibility,
-          coverImageUrl: uploadedCoverUrl,
           clearSecretToken: visibility == PlaylistVisibility.publicPlaylist,
         );
       }
@@ -243,7 +206,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           title: title,
           description: description,
           visibility: visibility,
-          coverImageUrl: uploadedCoverUrl,
           clearSecretToken: visibility == PlaylistVisibility.publicPlaylist,
         );
       }).toList(growable: false);
@@ -265,120 +227,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isSubmitting: false,
-          errorMessage: e.toString(),
-        ),
-      );
-    }
-  }
-
-  Future<PlaylistEntity?> loadPlaylistEditDetails(String playlistId) async {
-    final loader = getPlaylistEditDetailsUseCase;
-    if (loader == null) {
-      return state.selectedPlaylist?.playlistId == playlistId
-          ? state.selectedPlaylist
-          : null;
-    }
-
-    emit(state.copyWith(isLoadingEditDetails: true, clearError: true));
-
-    try {
-      final playlist = await loader(playlistId);
-      emit(
-        state.copyWith(
-          isLoadingEditDetails: false,
-          selectedPlaylist: state.selectedPlaylist?.playlistId == playlistId
-              ? state.selectedPlaylist?.copyWith(
-                  title: playlist.title,
-                  description: playlist.description,
-                  visibility: playlist.visibility,
-                  coverImageUrl: playlist.coverImageUrl,
-                  isLiked: playlist.isLiked,
-                )
-              : state.selectedPlaylist,
-          playlists: _upsertPlaylist(state.playlists, playlist),
-          clearError: true,
-        ),
-      );
-      return playlist;
-    } catch (e) {
-      emit(
-        state.copyWith(
-          isLoadingEditDetails: false,
-          errorMessage: e.toString(),
-        ),
-      );
-      return null;
-    }
-  }
-
-  Future<void> likePlaylist(String playlistId) async {
-    final like = likePlaylistUseCase;
-    if (like == null || state.isSubmitting) return;
-
-    final previousSelected = state.selectedPlaylist;
-    final previousPlaylists = state.playlists;
-    emit(
-      state.copyWith(
-        isSubmitting: true,
-        selectedPlaylist: _likedSelected(playlistId, true),
-        playlists: _setPlaylistLiked(state.playlists, playlistId, true),
-        clearError: true,
-        clearInfo: true,
-      ),
-    );
-
-    try {
-      await like(playlistId);
-      emit(
-        state.copyWith(
-          isSubmitting: false,
-          infoMessage: 'Playlist liked',
-          clearError: true,
-        ),
-      );
-    } catch (e) {
-      emit(
-        state.copyWith(
-          isSubmitting: false,
-          selectedPlaylist: previousSelected,
-          playlists: previousPlaylists,
-          errorMessage: e.toString(),
-        ),
-      );
-    }
-  }
-
-  Future<void> unlikePlaylist(String playlistId) async {
-    final unlike = unlikePlaylistUseCase;
-    if (unlike == null || state.isSubmitting) return;
-
-    final previousSelected = state.selectedPlaylist;
-    final previousPlaylists = state.playlists;
-    emit(
-      state.copyWith(
-        isSubmitting: true,
-        selectedPlaylist: _likedSelected(playlistId, false),
-        playlists: _setPlaylistLiked(state.playlists, playlistId, false),
-        clearError: true,
-        clearInfo: true,
-      ),
-    );
-
-    try {
-      await unlike(playlistId);
-      emit(
-        state.copyWith(
-          isSubmitting: false,
-          infoMessage: 'Playlist unliked',
-          clearError: true,
-        ),
-      );
-    } catch (e) {
-      emit(
-        state.copyWith(
-          isSubmitting: false,
-          selectedPlaylist: previousSelected,
-          playlists: previousPlaylists,
           errorMessage: e.toString(),
         ),
       );
@@ -706,23 +554,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     final next = source.toList(growable: false);
     next[index] = playlist;
     return next;
-  }
-
-  PlaylistEntity? _likedSelected(String playlistId, bool isLiked) {
-    final selected = state.selectedPlaylist;
-    if (selected == null || selected.playlistId != playlistId) return selected;
-    return selected.copyWith(isLiked: isLiked);
-  }
-
-  List<PlaylistEntity> _setPlaylistLiked(
-    List<PlaylistEntity> playlists,
-    String playlistId,
-    bool isLiked,
-  ) {
-    return playlists.map((playlist) {
-      if (playlist.playlistId != playlistId) return playlist;
-      return playlist.copyWith(isLiked: isLiked);
-    }).toList(growable: false);
   }
 
   bool _titleExists(String title, {String? excludingPlaylistId}) {
