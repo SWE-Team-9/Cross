@@ -42,6 +42,9 @@ import 'package:soundcloud_clone/features/social/presentation/pages/followers_pa
 import 'package:soundcloud_clone/features/social/presentation/pages/following_page.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_state.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
@@ -82,6 +85,9 @@ class FakeAudioPlayerService implements AudioPlayerService {
   Future<void> dispose() async {}
 
   @override
+  Future<void> playLocalFile(String path) async {}
+
+  @override
   Future<void> playFromContext({
     required List<Track> tracks,
     required int startIndex,
@@ -107,6 +113,32 @@ class FakeDeepLinkService implements DeepLinkService {
 
   @override
   Future<void> dispose() async {}
+}
+
+class FakeOfflineRepository implements OfflineRepository {
+  @override
+  late final DioClient dio;
+
+  final Map<String, String> _storage = {};
+
+  @override
+  Future<String> downloadTrack(String trackId) async {
+    final path = '/fake/$trackId.mp3';
+    _storage[trackId] = path;
+    return path;
+  }
+
+  @override
+  Future<Map<String, String>> getDownloadedTracks() async {
+    return _storage;
+  }
+
+  @override
+  Future<void> saveDownloadedTracks(Map<String, String> data) async {
+    _storage
+      ..clear()
+      ..addAll(data);
+  }
 }
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
@@ -263,6 +295,19 @@ void main() {
       );
     }
 
+    if (!GetIt.I.isRegistered<OfflineCubit>()) {
+      GetIt.I.registerSingleton<OfflineCubit>(
+        OfflineCubit(FakeOfflineRepository()),
+      );
+    }
+
+    if (!GetIt.I.isRegistered<SubscriptionCubit>()) {
+      GetIt.I.registerSingleton<SubscriptionCubit>(
+        SubscriptionCubit(GetIt.I<SubscriptionRepository>())
+          ..loadSubscription(),
+      );
+    }
+
     final router = app_router.createRouter();
 
     if (initialLocation != null) {
@@ -276,9 +321,8 @@ void main() {
           BlocProvider<ProfileCubit>.value(value: profileCubit),
           BlocProvider<UploadPickerCubit>.value(value: uploadPickerCubit),
           Provider<SocialRepo>.value(value: mockSocialRepo),
-          BlocProvider<SubscriptionCubit>(
-            create: (_) => SubscriptionCubit(MockSubscriptionRepository())
-              ..loadSubscription(),
+          BlocProvider<SubscriptionCubit>.value(
+            value: GetIt.I<SubscriptionCubit>(),
           ),
         ],
         child: BlocProvider<PlayerCubit>(

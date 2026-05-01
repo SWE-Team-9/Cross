@@ -8,7 +8,6 @@ import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cu
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
-import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
@@ -287,46 +286,25 @@ class TrackRow extends StatelessWidget {
 
   Future<void> _playTrack(BuildContext context) async {
     final playerCubit = context.read<PlayerCubit>();
+    final offlineCubit = context.read<OfflineCubit>();
+
     final tracks = queue ?? [track];
     final index = tracks.indexWhere((t) => t.id == track.id);
     final safeIndex = index >= 0 ? index : 0;
-    final selectedTrack = tracks[safeIndex];
 
-    if (selectedTrack.audioUrl.trim().isNotEmpty) {
-      await playerCubit.playFromContext(
-        tracks: tracks,
-        startIndex: safeIndex,
-        source: source,
-      );
-      return;
-    }
-
-    if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Playback is not available right now')),
-      );
-      return;
-    }
-
-    final result = await getIt<GetTrackDetailUseCase>()(selectedTrack.id);
-    if (!context.mounted) return;
-
-    final detail = result.detail;
-    if (result.failure != null || detail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.failure?.message ?? 'Failed to load track for playback',
-          ),
-        ),
-      );
-      return;
-    }
+    // 🔥 inject localPath into tracks
+    final updatedTracks = tracks.map((t) {
+      if (offlineCubit.isDownloaded(t.id)) {
+        return t.copyWith(
+          localPath: offlineCubit.getPath(t.id),
+        );
+      }
+      return t;
+    }).toList();
 
     await playerCubit.playFromContext(
-      tracks: [detail.toPlaybackTrack()],
-      startIndex: 0,
+      tracks: updatedTracks,
+      startIndex: safeIndex,
       source: source,
     );
   }
