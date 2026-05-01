@@ -50,6 +50,9 @@ void main() {
           id: 'covered',
           title: 'Covered',
           coverImageUrl: 'https://cdn.example/existing.jpg',
+          genre: 'Electronic',
+          releaseDate: DateTime(2026, 1, 1),
+          tags: const <String>['focus'],
         ),
         _playlistDto(id: 'fallback', title: 'Fallback'),
       ];
@@ -75,7 +78,14 @@ void main() {
       remote.searchResults = <PlaylistDto>[
         _playlistDto(id: 'search', title: 'Search'),
       ];
-      remote.details['details'] = _playlistDto(id: 'details', title: 'Details');
+      remote.details['details'] = _playlistDto(
+        id: 'details',
+        title: 'Details',
+        coverImageUrl: 'https://cdn.example/details.jpg',
+        genre: 'Electronic',
+        releaseDate: DateTime(2026, 1, 1),
+        tags: const <String>['details'],
+      );
       remote.editDetails['edit'] = _playlistDto(id: 'edit', title: 'Edit');
       remote.secretPlaylist =
           _playlistDto(id: 'secret', title: 'Secret playlist');
@@ -159,6 +169,9 @@ PlaylistDto _playlistDto({
   String description = 'Description',
   PlaylistVisibility visibility = PlaylistVisibility.publicPlaylist,
   String? coverImageUrl,
+  String? genre,
+  DateTime? releaseDate,
+  List<String> tags = const <String>[],
   bool isLiked = false,
 }) {
   return PlaylistDto(
@@ -166,6 +179,9 @@ PlaylistDto _playlistDto({
     title: title,
     description: description,
     visibility: visibility,
+    genre: genre,
+    releaseDate: releaseDate,
+    tags: tags,
     secretToken: null,
     coverImageUrl: coverImageUrl,
     owner: const PlaylistOwner(id: 'owner-1', displayName: 'Owner One'),
@@ -247,7 +263,11 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   }
 
   @override
-  Future<PlaylistDto> getPlaylistDetails(String playlistId) async {
+  Future<PlaylistDto> getPlaylistDetails(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  }) async {
     return details[playlistId] ??
         _playlistDto(id: playlistId, title: 'Details');
   }
@@ -268,6 +288,9 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
     String? description,
     PlaylistVisibility? visibility,
     int? genreId,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
   }) async {
     updatedPlaylistId = playlistId;
   }
@@ -347,7 +370,15 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   }
 
   @override
-  Future<String> getPlaylistEmbedCode(String playlistId) async {
+  Future<String> getPlaylistEmbedCode(
+    String playlistId, {
+    String? theme,
+    bool? autoplay,
+    int? start,
+    bool? hideArtwork,
+    int? width,
+    int? height,
+  }) async {
     return embedCode;
   }
 }
