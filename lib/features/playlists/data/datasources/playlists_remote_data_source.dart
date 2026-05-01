@@ -568,14 +568,71 @@ List<dynamic> _extractPlaylistList(dynamic payload) {
       final nested =
           data['playlists'] ?? data['items'] ?? data['results'] ?? data['data'];
       if (nested is List) return nested;
+
+      final grouped = _extractGroupedGenrePlaylists(data);
+      if (grouped.isNotEmpty) return grouped;
     }
 
     final direct =
         payload['playlists'] ?? payload['items'] ?? payload['results'];
     if (direct is List) return direct;
+
+    final grouped = _extractGroupedGenrePlaylists(payload);
+    if (grouped.isNotEmpty) return grouped;
   }
 
   return const <dynamic>[];
+}
+
+List<dynamic> _extractGroupedGenrePlaylists(Map<String, dynamic> payload) {
+  final rawGenres = payload['genres'];
+  if (rawGenres is! List) return const <dynamic>[];
+
+  final playlists = <dynamic>[];
+
+  for (final rawGroup in rawGenres) {
+    final group = _asMap(rawGroup);
+    if (group.isEmpty) continue;
+
+    final genre = _asNonEmptyString(
+      group['genre'] ??
+          group['genreName'] ??
+          group['genre_name'] ??
+          group['name'] ??
+          group['slug'],
+    );
+
+    final rawPlaylists =
+        group['playlists'] ?? group['items'] ?? group['results'];
+
+    if (rawPlaylists is! List) continue;
+
+    for (final rawPlaylist in rawPlaylists) {
+      final playlist = _asMap(rawPlaylist);
+      if (playlist.isEmpty) {
+        playlists.add(rawPlaylist);
+        continue;
+      }
+
+      final hasGenre = _asNonEmptyString(
+            playlist['genre'] ??
+                playlist['genreSlug'] ??
+                playlist['genre_slug'],
+          ) !=
+          null;
+
+      playlists.add(
+        genre == null || hasGenre
+            ? playlist
+            : <String, dynamic>{
+                ...playlist,
+                'genre': genre,
+              },
+      );
+    }
+  }
+
+  return playlists;
 }
 
 String? _extractArtistName(Map<String, dynamic> json) {
