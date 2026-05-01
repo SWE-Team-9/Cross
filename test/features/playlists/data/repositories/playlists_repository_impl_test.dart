@@ -123,6 +123,7 @@ void main() {
       await repository.deletePlaylist('created');
       await repository.likePlaylist('created');
       await repository.unlikePlaylist('created');
+      await repository.recordPlaylistPlayback('created');
       await repository.addTrackToPlaylist(
         playlistId: 'created',
         trackId: 'track-2',
@@ -156,6 +157,7 @@ void main() {
       expect(remote.deletedPlaylistId, 'created');
       expect(remote.likedPlaylistId, 'created');
       expect(remote.unlikedPlaylistId, 'created');
+      expect(remote.recordedPlaylistPlaybackId, 'created');
       expect(remote.addedTrack, ('created', 'track-2'));
       expect(remote.removedTrack, ('created', 'track-2'));
       expect(remote.reorderedTrackIds, const <String>['track-2', 'track-1']);
@@ -219,6 +221,7 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   String? deletedPlaylistId;
   String? likedPlaylistId;
   String? unlikedPlaylistId;
+  String? recordedPlaylistPlaybackId;
   (String, String)? addedTrack;
   (String, String)? removedTrack;
   List<String> reorderedTrackIds = const <String>[];
@@ -338,6 +341,11 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   @override
   Future<void> unlikePlaylist(String playlistId) async {
     unlikedPlaylistId = playlistId;
+  }
+
+  @override
+  Future<void> recordPlaylistPlayback(String playlistId) async {
+    recordedPlaylistPlaybackId = playlistId;
   }
 
   @override
