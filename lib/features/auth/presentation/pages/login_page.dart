@@ -52,7 +52,9 @@ class _LoginPageState extends State<LoginPage> {
       try {
         _recaptchaClient =
             await Recaptcha.fetchClient(AppConfig.recaptchaAndroidSiteKey);
-      } catch (e) {}
+      } catch (e) {
+        print("Failed to initialize Recaptcha: $e");
+      }
     }
   }
 

@@ -6,6 +6,10 @@ abstract class PlaylistsRepository {
     int limit = 20,
   });
 
+  Future<List<PlaylistEntity>> getRecentPlaylists({
+    int limit = 10,
+  });
+
   Future<PlaylistEntity> createPlaylist({
     required String title,
     required String description,
@@ -29,13 +33,11 @@ abstract class PlaylistsRepository {
     required String filePath,
   });
 
-  Future<List<PlaylistEntity>> getRecentPlaylists({int limit = 10});
+  Future<void> deletePlaylist(String playlistId);
 
   Future<void> likePlaylist(String playlistId);
 
   Future<void> unlikePlaylist(String playlistId);
-
-  Future<void> deletePlaylist(String playlistId);
 
   Future<void> addTrackToPlaylist({
     required String playlistId,

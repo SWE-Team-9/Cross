@@ -33,7 +33,7 @@ void main() async {
           create: (_) => getIt<SubscriptionCubit>()..loadSubscription(),
         ),
       ],
-      child: const App(),
+      child: App(),
     ),
   );
 }

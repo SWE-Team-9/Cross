@@ -97,6 +97,11 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     queue.add(preparedItems);
 
     final sources = preparedItems.map((item) {
+      final localPath = item.extras?['localPath'] as String?;
+      if (localPath != null && localPath.isNotEmpty) {
+        return AudioSource.file(localPath);
+      }
+
       final url = item.extras?['url'] as String;
       return AudioSource.uri(Uri.parse(url));
     }).toList();

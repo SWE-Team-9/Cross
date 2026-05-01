@@ -32,6 +32,7 @@ abstract class AudioPlayerService {
 
   /// Sets how playback repeats when the current track or queue ends.
   Future<void> setRepeatMode(AppRepeatMode mode);
+  Future<void> playLocalFile(String path);
 
   /// Current playback volume in the 0.0..1.0 range.
   double get currentVolume;
