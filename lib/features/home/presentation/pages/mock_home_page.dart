@@ -30,18 +30,18 @@ class MockHomePage extends StatefulWidget {
 }
 
 class _MockHomePageState extends State<MockHomePage> {
+  static const String _topLikeGenre = 'Top like';
+
   int _selectedTab = 0;
-  String _selectedGenre = 'electronic';
+  String _selectedGenre = _topLikeGenre;
   bool _isLoadingTrending = false;
   String? _trendingError;
-  List<dynamic>? _trendingRawTrackPool;
-  Future<List<dynamic>>? _trendingRawTrackPoolRequest;
   List<Track> _trendingTracks = const <Track>[];
   bool _isLoadingTopPlaylists = false;
   List<PlaylistEntity> _topPlaylists = const <PlaylistEntity>[];
 
   final _genres = const [
-    'None',
+    _topLikeGenre,
     'electronic',
     'hip-hop',
     'pop',
@@ -117,12 +117,15 @@ class _MockHomePageState extends State<MockHomePage> {
     });
 
     try {
-      final rawList = await _getTrendingRawTrackPool();
-      final tracks = _buildTrendingTracksForSelectedGenre(rawList);
+      final rawList = await _fetchTrendingRawTracks(_selectedGenre);
+      final tracks = rawList
+          .map(_mapToTrack)
+          .whereType<Track>()
+          .take(5)
+          .toList(growable: false);
 
       if (!mounted) return;
       setState(() {
-        _trendingRawTrackPool = rawList;
         _trendingTracks = tracks;
       });
     } catch (_) {
@@ -140,168 +143,22 @@ class _MockHomePageState extends State<MockHomePage> {
   }
 
   void _filterCachedTrendingTracks() {
-    final rawList = _trendingRawTrackPool;
-    if (rawList == null) {
-      if (!_isLoadingTrending) {
-        _loadTrendingTracks();
-      }
-      return;
+    if (!_isLoadingTrending) {
+      _loadTrendingTracks();
     }
-
-    setState(() {
-      _trendingError = null;
-      _trendingTracks = _buildTrendingTracksForSelectedGenre(rawList);
-    });
   }
 
-  List<Track> _buildTrendingTracksForSelectedGenre(List<dynamic> rawList) {
-    final trackLikeRawList = rawList
-        .where(_looksLikeTrackPayload)
-        .where(_isDiscoverableTrackPayload)
-        .toList(growable: false);
-    final genreMatched = trackLikeRawList
-        .where((raw) => _rawMatchesGenre(raw, _selectedGenre))
-        .toList(growable: false);
-    final filteredRawList =
-        genreMatched.isEmpty ? trackLikeRawList : genreMatched;
-
-    return filteredRawList
-        .map(_mapToTrack)
-        .whereType<Track>()
-        .toList(growable: false)
-      ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
-  }
-
-  Future<List<dynamic>> _getTrendingRawTrackPool() {
-    final cached = _trendingRawTrackPool;
-    if (cached != null) return Future.value(cached);
-
-    final inFlight = _trendingRawTrackPoolRequest;
-    if (inFlight != null) return inFlight;
-
-    final request = _fetchTrendingRawTracks().whenComplete(() {
-      _trendingRawTrackPoolRequest = null;
-    });
-    _trendingRawTrackPoolRequest = request;
-    return request;
-  }
-
-  bool _looksLikeTrackPayload(dynamic raw) {
-    if (raw is! Map) return false;
-    final map = Map<String, dynamic>.from(raw);
-    final nestedTrack = map['track'];
-    if (nestedTrack is Map) return true;
-    return map.containsKey('title') ||
-        map.containsKey('genre') ||
-        map.containsKey('coverArtUrl') ||
-        map.containsKey('duration');
-  }
-
-  bool _isDiscoverableTrackPayload(dynamic raw) {
-    if (raw is! Map) return false;
-    final map = Map<String, dynamic>.from(raw);
-    final nestedTrack = map['track'];
-    final source =
-        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
-
-    final visibility = (source['visibility'] ?? '').toString().toUpperCase();
-    if (visibility == 'PRIVATE') return false;
-
-    final status = (source['status'] ?? '').toString().toUpperCase();
-    if (status == 'PROCESSING' || status == 'FAILED') return false;
-
-    return true;
-  }
-
-  Future<List<dynamic>> _fetchTrendingRawTracks() async {
+  Future<List<dynamic>> _fetchTrendingRawTracks(String selectedGenre) async {
     final dioClient = GetIt.I<DioClient>();
-    final authState = context.read<AuthCubit>().state;
-    final String viewerId =
-        authState is AuthAuthenticated ? authState.user.id.trim() : '';
-    final List<dynamic> collected = <dynamic>[];
-    final Set<String> seenTrackIds = <String>{};
-    final Set<String> userIdsToLoad = <String>{};
+    final isTopLike = selectedGenre == _topLikeGenre;
+    final response = await dioClient.get(
+      isTopLike
+          ? ApiConstants.discoveryTrendingPath
+          : ApiConstants.discoveryTrendingGenreTracksPath(selectedGenre),
+      queryParameters: const <String, dynamic>{'limit': 5},
+    );
 
-    void addTracks(Iterable<dynamic> tracks) {
-      for (final raw in tracks) {
-        if (raw is! Map) continue;
-        final map = Map<String, dynamic>.from(raw);
-        final nestedTrack = map['track'];
-        final source =
-            nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
-        final id =
-            (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
-                .toString()
-                .trim();
-        if (id.isEmpty || seenTrackIds.contains(id)) continue;
-        seenTrackIds.add(id);
-        collected.add(raw);
-      }
-    }
-
-    if (viewerId.isNotEmpty) {
-      userIdsToLoad.add(viewerId);
-
-      try {
-        final followingResponse = await dioClient.get(
-          ApiConstants.followingPath(viewerId),
-          queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
-        );
-        userIdsToLoad.addAll(_extractUserIds(followingResponse.data));
-      } catch (_) {}
-    }
-
-    for (final userId in userIdsToLoad.take(10)) {
-      try {
-        final response = await dioClient.get(
-          ApiConstants.userTracksPath(userId),
-          queryParameters: const <String, dynamic>{
-            'page': 1,
-            'limit': 20,
-          },
-        );
-        addTracks(_extractTracksList(response.data));
-      } catch (_) {}
-
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-    }
-
-    return collected;
-  }
-
-  List<String> _extractUserIds(dynamic responseData) {
-    final List<dynamic> rawUsers = <dynamic>[
-      if (responseData is Map<String, dynamic>) ...[
-        ...(responseData['following'] is List
-            ? responseData['following'] as List
-            : const <dynamic>[]),
-        ...(responseData['followers'] is List
-            ? responseData['followers'] as List
-            : const <dynamic>[]),
-        ...(responseData['users'] is List
-            ? responseData['users'] as List
-            : const <dynamic>[]),
-        ...(responseData['items'] is List
-            ? responseData['items'] as List
-            : const <dynamic>[]),
-        ...(responseData['results'] is List
-            ? responseData['results'] as List
-            : const <dynamic>[]),
-        if (responseData['data'] is List) ...(responseData['data'] as List),
-      ] else if (responseData is List)
-        ...responseData,
-    ];
-
-    return rawUsers
-        .whereType<Map>()
-        .map((raw) => Map<String, dynamic>.from(raw))
-        .map(
-          (item) => (item['id'] ?? item['userId'] ?? item['user_id'] ?? '')
-              .toString(),
-        )
-        .where((id) => id.trim().isNotEmpty)
-        .toSet()
-        .toList(growable: false);
+    return _extractTracksList(response.data);
   }
 
   List<dynamic> _extractTracksList(dynamic responseData) {
@@ -349,7 +206,10 @@ class _MockHomePageState extends State<MockHomePage> {
         : <String, dynamic>{};
 
     final likesCount = _asInt(
-      source['likesCount'] ?? source['likes_count'] ?? stats['likesCount'],
+      source['likesCount'] ??
+          source['likes_count'] ??
+          source['recentLikes'] ??
+          stats['likesCount'],
     );
     final repostsCount = _asInt(
       source['repostsCount'] ??
@@ -385,41 +245,6 @@ class _MockHomePageState extends State<MockHomePage> {
       repostsCount: repostsCount,
       durationMs: durationMs > 0 ? durationMs : null,
     );
-  }
-
-  bool _rawMatchesGenre(dynamic raw, String selectedGenre) {
-    if (raw is! Map) return false;
-    final map = Map<String, dynamic>.from(raw);
-    final nestedTrack = map['track'];
-    final source =
-        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
-
-    final genreValue = source['genre'];
-    String resolvedGenre = '';
-    if (genreValue is String) {
-      resolvedGenre = genreValue;
-    } else if (genreValue is Map) {
-      final typedGenre = Map<String, dynamic>.from(genreValue);
-      resolvedGenre = (typedGenre['name'] ?? '').toString();
-    } else {
-      resolvedGenre =
-          (source['genreName'] ?? source['genre_name'] ?? '').toString();
-    }
-
-    if (resolvedGenre.trim().isEmpty) return false;
-
-    final normalizedResolved = _normalizeGenreToken(resolvedGenre);
-    final normalizedSelected = _normalizeGenreToken(selectedGenre);
-    return normalizedResolved == normalizedSelected;
-  }
-
-  String _normalizeGenreToken(String value) {
-    final upper = value.trim().toUpperCase();
-    if (upper.isEmpty) return upper;
-
-    final compact = upper.replaceAll(RegExp(r'[^A-Z0-9]'), '');
-    if (compact == 'HIPHOP') return 'HIPHOP';
-    return compact;
   }
 
   int _asInt(dynamic value) {
@@ -565,7 +390,7 @@ class _TrendingByGenreTracks extends StatelessWidget {
       );
     }
 
-    final visibleTracks = tracks.take(10).toList(growable: false);
+    final visibleTracks = tracks.take(5).toList(growable: false);
 
     return Column(
       children: visibleTracks
