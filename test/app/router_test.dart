@@ -22,6 +22,8 @@ import 'package:soundcloud_clone/features/auth/presentation/pages/verify_email_p
 import 'package:soundcloud_clone/features/auth/presentation/routes/auth_routes.dart';
 import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
 import 'package:soundcloud_clone/features/library/presentation/pages/library_page.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_cubit.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_state.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
@@ -175,6 +177,9 @@ class FakeOfflineRepository implements OfflineRepository {
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
+class MockLibraryCubit extends MockCubit<LibraryState>
+    implements LibraryCubit {}
+
 class MockProfileCubit extends MockCubit<ProfileState>
     implements ProfileCubit {}
 
@@ -193,6 +198,7 @@ class MockConnectMessagingSocketUseCase extends Mock
 
 void main() {
   late MockAuthCubit authCubit;
+  late MockLibraryCubit libraryCubit;
   late MockProfileCubit profileCubit;
   late MockUploadPickerCubit uploadPickerCubit;
   late MockTrackManagementCubit trackManagementCubit;
@@ -215,6 +221,7 @@ void main() {
 
     mockSocialRepo = MockSocialRepo();
     authCubit = MockAuthCubit();
+    libraryCubit = MockLibraryCubit();
     profileCubit = MockProfileCubit();
     uploadPickerCubit = MockUploadPickerCubit();
     trackManagementCubit = MockTrackManagementCubit();
@@ -230,6 +237,14 @@ void main() {
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(
       RecentlyPlayedCubit(),
     );
+    when(() => libraryCubit.state).thenReturn(LibraryState.initial());
+    when(() => libraryCubit.stream).thenAnswer(
+      (_) => const Stream<LibraryState>.empty(),
+    );
+    when(() => libraryCubit.loadLibraryPlaylists()).thenAnswer((_) async {});
+    when(() => libraryCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<LibraryCubit>(() => libraryCubit);
     GetIt.I.registerLazySingleton<SubscriptionRepository>(
       () => MockSubscriptionRepository(),
     );
