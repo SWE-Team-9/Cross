@@ -226,6 +226,86 @@ void main() {
       },
     );
 
+    test('createPlaylist rejects empty title before usecase call', () async {
+      final cubit = buildCubit();
+
+      final created = await cubit.createPlaylist(
+        title: '   ',
+        description: 'Coding',
+        visibility: PlaylistVisibility.publicPlaylist,
+      );
+
+      expect(created, isNull);
+      expect(cubit.state.errorMessage, 'Playlist title is required');
+      verifyZeroInteractions(create);
+    });
+
+    test('createPlaylist rejects too long title before usecase call', () async {
+      final cubit = buildCubit();
+
+      final created = await cubit.createPlaylist(
+        title: 'a' * 101,
+        description: 'Coding',
+        visibility: PlaylistVisibility.publicPlaylist,
+      );
+
+      expect(created, isNull);
+      expect(
+        cubit.state.errorMessage,
+        'Playlist title must be 100 characters or less',
+      );
+      verifyZeroInteractions(create);
+    });
+
+    test('createPlaylist rejects duplicate initial track ids', () async {
+      final cubit = buildCubit();
+
+      final created = await cubit.createPlaylist(
+        title: 'Focus',
+        description: 'Coding',
+        visibility: PlaylistVisibility.publicPlaylist,
+        initialTrackIds: const <String>['trk_1', 'trk_1'],
+      );
+
+      expect(created, isNull);
+      expect(
+        cubit.state.errorMessage,
+        'Playlist tracks contain invalid or duplicate IDs',
+      );
+      verifyZeroInteractions(create);
+    });
+
+    test('createPlaylist trims title and description before usecase call',
+        () async {
+      when(
+        () => create(
+          title: 'Focus',
+          description: 'Coding',
+          visibility: PlaylistVisibility.publicPlaylist,
+          initialTrackIds: const <String>['trk_1'],
+        ),
+      ).thenAnswer((_) async => _playlist(id: 'pl_new'));
+
+      final cubit = buildCubit();
+
+      final created = await cubit.createPlaylist(
+        title: '  Focus  ',
+        description: '  Coding  ',
+        visibility: PlaylistVisibility.publicPlaylist,
+        initialTrackIds: const <String>[' trk_1 '],
+      );
+
+      expect(created, isNotNull);
+      verify(
+        () => create(
+          title: 'Focus',
+          description: 'Coding',
+          visibility: PlaylistVisibility.publicPlaylist,
+          initialTrackIds: const <String>['trk_1'],
+        ),
+      ).called(1);
+    });
+
     blocTest<PlaylistsCubit, PlaylistsState>(
       'addTrackToPlaylist updates list count and tracks',
       build: () {
@@ -310,6 +390,45 @@ void main() {
       );
     });
 
+    test('addTrackToPlaylist rejects empty track id before usecase call',
+        () async {
+      final cubit = buildCubit();
+
+      final added = await cubit.addTrackToPlaylist(
+        playlistId: 'pl_1',
+        track: _track(id: '   '),
+      );
+
+      expect(added, isFalse);
+      expect(cubit.state.errorMessage, 'Track ID is required');
+      verifyZeroInteractions(addTrack);
+    });
+
+    test(
+        'addTrackToPlaylist ignores duplicate selected track before usecase call',
+        () async {
+      final existingTrack = _track(id: 'trk_1');
+      final cubit = buildCubit();
+
+      cubit.emit(
+        PlaylistsState.initial().copyWith(
+          selectedPlaylist: _playlist(
+            id: 'pl_1',
+            tracks: [existingTrack],
+            count: 1,
+          ),
+        ),
+      );
+
+      final added = await cubit.addTrackToPlaylist(
+        playlistId: 'pl_1',
+        track: _track(id: ' trk_1 '),
+      );
+
+      expect(added, isFalse);
+      expect(cubit.state.infoMessage, 'Track is already in this playlist');
+      verifyZeroInteractions(addTrack);
+    });
     blocTest<PlaylistsCubit, PlaylistsState>(
       'loadPlaylistDetails upserts selected playlist',
       build: () {
@@ -409,6 +528,69 @@ void main() {
         verifyZeroInteractions(update);
       },
     );
+
+    test('updatePlaylist rejects empty title before usecase call', () async {
+      final cubit = buildCubit();
+
+      await cubit.updatePlaylist(
+        playlistId: 'pl_1',
+        title: '   ',
+      );
+
+      expect(cubit.state.errorMessage, 'Playlist title is required');
+      verifyZeroInteractions(update);
+    });
+
+    test('updatePlaylist rejects too long description before usecase call',
+        () async {
+      final cubit = buildCubit();
+
+      await cubit.updatePlaylist(
+        playlistId: 'pl_1',
+        description: 'a' * 501,
+      );
+
+      expect(
+        cubit.state.errorMessage,
+        'Playlist description must be 500 characters or less',
+      );
+      verifyZeroInteractions(update);
+    });
+
+    test('updatePlaylist trims title and description before usecase call',
+        () async {
+      when(
+        () => update(
+          playlistId: 'pl_1',
+          title: 'Renamed',
+          description: 'Updated description',
+          visibility: null,
+          genreId: null,
+        ),
+      ).thenAnswer((_) async {});
+
+      when(() => details('pl_1')).thenAnswer(
+        (_) async => _playlist(id: 'pl_1', title: 'Renamed'),
+      );
+
+      final cubit = buildCubit();
+
+      await cubit.updatePlaylist(
+        playlistId: 'pl_1',
+        title: '  Renamed  ',
+        description: '  Updated description  ',
+      );
+
+      verify(
+        () => update(
+          playlistId: 'pl_1',
+          title: 'Renamed',
+          description: 'Updated description',
+          visibility: null,
+          genreId: null,
+        ),
+      ).called(1);
+    });
 
     blocTest<PlaylistsCubit, PlaylistsState>(
       'deletePlaylist removes entry and clears selected playlist',
