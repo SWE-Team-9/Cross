@@ -94,7 +94,7 @@ class ConversationTile extends StatelessWidget {
               children: [
                 if (conversation.lastMessage != null)
                   Text(
-                    _formatTime(conversation.lastMessage!.createdAt),
+                    _formatTime(conversation.lastMessage!.createdAt.toLocal()),
                     style: const TextStyle(
                       color: MessagingTheme.textMuted,
                       fontSize: 11,
@@ -132,6 +132,7 @@ class ConversationTile extends StatelessWidget {
 
     switch (lastMessage.type) {
       case MessageType.text:
+        if (lastMessage.isDeleted) return 'Message deleted';
         return lastMessage.text?.trim().isNotEmpty == true
             ? lastMessage.text!.trim()
             : 'Text message';

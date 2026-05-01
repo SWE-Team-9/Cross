@@ -37,6 +37,11 @@ abstract class PlaylistsRemoteDataSource {
 
   Future<List<PlaylistDto>> getRecentPlaylists({int limit = 10});
 
+  Future<List<PlaylistDto>> getLikedPlaylists({
+    int page = 1,
+    int limit = 20,
+  });
+
   Future<List<PlaylistDto>> searchPublicPlaylists(
     String query, {
     int page = 1,
@@ -215,6 +220,29 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
             : payload;
 
     if (rawList is! List) return const <PlaylistDto>[];
+
+    return rawList
+        .map((item) => PlaylistDto.fromJson(_asMap(item)))
+        .where((playlist) => playlist.playlistId.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<PlaylistDto>> getLikedPlaylists({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final response = await dioClient.get(
+      ApiConstants.myLikedPlaylists,
+      queryParameters: {
+        'page': page,
+        'limit': limit,
+      },
+    );
+
+    final payload = _decode(response.data);
+    final rawList = _extractPlaylistList(payload);
+    if (rawList.isEmpty) return const <PlaylistDto>[];
 
     return rawList
         .map((item) => PlaylistDto.fromJson(_asMap(item)))

@@ -11,20 +11,20 @@ abstract class MessagingRoutes {
     context.push(inbox);
   }
 
-  static void goToConversation(
+  static Future<T?> goToConversation<T>(
     BuildContext context,
     ConversationEntity conversation,
   ) {
-    context.push(
+    return context.push<T>(
       '/messages/${conversation.conversationId}',
       extra: conversation,
     );
   }
 
-  static void goToConversationById(
+  static Future<T?> goToConversationById<T>(
     BuildContext context,
     String conversationId,
   ) {
-    context.push('/messages/$conversationId');
+    return context.push<T>('/messages/$conversationId');
   }
 }

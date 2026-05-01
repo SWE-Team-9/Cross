@@ -404,8 +404,8 @@ GoRouter _createRouter() {
         pageBuilder: (context, state) {
           return MaterialPage(
             child: InboxPage(
-              onOpenConversation: (conversation) {
-                MessagingRoutes.goToConversation(context, conversation);
+              onOpenConversation: (conversation) async {
+                await MessagingRoutes.goToConversation(context, conversation);
               },
             ),
           );

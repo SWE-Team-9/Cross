@@ -34,10 +34,13 @@ class MessageEntity {
     String? receiverId,
     MessageType? type,
     String? text,
+    bool clearText = false,
     bool? isRead,
     DateTime? createdAt,
     SharedTrackEntity? sharedTrack,
+    bool clearSharedTrack = false,
     SharedPlaylistEntity? sharedPlaylist,
+    bool clearSharedPlaylist = false,
   }) {
     return MessageEntity(
       id: id ?? this.id,
@@ -45,16 +48,23 @@ class MessageEntity {
       senderId: senderId ?? this.senderId,
       receiverId: receiverId ?? this.receiverId,
       type: type ?? this.type,
-      text: text ?? this.text,
+      text: clearText ? null : (text ?? this.text),
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
-      sharedTrack: sharedTrack ?? this.sharedTrack,
-      sharedPlaylist: sharedPlaylist ?? this.sharedPlaylist,
+      sharedTrack: clearSharedTrack ? null : (sharedTrack ?? this.sharedTrack),
+      sharedPlaylist:
+          clearSharedPlaylist ? null : (sharedPlaylist ?? this.sharedPlaylist),
     );
   }
 
   bool get isText => type == MessageType.text;
   bool get isTrackShare => type == MessageType.trackShare;
   bool get isPlaylistShare => type == MessageType.playlistShare;
-  bool get isDeleted => text == null || text!.trim().isEmpty;
+  bool get hasVisibleContent {
+    return (text ?? '').trim().isNotEmpty ||
+        sharedTrack != null ||
+        sharedPlaylist != null;
+  }
+
+  bool get isDeleted => !hasVisibleContent;
 }

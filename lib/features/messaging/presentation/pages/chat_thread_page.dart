@@ -43,6 +43,10 @@ class ChatThreadPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.read<AuthCubit>().state;
+    final currentUserId =
+        authState is AuthAuthenticated ? authState.user.id : null;
+
     return BlocProvider(
       create: (_) => ChatThreadCubit(
         getConversationMessagesUseCase:
@@ -56,6 +60,7 @@ class ChatThreadPage extends StatelessWidget {
       )..load(
           conversationId: conversationId,
           receiverId: receiverId,
+          currentUserId: currentUserId,
           canMessage: canMessage,
         ),
       child: _ChatThreadView(
@@ -136,6 +141,12 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
     );
   }
 
+  void _openParticipantProfile() {
+    final handle = widget.participantHandle.trim().replaceFirst('@', '');
+    if (handle.isEmpty) return;
+    context.push('/profile/$handle');
+  }
+
   @override
   Widget build(BuildContext context) {
     final avatarUrl =
@@ -159,18 +170,22 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
         titleSpacing: 0,
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: MessagingTheme.surface,
-              foregroundImage:
-                  avatarUrl != null ? NetworkImage(avatarUrl) : null,
-              child: Text(
-                widget.participantDisplayName.isNotEmpty
-                    ? widget.participantDisplayName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+            InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: _openParticipantProfile,
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: MessagingTheme.surface,
+                foregroundImage:
+                    avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                child: Text(
+                  widget.participantDisplayName.isNotEmpty
+                      ? widget.participantDisplayName[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),

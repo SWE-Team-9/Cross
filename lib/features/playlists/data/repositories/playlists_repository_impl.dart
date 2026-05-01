@@ -79,6 +79,18 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
   }
 
   @override
+  Future<List<PlaylistEntity>> getLikedPlaylists({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final dtos =
+        await remoteDataSource.getLikedPlaylists(page: page, limit: limit);
+    return dtos
+        .map((dto) => dto.toEntity().copyWith(isLiked: true))
+        .toList(growable: false);
+  }
+
+  @override
   Future<List<PlaylistEntity>> searchPublicPlaylists(
     String query, {
     int page = 1,
