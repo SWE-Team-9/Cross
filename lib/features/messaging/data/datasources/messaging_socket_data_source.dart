@@ -51,7 +51,7 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
       ApiConstants.baseUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
-        .setPath(ApiConstants.messagingBase)
+          .setPath(ApiConstants.messagingBase)
           .setExtraHeaders(
             cookieHeader.isEmpty
                 ? <String, String>{}

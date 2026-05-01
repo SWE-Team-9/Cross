@@ -64,8 +64,7 @@ class MessageDto {
         source['text'] ?? source['content'] ?? source['body'],
       ),
       isRead: _toBool(source['isRead'] ?? source['is_read']) ?? false,
-      createdAt:
-          _parseDateTime(source['createdAt'] ?? source['created_at']),
+      createdAt: _parseDateTime(source['createdAt'] ?? source['created_at']),
       sharedTrack: sharedTrackMap == null
           ? null
           : SharedTrackDto.fromJson(sharedTrackMap),
