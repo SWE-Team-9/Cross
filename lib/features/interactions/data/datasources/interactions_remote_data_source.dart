@@ -227,4 +227,4 @@ class InteractionsRemoteDataSourceImpl implements InteractionsRemoteDataSource {
 
     return const <dynamic>[];
   }
-}
+
