@@ -85,6 +85,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
     String? coverImagePath,
   }) async {
     if (state.isSubmitting) return null;
@@ -113,6 +114,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         description: description,
         visibility: visibility,
         initialTrackIds: initialTrackIds,
+        genre: genre,
       );
 
       if (coverImagePath != null && coverImagePath.trim().isNotEmpty) {
@@ -183,6 +185,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
     String? coverImagePath,
   }) async {
     if (state.isSubmitting) return;
@@ -211,6 +214,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         title: title,
         description: description,
         visibility: visibility,
+        genre: genre,
       );
 
       String? uploadedCoverUrl;
@@ -232,6 +236,8 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           title: title,
           description: description,
           visibility: visibility,
+          genre: genre,
+          clearGenre: genre != null && genre.trim().isEmpty,
           coverImageUrl: uploadedCoverUrl,
           clearSecretToken: visibility == PlaylistVisibility.publicPlaylist,
         );
@@ -243,6 +249,8 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           title: title,
           description: description,
           visibility: visibility,
+          genre: genre,
+          clearGenre: genre != null && genre.trim().isEmpty,
           coverImageUrl: uploadedCoverUrl,
           clearSecretToken: visibility == PlaylistVisibility.publicPlaylist,
         );
@@ -291,7 +299,10 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
                   title: playlist.title,
                   description: playlist.description,
                   visibility: playlist.visibility,
+                  genre: playlist.genre,
+                  genreId: playlist.genreId,
                   coverImageUrl: playlist.coverImageUrl,
+                  likesCount: playlist.likesCount,
                   isLiked: playlist.isLiked,
                 )
               : state.selectedPlaylist,
@@ -711,7 +722,10 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   PlaylistEntity? _likedSelected(String playlistId, bool isLiked) {
     final selected = state.selectedPlaylist;
     if (selected == null || selected.playlistId != playlistId) return selected;
-    return selected.copyWith(isLiked: isLiked);
+    return selected.copyWith(
+      isLiked: isLiked,
+      likesCount: _nextLikesCount(selected, isLiked),
+    );
   }
 
   List<PlaylistEntity> _setPlaylistLiked(
@@ -721,8 +735,18 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   ) {
     return playlists.map((playlist) {
       if (playlist.playlistId != playlistId) return playlist;
-      return playlist.copyWith(isLiked: isLiked);
+      return playlist.copyWith(
+        isLiked: isLiked,
+        likesCount: _nextLikesCount(playlist, isLiked),
+      );
     }).toList(growable: false);
+  }
+
+  int _nextLikesCount(PlaylistEntity playlist, bool isLiked) {
+    if (playlist.isLiked == isLiked) return playlist.likesCount;
+    final delta = isLiked ? 1 : -1;
+    final next = playlist.likesCount + delta;
+    return next < 0 ? 0 : next;
   }
 
   bool _titleExists(String title, {String? excludingPlaylistId}) {

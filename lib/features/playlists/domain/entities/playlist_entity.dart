@@ -50,11 +50,14 @@ class PlaylistEntity {
   final String title;
   final String description;
   final PlaylistVisibility visibility;
+  final String? genre;
+  final int? genreId;
   final String? secretToken;
   final String? coverImageUrl;
   final PlaylistOwner? owner;
   final List<Track> tracks;
   final int tracksCount;
+  final int likesCount;
   final bool isLiked;
 
   const PlaylistEntity({
@@ -62,11 +65,14 @@ class PlaylistEntity {
     required this.title,
     required this.description,
     required this.visibility,
+    this.genre,
+    this.genreId,
     required this.secretToken,
     required this.coverImageUrl,
     required this.owner,
     required this.tracks,
     required this.tracksCount,
+    this.likesCount = 0,
     this.isLiked = false,
   });
 
@@ -77,6 +83,10 @@ class PlaylistEntity {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
+    bool clearGenre = false,
+    int? genreId,
+    bool clearGenreId = false,
     String? secretToken,
     bool clearSecretToken = false,
     String? coverImageUrl,
@@ -84,6 +94,7 @@ class PlaylistEntity {
     PlaylistOwner? owner,
     List<Track>? tracks,
     int? tracksCount,
+    int? likesCount,
     bool? isLiked,
   }) {
     return PlaylistEntity(
@@ -91,12 +102,15 @@ class PlaylistEntity {
       title: title ?? this.title,
       description: description ?? this.description,
       visibility: visibility ?? this.visibility,
+      genre: clearGenre ? null : (genre ?? this.genre),
+      genreId: clearGenreId ? null : (genreId ?? this.genreId),
       secretToken: clearSecretToken ? null : (secretToken ?? this.secretToken),
       coverImageUrl:
           clearCoverImageUrl ? null : (coverImageUrl ?? this.coverImageUrl),
       owner: owner ?? this.owner,
       tracks: tracks ?? this.tracks,
       tracksCount: tracksCount ?? this.tracksCount,
+      likesCount: likesCount ?? this.likesCount,
       isLiked: isLiked ?? this.isLiked,
     );
   }

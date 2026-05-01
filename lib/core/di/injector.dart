@@ -96,6 +96,7 @@ import '../../features/playlists/domain/usecases/get_playlist_details_usecase.da
 import '../../features/playlists/domain/usecases/get_playlist_edit_details_usecase.dart';
 import '../../features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
 import '../../features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/get_top_playlists_usecase.dart';
 import '../../features/playlists/domain/usecases/like_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
@@ -906,6 +907,12 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<GetRecentPlaylistsUseCase>()) {
     getIt.registerLazySingleton<GetRecentPlaylistsUseCase>(
       () => GetRecentPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTopPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetTopPlaylistsUseCase>(
+      () => GetTopPlaylistsUseCase(getIt<PlaylistsRepository>()),
     );
   }
 

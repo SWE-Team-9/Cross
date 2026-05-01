@@ -4,17 +4,20 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_genre.dart';
 
 class PlaylistEditorResult {
   final String title;
   final String description;
   final PlaylistVisibility visibility;
+  final String? genre;
   final String? coverImagePath;
 
   const PlaylistEditorResult({
     required this.title,
     required this.description,
     required this.visibility,
+    this.genre,
     this.coverImagePath,
   });
 }
@@ -25,6 +28,7 @@ class PlaylistEditorSheet extends StatefulWidget {
   final String initialTitle;
   final String initialDescription;
   final PlaylistVisibility initialVisibility;
+  final String? initialGenre;
   final String? initialCoverImageUrl;
 
   const PlaylistEditorSheet({
@@ -34,6 +38,7 @@ class PlaylistEditorSheet extends StatefulWidget {
     this.initialTitle = '',
     this.initialDescription = '',
     this.initialVisibility = PlaylistVisibility.publicPlaylist,
+    this.initialGenre,
     this.initialCoverImageUrl,
   });
 
@@ -44,6 +49,7 @@ class PlaylistEditorSheet extends StatefulWidget {
     String initialTitle = '',
     String initialDescription = '',
     PlaylistVisibility initialVisibility = PlaylistVisibility.publicPlaylist,
+    String? initialGenre,
     String? initialCoverImageUrl,
   }) {
     return showModalBottomSheet<PlaylistEditorResult>(
@@ -60,6 +66,7 @@ class PlaylistEditorSheet extends StatefulWidget {
           initialTitle: initialTitle,
           initialDescription: initialDescription,
           initialVisibility: initialVisibility,
+          initialGenre: initialGenre,
           initialCoverImageUrl: initialCoverImageUrl,
         );
       },
@@ -74,6 +81,7 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late PlaylistVisibility _visibility;
+  late String _genre;
   String? _coverImagePath;
 
   @override
@@ -83,6 +91,7 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
     _descriptionController =
         TextEditingController(text: widget.initialDescription);
     _visibility = widget.initialVisibility;
+    _genre = normalizeTrackGenreName(widget.initialGenre) ?? kTrackGenreNone;
   }
 
   @override
@@ -102,6 +111,7 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
         title: title,
         description: _descriptionController.text.trim(),
         visibility: _visibility,
+        genre: _genre == kTrackGenreNone ? null : _genre,
         coverImagePath: _coverImagePath,
       ),
     );
@@ -216,6 +226,36 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
                   (visibility) => DropdownMenuItem<PlaylistVisibility>(
                     value: visibility,
                     child: Text(visibility.label),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue:
+                kTrackGenreNames.contains(_genre) ? _genre : kTrackGenreNone,
+            dropdownColor: const Color(0xFF222222),
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: 'Genre',
+              labelStyle: TextStyle(color: Colors.white70),
+              filled: true,
+              fillColor: Colors.white10,
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() {
+                _genre = value;
+              });
+            },
+            items: kTrackGenreNames
+                .map(
+                  (genre) => DropdownMenuItem<String>(
+                    value: genre,
+                    child: Text(
+                      genre == kTrackGenreNone ? 'No genre' : genre,
+                    ),
                   ),
                 )
                 .toList(growable: false),

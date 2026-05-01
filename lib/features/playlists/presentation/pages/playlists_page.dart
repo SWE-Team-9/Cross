@@ -60,6 +60,7 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
           title: result.title,
           description: result.description,
           visibility: result.visibility,
+          genre: result.genre,
           coverImagePath: result.coverImagePath,
           initialTrackIds:
               selectedTracks.map((track) => track.id).toList(growable: false),

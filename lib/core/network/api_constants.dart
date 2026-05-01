@@ -129,6 +129,7 @@ abstract class ApiConstants {
   static const String myPlaylists = '$playlistsBase/me';
   static const String myLikedPlaylists = '$playlistsBase/me/liked';
   static const String recentPlaylists = '$playlistsBase/recent';
+  static const String topPlaylists = '$playlistsBase/top';
 
   static String playlistByIdPath(String playlistId) =>
       '$playlistsBase/$playlistId';
