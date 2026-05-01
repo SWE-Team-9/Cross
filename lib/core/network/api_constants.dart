@@ -89,6 +89,9 @@ abstract class ApiConstants {
   static const String myLikedTracks = '/api/v1/interactions/me/likes';
   static const String myRepostedTracks = '/api/v1/interactions/me/reposts';
 
+  static String likePlaylistPath(String playlistId) =>
+      '$interactionsBase/playlists/$playlistId/like';
+
   // ── Messaging ─────────────────────────────────────────────────────────────
   static const String messagingBase = '/api/v1/messages';
   static const String messagingConversationsPath =
@@ -142,4 +145,7 @@ abstract class ApiConstants {
 
   static String playlistEmbedPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/embed';
+
+  static String playlistCoverPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/cover';
 }
