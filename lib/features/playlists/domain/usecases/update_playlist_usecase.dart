@@ -12,6 +12,9 @@ class UpdatePlaylistUseCase {
     String? description,
     PlaylistVisibility? visibility,
     int? genreId,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
   }) {
     return repository.updatePlaylist(
       playlistId: playlistId,
@@ -19,6 +22,9 @@ class UpdatePlaylistUseCase {
       description: description,
       visibility: visibility,
       genreId: genreId,
+      playlistType: playlistType,
+      releaseDate: releaseDate,
+      tags: tags,
     );
   }
 }

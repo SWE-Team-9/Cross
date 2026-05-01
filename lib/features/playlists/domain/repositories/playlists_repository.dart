@@ -22,7 +22,11 @@ abstract class PlaylistsRepository {
     String? genre,
   });
 
-  Future<PlaylistEntity> getPlaylistDetails(String playlistId);
+  Future<PlaylistEntity> getPlaylistDetails(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  });
 
   Future<PlaylistEntity> getPlaylistEditDetails(String playlistId);
 
@@ -32,6 +36,9 @@ abstract class PlaylistsRepository {
     String? description,
     PlaylistVisibility? visibility,
     int? genreId,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
   });
 
   Future<String?> uploadPlaylistCover({
@@ -72,5 +79,13 @@ abstract class PlaylistsRepository {
 
   Future<PlaylistEntity> resolveSecretPlaylist(String secretToken);
 
-  Future<String> getPlaylistEmbedCode(String playlistId);
+  Future<String> getPlaylistEmbedCode(
+    String playlistId, {
+    String? theme,
+    bool? autoplay,
+    int? start,
+    bool? hideArtwork,
+    int? width,
+    int? height,
+  });
 }

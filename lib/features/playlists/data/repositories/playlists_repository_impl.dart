@@ -65,8 +65,16 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
   }
 
   @override
-  Future<PlaylistEntity> getPlaylistDetails(String playlistId) async {
-    final dto = await remoteDataSource.getPlaylistDetails(playlistId);
+  Future<PlaylistEntity> getPlaylistDetails(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  }) async {
+    final dto = await remoteDataSource.getPlaylistDetails(
+      playlistId,
+      limit: limit,
+      offset: offset,
+    );
     final playlist = await _withEditableMetadataFor(dto.toEntity());
     final liked = await likedPlaylistsStore.isLiked(playlist.playlistId);
     return liked
@@ -92,6 +100,9 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
     String? description,
     PlaylistVisibility? visibility,
     int? genreId,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
   }) {
     return remoteDataSource.updatePlaylist(
       playlistId: playlistId,
@@ -99,6 +110,9 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
       description: description,
       visibility: visibility,
       genreId: genreId,
+      playlistType: playlistType,
+      releaseDate: releaseDate,
+      tags: tags,
     );
   }
 
@@ -204,8 +218,24 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
   }
 
   @override
-  Future<String> getPlaylistEmbedCode(String playlistId) {
-    return remoteDataSource.getPlaylistEmbedCode(playlistId);
+  Future<String> getPlaylistEmbedCode(
+    String playlistId, {
+    String? theme,
+    bool? autoplay,
+    int? start,
+    bool? hideArtwork,
+    int? width,
+    int? height,
+  }) {
+    return remoteDataSource.getPlaylistEmbedCode(
+      playlistId,
+      theme: theme,
+      autoplay: autoplay,
+      start: start,
+      hideArtwork: hideArtwork,
+      width: width,
+      height: height,
+    );
   }
 
   Future<List<PlaylistEntity>> _withEditableMetadata(
