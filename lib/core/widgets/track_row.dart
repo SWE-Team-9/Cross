@@ -18,6 +18,8 @@ import 'package:soundcloud_clone/features/premium/domain/entities/subscription.d
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
+enum _DownloadSnack { saved, alreadySaved, failed }
+
 class TrackRow extends StatelessWidget {
   final Track track;
   final List<Track>? queue;
@@ -170,7 +172,9 @@ class TrackRow extends StatelessWidget {
     final playableTracks = _withOfflinePaths(tracks, offlineCubit);
     final selectedTrack = playableTracks[safeIndex];
 
-    if (selectedTrack.audioUrl.trim().isNotEmpty) {
+    if (selectedTrack.audioUrl.trim().isNotEmpty ||
+        (selectedTrack.localPath != null &&
+            selectedTrack.localPath!.trim().isNotEmpty)) {
       await playerCubit.playFromContext(
         tracks: playableTracks,
         startIndex: safeIndex,
@@ -231,16 +235,21 @@ class TrackRow extends StatelessWidget {
             return _DownloadButton(
               isDownloaded: isDownloaded,
               onTap: () async {
+                if (isDownloaded) {
+                  _showDownloadSnackbar(context, _DownloadSnack.alreadySaved);
+                  return;
+                }
+
                 try {
                   await offlineCubit.download(track.id);
                   if (!context.mounted) return;
-                  _showDownloadSnackbar(context, true);
+                  _showDownloadSnackbar(context, _DownloadSnack.saved);
                 } catch (e) {
                   if (!context.mounted) return;
                   if (e.toString().contains('UPGRADE_REQUIRED')) {
                     Navigator.pushNamed(context, '/upgrade');
                   } else {
-                    _showDownloadSnackbar(context, false);
+                    _showDownloadSnackbar(context, _DownloadSnack.failed);
                   }
                 }
               },
@@ -279,7 +288,14 @@ class TrackRow extends StatelessWidget {
     }
   }
 
-  void _showDownloadSnackbar(BuildContext context, bool success) {
+  void _showDownloadSnackbar(BuildContext context, _DownloadSnack snack) {
+    final success = snack != _DownloadSnack.failed;
+    final message = switch (snack) {
+      _DownloadSnack.saved => 'Saved for offline listening',
+      _DownloadSnack.alreadySaved => 'Music already downloaded',
+      _DownloadSnack.failed => 'Download failed',
+    };
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -315,7 +331,7 @@ class TrackRow extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Text(
-              success ? 'Saved for offline listening' : 'Download failed',
+              message,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 13,
