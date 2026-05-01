@@ -22,6 +22,8 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
       uploadedTracks: data['uploadedTracks'] ?? 0,
       remainingUploads: data['remainingUploads'] ?? 0,
       cancelAtPeriodEnd: data['cancelAtPeriodEnd'] ?? false,
+      canDownload: data['canDownload'] ?? false,
+      adsEnabled: data['adsEnabled'] ?? true,
     );
   }
 

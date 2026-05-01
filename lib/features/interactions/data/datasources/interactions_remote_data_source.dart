@@ -186,6 +186,7 @@ class InteractionsRemoteDataSourceImpl implements InteractionsRemoteDataSource {
 
     return await Future.wait(futures);
   }
+  }
 
   List<dynamic> _extractItemsList(dynamic responseData) {
     if (responseData is List<dynamic>) {

@@ -161,6 +161,8 @@ import 'package:soundcloud_clone/features/premium/domain/repositories/subscripti
 import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/subscription_repository_impl.dart';
+import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -885,19 +887,16 @@ Future<void> setupDependencies() async {
       () => GetPlaylistDetailsUseCase(getIt<PlaylistsRepository>()),
     );
   }
-
   if (!getIt.isRegistered<GetPlaylistEditDetailsUseCase>()) {
     getIt.registerLazySingleton<GetPlaylistEditDetailsUseCase>(
       () => GetPlaylistEditDetailsUseCase(getIt<PlaylistsRepository>()),
     );
   }
-
   if (!getIt.isRegistered<UpdatePlaylistUseCase>()) {
     getIt.registerLazySingleton<UpdatePlaylistUseCase>(
       () => UpdatePlaylistUseCase(getIt<PlaylistsRepository>()),
     );
   }
-
   if (!getIt.isRegistered<UploadPlaylistCoverUseCase>()) {
     getIt.registerLazySingleton<UploadPlaylistCoverUseCase>(
       () => UploadPlaylistCoverUseCase(getIt<PlaylistsRepository>()),
@@ -921,7 +920,6 @@ Future<void> setupDependencies() async {
       () => UnlikePlaylistUseCase(getIt<PlaylistsRepository>()),
     );
   }
-
   if (!getIt.isRegistered<DeletePlaylistUseCase>()) {
     getIt.registerLazySingleton<DeletePlaylistUseCase>(
       () => DeletePlaylistUseCase(getIt<PlaylistsRepository>()),
@@ -996,6 +994,20 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<SubscriptionCubit>()) {
     getIt.registerLazySingleton<SubscriptionCubit>(
       () => SubscriptionCubit(getIt<SubscriptionRepository>()),
+    );
+  }
+
+  // ── Offline Feature ─────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<OfflineRepository>()) {
+    getIt.registerLazySingleton<OfflineRepository>(
+      () => OfflineRepository(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<OfflineCubit>()) {
+    getIt.registerLazySingleton<OfflineCubit>(
+      () => OfflineCubit(getIt<OfflineRepository>()),
     );
   }
 

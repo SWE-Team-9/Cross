@@ -21,6 +21,7 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubi
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 
 // ─── Fakes & Mocks ────────────────────────────────────────────────────────────
 
@@ -59,6 +60,8 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> dispose() async {}
+  @override
+  Future<void> playLocalFile(String path) async {}
 
   @override
   Future<void> playFromContext({
@@ -87,11 +90,15 @@ const _testUser = User(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+late AudioPlayerService audioService;
+
 Future<void> _setUp() async {
   await GetIt.I.reset();
 
   final getUnreadCountUseCase = MockGetUnreadCountUseCase();
   final connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+
+  audioService = FakeAudioPlayerService();
 
   when(() => getUnreadCountUseCase()).thenAnswer(
     (_) async => const UnreadCountEntity(count: 0),
@@ -103,8 +110,21 @@ Future<void> _setUp() async {
     (_) => const Stream<RealtimeMessageEventEntity>.empty(),
   );
 
-  GetIt.I.registerSingleton<AudioPlayerService>(FakeAudioPlayerService());
-  GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
+  GetIt.I.registerSingleton<AudioPlayerService>(audioService);
+
+  GetIt.I.registerSingleton<RecentlyPlayedCubit>(
+    RecentlyPlayedCubit(),
+  );
+
+  GetIt.I.registerLazySingleton<SubscriptionCubit>(
+    () => SubscriptionCubit(MockSubscriptionRepository()),
+  );
+
+  GetIt.I.registerLazySingleton<OfflineCubit>(
+    () => OfflineCubit(
+      throw UnimplementedError(),
+    ),
+  );
 
   GetIt.I.registerFactory<UnreadCountCubit>(
     () => UnreadCountCubit(

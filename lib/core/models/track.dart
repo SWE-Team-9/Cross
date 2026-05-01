@@ -9,6 +9,7 @@ class Track {
   final int likesCount;
   final int repostsCount;
   final int? durationMs;
+  final String? localPath;
 
   const Track({
     required this.id,
@@ -21,6 +22,7 @@ class Track {
     this.likesCount = 0,
     this.repostsCount = 0,
     this.durationMs,
+    this.localPath,
   });
 
   Duration? get duration {
@@ -37,6 +39,7 @@ class Track {
     String? artworkUrl,
     String? handle,
     String? artistId,
+    String? localPath,
     int? likesCount,
     int? repostsCount,
     int? durationMs,
@@ -52,6 +55,7 @@ class Track {
       likesCount: likesCount ?? this.likesCount,
       repostsCount: repostsCount ?? this.repostsCount,
       durationMs: durationMs ?? this.durationMs,
+      localPath: localPath ?? this.localPath,
     );
   }
 }

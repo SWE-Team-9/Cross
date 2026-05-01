@@ -240,6 +240,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String redirectUri,
     required String codeVerifier,
   }) async {
+<<<<<<< HEAD
+=======
+    print('🔥 POST ${ApiConstants.oauthToken}');
+    print('🔥 clientId = $clientId');
+    print('🔥 code = $code');
+    print('🔥 redirectUri = $redirectUri');
+    print('🔥 codeVerifier length = ${codeVerifier.length}');
+>>>>>>> origin/dev
     await dioClient.dio.post(
       ApiConstants.oauthToken,
       data: {
@@ -256,5 +264,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       //},
       //),
     );
+<<<<<<< HEAD
+=======
+
+    print('🔥 /oauth/token completed successfully');
+>>>>>>> origin/dev
   }
 }
