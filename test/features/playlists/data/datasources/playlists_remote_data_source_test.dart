@@ -174,7 +174,6 @@ void main() {
     });
   });
 
-
   group('createPlaylist', () {
     test('sends visibility API value and parses created playlist', () async {
       when(() => dioClient.post(
