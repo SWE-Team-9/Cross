@@ -1,11 +1,17 @@
 import '../repositories/playlists_repository.dart';
 
-class RecordPlaylistPlaybackUseCase {
+class ReorderPlaylistTracksUseCase {
   final PlaylistsRepository repository;
 
-  RecordPlaylistPlaybackUseCase(this.repository);
+  ReorderPlaylistTracksUseCase(this.repository);
 
-  Future<void> call(String playlistId) {
-    return repository.recordPlaylistPlayback(playlistId);
+  Future<void> call({
+    required String playlistId,
+    required List<String> orderedTrackIds,
+  }) {
+    return repository.reorderPlaylistTracks(
+      playlistId: playlistId,
+      orderedTrackIds: orderedTrackIds,
+    );
   }
 }
