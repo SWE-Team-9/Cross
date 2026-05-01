@@ -12,6 +12,7 @@ import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist
 import 'package:soundcloud_clone/features/playlists/domain/usecases/like_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/record_playlist_playback_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/update_playlist_usecase.dart';
@@ -41,7 +42,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   final GetPlaylistEmbedCodeUseCase getPlaylistEmbedCodeUseCase;
   final LikePlaylistUseCase? likePlaylistUseCase;
   final UnlikePlaylistUseCase? unlikePlaylistUseCase;
-
+  final RecordPlaylistPlaybackUseCase? recordPlaylistPlaybackUseCase;
   PlaylistsCubit({
     required this.getMyPlaylistsUseCase,
     required this.createPlaylistUseCase,
@@ -57,8 +58,8 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     required this.getPlaylistEmbedCodeUseCase,
     this.likePlaylistUseCase,
     this.unlikePlaylistUseCase,
+    this.recordPlaylistPlaybackUseCase,
   }) : super(PlaylistsState.initial());
-
   Future<void> loadMyPlaylists({bool refresh = false}) async {
     if (state.isLoadingMyPlaylists || state.isLoadingMoreMyPlaylists) return;
 
@@ -565,6 +566,19 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           errorMessage: _playlistErrorMessage(e),
         ),
       );
+    }
+  }
+
+  Future<void> recordPlaylistPlayback(String playlistId) async {
+    final recorder = recordPlaylistPlaybackUseCase;
+    final normalizedPlaylistId = playlistId.trim();
+
+    if (recorder == null || normalizedPlaylistId.isEmpty) return;
+
+    try {
+      await recorder(normalizedPlaylistId);
+    } catch (_) {
+      // Playback history recording should never block playlist playback.
     }
   }
 
