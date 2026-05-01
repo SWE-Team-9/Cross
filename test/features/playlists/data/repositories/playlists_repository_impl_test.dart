@@ -178,6 +178,7 @@ PlaylistDto _playlistDto({
 class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   List<PlaylistDto> myPlaylists = const <PlaylistDto>[];
   List<PlaylistDto> recentPlaylists = const <PlaylistDto>[];
+  List<PlaylistDto> topPlaylists = const <PlaylistDto>[];
   List<PlaylistDto> likedPlaylists = const <PlaylistDto>[];
   List<PlaylistDto> searchResults = const <PlaylistDto>[];
   final Map<String, PlaylistDto> details = <String, PlaylistDto>{};
@@ -191,6 +192,7 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   int? lastPage;
   int? lastLimit;
   int? recentLimit;
+  int? topLimit;
   int? lastLikedPage;
   int? lastLikedLimit;
   String? lastSearchQuery;
@@ -222,11 +224,18 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   }
 
   @override
+  Future<List<PlaylistDto>> getTopPlaylists({int limit = 10}) async {
+    topLimit = limit;
+    return topPlaylists;
+  }
+
+  @override
   Future<PlaylistDto> createPlaylist({
     required String title,
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
   }) async {
     createdTrackIds = initialTrackIds;
     return _playlistDto(
@@ -258,6 +267,7 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
   }) async {
     updatedPlaylistId = playlistId;
   }
