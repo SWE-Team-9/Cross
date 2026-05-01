@@ -17,8 +17,6 @@ const Set<String> _kAllowedPlaylistCoverExtensions = <String>{
   '.webp',
 };
 
-
-
 class PlaylistEditorResult {
   final String title;
   final String description;
@@ -190,7 +188,7 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
     });
   }
 
-    Future<String?> _validateCoverFile(String path) async {
+  Future<String?> _validateCoverFile(String path) async {
     final normalizedPath = path.trim().toLowerCase();
     final hasValidExtension = _kAllowedPlaylistCoverExtensions.any(
       normalizedPath.endsWith,
@@ -216,7 +214,7 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
@@ -272,7 +270,8 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
               fillColor: Colors.white10,
               border: OutlineInputBorder(),
             ),
-          ),          const SizedBox(height: 12),
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
             minLines: 2,
@@ -287,7 +286,8 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
               fillColor: Colors.white10,
               border: OutlineInputBorder(),
             ),
-          ),          const SizedBox(height: 12),
+          ),
+          const SizedBox(height: 12),
           DropdownButtonFormField<PlaylistVisibility>(
             initialValue: _visibility,
             dropdownColor: const Color(0xFF222222),
@@ -357,7 +357,8 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(              style: ElevatedButton.styleFrom(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5500),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
