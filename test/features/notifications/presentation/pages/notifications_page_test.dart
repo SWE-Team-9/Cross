@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
-import 'package:soundcloud_clone/features/notifications/domain/entities/notification_preferences_entity.dart';
+// import 'package:soundcloud_clone/features/notifications/domain/entities/notification_preferences_entity.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/bloc/notification_preferences_bloc.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/bloc/notifications_bloc.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/pages/notifications_page.dart';

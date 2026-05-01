@@ -62,6 +62,7 @@ abstract class ApiConstants {
   static String playerTrackPlayPath(String trackId) =>
       '/api/v1/player/tracks/$trackId/play';
   static const String listeningHistoryPath = '/api/v1/player/me/history';
+  static const String discoverySearchPath = '/api/v1/discovery/search';
 
   // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';
@@ -88,4 +89,69 @@ abstract class ApiConstants {
       '$interactionsBase/tracks/$trackId/reposters';
   static const String myLikedTracks = '/api/v1/interactions/me/likes';
   static const String myRepostedTracks = '/api/v1/interactions/me/reposts';
+
+  static String likePlaylistPath(String playlistId) =>
+      '$interactionsBase/playlists/$playlistId/like';
+
+  // ── Messaging ─────────────────────────────────────────────────────────────
+  static const String messagingBase = '/api/v1/messages';
+  static const String messagingConversationsPath =
+      '$messagingBase/conversations';
+  static const String messagingDirectConversationPath =
+      '$messagingConversationsPath/direct';
+  static const String messagingShareTrackPath = '$messagingBase/share/track';
+  static const String messagingSharePlaylistPath =
+      '$messagingBase/share/playlist';
+  static const String messagingUnreadCountPath = '$messagingBase/unread-count';
+
+  static String messagingConversationByIdPath(String conversationId) =>
+      '$messagingConversationsPath/$conversationId';
+
+  static String messagingConversationMetaPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/meta';
+
+  static String messagingMarkConversationReadPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/read';
+
+  static String messagingMarkConversationUnreadPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/unread';
+
+  static String messagingArchiveConversationPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/archive';
+
+  static String messagingUnarchiveConversationPath(String conversationId) =>
+      '${messagingConversationByIdPath(conversationId)}/unarchive';
+
+  static String messagingMessageByIdPath(String messageId) =>
+      '$messagingBase/$messageId';
+  // ── Playlists ───────────────────────────────────────────────────────────
+  static const String playlistsBase = '/api/v1/playlists';
+  static const String myPlaylists = '$playlistsBase/me';
+  static const String myLikedPlaylists = '$playlistsBase/me/liked';
+  static const String recentPlaylists = '$playlistsBase/recent';
+
+  static String playlistByIdPath(String playlistId) =>
+      '$playlistsBase/$playlistId';
+
+  static String playlistEditPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/edit';
+
+  static String playlistCoverPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/cover';
+
+  static String playlistTracksPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/tracks';
+
+  static String removeTrackFromPlaylistPath(
+          String playlistId, String trackId) =>
+      '${playlistTracksPath(playlistId)}/$trackId';
+
+  static String reorderPlaylistPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/reorder';
+
+  static String resolveSecretPlaylistPath(String secretToken) =>
+      '$playlistsBase/secret/$secretToken';
+
+  static String playlistEmbedPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/embed';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/managed_track.dart';
+import '../../domain/entities/track_genre.dart';
 import '../../domain/entities/track_management_form.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../../domain/usecases/delete_track_usecase.dart';
@@ -20,13 +21,19 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
   final DeleteTrackUseCase _deleteTrackUseCase;
 
   void initialize(ManagedTrack track) {
+    final normalizedGenreName = normalizeTrackGenreName(track.genreName);
+    final normalizedTrack = track.copyWith(
+      genreName: normalizedGenreName,
+      clearGenreName: normalizedGenreName == null,
+    );
+
     emit(
       TrackManagementState(
-        status: track.isDeleted
+        status: normalizedTrack.isDeleted
             ? TrackManagementStatus.deleted
             : TrackManagementStatus.ready,
-        currentTrack: track,
-        form: TrackManagementForm.fromTrack(track),
+        currentTrack: normalizedTrack,
+        form: TrackManagementForm.fromTrack(normalizedTrack),
       ),
     );
   }
@@ -70,7 +77,7 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
       state.copyWith(
         status: TrackManagementStatus.ready,
         form: state.form!.copyWith(
-          genreName: genreName,
+          genreName: normalizeTrackGenreName(genreName),
           clearGenreId: true,
         ),
         clearSuccessMessage: true,
@@ -111,6 +118,26 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
         form: state.form!.copyWith(
           releaseDate: value,
           clearReleaseDate: value == null,
+        ),
+        clearSuccessMessage: true,
+        clearErrorMessage: true,
+      ),
+    );
+  }
+
+  void updateCoverArtPath(String? value) {
+    if (!state.hasTrack) {
+      return;
+    }
+
+    final normalized = (value ?? '').trim();
+
+    emit(
+      state.copyWith(
+        status: TrackManagementStatus.ready,
+        form: state.form!.copyWith(
+          coverArtPath: normalized.isEmpty ? null : normalized,
+          clearCoverArtPath: normalized.isEmpty,
         ),
         clearSuccessMessage: true,
         clearErrorMessage: true,
@@ -174,6 +201,9 @@ class TrackManagementCubit extends Cubit<TrackManagementState> {
         clearDescription: form.normalizedDescription == null,
         genreName: form.normalizedGenreName,
         clearGenreName: form.normalizedGenreName == null,
+        artworkUrl: form.coverArtPath ??
+            apiTrack.artworkUrl ??
+            state.currentTrack!.artworkUrl,
         tags: form.sanitizedTags,
         releaseDate: form.releaseDate,
         clearReleaseDate: form.releaseDate == null,

@@ -24,13 +24,6 @@ void main() {
     remainingUploads: 0,
   );
 
-  final proSub = const Subscription(
-    subscriptionType: 'PRO',
-    uploadLimit: 1000,
-    uploadedTracks: 2,
-    remainingUploads: 998,
-  );
-
   blocTest<SubscriptionCubit, Subscription?>(
     'loads FREE subscription on init',
     build: () {
@@ -42,12 +35,13 @@ void main() {
   );
 
   blocTest<SubscriptionCubit, Subscription?>(
-    'upgrades to PRO',
+    'upgrade returns checkout URL (no state emit)',
     build: () {
-      when(() => repo.subscribe('PRO')).thenAnswer((_) async => proSub);
+      when(() => repo.createCheckout('PRO'))
+          .thenAnswer((_) async => 'https://checkout.url');
       return cubit;
     },
     act: (cubit) => cubit.upgrade('PRO'),
-    expect: () => [proSub],
+    expect: () => [], // ✅ FIX
   );
 }

@@ -1,7 +1,1 @@
-const List<String> kTrackGenreNames = <String>[
-  'Ambient',
-  'Electronic',
-  'Hip-Hop',
-  'Rock',
-  'Pop',
-];
+export '../../domain/entities/track_genre.dart';

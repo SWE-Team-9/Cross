@@ -39,17 +39,28 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_i
 
 // Project — library
 import '../features/library/presentation/pages/library_page.dart';
+import '../features/playlists/presentation/bloc/playlists_cubit.dart';
+import '../features/playlists/presentation/pages/playlist_detail_page.dart';
+
+// Project — notifications
+import '../features/playlists/presentation/pages/playlists_page.dart';
 import '../features/notifications/presentation/pages/notifications_page.dart';
 
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
 
 // Project — feed
+import '../features/feed/presentation/pages/feed_page.dart';
 
 // Project — search
 import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
 
-import '../features/feed/presentation/pages/feed_page.dart';
+// Project — messaging
+import '../features/messaging/domain/entities/conversation_entity.dart';
+import '../features/messaging/presentation/pages/chat_thread_loader_page.dart';
+import '../features/messaging/presentation/pages/chat_thread_page.dart';
+import '../features/messaging/presentation/pages/inbox_page.dart';
+import '../features/messaging/presentation/routes/messaging_routes.dart';
 
 // Project - premium
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
@@ -68,11 +79,17 @@ class AppRoutes {
   static const String suggestedUsers = '/suggested-users';
   static const String trackManagementDemo = '/track-management-demo';
   static const String player = '/player';
+  static const String playlists = '/playlists';
+
+  // ── Messaging ───────────────────────────────────────────────────────────
+  static const String inbox = '/messages';
+  static const String chatThread = '/messages/:conversationId';
   static const String notifications = '/notifications';
 
   // secretTrack MUST be before trackDetail — more specific path first
   static const String secretTrack = '/track/secret/:token';
   static const String trackDetail = '/track/:trackId';
+  static const String secretPlaylist = '/playlist/secret/:token';
   static const String playlist = '/playlist/:playlistId';
 }
 
@@ -81,6 +98,7 @@ String _trackPath(String trackId) => '/track/$trackId';
 String _secretPath(String token) => '/track/secret/$token';
 String _profilePath(String handle) => '/profile/$handle';
 String _playlistPath(String id) => '/playlist/$id';
+String _secretPlaylistPath(String token) => '/playlist/secret/$token';
 String _searchPath(String query) => '/search?q=$query';
 
 void _handleDeepLinkDestination(
@@ -92,7 +110,6 @@ void _handleDeepLinkDestination(
   switch (destination) {
     case TrackDeepLink(:final trackId):
       path = _trackPath(trackId);
-      debugPrint('[DeepLink] TrackDeepLink — path: $path');
 
     case SecretTrackDeepLink(:final secretToken):
       path = _secretPath(secretToken);
@@ -103,16 +120,17 @@ void _handleDeepLinkDestination(
     case PlaylistDeepLink(:final playlistId):
       path = _playlistPath(playlistId);
 
+    case SecretPlaylistDeepLink(:final secretToken):
+      path = _secretPlaylistPath(secretToken);
+
     case SearchDeepLink(:final query):
       path = _searchPath(query);
 
     case OAuthCallbackDeepLink():
-      debugPrint('[DeepLink] OAuth callback received');
       router.go('/oauth-debug', extra: destination);
       return;
 
-    case InvalidDeepLink(:final reason):
-      debugPrint('[DeepLink] Invalid link ignored: $reason');
+    case InvalidDeepLink():
       return;
   }
 
@@ -125,9 +143,7 @@ void _handleDeepLinkDestination(
 
   if (isOnAuthScreen) {
     _pendingDeepLink = path;
-    debugPrint('[DeepLink] Stored pending: $path');
   } else {
-    debugPrint('[DeepLink] Navigating to: $path');
     router.go(path);
   }
 }
@@ -211,6 +227,21 @@ GoRouter _createRouter() {
             const NoTransitionPage(child: LibraryPage()),
       ),
 
+      // ── Playlists list ─────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.playlists,
+        name: 'playlists',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          return MaterialPage(
+            child: BlocProvider<PlaylistsCubit>(
+              create: (_) => getIt<PlaylistsCubit>(),
+              child: const PlaylistsPage(),
+            ),
+          );
+        },
+      ),
+
       // ── Notifications ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.notifications,
@@ -232,7 +263,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Edit profile ─────────────────────────────────────────────────────────
+      // ── Edit profile ────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.editProfile,
         name: 'edit-profile',
@@ -248,7 +279,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Profile ──────────────────────────────────────────────────────────────
+      // ── Profile ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
@@ -261,7 +292,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Followers ────────────────────────────────────────────────────────────
+      // ── Followers ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.followers,
         name: 'followers',
@@ -272,7 +303,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Following ────────────────────────────────────────────────────────────
+      // ── Following ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.following,
         name: 'following',
@@ -283,7 +314,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Suggested users ───────────────────────────────────────────────────────
+      // ── Suggested users ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.suggestedUsers,
         name: 'suggested-users',
@@ -293,7 +324,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track management ─────────────────────────────────────────────────────
+      // ── Track management ────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.trackManagementDemo,
         name: 'track-management',
@@ -310,7 +341,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Full player ──────────────────────────────────────────────────────────
+      // ── Full player ─────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.player,
         name: 'player',
@@ -327,17 +358,19 @@ GoRouter _createRouter() {
               position: Tween<Offset>(
                 begin: const Offset(0, 1),
                 end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              )),
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
               child: child,
             );
           },
         ),
       ),
 
-      // ── Secret track — MUST be before trackDetail ────────────────────────────
+      // ── Secret track — MUST be before trackDetail ──────────────────────────
       GoRoute(
         path: AppRoutes.secretTrack,
         name: 'secret-track',
@@ -356,7 +389,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track detail ─────────────────────────────────────────────────────────
+      // ── Track detail ───────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.trackDetail,
         name: 'track-detail',
@@ -375,6 +408,72 @@ GoRouter _createRouter() {
         },
       ),
 
+      // ── Messaging ─────────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.inbox,
+        name: 'messages-inbox',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          return MaterialPage(
+            child: InboxPage(
+              onOpenConversation: (conversation) async {
+                await MessagingRoutes.goToConversation(context, conversation);
+              },
+            ),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: AppRoutes.chatThread,
+        name: 'messages-thread',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final conversationId = state.pathParameters['conversationId'] ?? '';
+          final extra = state.extra;
+
+          if (extra is ConversationEntity) {
+            return MaterialPage(
+              child: ChatThreadPage(
+                conversationId: extra.conversationId,
+                receiverId: extra.participant.id,
+                participantDisplayName: extra.participant.displayName,
+                participantHandle: extra.participant.handle,
+                participantAvatarUrl: extra.participant.avatarUrl,
+                canMessage: extra.canMessage,
+                blockReason: extra.blockReason,
+              ),
+            );
+          }
+
+          return MaterialPage(
+            child: ChatThreadLoaderPage(
+              conversationId: conversationId,
+            ),
+          );
+        },
+      ),
+
+      // ── Playlist ───────────────────────────────────────────────────────────
+      // ── Secret playlist ───────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.secretPlaylist,
+        name: 'secret-playlist',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final token = state.pathParameters['token'] ?? '';
+          return MaterialPage(
+            child: BlocProvider<PlaylistsCubit>(
+              create: (_) => getIt<PlaylistsCubit>(),
+              child: PlaylistDetailPage(
+                playlistId: '',
+                secretToken: token,
+              ),
+            ),
+          );
+        },
+      ),
+
       // ── Playlist ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlist,
@@ -383,13 +482,16 @@ GoRouter _createRouter() {
         pageBuilder: (context, state) {
           final playlistId = state.pathParameters['playlistId'] ?? '';
           return MaterialPage(
-            child: _PlaceholderPage(title: 'Playlist $playlistId'),
+            child: BlocProvider<PlaylistsCubit>(
+              create: (_) => getIt<PlaylistsCubit>(),
+              child: PlaylistDetailPage(playlistId: playlistId),
+            ),
           );
         },
       ),
     ],
 
-    // ── 404 fallback ──────────────────────────────────────────────────────────
+    // ── 404 fallback ────────────────────────────────────────────────────────
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: Colors.black,
       body: Center(
@@ -437,53 +539,56 @@ GoRouter _createRouter() {
 final router = _createRouter();
 GoRouter createRouter() => _createRouter();
 
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title});
+// class _PlaceholderPage extends StatelessWidget {
+//   const _PlaceholderPage({required this.title});
 
-  final String title;
+//   final String title;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.construction_outlined,
-                  size: 56, color: Colors.white54),
-              const SizedBox(height: 16),
-              Text(
-                '$title page is not implemented yet.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Temporary placeholder to keep navigation working on dev.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white54),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: () => context.go(AppRoutes.home),
-                child: const Text(
-                  'Go Home',
-                  style: TextStyle(color: Color(0xFFFF5500)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       backgroundColor: Colors.black,
+//       appBar: AppBar(
+//         backgroundColor: Colors.black,
+//         elevation: 0,
+//         title: Text(title, style: const TextStyle(color: Colors.white)),
+//         iconTheme: const IconThemeData(color: Colors.white),
+//       ),
+//       body: Center(
+//         child: Padding(
+//           padding: const EdgeInsets.symmetric(horizontal: 24),
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               const Icon(
+//                 Icons.construction_outlined,
+//                 size: 56,
+//                 color: Colors.white54,
+//               ),
+//               const SizedBox(height: 16),
+//               Text(
+//                 '$title page is not implemented yet.',
+//                 textAlign: TextAlign.center,
+//                 style: const TextStyle(color: Colors.white, fontSize: 18),
+//               ),
+//               const SizedBox(height: 8),
+//               const Text(
+//                 'Temporary placeholder to keep navigation working on dev.',
+//                 textAlign: TextAlign.center,
+//                 style: TextStyle(color: Colors.white54),
+//               ),
+//               const SizedBox(height: 20),
+//               TextButton(
+//                 onPressed: () => context.go(AppRoutes.home),
+//                 child: const Text(
+//                   'Go Home',
+//                   style: TextStyle(color: Color(0xFFFF5500)),
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

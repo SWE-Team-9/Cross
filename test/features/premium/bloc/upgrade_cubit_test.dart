@@ -4,7 +4,6 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:soundcloud_clone/features/premium/presentation/bloc/upgrade_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/upgrade_state.dart';
-import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 
 class MockSubscriptionRepository extends Mock
@@ -19,13 +18,6 @@ void main() {
     cubit = UpgradeCubit(repo);
   });
 
-  final proSub = const Subscription(
-    subscriptionType: 'PRO',
-    uploadLimit: 1000,
-    uploadedTracks: 2,
-    remainingUploads: 998,
-  );
-
   blocTest<UpgradeCubit, UpgradeState>(
     'selectPlan updates selected plan',
     build: () => cubit,
@@ -36,9 +28,10 @@ void main() {
   );
 
   blocTest<UpgradeCubit, UpgradeState>(
-    'subscribe emits loading then success',
+    'subscribe emits loading then success with checkout URL',
     build: () {
-      when(() => repo.subscribe('PRO')).thenAnswer((_) async => proSub);
+      when(() => repo.createCheckout('PRO'))
+          .thenAnswer((_) async => 'https://checkout.url');
       return cubit;
     },
     seed: () => const UpgradeState(selectedPlan: 'PRO'),
@@ -51,6 +44,7 @@ void main() {
       const UpgradeState(
         selectedPlan: 'PRO',
         status: UpgradeStatus.success,
+        checkoutUrl: 'https://checkout.url', // ✅ important
       ),
     ],
   );

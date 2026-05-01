@@ -6,8 +6,12 @@ import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:get_it/get_it.dart';
 
 class MockAudioPlayerService extends Mock implements AudioPlayerService {}
+
+class MockOfflineCubit extends Mock implements OfflineCubit {}
 
 class FakeTrack extends Fake implements Track {}
 
@@ -42,16 +46,31 @@ void main() {
     audioUrl: 'https://test.com/third.mp3',
   );
 
+  late MockOfflineCubit mockOfflineCubit;
+
   setUp(() {
     mockService = MockAudioPlayerService();
+    mockOfflineCubit = MockOfflineCubit();
+
+    if (GetIt.I.isRegistered<OfflineCubit>()) {
+      GetIt.I.unregister<OfflineCubit>();
+    }
+
+    GetIt.I.registerSingleton<OfflineCubit>(mockOfflineCubit);
+
+    // default offline behavior
+    when(() => mockOfflineCubit.isDownloaded(any())).thenReturn(false);
+    when(() => mockOfflineCubit.getPath(any())).thenReturn(null);
 
     when(() => mockService.playerStateStream)
         .thenAnswer((_) => const Stream.empty());
+
     when(() => mockService.playFromContext(
           tracks: any(named: 'tracks'),
           startIndex: any(named: 'startIndex'),
           source: any(named: 'source'),
         )).thenAnswer((_) async {});
+
     when(() => mockService.setRepeatMode(any())).thenAnswer((_) async {});
 
     cubit = PlayerCubit(mockService);
@@ -59,6 +78,7 @@ void main() {
 
   tearDown(() {
     cubit.close();
+    GetIt.I.reset();
   });
 
   group('PlayerCubit', () {
