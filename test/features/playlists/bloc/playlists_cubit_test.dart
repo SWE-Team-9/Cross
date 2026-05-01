@@ -134,9 +134,9 @@ void main() {
     );
 
     blocTest<PlaylistsCubit, PlaylistsState>(
-      'loadMyPlaylists emits error on failure',
+      'loadMyPlaylists emits login message on unauthorized failure',
       build: () {
-        when(() => getMy()).thenThrow(Exception('load failed'));
+        when(() => getMy()).thenThrow(Exception('401 unauthorized'));
         return buildCubit();
       },
       act: (cubit) => cubit.loadMyPlaylists(),
@@ -145,7 +145,7 @@ void main() {
             .having((s) => s.isLoadingMyPlaylists, 'loading', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isLoadingMyPlaylists, 'loading', isFalse)
-            .having((s) => s.errorMessage, 'error', contains('load failed')),
+            .having((s) => s.errorMessage, 'error', 'Please log in again'),
       ],
     );
 
@@ -200,7 +200,10 @@ void main() {
       );
 
       expect(created, isNull);
-      expect(cubit.state.errorMessage, contains('create failed'));
+      expect(
+        cubit.state.errorMessage,
+        'Something went wrong. Please try again',
+      );
     });
 
     blocTest<PlaylistsCubit, PlaylistsState>(
@@ -292,7 +295,7 @@ void main() {
           playlistId: 'pl_1',
           trackId: 'trk_fail',
         ),
-      ).thenThrow(Exception('add failed'));
+      ).thenThrow(Exception('403 forbidden'));
 
       final cubit = buildCubit();
       final added = await cubit.addTrackToPlaylist(
@@ -301,7 +304,10 @@ void main() {
       );
 
       expect(added, isFalse);
-      expect(cubit.state.errorMessage, contains('add failed'));
+      expect(
+        cubit.state.errorMessage,
+        'You do not have permission to do this',
+      );
     });
 
     blocTest<PlaylistsCubit, PlaylistsState>(
@@ -374,12 +380,11 @@ void main() {
           visibility: null,
           genreId: null,
         ),
-      ).thenThrow(Exception('update failed'));
-
+      ).thenThrow(Exception('400 validation failed'));
       final cubit = buildCubit();
       await cubit.updatePlaylist(playlistId: 'pl_1', title: 'New');
 
-      expect(cubit.state.errorMessage, contains('update failed'));
+      expect(cubit.state.errorMessage, 'Invalid playlist data');
       expect(cubit.state.isSubmitting, isFalse);
     });
 
@@ -428,12 +433,11 @@ void main() {
     );
 
     test('deletePlaylist emits error on failure', () async {
-      when(() => del('pl_1')).thenThrow(Exception('delete failed'));
-
+      when(() => del('pl_1')).thenThrow(Exception('404 not found'));
       final cubit = buildCubit();
       await cubit.deletePlaylist('pl_1');
 
-      expect(cubit.state.errorMessage, contains('delete failed'));
+      expect(cubit.state.errorMessage, 'Playlist not found');
       expect(cubit.state.isSubmitting, isFalse);
     });
 
@@ -507,7 +511,11 @@ void main() {
             .having((s) => s.isSubmitting, 'submitting', isFalse)
             .having(
                 (s) => s.selectedPlaylist?.tracks.length, 'rolled back len', 2)
-            .having((s) => s.errorMessage, 'error', contains('remove failed')),
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Something went wrong. Please try again',
+            ),
       ],
     );
 
@@ -587,7 +595,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'error',
-              contains('reorder failed'),
+              'Something went wrong. Please try again',
             ),
       ],
     );
@@ -654,7 +662,10 @@ void main() {
       final cubit = buildCubit();
       await cubit.resolveSecretPlaylist('bad_token');
 
-      expect(cubit.state.errorMessage, contains('secret failed'));
+      expect(
+        cubit.state.errorMessage,
+        'Something went wrong. Please try again',
+      );
       expect(cubit.state.isLoadingDetails, isFalse);
     });
 
@@ -676,9 +687,9 @@ void main() {
     );
 
     blocTest<PlaylistsCubit, PlaylistsState>(
-      'loadEmbedCode emits error on failure',
+      'loadEmbedCode emits permission message on forbidden failure',
       build: () {
-        when(() => embed('pl_1')).thenThrow(Exception('embed failed'));
+        when(() => embed('pl_1')).thenThrow(Exception('403 permission denied'));
         return buildCubit();
       },
       act: (cubit) => cubit.loadEmbedCode('pl_1'),
@@ -687,7 +698,11 @@ void main() {
             .having((s) => s.isSubmitting, 'submitting', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
-            .having((s) => s.errorMessage, 'error', contains('embed failed')),
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'You do not have permission to do this',
+            ),
       ],
     );
 

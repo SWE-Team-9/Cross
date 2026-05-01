@@ -500,7 +500,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isSubmitting: false,
-         errorMessage: _playlistErrorMessage(e),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -565,7 +565,12 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
 
       return true;
     } catch (e) {
-      emit(state.copyWith(isSubmitting: false, errorMessage: e.toString()));
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: _playlistErrorMessage(e),
+        ),
+      );
       return false;
     }
   }
@@ -887,8 +892,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       return 'You do not have permission to do this';
     }
 
-    if (normalized.contains('404') ||
-        normalized.contains('not found')) {
+    if (normalized.contains('404') || normalized.contains('not found')) {
       return 'Playlist not found';
     }
 
