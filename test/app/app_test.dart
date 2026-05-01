@@ -9,10 +9,15 @@ import 'package:soundcloud_clone/app/app.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_service.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart' as app_state;
+import 'package:dio/dio.dart';
+import 'package:soundcloud_clone/app/router.dart';
 import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
@@ -65,6 +70,9 @@ class FakeAudioPlayerService implements AudioPlayerService {
   Future<void> dispose() async {}
 
   @override
+  Future<void> playLocalFile(String path) async {}
+
+  @override
   Future<void> playFromContext({
     required List<Track> tracks,
     required int startIndex,
@@ -91,6 +99,10 @@ class FakeDeepLinkService implements DeepLinkService {
   @override
   Future<void> dispose() async {}
 }
+
+class MockDioClient extends Mock implements DioClient {}
+
+class MockOfflineRepository extends Mock implements OfflineRepository {}
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
@@ -128,12 +140,8 @@ Future<void> _pumpApp(
     MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>.value(value: authCubit),
-        BlocProvider(
-          create: (_) => SubscriptionCubit(MockSubscriptionRepository())
-            ..loadSubscription(),
-        ),
       ],
-      child: const App(),
+      child: App(routerConfig: createRouter()),
     ),
   );
 
@@ -146,6 +154,8 @@ void main() {
   late MockGetUnreadCountUseCase getUnreadCountUseCase;
   late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
 
+  late MockDioClient mockDioClient;
+
   setUp(() async {
     await GetIt.I.reset();
 
@@ -153,6 +163,7 @@ void main() {
 
     authCubit = MockAuthCubit();
     mockSocialRepo = MockSocialRepo();
+    mockDioClient = MockDioClient();
     getUnreadCountUseCase = MockGetUnreadCountUseCase();
     connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
 
@@ -166,13 +177,33 @@ void main() {
       (_) => const Stream<RealtimeMessageEventEntity>.empty(),
     );
 
+    when(() => mockDioClient.get<dynamic>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        )).thenAnswer(
+      (invocation) async => Response<dynamic>(
+        data: <dynamic>[],
+        requestOptions: RequestOptions(
+          path: invocation.positionalArguments[0] as String,
+        ),
+      ),
+    );
+
     GetIt.I.registerSingleton<AudioPlayerService>(FakeAudioPlayerService());
     GetIt.I.registerSingleton<DeepLinkService>(FakeDeepLinkService());
+    GetIt.I.registerSingleton<DioClient>(mockDioClient);
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
     GetIt.I.registerLazySingleton<SocialRepo>(() => mockSocialRepo);
 
     GetIt.I.registerLazySingleton<SubscriptionRepository>(
       () => MockSubscriptionRepository(),
+    );
+    GetIt.I.registerSingleton<OfflineCubit>(
+      OfflineCubit(MockOfflineRepository()),
+    );
+    GetIt.I.registerSingleton<SubscriptionCubit>(
+      SubscriptionCubit(GetIt.I<SubscriptionRepository>())..loadSubscription(),
     );
 
     GetIt.I.registerFactory<AuthCubit>(() => authCubit);
@@ -293,19 +324,6 @@ void main() {
         tester,
         authCubit,
         authState: authenticatedState,
-      );
-
-      await tester.pumpWidget(
-        MultiBlocProvider(
-          providers: [
-            BlocProvider<AuthCubit>.value(value: authCubit),
-            BlocProvider(
-              create: (_) => SubscriptionCubit(MockSubscriptionRepository())
-                ..loadSubscription(),
-            ),
-          ],
-          child: const App(),
-        ),
       );
       await tester.pumpAndSettle(const Duration(seconds: 5));
 

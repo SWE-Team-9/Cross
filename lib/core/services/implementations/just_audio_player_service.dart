@@ -148,10 +148,11 @@ class JustAudioPlayerService implements AudioPlayerService {
 
     await appHandler.setQueue([
       MediaItem(
-        id: 'offline',
+        id: path,
         title: 'Offline Track',
         artist: 'Unknown',
         extras: {
+          'url': path,
           'localPath': path,
         },
       ),
