@@ -3,230 +3,247 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
-import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
-import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
-import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
+import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
 class TrackRow extends StatelessWidget {
   final Track track;
   final List<Track>? queue;
   final bool showLikesCount;
-  final String source;
+  final String source; // ✅ NEW
 
   const TrackRow({
     super.key,
     required this.track,
     this.queue,
     this.showLikesCount = false,
-    this.source = "unknown",
+    this.source = "unknown", // ✅ DEFAULT
   });
 
   @override
   Widget build(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return BlocBuilder<PlayerCubit, PlayerUIState>(
-          builder: (context, state) {
-            final isCurrentTrack = state.currentTrack?.id == track.id;
-            final isPlaying = isCurrentTrack && state.isPlaying;
-            final wasPlayed = state.wasPlayed(track.id);
-            final opacity = wasPlayed && !isCurrentTrack ? 0.45 : 1.0;
+    return Builder(builder: (context) {
+      PlayerCubit? playerCubit;
+      try {
+        playerCubit = context.read<PlayerCubit>();
+      } catch (_) {
+        playerCubit = null;
+      }
 
-            return Opacity(
-              opacity: opacity,
-              child: InkWell(
-                onTap: () => _playTrack(context),
-                splashColor: Colors.white10,
-                highlightColor: Colors.white.withValues(alpha: 0.03),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isCurrentTrack
-                        ? const Color(0xFFFF5500).withValues(alpha: 0.06)
-                        : Colors.transparent,
-                    border: isCurrentTrack
-                        ? Border(
-                            left: BorderSide(
-                              color: const Color(0xFFFF5500)
-                                  .withValues(alpha: 0.7),
-                              width: 2,
-                            ),
-                          )
-                        : null,
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: isCurrentTrack ? 12 : 14,
-                      right: 14,
-                      top: 8,
-                      bottom: 8,
+      Widget buildForState(PlayerUIState state) {
+        final isCurrentTrack = state.currentTrack?.id == track.id;
+        final isPlaying = isCurrentTrack && state.isPlaying;
+        final wasPlayed = state.wasPlayed(track.id);
+
+        final opacity = wasPlayed && !isCurrentTrack ? 0.45 : 1.0;
+
+        return Opacity(
+          opacity: opacity,
+          child: InkWell(
+            onTap: () => _playTrack(context),
+            splashColor: Colors.white10,
+            child: Container(
+              color: isCurrentTrack
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.transparent,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.grey[800],
+                        image: track.artworkUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(track.artworkUrl!),
+                                fit: BoxFit.cover,
+                                onError: (_, __) {},
+                              )
+                            : null,
+                      ),
+                      child: track.artworkUrl == null
+                          ? const Icon(Icons.music_note, color: Colors.white)
+                          : null,
                     ),
-                    child: Row(
-                      children: [
-                        // Artwork
-                        Stack(
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(6),
-                                color: const Color(0xFF1E1E1E),
-                                image: track.artworkUrl != null
-                                    ? DecorationImage(
-                                        image: NetworkImage(track.artworkUrl!),
-                                        fit: BoxFit.cover,
-                                        onError: (_, __) {},
-                                      )
-                                    : null,
-                              ),
-                              child: track.artworkUrl == null
-                                  ? Icon(
-                                      Icons.music_note,
-                                      color:
-                                          Colors.white.withValues(alpha: 0.4),
-                                      size: 22,
-                                    )
-                                  : null,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            track.title,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
-                            if (isPlaying)
-                              Positioned.fill(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(6),
-                                    color: Colors.black.withValues(alpha: 0.45),
-                                  ),
-                                  child: const Icon(
-                                    Icons.equalizer,
-                                    color: Color(0xFFFF5500),
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(width: 12),
-
-                        // Title + subtitle
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                track.title,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: isCurrentTrack
-                                      ? Colors.white
-                                      : Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: isCurrentTrack
-                                      ? FontWeight.w700
-                                      : FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              if (isPlaying)
-                                Row(
-                                  children: [
-                                    _WaveformIcon(),
-                                    const SizedBox(width: 5),
-                                    const Text(
-                                      'Now Playing',
-                                      style: TextStyle(
-                                        color: Color(0xFFFF5500),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              else
-                                Text(
-                                  showLikesCount
-                                      ? '${track.artist} · ${track.likesCount} likes'
-                                      : track.artist,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.45),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                            ],
                           ),
-                        ),
-
-                        // Actions
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BlocBuilder<SubscriptionCubit, Subscription?>(
-                              builder: (context, sub) {
-                                final canDownload = sub?.canDownload ?? false;
-                                if (!canDownload) return const SizedBox();
-
-                                return BlocBuilder<OfflineCubit, OfflineState>(
-                                  builder: (context, offlineState) {
-                                    final offlineCubit =
-                                        context.read<OfflineCubit>();
-                                    final isDownloaded =
-                                        offlineCubit.isDownloaded(track.id);
-
-                                    return _DownloadButton(
-                                      isDownloaded: isDownloaded,
-                                      onTap: () async {
-                                        try {
-                                          await offlineCubit.download(track.id);
-                                          if (!context.mounted) return;
-                                          _showDownloadSnackbar(context, true);
-                                        } catch (e) {
-                                          if (!context.mounted) return;
-                                          if (e
-                                              .toString()
-                                              .contains('UPGRADE_REQUIRED')) {
-                                            Navigator.pushNamed(
-                                                context, '/upgrade');
-                                          } else {
-                                            _showDownloadSnackbar(
-                                                context, false);
-                                          }
-                                        }
-                                      },
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 2),
-                            GestureDetector(
-                              onTap: () =>
-                                  TrackOptionsSheet.show(context, track: track),
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  Icons.more_vert,
-                                  color: Colors.white.withValues(alpha: 0.35),
-                                  size: 18,
+                          const SizedBox(height: 3),
+                          if (isPlaying)
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.equalizer,
+                                  color: Color(0xFFFF5500),
+                                  size: 16,
                                 ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Now Playing',
+                                  style: TextStyle(
+                                    color: Color(0xFFFF5500),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              showLikesCount
+                                  ? '${track.artist} - ${track.likesCount} likes'
+                                  : track.artist,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF999999),
+                                fontSize: 12,
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                    _buildDownloadAction(context),
+                    IconButton(
+                      onPressed: () =>
+                          TrackOptionsSheet.show(context, track: track),
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
+          ),
+        );
+      }
+
+      if (playerCubit != null) {
+        return BlocBuilder<PlayerCubit, PlayerUIState>(
+          bloc: playerCubit,
+          builder: (context, state) => buildForState(state),
+        );
+      }
+
+      final defaultState = PlayerUIState(
+        playerState: const PlayerState(
+            status: PlayerStatus.idle, position: Duration.zero),
+      );
+      return buildForState(defaultState);
+    });
+  }
+
+  Future<void> _playTrack(BuildContext context) async {
+    final playerCubit = context.read<PlayerCubit>();
+    final offlineCubit = _lookupCubit<OfflineCubit>(context);
+    final tracks = queue ?? [track];
+    final index = tracks.indexWhere((t) => t.id == track.id);
+    final safeIndex = index >= 0 ? index : 0;
+    final playableTracks = _withOfflinePaths(tracks, offlineCubit);
+    final selectedTrack = playableTracks[safeIndex];
+
+    if (selectedTrack.audioUrl.trim().isNotEmpty) {
+      await playerCubit.playFromContext(
+        tracks: playableTracks,
+        startIndex: safeIndex,
+        source: source,
+      );
+      return;
+    }
+
+    if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Playback is not available right now')),
+      );
+      return;
+    }
+
+    final result = await getIt<GetTrackDetailUseCase>()(selectedTrack.id);
+    if (!context.mounted) return;
+
+    final detail = result.detail;
+    if (result.failure != null || detail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.failure?.message ?? 'Failed to load track for playback',
+          ),
+        ),
+      );
+      return;
+    }
+
+    await playerCubit.playFromContext(
+      tracks: [_withOfflinePath(detail.toPlaybackTrack(), offlineCubit)],
+      startIndex: 0,
+      source: source,
+    );
+  }
+
+  Widget _buildDownloadAction(BuildContext context) {
+    final subscriptionCubit = _lookupCubit<SubscriptionCubit>(context);
+    final offlineCubit = _lookupCubit<OfflineCubit>(context);
+
+    if (subscriptionCubit == null || offlineCubit == null) {
+      return const SizedBox.shrink();
+    }
+
+    return BlocBuilder<SubscriptionCubit, Subscription?>(
+      bloc: subscriptionCubit,
+      builder: (context, subscription) {
+        final canDownload = subscription?.canDownload ?? false;
+        if (!canDownload) return const SizedBox.shrink();
+
+        return BlocBuilder<OfflineCubit, OfflineState>(
+          bloc: offlineCubit,
+          builder: (context, offlineState) {
+            final isDownloaded = offlineCubit.isDownloaded(track.id);
+
+            return _DownloadButton(
+              isDownloaded: isDownloaded,
+              onTap: () async {
+                try {
+                  await offlineCubit.download(track.id);
+                  if (!context.mounted) return;
+                  _showDownloadSnackbar(context, true);
+                } catch (e) {
+                  if (!context.mounted) return;
+                  if (e.toString().contains('UPGRADE_REQUIRED')) {
+                    Navigator.pushNamed(context, '/upgrade');
+                  } else {
+                    _showDownloadSnackbar(context, false);
+                  }
+                }
+              },
             );
           },
         );
@@ -234,12 +251,39 @@ class TrackRow extends StatelessWidget {
     );
   }
 
+  List<Track> _withOfflinePaths(
+    List<Track> tracks,
+    OfflineCubit? offlineCubit,
+  ) {
+    if (offlineCubit == null) return tracks;
+
+    return tracks.map((item) => _withOfflinePath(item, offlineCubit)).toList();
+  }
+
+  Track _withOfflinePath(Track track, OfflineCubit? offlineCubit) {
+    if (offlineCubit == null || !offlineCubit.isDownloaded(track.id)) {
+      return track;
+    }
+
+    final localPath = offlineCubit.getPath(track.id);
+    if (localPath == null || localPath.trim().isEmpty) return track;
+    return track.copyWith(localPath: localPath);
+  }
+
+  T? _lookupCubit<T extends Object>(BuildContext context) {
+    try {
+      return context.read<T>();
+    } catch (_) {
+      if (getIt.isRegistered<T>()) return getIt<T>();
+      return null;
+    }
+  }
+
   void _showDownloadSnackbar(BuildContext context, bool success) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor:
-            success ? const Color(0xFF1A1A1A) : const Color(0xFF1A1A1A),
+        backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
           side: BorderSide(
@@ -284,33 +328,9 @@ class TrackRow extends StatelessWidget {
     );
   }
 
-  Future<void> _playTrack(BuildContext context) async {
-    final playerCubit = context.read<PlayerCubit>();
-    final offlineCubit = context.read<OfflineCubit>();
-
-    final tracks = queue ?? [track];
-    final index = tracks.indexWhere((t) => t.id == track.id);
-    final safeIndex = index >= 0 ? index : 0;
-
-    // 🔥 inject localPath into tracks
-    final updatedTracks = tracks.map((t) {
-      if (offlineCubit.isDownloaded(t.id)) {
-        return t.copyWith(
-          localPath: offlineCubit.getPath(t.id),
-        );
-      }
-      return t;
-    }).toList();
-
-    await playerCubit.playFromContext(
-      tracks: updatedTracks,
-      startIndex: safeIndex,
-      source: source,
-    );
-  }
-
   void _openComments(BuildContext context) {
     Navigator.pop(context);
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -422,7 +442,6 @@ class TrackRow extends StatelessWidget {
   }
 }
 
-// ── Download Button ──────────────────────────────────────────────────────────
 class _DownloadButton extends StatelessWidget {
   final bool isDownloaded;
   final VoidCallback onTap;
@@ -464,62 +483,4 @@ class _DownloadButton extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Animated waveform bars ───────────────────────────────────────────────────
-class _WaveformIcon extends StatefulWidget {
-  @override
-  State<_WaveformIcon> createState() => _WaveformIconState();
-}
-
-class _WaveformIconState extends State<_WaveformIcon>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) {
-        final v = _ctrl.value;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            _bar(4 + 6 * v),
-            const SizedBox(width: 2),
-            _bar(10 - 6 * v),
-            const SizedBox(width: 2),
-            _bar(6 + 4 * v),
-            const SizedBox(width: 2),
-            _bar(10 - 4 * v),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _bar(double h) => Container(
-        width: 2.5,
-        height: h,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFF5500),
-          borderRadius: BorderRadius.circular(2),
-        ),
-      );
 }

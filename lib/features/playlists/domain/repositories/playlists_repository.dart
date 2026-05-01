@@ -35,10 +35,20 @@ abstract class PlaylistsRepository {
 
   Future<void> deletePlaylist(String playlistId);
 
+  Future<List<PlaylistEntity>> getLikedPlaylists({
+    int page = 1,
+    int limit = 20,
+  });
+
+  Future<List<PlaylistEntity>> searchPublicPlaylists(
+    String query, {
+    int page = 1,
+    int limit = 20,
+  });
+
   Future<void> likePlaylist(String playlistId);
 
   Future<void> unlikePlaylist(String playlistId);
-
   Future<void> addTrackToPlaylist({
     required String playlistId,
     required String trackId,

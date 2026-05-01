@@ -15,6 +15,7 @@ import 'package:soundcloud_clone/features/messaging/domain/usecases/delete_messa
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversation_messages_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/send_text_message_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/share_track_message_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/pages/chat_thread_page.dart';
 
 class MockGetConversationMessagesUseCase extends Mock
@@ -27,6 +28,9 @@ class MockMarkConversationReadUseCase extends Mock
     implements MarkConversationReadUseCase {}
 
 class MockDeleteMessageUseCase extends Mock implements DeleteMessageUseCase {}
+
+class MockShareTrackMessageUseCase extends Mock
+    implements ShareTrackMessageUseCase {}
 
 class MockConnectMessagingSocketUseCase extends Mock
     implements ConnectMessagingSocketUseCase {}
@@ -42,6 +46,7 @@ void main() {
   late MockSendTextMessageUseCase sendTextMessageUseCase;
   late MockMarkConversationReadUseCase markConversationReadUseCase;
   late MockDeleteMessageUseCase deleteMessageUseCase;
+  late MockShareTrackMessageUseCase shareTrackMessageUseCase;
   late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
   late StreamController<RealtimeMessageEventEntity> socketController;
   late MockAuthCubit authCubit;
@@ -87,6 +92,7 @@ void main() {
     sendTextMessageUseCase = MockSendTextMessageUseCase();
     markConversationReadUseCase = MockMarkConversationReadUseCase();
     deleteMessageUseCase = MockDeleteMessageUseCase();
+    shareTrackMessageUseCase = MockShareTrackMessageUseCase();
     connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
     socketController = StreamController<RealtimeMessageEventEntity>.broadcast();
     authCubit = MockAuthCubit();
@@ -103,6 +109,9 @@ void main() {
     getIt.registerSingleton<DeleteMessageUseCase>(
       deleteMessageUseCase,
     );
+    getIt.registerSingleton<ShareTrackMessageUseCase>(
+      shareTrackMessageUseCase,
+    );
     getIt.registerSingleton<ConnectMessagingSocketUseCase>(
       connectMessagingSocketUseCase,
     );
@@ -114,6 +123,25 @@ void main() {
     when(
       () => deleteMessageUseCase(any()),
     ).thenAnswer((_) async {});
+
+    when(
+      () => shareTrackMessageUseCase(
+        receiverId: any(named: 'receiverId'),
+        trackId: any(named: 'trackId'),
+        text: any(named: 'text'),
+      ),
+    ).thenAnswer((_) async => MessageEntity(
+          id: 'message-1',
+          conversationId: 'conversation-1',
+          senderId: 'sender-1',
+          receiverId: 'receiver-1',
+          type: MessageType.trackShare,
+          text: null,
+          isRead: false,
+          createdAt: DateTime(2026, 4, 30, 10),
+          sharedTrack: null,
+          sharedPlaylist: null,
+        ));
 
     when(
       () => connectMessagingSocketUseCase(),

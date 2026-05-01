@@ -93,11 +93,16 @@ import '../../features/playlists/domain/usecases/create_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/delete_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/get_my_playlists_usecase.dart';
 import '../../features/playlists/domain/usecases/get_playlist_details_usecase.dart';
+import '../../features/playlists/domain/usecases/get_playlist_edit_details_usecase.dart';
 import '../../features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
+import '../../features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/like_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
 import '../../features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/update_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/upload_playlist_cover_usecase.dart';
 import '../../features/playlists/presentation/bloc/playlists_cubit.dart';
 
 // Comments
@@ -683,6 +688,7 @@ Future<void> setupDependencies() async {
       () => ShareTrackToConversationCubit(
         getConversationsUseCase: getIt<GetConversationsUseCase>(),
         shareTrackMessageUseCase: getIt<ShareTrackMessageUseCase>(),
+        sharePlaylistMessageUseCase: getIt<SharePlaylistMessageUseCase>(),
       ),
     );
   }
@@ -881,13 +887,39 @@ Future<void> setupDependencies() async {
       () => GetPlaylistDetailsUseCase(getIt<PlaylistsRepository>()),
     );
   }
-
+  if (!getIt.isRegistered<GetPlaylistEditDetailsUseCase>()) {
+    getIt.registerLazySingleton<GetPlaylistEditDetailsUseCase>(
+      () => GetPlaylistEditDetailsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
   if (!getIt.isRegistered<UpdatePlaylistUseCase>()) {
     getIt.registerLazySingleton<UpdatePlaylistUseCase>(
       () => UpdatePlaylistUseCase(getIt<PlaylistsRepository>()),
     );
   }
+  if (!getIt.isRegistered<UploadPlaylistCoverUseCase>()) {
+    getIt.registerLazySingleton<UploadPlaylistCoverUseCase>(
+      () => UploadPlaylistCoverUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
 
+  if (!getIt.isRegistered<GetRecentPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetRecentPlaylistsUseCase>(
+      () => GetRecentPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<LikePlaylistUseCase>()) {
+    getIt.registerLazySingleton<LikePlaylistUseCase>(
+      () => LikePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnlikePlaylistUseCase>()) {
+    getIt.registerLazySingleton<UnlikePlaylistUseCase>(
+      () => UnlikePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
   if (!getIt.isRegistered<DeletePlaylistUseCase>()) {
     getIt.registerLazySingleton<DeletePlaylistUseCase>(
       () => DeletePlaylistUseCase(getIt<PlaylistsRepository>()),
@@ -930,13 +962,17 @@ Future<void> setupDependencies() async {
         getMyPlaylistsUseCase: getIt<GetMyPlaylistsUseCase>(),
         createPlaylistUseCase: getIt<CreatePlaylistUseCase>(),
         getPlaylistDetailsUseCase: getIt<GetPlaylistDetailsUseCase>(),
+        getPlaylistEditDetailsUseCase: getIt<GetPlaylistEditDetailsUseCase>(),
         updatePlaylistUseCase: getIt<UpdatePlaylistUseCase>(),
+        uploadPlaylistCoverUseCase: getIt<UploadPlaylistCoverUseCase>(),
         deletePlaylistUseCase: getIt<DeletePlaylistUseCase>(),
         addTrackToPlaylistUseCase: getIt<AddTrackToPlaylistUseCase>(),
         removeTrackFromPlaylistUseCase: getIt<RemoveTrackFromPlaylistUseCase>(),
         reorderPlaylistTracksUseCase: getIt<ReorderPlaylistTracksUseCase>(),
         resolveSecretPlaylistUseCase: getIt<ResolveSecretPlaylistUseCase>(),
         getPlaylistEmbedCodeUseCase: getIt<GetPlaylistEmbedCodeUseCase>(),
+        likePlaylistUseCase: getIt<LikePlaylistUseCase>(),
+        unlikePlaylistUseCase: getIt<UnlikePlaylistUseCase>(),
       ),
     );
   }

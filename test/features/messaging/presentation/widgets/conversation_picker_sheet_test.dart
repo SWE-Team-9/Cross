@@ -10,6 +10,7 @@ import 'package:soundcloud_clone/features/messaging/domain/entities/message_enti
 import 'package:soundcloud_clone/features/messaging/domain/entities/message_type.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/participant_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversations_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/share_playlist_message_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/share_track_message_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/share_track_to_conversation_cubit.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/widgets/conversation_picker_sheet.dart';
@@ -20,9 +21,13 @@ class MockGetConversationsUseCase extends Mock
 class MockShareTrackMessageUseCase extends Mock
     implements ShareTrackMessageUseCase {}
 
+class MockSharePlaylistMessageUseCase extends Mock
+    implements SharePlaylistMessageUseCase {}
+
 void main() {
   late MockGetConversationsUseCase getConversationsUseCase;
   late MockShareTrackMessageUseCase shareTrackMessageUseCase;
+  late MockSharePlaylistMessageUseCase sharePlaylistMessageUseCase;
   late ShareTrackToConversationCubit cubit;
 
   const participant = ParticipantEntity(
@@ -72,10 +77,12 @@ void main() {
   setUp(() {
     getConversationsUseCase = MockGetConversationsUseCase();
     shareTrackMessageUseCase = MockShareTrackMessageUseCase();
+    sharePlaylistMessageUseCase = MockSharePlaylistMessageUseCase();
 
     cubit = ShareTrackToConversationCubit(
       getConversationsUseCase: getConversationsUseCase,
       shareTrackMessageUseCase: shareTrackMessageUseCase,
+      sharePlaylistMessageUseCase: sharePlaylistMessageUseCase,
     );
   });
 

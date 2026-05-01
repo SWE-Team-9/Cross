@@ -11,6 +11,8 @@ import 'package:soundcloud_clone/features/messaging/domain/usecases/delete_messa
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversation_messages_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/send_text_message_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/share_playlist_message_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/share_track_message_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/chat_thread_cubit.dart';
 
 class MockGetConversationMessagesUseCase extends Mock
@@ -27,6 +29,12 @@ class MockDeleteMessageUseCase extends Mock implements DeleteMessageUseCase {}
 class MockConnectMessagingSocketUseCase extends Mock
     implements ConnectMessagingSocketUseCase {}
 
+class MockShareTrackMessageUseCase extends Mock
+    implements ShareTrackMessageUseCase {}
+
+class MockSharePlaylistMessageUseCase extends Mock
+    implements SharePlaylistMessageUseCase {}
+
 void main() {
   group('ChatThreadCubit', () {
     late MockGetConversationMessagesUseCase getConversationMessagesUseCase;
@@ -34,6 +42,8 @@ void main() {
     late MockMarkConversationReadUseCase markConversationReadUseCase;
     late MockDeleteMessageUseCase deleteMessageUseCase;
     late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
+    late MockShareTrackMessageUseCase shareTrackMessageUseCase;
+    late MockSharePlaylistMessageUseCase sharePlaylistMessageUseCase;
     late StreamController<RealtimeMessageEventEntity> socketController;
     late ChatThreadCubit cubit;
 
@@ -41,14 +51,16 @@ void main() {
       String id, {
       DateTime? createdAt,
       String conversationId = 'conversation-1',
+      String? senderId,
+      String? text,
     }) {
       return MessageEntity(
         id: id,
         conversationId: conversationId,
-        senderId: 'sender-1',
+        senderId: senderId ?? 'sender-1',
         receiverId: 'receiver-1',
         type: MessageType.text,
-        text: 'Hello $id',
+        text: text ?? 'Hello $id',
         isRead: false,
         createdAt: createdAt ?? DateTime.utc(2026, 4, 30),
         sharedTrack: null,
@@ -75,6 +87,8 @@ void main() {
       markConversationReadUseCase = MockMarkConversationReadUseCase();
       deleteMessageUseCase = MockDeleteMessageUseCase();
       connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+      shareTrackMessageUseCase = MockShareTrackMessageUseCase();
+      sharePlaylistMessageUseCase = MockSharePlaylistMessageUseCase();
       socketController =
           StreamController<RealtimeMessageEventEntity>.broadcast();
 
@@ -96,6 +110,8 @@ void main() {
         markConversationReadUseCase: markConversationReadUseCase,
         deleteMessageUseCase: deleteMessageUseCase,
         connectMessagingSocketUseCase: connectMessagingSocketUseCase,
+        shareTrackMessageUseCase: shareTrackMessageUseCase,
+        sharePlaylistMessageUseCase: sharePlaylistMessageUseCase,
       );
     });
 
@@ -264,6 +280,150 @@ void main() {
       ).called(1);
     });
 
+    test('sendText adds optimistic message before API completes', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+
+      final completer = Completer<MessageEntity>();
+      when(
+        () => sendTextMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          text: any(named: 'text'),
+        ),
+      ).thenAnswer((_) => completer.future);
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+        currentUserId: 'sender-1',
+      );
+
+      final sendFuture = cubit.sendText('  Hello now  ');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.isSending, isTrue);
+      expect(cubit.state.messages.single.id, startsWith('local-'));
+      expect(cubit.state.messages.single.text, 'Hello now');
+      expect(cubit.state.messages.single.senderId, 'sender-1');
+
+      completer.complete(
+        message(
+          'sent',
+          createdAt: DateTime.utc(2026, 4, 30, 10),
+        ).copyWith(text: 'Hello now'),
+      );
+      await sendFuture;
+
+      expect(cubit.state.isSending, isFalse);
+      expect(cubit.state.messages.single.id, 'sent');
+    });
+
+    test('sendText keeps optimistic content when API response is sparse',
+        () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+
+      when(
+        () => sendTextMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          text: any(named: 'text'),
+        ),
+      ).thenAnswer(
+        (_) async => MessageEntity(
+          id: '',
+          conversationId: '',
+          senderId: null,
+          receiverId: null,
+          type: MessageType.unknown,
+          text: null,
+          isRead: false,
+          createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+          sharedTrack: null,
+          sharedPlaylist: null,
+        ),
+      );
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+        currentUserId: 'sender-1',
+      );
+
+      await cubit.sendText('Hello stable');
+
+      expect(cubit.state.messages.single.id, startsWith('local-'));
+      expect(cubit.state.messages.single.text, 'Hello stable');
+      expect(cubit.state.messages.single.createdAt.year, greaterThan(2000));
+      expect(cubit.state.messages.single.isDeleted, isFalse);
+    });
+
+    test('socket echo replaces matching optimistic message', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+
+      final completer = Completer<MessageEntity>();
+      when(
+        () => sendTextMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          text: any(named: 'text'),
+        ),
+      ).thenAnswer((_) => completer.future);
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+        currentUserId: 'sender-1',
+      );
+
+      final sendFuture = cubit.sendText('Echo me');
+      await Future<void>.delayed(Duration.zero);
+
+      socketController.add(
+        RealtimeMessageEventEntity(
+          type: RealtimeMessageEventType.newMessage,
+          conversationId: 'conversation-1',
+          message: message(
+            'socket-sent',
+            senderId: 'sender-1',
+            text: 'Echo me',
+            createdAt: DateTime.now(),
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.messages, hasLength(1));
+      expect(cubit.state.messages.single.id, 'socket-sent');
+
+      completer.complete(
+        message(
+          'socket-sent',
+          senderId: 'sender-1',
+          text: 'Echo me',
+          createdAt: DateTime.now(),
+        ),
+      );
+      await sendFuture;
+
+      expect(cubit.state.messages, hasLength(1));
+      expect(cubit.state.messages.single.id, 'socket-sent');
+    });
+
     test('sendText ignores blank text', () async {
       await cubit.sendText('   ');
 
@@ -296,7 +456,8 @@ void main() {
       expect(cubit.state.errorMessage, 'You cannot message this user.');
     });
 
-    test('deleteMessage removes message from state', () async {
+    test('deleteMessage marks message as deleted, then removes placeholder',
+        () async {
       when(
         () => getConversationMessagesUseCase(
           any(),
@@ -323,8 +484,18 @@ void main() {
 
       await cubit.deleteMessage('message-1');
 
-      expect(cubit.state.messages.map((m) => m.id), ['message-2']);
+      expect(cubit.state.messages, hasLength(2));
+      expect(
+        cubit.state.messages
+            .firstWhere((message) => message.id == 'message-1')
+            .isDeleted,
+        isTrue,
+      );
       verify(() => deleteMessageUseCase('message-1')).called(1);
+
+      await cubit.deleteMessage('message-1');
+
+      expect(cubit.state.messages.map((m) => m.id), ['message-2']);
     });
 
     test('socket newMessage appends matching conversation message', () async {
@@ -354,7 +525,7 @@ void main() {
       expect(cubit.state.messages.single.id, 'socket-message');
     });
 
-    test('socket messageDeleted removes matching message', () async {
+    test('socket messageDeleted marks matching message as deleted', () async {
       when(
         () => getConversationMessagesUseCase(
           any(),
@@ -385,7 +556,10 @@ void main() {
 
       await Future<void>.delayed(Duration.zero);
 
-      expect(cubit.state.messages.map((m) => m.id), ['message-2']);
+      final deleted = cubit.state.messages.firstWhere(
+        (message) => message.id == 'message-1',
+      );
+      expect(deleted.isDeleted, isTrue);
     });
 
     test('socket userBlocked disables sending and emits error', () async {

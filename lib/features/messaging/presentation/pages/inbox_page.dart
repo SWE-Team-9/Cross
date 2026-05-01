@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/usecases/archive_conversation_usecase.dart';
+import '../../domain/usecases/connect_messaging_socket_usecase.dart';
 import '../../domain/usecases/get_conversations_usecase.dart';
 import '../../domain/usecases/mark_conversation_read_usecase.dart';
 import '../../domain/usecases/mark_conversation_unread_usecase.dart';
@@ -14,7 +15,8 @@ import '../messaging_theme.dart';
 import '../widgets/conversation_tile.dart';
 
 class InboxPage extends StatelessWidget {
-  final ValueChanged<ConversationEntity> onOpenConversation;
+  final Future<void> Function(ConversationEntity conversation)
+      onOpenConversation;
 
   const InboxPage({
     super.key,
@@ -30,6 +32,7 @@ class InboxPage extends StatelessWidget {
         markConversationUnreadUseCase: GetIt.I<MarkConversationUnreadUseCase>(),
         archiveConversationUseCase: GetIt.I<ArchiveConversationUseCase>(),
         unarchiveConversationUseCase: GetIt.I<UnarchiveConversationUseCase>(),
+        connectMessagingSocketUseCase: GetIt.I<ConnectMessagingSocketUseCase>(),
       )..loadInitial(),
       child: _InboxView(onOpenConversation: onOpenConversation),
     );
@@ -37,7 +40,8 @@ class InboxPage extends StatelessWidget {
 }
 
 class _InboxView extends StatefulWidget {
-  final ValueChanged<ConversationEntity> onOpenConversation;
+  final Future<void> Function(ConversationEntity conversation)
+      onOpenConversation;
 
   const _InboxView({
     required this.onOpenConversation,
@@ -69,15 +73,20 @@ class _InboxViewState extends State<_InboxView> {
     super.dispose();
   }
 
-  void _openConversationAsRead(
+  Future<void> _openConversationAsRead(
     BuildContext context,
     ConversationEntity conversation,
-  ) {
-    context.read<InboxCubit>().markConversationAsRead(
-          conversation.conversationId,
-        );
+  ) async {
+    final inboxCubit = context.read<InboxCubit>();
 
-    widget.onOpenConversation(conversation);
+    await inboxCubit.markConversationAsRead(
+      conversation.conversationId,
+    );
+
+    await widget.onOpenConversation(conversation);
+
+    if (!mounted) return;
+    await inboxCubit.refresh();
   }
 
   void _showConversationActions(
@@ -207,6 +216,26 @@ class _InboxViewState extends State<_InboxView> {
           },
         ),
         actions: [
+          BlocBuilder<InboxCubit, InboxState>(
+            builder: (context, state) {
+              return IconButton(
+                tooltip: 'Refresh',
+                onPressed: state.isLoading || state.isRefreshing
+                    ? null
+                    : () => context.read<InboxCubit>().refresh(),
+                icon: state.isRefreshing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: MessagingTheme.accent,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.refresh, color: Colors.white70),
+              );
+            },
+          ),
           BlocBuilder<InboxCubit, InboxState>(
             builder: (context, state) {
               return TextButton.icon(
@@ -354,10 +383,12 @@ class _InboxViewState extends State<_InboxView> {
                   ),
                   child: ConversationTile(
                     conversation: conversation,
-                    onTap: () => _openConversationAsRead(
-                      context,
-                      conversation,
-                    ),
+                    onTap: () {
+                      _openConversationAsRead(
+                        context,
+                        conversation,
+                      );
+                    },
                     onMorePressed: () => _showConversationActions(
                       context,
                       conversation,

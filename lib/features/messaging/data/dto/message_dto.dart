@@ -29,24 +29,42 @@ class MessageDto {
   });
 
   factory MessageDto.fromJson(Map<String, dynamic> json) {
-    final sharedTrackMap = json['sharedTrack'] is Map
-        ? Map<String, dynamic>.from(json['sharedTrack'] as Map)
+    final source = _messageJson(json);
+
+    final sharedTrackRaw =
+        source['sharedTrack'] ?? source['shared_track'] ?? source['track'];
+    final sharedTrackMap = sharedTrackRaw is Map
+        ? Map<String, dynamic>.from(sharedTrackRaw)
         : null;
 
-    final sharedPlaylistMap = json['sharedPlaylist'] is Map
-        ? Map<String, dynamic>.from(json['sharedPlaylist'] as Map)
+    final sharedPlaylistRaw = source['sharedPlaylist'] ??
+        source['shared_playlist'] ??
+        source['playlist'];
+    final sharedPlaylistMap = sharedPlaylistRaw is Map
+        ? Map<String, dynamic>.from(sharedPlaylistRaw)
         : null;
 
     return MessageDto(
-      id: (json['id'] ?? json['messageId'] ?? json['_id'] ?? '').toString(),
-      conversationId:
-          (json['conversationId'] ?? json['conversation_id'] ?? '').toString(),
-      senderId: _nullableString(json['senderId'] ?? json['sender_id']),
-      receiverId: _nullableString(json['receiverId'] ?? json['receiver_id']),
-      type: MessageTypeX.fromApi(json['type']),
-      text: _nullableString(json['text']),
-      isRead: _toBool(json['isRead'] ?? json['is_read']) ?? false,
-      createdAt: _parseDateTime(json['createdAt'] ?? json['created_at']),
+      id: (source['id'] ??
+              source['messageId'] ??
+              source['message_id'] ??
+              source['_id'] ??
+              '')
+          .toString(),
+      conversationId: (source['conversationId'] ??
+              source['conversation_id'] ??
+              source['conversation'] ??
+              '')
+          .toString(),
+      senderId: _nullableString(source['senderId'] ?? source['sender_id']),
+      receiverId:
+          _nullableString(source['receiverId'] ?? source['receiver_id']),
+      type: _parseType(source, sharedTrackMap, sharedPlaylistMap),
+      text: _nullableString(
+        source['text'] ?? source['content'] ?? source['body'],
+      ),
+      isRead: _toBool(source['isRead'] ?? source['is_read']) ?? false,
+      createdAt: _parseDateTime(source['createdAt'] ?? source['created_at']),
       sharedTrack: sharedTrackMap == null
           ? null
           : SharedTrackDto.fromJson(sharedTrackMap),
@@ -92,5 +110,37 @@ class MessageDto {
     if (value == null) return DateTime.fromMillisecondsSinceEpoch(0).toUtc();
     return DateTime.tryParse(value.toString()) ??
         DateTime.fromMillisecondsSinceEpoch(0).toUtc();
+  }
+
+  static Map<String, dynamic> _messageJson(Map<String, dynamic> json) {
+    final data = json['data'];
+    if (data is Map<String, dynamic>) {
+      return _messageJson(data);
+    }
+    if (data is Map) {
+      return _messageJson(Map<String, dynamic>.from(data));
+    }
+
+    final message = json['message'];
+    if (message is Map<String, dynamic>) return message;
+    if (message is Map) return Map<String, dynamic>.from(message);
+
+    return json;
+  }
+
+  static MessageType _parseType(
+    Map<String, dynamic> json,
+    Map<String, dynamic>? sharedTrackMap,
+    Map<String, dynamic>? sharedPlaylistMap,
+  ) {
+    final type = MessageTypeX.fromApi(json['type'] ?? json['messageType']);
+    if (type != MessageType.unknown) return type;
+    if (sharedTrackMap != null) return MessageType.trackShare;
+    if (sharedPlaylistMap != null) return MessageType.playlistShare;
+    if (_nullableString(json['text'] ?? json['content'] ?? json['body']) !=
+        null) {
+      return MessageType.text;
+    }
+    return MessageType.unknown;
   }
 }
