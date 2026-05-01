@@ -29,7 +29,11 @@ abstract class PlaylistsRemoteDataSource {
     String? genre,
   });
 
-  Future<PlaylistDto> getPlaylistDetails(String playlistId);
+  Future<PlaylistDto> getPlaylistDetails(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  });
 
   Future<PlaylistDto> getPlaylistEditDetails(String playlistId);
 
@@ -39,6 +43,9 @@ abstract class PlaylistsRemoteDataSource {
     String? description,
     PlaylistVisibility? visibility,
     int? genreId,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
   });
 
   Future<String?> uploadPlaylistCover({
@@ -80,7 +87,15 @@ abstract class PlaylistsRemoteDataSource {
 
   Future<PlaylistDto> resolveSecretPlaylist(String secretToken);
 
-  Future<String> getPlaylistEmbedCode(String playlistId);
+  Future<String> getPlaylistEmbedCode(
+    String playlistId, {
+    String? theme,
+    bool? autoplay,
+    int? start,
+    bool? hideArtwork,
+    int? width,
+    int? height,
+  });
 }
 
 class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
@@ -185,9 +200,20 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
   }
 
   @override
-  Future<PlaylistDto> getPlaylistDetails(String playlistId) async {
+  Future<PlaylistDto> getPlaylistDetails(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  }) async {
+    final queryParameters = <String, dynamic>{
+      if (limit != null) 'limit': limit,
+      if (offset != null) 'offset': offset,
+    };
+
     final response = await dioClient.get(
       ApiConstants.playlistByIdPath(playlistId),
+      queryParameters:
+          queryParameters.isEmpty ? null : queryParameters,
     );
 
     final payload = _decode(response.data);
@@ -215,6 +241,9 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     String? description,
     PlaylistVisibility? visibility,
     int? genreId,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
   }) async {
     await dioClient.patch(
       ApiConstants.playlistByIdPath(playlistId),
@@ -223,6 +252,9 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
         if (description != null) 'description': description,
         if (visibility != null) 'visibility': visibility.apiValue,
         if (genreId != null) 'genreId': genreId,
+        if (playlistType != null) 'type': playlistType,
+        if (releaseDate != null) 'releaseDate': _formatReleaseDate(releaseDate),
+        if (tags != null) 'tags': tags,
       },
     );
   }
@@ -388,9 +420,28 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
   }
 
   @override
-  Future<String> getPlaylistEmbedCode(String playlistId) async {
+  Future<String> getPlaylistEmbedCode(
+    String playlistId, {
+    String? theme,
+    bool? autoplay,
+    int? start,
+    bool? hideArtwork,
+    int? width,
+    int? height,
+  }) async {
+    final queryParameters = <String, dynamic>{
+      if (theme != null) 'theme': theme,
+      if (autoplay != null) 'autoplay': autoplay,
+      if (start != null) 'start': start,
+      if (hideArtwork != null) 'hideArtwork': hideArtwork,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
+    };
+
     final response = await dioClient.get(
       ApiConstants.playlistEmbedPath(playlistId),
+      queryParameters:
+          queryParameters.isEmpty ? null : queryParameters,
     );
 
     final payload = _decode(response.data);
@@ -479,6 +530,12 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
       return track;
     }
   }
+}
+
+String _formatReleaseDate(DateTime releaseDate) {
+  final iso = releaseDate.toIso8601String();
+  final datePart = iso.split('T').first;
+  return datePart.isEmpty ? iso : datePart;
 }
 
 dynamic _decode(dynamic responseData) {

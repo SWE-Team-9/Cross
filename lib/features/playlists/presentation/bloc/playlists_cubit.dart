@@ -162,7 +162,11 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     }
   }
 
-  Future<void> loadPlaylistDetails(String playlistId) async {
+  Future<void> loadPlaylistDetails(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  }) async {
     emit(
       state.copyWith(
         isLoadingDetails: true,
@@ -171,7 +175,11 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     );
 
     try {
-      final playlist = await getPlaylistDetailsUseCase(playlistId);
+      final playlist = await getPlaylistDetailsUseCase(
+        playlistId,
+        limit: limit,
+        offset: offset,
+      );
       emit(
         state.copyWith(
           selectedPlaylist: playlist,
@@ -197,6 +205,9 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     PlaylistVisibility? visibility,
     String? genre,
     int? genreId,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
     String? coverImagePath,
   }) async {
     if (state.isSubmitting) return;
@@ -226,6 +237,9 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         description: description,
         visibility: visibility,
         genreId: genreId,
+        playlistType: playlistType,
+        releaseDate: releaseDate,
+        tags: tags,
       );
 
       String? uploadedCoverUrl;
@@ -251,6 +265,9 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           clearGenre: genre != null && genre.trim().isEmpty,
           genreId: genreId,
           clearGenreId: genreId == null && genre != null,
+          playlistType: playlistType,
+          releaseDate: releaseDate,
+          tags: tags,
           coverImageUrl: uploadedCoverUrl,
           clearSecretToken: visibility == PlaylistVisibility.publicPlaylist,
         );
@@ -266,6 +283,9 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           clearGenre: genre != null && genre.trim().isEmpty,
           genreId: genreId,
           clearGenreId: genreId == null && genre != null,
+          playlistType: playlistType,
+          releaseDate: releaseDate,
+          tags: tags,
           coverImageUrl: uploadedCoverUrl,
           clearSecretToken: visibility == PlaylistVisibility.publicPlaylist,
         );
@@ -316,6 +336,9 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
                   visibility: playlist.visibility,
                   genre: playlist.genre,
                   genreId: playlist.genreId,
+                  playlistType: playlist.playlistType,
+                  releaseDate: playlist.releaseDate,
+                  tags: playlist.tags,
                   coverImageUrl: playlist.coverImageUrl,
                   likesCount: playlist.likesCount,
                   isLiked: playlist.isLiked,
@@ -717,7 +740,15 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     }
   }
 
-  Future<void> loadEmbedCode(String playlistId) async {
+  Future<void> loadEmbedCode(
+    String playlistId, {
+    String? theme,
+    bool? autoplay,
+    int? start,
+    bool? hideArtwork,
+    int? width,
+    int? height,
+  }) async {
     emit(
       state.copyWith(
         isSubmitting: true,
@@ -727,7 +758,15 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     );
 
     try {
-      final embedCode = await getPlaylistEmbedCodeUseCase(playlistId);
+      final embedCode = await getPlaylistEmbedCodeUseCase(
+        playlistId,
+        theme: theme,
+        autoplay: autoplay,
+        start: start,
+        hideArtwork: hideArtwork,
+        width: width,
+        height: height,
+      );
       emit(
         state.copyWith(
           isSubmitting: false,
