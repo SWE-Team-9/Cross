@@ -110,6 +110,7 @@ void main() {
     when(() => mockOfflineCubit.isDownloaded(any())).thenReturn(false);
 
     when(() => mockOfflineCubit.download(any())).thenAnswer((_) async {});
+    when(() => mockOfflineCubit.downloadTrack(any())).thenAnswer((_) async {});
   });
 
   Widget buildSubject({List<Track>? queue}) {
