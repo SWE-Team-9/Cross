@@ -62,6 +62,9 @@ abstract class PlaylistsRepository {
   Future<void> likePlaylist(String playlistId);
 
   Future<void> unlikePlaylist(String playlistId);
+
+  Future<void> recordPlaylistPlayback(String playlistId);
+
   Future<void> addTrackToPlaylist({
     required String playlistId,
     required String trackId,
