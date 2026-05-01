@@ -186,45 +186,44 @@ class InteractionsRemoteDataSourceImpl implements InteractionsRemoteDataSource {
 
     return await Future.wait(futures);
   }
+}
+
+List<dynamic> _extractItemsList(dynamic responseData) {
+  if (responseData is List<dynamic>) {
+    return responseData;
   }
 
-  List<dynamic> _extractItemsList(dynamic responseData) {
-    if (responseData is List<dynamic>) {
-      return responseData;
+  if (responseData is Map<String, dynamic>) {
+    final dynamic items = responseData['items'];
+    if (items is List<dynamic>) {
+      return items;
     }
 
-    if (responseData is Map<String, dynamic>) {
-      final dynamic items = responseData['items'];
-      if (items is List<dynamic>) {
-        return items;
+    final dynamic data = responseData['data'];
+    if (data is List<dynamic>) {
+      return data;
+    }
+
+    if (data is Map<String, dynamic>) {
+      final dynamic nestedItems = data['items'];
+      if (nestedItems is List<dynamic>) {
+        return nestedItems;
       }
 
-      final dynamic data = responseData['data'];
-      if (data is List<dynamic>) {
-        return data;
-      }
-
-      if (data is Map<String, dynamic>) {
-        final dynamic nestedItems = data['items'];
-        if (nestedItems is List<dynamic>) {
-          return nestedItems;
-        }
-
-        final dynamic nestedTracks =
-            data['tracks'] ?? data['results'] ?? data['collection'];
-        if (nestedTracks is List<dynamic>) {
-          return nestedTracks;
-        }
-      }
-
-      final dynamic directTracks = responseData['tracks'] ??
-          responseData['results'] ??
-          responseData['collection'];
-      if (directTracks is List<dynamic>) {
-        return directTracks;
+      final dynamic nestedTracks =
+          data['tracks'] ?? data['results'] ?? data['collection'];
+      if (nestedTracks is List<dynamic>) {
+        return nestedTracks;
       }
     }
 
-    return const <dynamic>[];
+    final dynamic directTracks = responseData['tracks'] ??
+        responseData['results'] ??
+        responseData['collection'];
+    if (directTracks is List<dynamic>) {
+      return directTracks;
+    }
   }
 
+  return const <dynamic>[];
+}
