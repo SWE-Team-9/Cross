@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
@@ -40,13 +41,21 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
   }
 
   Future<void> _editPlaylist(PlaylistEntity playlist) async {
+    final editDetails =
+        await context.read<PlaylistsCubit>().loadPlaylistEditDetails(
+              playlist.playlistId,
+            );
+    if (!mounted) return;
+
+    final editablePlaylist = editDetails ?? playlist;
     final result = await PlaylistEditorSheet.show(
       context,
       title: 'Edit playlist',
       submitLabel: 'Save',
-      initialTitle: playlist.title,
-      initialDescription: playlist.description,
-      initialVisibility: playlist.visibility,
+      initialTitle: editablePlaylist.title,
+      initialDescription: editablePlaylist.description,
+      initialVisibility: editablePlaylist.visibility,
+      initialCoverImageUrl: editablePlaylist.coverImageUrl,
     );
 
     if (!mounted || result == null) return;
@@ -56,6 +65,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
           title: result.title,
           description: result.description,
           visibility: result.visibility,
+          coverImagePath: result.coverImagePath,
         );
   }
 
@@ -323,10 +333,34 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 tooltip: 'Get embed code',
               ),
               IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                onPressed:
-                    state.isSubmitting ? null : () => _editPlaylist(playlist),
+                icon: state.isLoadingEditDetails
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.edit_outlined),
+                onPressed: state.isSubmitting || state.isLoadingEditDetails
+                    ? null
+                    : () => _editPlaylist(playlist),
                 tooltip: 'Edit playlist',
+              ),
+              IconButton(
+                icon: Icon(
+                  playlist.isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: playlist.isLiked ? Colors.redAccent : null,
+                ),
+                onPressed: state.isSubmitting
+                    ? null
+                    : () {
+                        final cubit = context.read<PlaylistsCubit>();
+                        if (playlist.isLiked) {
+                          cubit.unlikePlaylist(playlist.playlistId);
+                        } else {
+                          cubit.likePlaylist(playlist.playlistId);
+                        }
+                      },
+                tooltip: playlist.isLiked ? 'Unlike playlist' : 'Like playlist',
               ),
               PopupMenuButton<String>(
                 color: const Color(0xFF202020),
@@ -362,40 +396,60 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
+                        _PlaylistCover(coverImageUrl: playlist.coverImageUrl),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: playlist.visibility.isSecret
+                                          ? const Color(0xFF4A2400)
+                                          : const Color(0xFF0E2E20),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      playlist.visibility.isSecret
+                                          ? 'Secret'
+                                          : 'Public',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      '${playlist.tracksCount} tracks',
+                                      style: const TextStyle(
+                                        color: Colors.white60,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (playlist.description.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Text(
+                                  playlist.description,
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ],
                           ),
-                          decoration: BoxDecoration(
-                            color: playlist.visibility.isSecret
-                                ? const Color(0xFF4A2400)
-                                : const Color(0xFF0E2E20),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            playlist.visibility.isSecret ? 'Secret' : 'Public',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${playlist.tracksCount} tracks',
-                          style: const TextStyle(color: Colors.white60),
                         ),
                       ],
                     ),
-                    if (playlist.description.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        playlist.description,
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ],
                     if (playlist.visibility.isSecret &&
                         playlist.secretToken != null &&
                         playlist.secretToken!.isNotEmpty) ...[
@@ -547,6 +601,37 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _PlaylistCover extends StatelessWidget {
+  const _PlaylistCover({required this.coverImageUrl});
+
+  final String? coverImageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedUrl = PlatformUrlUtils.normalizeBackendUrl(coverImageUrl);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 92,
+        height: 92,
+        color: const Color(0xFF262626),
+        child: normalizedUrl == null
+            ? const Icon(Icons.queue_music, color: Colors.white38, size: 34)
+            : Image.network(
+                normalizedUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.queue_music,
+                  color: Colors.white38,
+                  size: 34,
+                ),
+              ),
+      ),
     );
   }
 }
