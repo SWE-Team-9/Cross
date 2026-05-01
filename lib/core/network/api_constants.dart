@@ -62,6 +62,7 @@ abstract class ApiConstants {
   static String playerTrackPlayPath(String trackId) =>
       '/api/v1/player/tracks/$trackId/play';
   static const String listeningHistoryPath = '/api/v1/player/me/history';
+  static const String discoverySearchPath = '/api/v1/discovery/search';
 
   // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';

@@ -11,6 +11,8 @@ import 'package:soundcloud_clone/features/messaging/domain/usecases/delete_messa
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversation_messages_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/send_text_message_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/share_playlist_message_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/share_track_message_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/chat_thread_cubit.dart';
 
 class MockGetConversationMessagesUseCase extends Mock
@@ -27,6 +29,12 @@ class MockDeleteMessageUseCase extends Mock implements DeleteMessageUseCase {}
 class MockConnectMessagingSocketUseCase extends Mock
     implements ConnectMessagingSocketUseCase {}
 
+class MockShareTrackMessageUseCase extends Mock
+    implements ShareTrackMessageUseCase {}
+
+class MockSharePlaylistMessageUseCase extends Mock
+    implements SharePlaylistMessageUseCase {}
+
 void main() {
   group('ChatThreadCubit', () {
     late MockGetConversationMessagesUseCase getConversationMessagesUseCase;
@@ -34,6 +42,8 @@ void main() {
     late MockMarkConversationReadUseCase markConversationReadUseCase;
     late MockDeleteMessageUseCase deleteMessageUseCase;
     late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
+    late MockShareTrackMessageUseCase shareTrackMessageUseCase;
+    late MockSharePlaylistMessageUseCase sharePlaylistMessageUseCase;
     late StreamController<RealtimeMessageEventEntity> socketController;
     late ChatThreadCubit cubit;
 
@@ -75,6 +85,8 @@ void main() {
       markConversationReadUseCase = MockMarkConversationReadUseCase();
       deleteMessageUseCase = MockDeleteMessageUseCase();
       connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+      shareTrackMessageUseCase = MockShareTrackMessageUseCase();
+      sharePlaylistMessageUseCase = MockSharePlaylistMessageUseCase();
       socketController =
           StreamController<RealtimeMessageEventEntity>.broadcast();
 
@@ -96,6 +108,8 @@ void main() {
         markConversationReadUseCase: markConversationReadUseCase,
         deleteMessageUseCase: deleteMessageUseCase,
         connectMessagingSocketUseCase: connectMessagingSocketUseCase,
+        shareTrackMessageUseCase: shareTrackMessageUseCase,
+        sharePlaylistMessageUseCase: sharePlaylistMessageUseCase,
       );
     });
 

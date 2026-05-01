@@ -9,11 +9,14 @@ import '../../domain/usecases/delete_message_usecase.dart';
 import '../../domain/usecases/get_conversation_messages_usecase.dart';
 import '../../domain/usecases/mark_conversation_read_usecase.dart';
 import '../../domain/usecases/send_text_message_usecase.dart';
+import '../../domain/usecases/share_playlist_message_usecase.dart';
+import '../../domain/usecases/share_track_message_usecase.dart';
 import '../bloc/chat_thread_cubit.dart';
 import '../bloc/chat_thread_state.dart';
 import '../messaging_theme.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_composer.dart';
+import '../widgets/share_message_item_sheet.dart';
 
 class ChatThreadPage extends StatelessWidget {
   final String conversationId;
@@ -47,6 +50,8 @@ class ChatThreadPage extends StatelessWidget {
         markConversationReadUseCase: GetIt.I<MarkConversationReadUseCase>(),
         deleteMessageUseCase: GetIt.I<DeleteMessageUseCase>(),
         connectMessagingSocketUseCase: GetIt.I<ConnectMessagingSocketUseCase>(),
+        shareTrackMessageUseCase: GetIt.I<ShareTrackMessageUseCase>(),
+        sharePlaylistMessageUseCase: GetIt.I<SharePlaylistMessageUseCase>(),
       )..load(
           conversationId: conversationId,
           receiverId: receiverId,
@@ -118,6 +123,16 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
       return authState.user.id;
     }
     return null;
+  }
+
+  Future<void> _openShareSheet() async {
+    await ShareMessageItemSheet.show(
+      context,
+      onShareTrack: (track) =>
+          context.read<ChatThreadCubit>().shareTrack(track.id),
+      onSharePlaylist: (playlist) =>
+          context.read<ChatThreadCubit>().sharePlaylist(playlist.playlistId),
+    );
   }
 
   @override
@@ -333,6 +348,7 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
               builder: (context, state) {
                 return MessageComposer(
                   isSending: state.isSending,
+                  onAttach: _openShareSheet,
                   onSend: (text) {
                     context.read<ChatThreadCubit>().sendText(text);
                   },
