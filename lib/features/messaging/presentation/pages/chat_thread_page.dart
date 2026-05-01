@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 
 import '../../../../core/utils/platform_url_utils.dart';
@@ -333,6 +334,11 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
                               .read<ChatThreadCubit>()
                               .deleteMessage(message.id)
                           : null,
+                      onPlaylistTap: message.sharedPlaylist == null
+                          ? null
+                          : () => context.push(
+                                '/playlist/${message.sharedPlaylist!.id}',
+                              ),
                     );
                   },
                 );
