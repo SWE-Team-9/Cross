@@ -174,6 +174,84 @@ void main() {
     });
   });
 
+  group('getRecentPlaylists', () {
+    test('parses recent playlists from documented playlists payload', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/recent',
+            queryParameters: {'limit': 10},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/recent'),
+          data: <String, dynamic>{
+            'playlists': <dynamic>[
+              <String, dynamic>{
+                'playlistId': 'pl_recent',
+                'title': 'Recently Played',
+                'description': 'Recent playlist',
+                'visibility': 'PUBLIC',
+                'coverImageUrl': 'https://cdn.example/recent.jpg',
+                'tracksCount': 3,
+                'likesCount': 12,
+                'isLiked': true,
+                'owner': <String, dynamic>{
+                  'id': 'owner_1',
+                  'display_name': 'Ahmed Hassan',
+                },
+              },
+            ],
+          },
+        ),
+      );
+
+      final result = await dataSource.getRecentPlaylists();
+
+      expect(result, hasLength(1));
+      expect(result.single.playlistId, 'pl_recent');
+      expect(result.single.title, 'Recently Played');
+      expect(result.single.coverImageUrl, 'https://cdn.example/recent.jpg');
+      expect(result.single.tracksCount, 3);
+      expect(result.single.likesCount, 12);
+      expect(result.single.isLiked, isTrue);
+      expect(result.single.owner?.displayName, 'Ahmed Hassan');
+    });
+  });
+
+  group('getLikedPlaylists', () {
+    test('parses liked playlists from paginated payload', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/me/liked',
+            queryParameters: {'page': 2, 'limit': 5},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/me/liked'),
+          data: <String, dynamic>{
+            'page': 2,
+            'limit': 5,
+            'total': 1,
+            'playlists': <dynamic>[
+              <String, dynamic>{
+                'playlistId': 'pl_liked',
+                'title': 'Liked Playlist',
+                'visibility': 'PUBLIC',
+                'tracksCount': 8,
+                'likesCount': 99,
+                'isLiked': true,
+              },
+            ],
+          },
+        ),
+      );
+
+      final result = await dataSource.getLikedPlaylists(page: 2, limit: 5);
+
+      expect(result, hasLength(1));
+      expect(result.single.playlistId, 'pl_liked');
+      expect(result.single.tracksCount, 8);
+      expect(result.single.likesCount, 99);
+      expect(result.single.isLiked, isTrue);
+    });
+  });
+
   group('createPlaylist', () {
     test('sends visibility API value and parses created playlist', () async {
       when(() => dioClient.post(
@@ -224,6 +302,59 @@ void main() {
 
       expect(result.playlistId, 'pl_7');
       expect(result.title, 'Road Trip');
+    });
+
+    test('parses documented playlist details with owner and tracks', () async {
+      when(() => dioClient.get('/api/v1/playlists/pl_101')).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/pl_101'),
+          data: <String, dynamic>{
+            'playlistId': 'pl_101',
+            'title': 'Late Night Drive',
+            'description': 'My favorite chill tracks',
+            'visibility': 'PUBLIC',
+            'secretToken': null,
+            'genre': 'Electronic',
+            'coverImageUrl': 'https://cdn.example/pl_101.jpg',
+            'tracksCount': 1,
+            'likesCount': 48,
+            'isLiked': true,
+            'owner': <String, dynamic>{
+              'id': 'usr_1',
+              'display_name': 'Ahmed Hassan',
+            },
+            'tracks': <dynamic>[
+              <String, dynamic>{
+                'trackId': 'trk_123',
+                'title': 'Layali',
+                'artist': <String, dynamic>{
+                  'id': 'usr_1',
+                  'display_name': 'Ahmed Hassan',
+                },
+                'coverArtUrl': 'https://cdn.example/trk_123.jpg',
+                'durationMs': 180000,
+              },
+            ],
+          },
+        ),
+      );
+
+      final result = await dataSource.getPlaylistDetails('pl_101');
+
+      expect(result.playlistId, 'pl_101');
+      expect(result.title, 'Late Night Drive');
+      expect(result.genre, 'Electronic');
+      expect(result.coverImageUrl, 'https://cdn.example/pl_101.jpg');
+      expect(result.tracksCount, 1);
+      expect(result.likesCount, 48);
+      expect(result.isLiked, isTrue);
+      expect(result.owner?.displayName, 'Ahmed Hassan');
+      expect(result.tracks, hasLength(1));
+      expect(result.tracks.single.id, 'trk_123');
+      expect(result.tracks.single.title, 'Layali');
+      expect(result.tracks.single.artist, 'Ahmed Hassan');
+      expect(
+          result.tracks.single.artworkUrl, 'https://cdn.example/trk_123.jpg');
     });
 
     test(
@@ -396,6 +527,49 @@ void main() {
       expect(result.playlistId, 'pl_secret');
       expect(result.visibility, PlaylistVisibility.privatePlaylist);
       expect(result.secretToken, 'token_99');
+    });
+
+    test('parses full playlist details from secret endpoint', () async {
+      when(() => dioClient.get('/api/v1/playlists/secret/full_token'))
+          .thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions:
+              RequestOptions(path: '/api/v1/playlists/secret/full_token'),
+          data: <String, dynamic>{
+            'message': 'Access granted via secret token',
+            'playlist': <String, dynamic>{
+              'playlistId': 'pl_secret_full',
+              'title': 'Secret Set',
+              'description': 'Shared privately',
+              'visibility': 'SECRET',
+              'secretToken': 'full_token',
+              'coverImageUrl': 'https://cdn.example/secret.jpg',
+              'tracksCount': 1,
+              'owner': <String, dynamic>{
+                'id': 'owner_secret',
+                'displayName': 'Secret Owner',
+              },
+              'tracks': <dynamic>[
+                <String, dynamic>{
+                  'id': 'trk_secret',
+                  'title': 'Hidden Track',
+                  'artist': 'Secret Artist',
+                },
+              ],
+            },
+          },
+        ),
+      );
+
+      final result = await dataSource.resolveSecretPlaylist('full_token');
+
+      expect(result.playlistId, 'pl_secret_full');
+      expect(result.title, 'Secret Set');
+      expect(result.visibility, PlaylistVisibility.privatePlaylist);
+      expect(result.secretToken, 'full_token');
+      expect(result.coverImageUrl, 'https://cdn.example/secret.jpg');
+      expect(result.owner?.displayName, 'Secret Owner');
+      expect(result.tracks.single.id, 'trk_secret');
     });
   });
 
