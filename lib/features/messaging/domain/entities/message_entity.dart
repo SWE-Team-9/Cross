@@ -27,7 +27,34 @@ class MessageEntity {
     required this.sharedPlaylist,
   });
 
+  MessageEntity copyWith({
+    String? id,
+    String? conversationId,
+    String? senderId,
+    String? receiverId,
+    MessageType? type,
+    String? text,
+    bool? isRead,
+    DateTime? createdAt,
+    SharedTrackEntity? sharedTrack,
+    SharedPlaylistEntity? sharedPlaylist,
+  }) {
+    return MessageEntity(
+      id: id ?? this.id,
+      conversationId: conversationId ?? this.conversationId,
+      senderId: senderId ?? this.senderId,
+      receiverId: receiverId ?? this.receiverId,
+      type: type ?? this.type,
+      text: text ?? this.text,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt ?? this.createdAt,
+      sharedTrack: sharedTrack ?? this.sharedTrack,
+      sharedPlaylist: sharedPlaylist ?? this.sharedPlaylist,
+    );
+  }
+
   bool get isText => type == MessageType.text;
   bool get isTrackShare => type == MessageType.trackShare;
   bool get isPlaylistShare => type == MessageType.playlistShare;
+  bool get isDeleted => text == null || text!.trim().isEmpty;
 }

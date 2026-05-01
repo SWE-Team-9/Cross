@@ -127,11 +127,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
   Future<void> sendText(String text) async {
     if (!_canMessage) {
-      emit(
-        state.copyWith(
-          errorMessage: 'You cannot message this user.',
-        ),
-      );
+      emit(state.copyWith(errorMessage: 'You cannot message this user.'));
       return;
     }
 
@@ -149,18 +145,22 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
         text: trimmed,
       );
 
-      final merged = _sortMessages([
-        ...state.messages,
-        message,
-      ]);
+      if (!state.isSocketConnected) {
+        final merged = _sortMessages([
+          ...state.messages,
+          message.copyWith(createdAt: DateTime.now()),
+        ]);
 
-      emit(
-        state.copyWith(
-          isSending: false,
-          messages: merged,
-          clearError: true,
-        ),
-      );
+        emit(
+          state.copyWith(
+            isSending: false,
+            messages: merged,
+            clearError: true,
+          ),
+        );
+      } else {
+        emit(state.copyWith(isSending: false, clearError: true));
+      }
     } catch (e) {
       emit(
         state.copyWith(
@@ -177,9 +177,11 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
       emit(
         state.copyWith(
-          messages: state.messages
-              .where((message) => message.id != messageId)
-              .toList(growable: false),
+          messages: state.messages.map((message) {
+            return message.id == messageId
+                ? message.copyWith(text: '')
+                : message;
+          }).toList(growable: false),
           clearError: true,
         ),
       );
@@ -294,15 +296,8 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
         );
         break;
 
-      case RealtimeMessageEventType.conversationRead:
-      case RealtimeMessageEventType.conversationUpdated:
-      case RealtimeMessageEventType.unreadCountUpdated:
-      case RealtimeMessageEventType.unknown:
-        emit(
-          state.copyWith(
-            isSocketConnected: true,
-          ),
-        );
+      default:
+        emit(state.copyWith(isSocketConnected: true));
         break;
     }
   }
