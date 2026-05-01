@@ -1,5 +1,6 @@
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_genre.dart';
 
 class PlaylistDto {
   final String playlistId;
@@ -8,6 +9,10 @@ class PlaylistDto {
   final PlaylistVisibility visibility;
   final String? genre;
   final int? genreId;
+  final String? slug;
+  final String playlistType;
+  final DateTime? releaseDate;
+  final List<String> tags;
   final String? secretToken;
   final String? coverImageUrl;
   final PlaylistOwner? owner;
@@ -23,6 +28,10 @@ class PlaylistDto {
     required this.visibility,
     this.genre,
     this.genreId,
+    this.slug,
+    this.playlistType = 'PLAYLIST',
+    this.releaseDate,
+    this.tags = const <String>[],
     required this.secretToken,
     required this.coverImageUrl,
     required this.owner,
@@ -39,6 +48,21 @@ class PlaylistDto {
         .whereType<Track>()
         .toList(growable: false);
 
+    final genreValue = json['genre'];
+    final genreMap = _asMap(genreValue);
+    final parsedGenreId = _asInt(
+      json['genreId'] ?? json['genre_id'] ?? genreMap['id'],
+    );
+    final parsedGenre = _normalizeNullable(
+      _asString(
+        (genreValue is String ? genreValue : null) ??
+            json['genreSlug'] ??
+            json['genre_slug'] ??
+            genreMap['slug'] ??
+            genreMap['name'] ??
+            playlistGenreNameFromId(parsedGenreId),
+      ),
+    );
     final ownerMap = _asMap(json['owner']);
     final owner = ownerMap.isEmpty
         ? null
@@ -64,16 +88,12 @@ class PlaylistDto {
       title: _asString(json['title'], fallback: 'Untitled playlist'),
       description: _asString(json['description']),
       visibility: playlistVisibilityFromApi(_asString(json['visibility'])),
-      genre: _normalizeNullable(
-        _asString(
-          json['genre'] ??
-              json['genreSlug'] ??
-              json['genre_slug'] ??
-              _asMap(json['genre'])['slug'] ??
-              _asMap(json['genre'])['name'],
-        ),
-      ),
-      genreId: _asInt(json['genreId'] ?? json['genre_id']),
+      genre: parsedGenre,
+      genreId: parsedGenreId,
+      slug: _normalizeNullable(_asString(json['slug'])),
+      playlistType: _asString(json['type'], fallback: 'PLAYLIST'),
+      releaseDate: _asDate(json['releaseDate'] ?? json['release_date']),
+      tags: _asStringList(json['tags']),
       secretToken: _normalizeNullable(
         _asString(json['secretToken'] ?? json['secret_token']),
       ),
@@ -113,6 +133,10 @@ class PlaylistDto {
       visibility: visibility,
       genre: genre,
       genreId: genreId,
+      slug: slug,
+      playlistType: playlistType,
+      releaseDate: releaseDate,
+      tags: tags,
       secretToken: secretToken,
       coverImageUrl: coverImageUrl,
       owner: owner,
@@ -145,12 +169,16 @@ Track? _trackFromJson(Map<String, dynamic> json) {
 
   final rawArtist = json['artist'];
   final artistMap = rawArtist is Map ? _asMap(rawArtist) : <String, dynamic>{};
-  final uploaderMap = _asMap(json['uploader'] ?? json['owner']);
+  final uploaderMap = _asMap(
+    json['uploader'] ?? json['user'] ?? json['owner'],
+  );
 
   final title = _asString(json['title'], fallback: 'Untitled');
   final artist = _asString(
     json['artistName'] ??
         json['artist_name'] ??
+        json['uploaderName'] ??
+        json['uploader_name'] ??
         (rawArtist is String ? rawArtist : null) ??
         artistMap['displayName'] ??
         artistMap['display_name'] ??
@@ -227,4 +255,19 @@ bool _asBool(dynamic value) {
   if (value is num) return value != 0;
   final normalized = value?.toString().trim().toLowerCase() ?? '';
   return normalized == 'true' || normalized == '1' || normalized == 'yes';
+}
+
+DateTime? _asDate(dynamic value) {
+  if (value is DateTime) return value;
+  final parsed = value?.toString().trim() ?? '';
+  if (parsed.isEmpty) return null;
+  return DateTime.tryParse(parsed);
+}
+
+List<String> _asStringList(dynamic value) {
+  if (value is! List) return const <String>[];
+  return value
+      .map((item) => item.toString().trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
 }

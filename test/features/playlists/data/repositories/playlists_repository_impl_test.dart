@@ -267,7 +267,7 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    String? genre,
+    int? genreId,
   }) async {
     updatedPlaylistId = playlistId;
   }

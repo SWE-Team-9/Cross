@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/playlists/data/local/liked_playlists_store.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/add_track_to_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/create_playlist_usecase.dart';
@@ -15,10 +16,13 @@ import 'package:soundcloud_clone/features/playlists/domain/usecases/resolve_secr
 import 'package:soundcloud_clone/features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/update_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/upload_playlist_cover_usecase.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_genre.dart';
 
 import 'playlists_state.dart';
 
 class PlaylistsCubit extends Cubit<PlaylistsState> {
+  static const _likedPlaylistsStore = LikedPlaylistsStore();
+
   final GetMyPlaylistsUseCase getMyPlaylistsUseCase;
   final CreatePlaylistUseCase createPlaylistUseCase;
   final GetPlaylistDetailsUseCase getPlaylistDetailsUseCase;
@@ -116,6 +120,12 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         initialTrackIds: initialTrackIds,
         genre: genre,
       );
+      created = created.copyWith(
+        genre: genre,
+        clearGenre: genre == null || genre.trim().isEmpty,
+        genreId: _playlistGenreId(genre),
+        clearGenreId: genre == null || genre.trim().isEmpty,
+      );
 
       if (coverImagePath != null && coverImagePath.trim().isNotEmpty) {
         final uploader = uploadPlaylistCoverUseCase;
@@ -186,6 +196,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     String? description,
     PlaylistVisibility? visibility,
     String? genre,
+    int? genreId,
     String? coverImagePath,
   }) async {
     if (state.isSubmitting) return;
@@ -214,7 +225,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         title: title,
         description: description,
         visibility: visibility,
-        genre: genre,
+        genreId: genreId,
       );
 
       String? uploadedCoverUrl;
@@ -238,6 +249,8 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           visibility: visibility,
           genre: genre,
           clearGenre: genre != null && genre.trim().isEmpty,
+          genreId: genreId,
+          clearGenreId: genreId == null && genre != null,
           coverImageUrl: uploadedCoverUrl,
           clearSecretToken: visibility == PlaylistVisibility.publicPlaylist,
         );
@@ -251,6 +264,8 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           visibility: visibility,
           genre: genre,
           clearGenre: genre != null && genre.trim().isEmpty,
+          genreId: genreId,
+          clearGenreId: genreId == null && genre != null,
           coverImageUrl: uploadedCoverUrl,
           clearSecretToken: visibility == PlaylistVisibility.publicPlaylist,
         );
@@ -340,6 +355,11 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
 
     try {
       await like(playlistId);
+      final likedPlaylist =
+          state.selectedPlaylist ?? _asLikedPlaylist(previousSelected, true);
+      if (likedPlaylist != null && likedPlaylist.playlistId == playlistId) {
+        await _likedPlaylistsStore.saveLiked(likedPlaylist);
+      }
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -348,6 +368,22 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         ),
       );
     } catch (e) {
+      if (_isAlreadyLikedError(e)) {
+        final likedPlaylist = _asLikedPlaylist(previousSelected, true);
+        if (likedPlaylist != null) {
+          await _likedPlaylistsStore.saveLiked(likedPlaylist);
+        }
+        emit(
+          state.copyWith(
+            isSubmitting: false,
+            selectedPlaylist: likedPlaylist ?? _likedSelected(playlistId, true),
+            playlists: _setPlaylistLiked(previousPlaylists, playlistId, true),
+            infoMessage: 'Playlist liked',
+            clearError: true,
+          ),
+        );
+        return;
+      }
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -377,6 +413,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
 
     try {
       await unlike(playlistId);
+      await _likedPlaylistsStore.remove(playlistId);
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -385,6 +422,19 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         ),
       );
     } catch (e) {
+      if (_isAlreadyUnlikedError(e)) {
+        await _likedPlaylistsStore.remove(playlistId);
+        emit(
+          state.copyWith(
+            isSubmitting: false,
+            selectedPlaylist: _likedSelected(playlistId, false),
+            playlists: _setPlaylistLiked(previousPlaylists, playlistId, false),
+            infoMessage: 'Playlist unliked',
+            clearError: true,
+          ),
+        );
+        return;
+      }
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -749,6 +799,28 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     return next < 0 ? 0 : next;
   }
 
+  PlaylistEntity? _asLikedPlaylist(
+    PlaylistEntity? playlist,
+    bool isLiked,
+  ) {
+    if (playlist == null) return null;
+    return playlist.copyWith(
+      isLiked: isLiked,
+      likesCount: _nextLikesCount(playlist, isLiked),
+    );
+  }
+
+  bool _isAlreadyLikedError(Object error) {
+    final normalized = error.toString().toLowerCase();
+    return normalized.contains('already') && normalized.contains('liked');
+  }
+
+  bool _isAlreadyUnlikedError(Object error) {
+    final normalized = error.toString().toLowerCase();
+    return normalized.contains('not liked') ||
+        (normalized.contains('already') && normalized.contains('unliked'));
+  }
+
   bool _titleExists(String title, {String? excludingPlaylistId}) {
     final normalized = _normalizeTitle(title);
     if (normalized.isEmpty) return false;
@@ -760,4 +832,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   }
 
   String _normalizeTitle(String title) => title.trim().toLowerCase();
+
+  int? _playlistGenreId(String? genre) => playlistGenreId(genre);
 }

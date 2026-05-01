@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/playlists/data/dto/playlist_dto.dart';
@@ -37,7 +38,7 @@ abstract class PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    String? genre,
+    int? genreId,
   });
 
   Future<String?> uploadPlaylistCover({
@@ -192,7 +193,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     final payload = _decode(response.data);
     final data = _extractData(payload);
 
-    return PlaylistDto.fromJson(_asMap(data));
+    return _enrichPlaylistTracks(PlaylistDto.fromJson(_asMap(data)));
   }
 
   @override
@@ -213,7 +214,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    String? genre,
+    int? genreId,
   }) async {
     await dioClient.patch(
       ApiConstants.playlistByIdPath(playlistId),
@@ -221,7 +222,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
         if (title != null) 'title': title,
         if (description != null) 'description': description,
         if (visibility != null) 'visibility': visibility.apiValue,
-        if (genre != null) 'genre': genre.trim(),
+        if (genreId != null) 'genreId': genreId,
       },
     );
   }
@@ -245,8 +246,12 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     final data = _extractData(payload);
 
     if (data is Map<String, dynamic>) {
-      final dynamic url =
-          data['url'] ?? data['coverUrl'] ?? data['cover_url'] ?? data['image'];
+      final dynamic url = data['url'] ??
+          data['coverImageUrl'] ??
+          data['cover_image_url'] ??
+          data['coverUrl'] ??
+          data['cover_url'] ??
+          data['image'];
       if (url != null && url.toString().trim().isNotEmpty) {
         return url.toString();
       }
@@ -254,6 +259,8 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
 
     if (payload is Map<String, dynamic>) {
       final dynamic url = payload['url'] ??
+          payload['coverImageUrl'] ??
+          payload['cover_image_url'] ??
           payload['coverUrl'] ??
           payload['cover_url'] ??
           payload['image'];
@@ -377,7 +384,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     final payload = _decode(response.data);
     final data = _extractData(payload);
 
-    return PlaylistDto.fromJson(_asMap(data));
+    return _enrichPlaylistTracks(PlaylistDto.fromJson(_asMap(data)));
   }
 
   @override
@@ -398,6 +405,79 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     }
 
     return '';
+  }
+
+  Future<PlaylistDto> _enrichPlaylistTracks(PlaylistDto playlist) async {
+    if (playlist.tracks.isEmpty) return playlist;
+
+    final enrichedTracks = await Future.wait(
+      playlist.tracks.map((track) async {
+        if (!_needsTrackDetails(track)) return track;
+        return _loadTrackDetails(track);
+      }),
+    );
+
+    return PlaylistDto(
+      playlistId: playlist.playlistId,
+      title: playlist.title,
+      description: playlist.description,
+      visibility: playlist.visibility,
+      genre: playlist.genre,
+      genreId: playlist.genreId,
+      slug: playlist.slug,
+      playlistType: playlist.playlistType,
+      releaseDate: playlist.releaseDate,
+      tags: playlist.tags,
+      secretToken: playlist.secretToken,
+      coverImageUrl: playlist.coverImageUrl,
+      owner: playlist.owner,
+      tracks: enrichedTracks,
+      tracksCount: playlist.tracksCount,
+      likesCount: playlist.likesCount,
+      isLiked: playlist.isLiked,
+    );
+  }
+
+  bool _needsTrackDetails(Track track) {
+    final normalizedArtist = track.artist.trim().toLowerCase();
+    return normalizedArtist.isEmpty ||
+        normalizedArtist == 'unknown artist' ||
+        normalizedArtist == 'unkown artist';
+  }
+
+  Future<Track> _loadTrackDetails(Track track) async {
+    try {
+      final response =
+          await dioClient.get(ApiConstants.trackByIdPath(track.id));
+      final payload = _decode(response.data);
+      final data = _asMap(_extractData(payload));
+      if (data.isEmpty) return track;
+
+      return track.copyWith(
+        title: _asNonEmptyString(data['title']) ?? track.title,
+        artist: _extractArtistName(data) ?? track.artist,
+        audioUrl: _asNonEmptyString(data['audioUrl'] ?? data['streamUrl']) ??
+            track.audioUrl,
+        artworkUrl: _asNonEmptyString(
+              data['coverArtUrl'] ??
+                  data['cover_art_url'] ??
+                  data['artworkUrl'] ??
+                  data['artwork_url'],
+            ) ??
+            track.artworkUrl,
+        handle: _extractArtistHandle(data) ?? track.handle,
+        artistId: _extractArtistId(data) ?? track.artistId,
+        likesCount: _asIntValue(data['likesCount'] ?? data['likes_count']) ??
+            track.likesCount,
+        repostsCount:
+            _asIntValue(data['repostsCount'] ?? data['reposts_count']) ??
+                track.repostsCount,
+        durationMs: _asIntValue(data['durationMs'] ?? data['duration_ms']) ??
+            track.durationMs,
+      );
+    } catch (_) {
+      return track;
+    }
   }
 }
 
@@ -439,4 +519,72 @@ List<dynamic> _extractPlaylistList(dynamic payload) {
   }
 
   return const <dynamic>[];
+}
+
+String? _extractArtistName(Map<String, dynamic> json) {
+  final rawArtist = json['artist'];
+  final artistMap = rawArtist is Map ? _asMap(rawArtist) : <String, dynamic>{};
+  final uploaderMap = _asMap(
+    json['uploader'] ?? json['user'] ?? json['owner'],
+  );
+
+  return _asNonEmptyString(
+    json['artistName'] ??
+        json['artist_name'] ??
+        json['uploaderName'] ??
+        json['uploader_name'] ??
+        (rawArtist is String ? rawArtist : null) ??
+        artistMap['displayName'] ??
+        artistMap['display_name'] ??
+        artistMap['name'] ??
+        artistMap['username'] ??
+        uploaderMap['displayName'] ??
+        uploaderMap['display_name'] ??
+        uploaderMap['username'],
+  );
+}
+
+String? _extractArtistHandle(Map<String, dynamic> json) {
+  final artistMap = _asMap(json['artist']);
+  final uploaderMap = _asMap(
+    json['uploader'] ?? json['user'] ?? json['owner'],
+  );
+
+  return _asNonEmptyString(
+    json['artistHandle'] ??
+        json['artist_handle'] ??
+        artistMap['handle'] ??
+        artistMap['username'] ??
+        uploaderMap['handle'] ??
+        uploaderMap['username'],
+  );
+}
+
+String? _extractArtistId(Map<String, dynamic> json) {
+  final artistMap = _asMap(json['artist']);
+  final uploaderMap = _asMap(
+    json['uploader'] ?? json['user'] ?? json['owner'],
+  );
+
+  return _asNonEmptyString(
+    json['artistId'] ??
+        json['artist_id'] ??
+        artistMap['id'] ??
+        artistMap['userId'] ??
+        artistMap['user_id'] ??
+        uploaderMap['id'] ??
+        uploaderMap['userId'] ??
+        uploaderMap['user_id'],
+  );
+}
+
+String? _asNonEmptyString(dynamic value) {
+  final parsed = value?.toString().trim() ?? '';
+  return parsed.isEmpty ? null : parsed;
+}
+
+int? _asIntValue(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
 }

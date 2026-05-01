@@ -31,7 +31,7 @@ abstract class PlaylistsRepository {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    String? genre,
+    int? genreId,
   });
 
   Future<String?> uploadPlaylistCover({
