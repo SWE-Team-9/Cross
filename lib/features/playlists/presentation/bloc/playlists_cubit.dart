@@ -22,6 +22,7 @@ import 'playlists_state.dart';
 
 const int _kPlaylistTitleMaxLength = 100;
 const int _kPlaylistDescriptionMaxLength = 500;
+const int _kMyPlaylistsPageSize = 20;
 
 class PlaylistsCubit extends Cubit<PlaylistsState> {
   static const _likedPlaylistsStore = LikedPlaylistsStore();
@@ -59,21 +60,30 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   }) : super(PlaylistsState.initial());
 
   Future<void> loadMyPlaylists({bool refresh = false}) async {
-    if (state.isLoadingMyPlaylists && !refresh) return;
+    if (state.isLoadingMyPlaylists || state.isLoadingMoreMyPlaylists) return;
 
     emit(
       state.copyWith(
         isLoadingMyPlaylists: true,
+        isLoadingMoreMyPlaylists: false,
+        myPlaylistsPage: refresh ? 0 : state.myPlaylistsPage,
+        hasMoreMyPlaylists: true,
         clearError: true,
       ),
     );
 
     try {
-      final playlists = await getMyPlaylistsUseCase();
+      final playlists = await getMyPlaylistsUseCase(
+        page: 1,
+        limit: _kMyPlaylistsPageSize,
+      );
+
       emit(
         state.copyWith(
           playlists: playlists,
           isLoadingMyPlaylists: false,
+          myPlaylistsPage: 1,
+          hasMoreMyPlaylists: playlists.length == _kMyPlaylistsPageSize,
           clearError: true,
         ),
       );
@@ -81,6 +91,48 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isLoadingMyPlaylists: false,
+          isLoadingMoreMyPlaylists: false,
+          errorMessage: _playlistErrorMessage(e),
+        ),
+      );
+    }
+  }
+
+  Future<void> loadMoreMyPlaylists() async {
+    if (state.isLoadingMyPlaylists ||
+        state.isLoadingMoreMyPlaylists ||
+        !state.hasMoreMyPlaylists) {
+      return;
+    }
+
+    final nextPage = state.myPlaylistsPage <= 0 ? 1 : state.myPlaylistsPage + 1;
+
+    emit(
+      state.copyWith(
+        isLoadingMoreMyPlaylists: true,
+        clearError: true,
+      ),
+    );
+
+    try {
+      final nextPlaylists = await getMyPlaylistsUseCase(
+        page: nextPage,
+        limit: _kMyPlaylistsPageSize,
+      );
+
+      emit(
+        state.copyWith(
+          playlists: _appendUniquePlaylists(state.playlists, nextPlaylists),
+          isLoadingMoreMyPlaylists: false,
+          myPlaylistsPage: nextPage,
+          hasMoreMyPlaylists: nextPlaylists.length == _kMyPlaylistsPageSize,
+          clearError: true,
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isLoadingMoreMyPlaylists: false,
           errorMessage: _playlistErrorMessage(e),
         ),
       );
@@ -885,6 +937,24 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         clearInfo: true,
       ),
     );
+  }
+
+  List<PlaylistEntity> _appendUniquePlaylists(
+    List<PlaylistEntity> source,
+    List<PlaylistEntity> next,
+  ) {
+    if (source.isEmpty) return next;
+
+    final result = source.toList(growable: true);
+    final seenIds = source.map((playlist) => playlist.playlistId).toSet();
+
+    for (final playlist in next) {
+      if (playlist.playlistId.isEmpty) continue;
+      if (!seenIds.add(playlist.playlistId)) continue;
+      result.add(playlist);
+    }
+
+    return result.toList(growable: false);
   }
 
   List<PlaylistEntity> _upsertPlaylist(
