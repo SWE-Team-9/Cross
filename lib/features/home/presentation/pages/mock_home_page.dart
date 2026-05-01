@@ -16,7 +16,7 @@ import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_cou
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_state.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/routes/messaging_routes.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/get_top_playlists_usecase.dart';
 
 import '/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
@@ -37,8 +37,8 @@ class _MockHomePageState extends State<MockHomePage> {
   List<dynamic>? _trendingRawTrackPool;
   Future<List<dynamic>>? _trendingRawTrackPoolRequest;
   List<Track> _trendingTracks = const <Track>[];
-  bool _isLoadingRecentPlaylists = false;
-  List<PlaylistEntity> _recentPlaylists = const <PlaylistEntity>[];
+  bool _isLoadingTopPlaylists = false;
+  List<PlaylistEntity> _topPlaylists = const <PlaylistEntity>[];
 
   final _genres = const [
     'None',
@@ -81,31 +81,31 @@ class _MockHomePageState extends State<MockHomePage> {
   void initState() {
     super.initState();
     _loadTrendingTracks();
-    _loadRecentPlaylists();
+    _loadTopPlaylists();
   }
 
-  Future<void> _loadRecentPlaylists() async {
-    if (!getIt.isRegistered<GetRecentPlaylistsUseCase>()) return;
+  Future<void> _loadTopPlaylists() async {
+    if (!getIt.isRegistered<GetTopPlaylistsUseCase>()) return;
 
     setState(() {
-      _isLoadingRecentPlaylists = true;
+      _isLoadingTopPlaylists = true;
     });
 
     try {
-      final playlists = await getIt<GetRecentPlaylistsUseCase>()(limit: 10);
+      final playlists = await getIt<GetTopPlaylistsUseCase>()(limit: 10);
       if (!mounted) return;
       setState(() {
-        _recentPlaylists = playlists;
+        _topPlaylists = playlists;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _recentPlaylists = const <PlaylistEntity>[];
+        _topPlaylists = const <PlaylistEntity>[];
       });
     } finally {
       if (!mounted) return;
       setState(() {
-        _isLoadingRecentPlaylists = false;
+        _isLoadingTopPlaylists = false;
       });
     }
   }
@@ -486,9 +486,11 @@ class _MockHomePageState extends State<MockHomePage> {
                         children: [
                           const _SectionHeader(title: 'More of what you like'),
                           const _RelatedTracksRow(),
-                          _RecentPlaylistsRow(
-                            loading: _isLoadingRecentPlaylists,
-                            playlists: _recentPlaylists,
+                          _PlaylistShelf(
+                            title: 'Top playlists',
+                            loading: _isLoadingTopPlaylists,
+                            playlists: _topPlaylists,
+                            showLikesCount: true,
                           ),
                           const _SectionHeader(title: 'Mixed for you'),
                           _MixesRow(userHandle: currentHandle),
@@ -580,14 +582,18 @@ class _TrendingByGenreTracks extends StatelessWidget {
   }
 }
 
-class _RecentPlaylistsRow extends StatelessWidget {
-  const _RecentPlaylistsRow({
+class _PlaylistShelf extends StatelessWidget {
+  const _PlaylistShelf({
+    required this.title,
     required this.loading,
     required this.playlists,
+    this.showLikesCount = false,
   });
 
+  final String title;
   final bool loading;
   final List<PlaylistEntity> playlists;
+  final bool showLikesCount;
 
   @override
   Widget build(BuildContext context) {
@@ -608,7 +614,7 @@ class _RecentPlaylistsRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionHeader(title: 'Recently played playlists'),
+        _SectionHeader(title: title),
         SizedBox(
           height: 190,
           child: ListView.separated(
@@ -617,7 +623,10 @@ class _RecentPlaylistsRow extends StatelessWidget {
             itemCount: playlists.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
-              return _RecentPlaylistCard(playlist: playlists[index]);
+              return _PlaylistCard(
+                playlist: playlists[index],
+                showLikesCount: showLikesCount,
+              );
             },
           ),
         ),
@@ -626,10 +635,14 @@ class _RecentPlaylistsRow extends StatelessWidget {
   }
 }
 
-class _RecentPlaylistCard extends StatelessWidget {
-  const _RecentPlaylistCard({required this.playlist});
+class _PlaylistCard extends StatelessWidget {
+  const _PlaylistCard({
+    required this.playlist,
+    this.showLikesCount = false,
+  });
 
   final PlaylistEntity playlist;
+  final bool showLikesCount;
 
   @override
   Widget build(BuildContext context) {
@@ -679,7 +692,11 @@ class _RecentPlaylistCard extends StatelessWidget {
               ),
             ),
             Text(
-              ownerName.isEmpty ? 'Playlist' : ownerName,
+              showLikesCount
+                  ? '${playlist.likesCount} likes'
+                  : ownerName.isEmpty
+                      ? 'Playlist'
+                      : ownerName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(

@@ -148,8 +148,8 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
                           itemBuilder: (context, index) {
                             final playlist = playlists[index];
                             final subtitle = playlist.description.isEmpty
-                                ? '${playlist.tracksCount} tracks'
-                                : '${playlist.description} • ${playlist.tracksCount} tracks';
+                                ? '${playlist.tracksCount} tracks • ${playlist.likesCount} likes'
+                                : '${playlist.description} • ${playlist.tracksCount} tracks • ${playlist.likesCount} likes';
 
                             return ListTile(
                               leading: _PlaylistListCover(playlist: playlist),

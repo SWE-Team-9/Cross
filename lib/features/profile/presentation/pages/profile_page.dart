@@ -85,6 +85,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _repostedTracks = const <ManagedTrack>[];
   Future<List<PlaylistEntity>>? _profilePlaylistsFuture;
+  Future<List<PlaylistEntity>>? _likedPlaylistsFuture;
 
   bool get _isOwnProfile {
     final authState = context.read<AuthCubit>().state;
@@ -97,7 +98,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -613,6 +614,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             controller: _tabController,
             children: [
               _buildLikedTracksTab(profile),
+              _buildLikedPlaylistsTab(),
               _buildTracksTab(profile),
               _buildPlaylistsTab(),
               _buildRepostedTracksTab(profile),
@@ -636,6 +638,48 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       emptyIcon: Icons.favorite_border,
       emptyMessage: 'No liked tracks yet',
       showLikesCount: true,
+    );
+  }
+
+  Widget _buildLikedPlaylistsTab() {
+    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+      return _buildEmptyTab(
+        Icons.favorite_border,
+        'No liked playlists yet',
+      );
+    }
+
+    _likedPlaylistsFuture ??=
+        getIt<PlaylistsRepository>().getLikedPlaylists(limit: 100);
+
+    return FutureBuilder<List<PlaylistEntity>>(
+      future: _likedPlaylistsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final playlists = snapshot.data ?? const <PlaylistEntity>[];
+        if (playlists.isEmpty) {
+          return _buildEmptyTab(
+            Icons.favorite_border,
+            'No liked playlists yet',
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            final next = getIt<PlaylistsRepository>().getLikedPlaylists(
+              limit: 100,
+            );
+            setState(() {
+              _likedPlaylistsFuture = next;
+            });
+            await next;
+          },
+          child: _ProfilePlaylistsList(playlists: playlists),
+        );
+      },
     );
   }
 
@@ -705,35 +749,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             });
             await next;
           },
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: playlists.length,
-            separatorBuilder: (_, __) => const Divider(
-              color: Colors.white12,
-              height: 1,
-            ),
-            itemBuilder: (context, index) {
-              final playlist = playlists[index];
-              return ListTile(
-                leading: _ProfilePlaylistCover(playlist: playlist),
-                title: Text(
-                  playlist.title,
-                  style: const TextStyle(color: Colors.white),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  '${playlist.tracksCount} tracks',
-                  style: const TextStyle(color: Colors.white60, fontSize: 12),
-                ),
-                trailing: const Icon(
-                  Icons.chevron_right,
-                  color: Colors.white54,
-                ),
-                onTap: () => context.push('/playlist/${playlist.playlistId}'),
-              );
-            },
-          ),
+          child: _ProfilePlaylistsList(playlists: playlists),
         );
       },
     );
@@ -1211,11 +1227,13 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   Widget _buildTabBar() {
     return TabBar(
       controller: _tabController,
+      isScrollable: true,
       indicatorColor: const Color(0xFFFF5500),
       labelColor: Colors.white,
       unselectedLabelColor: Colors.grey,
       tabs: const [
         Tab(text: 'Likes'),
+        Tab(text: 'Liked playlists'),
         Tab(text: 'Tracks'),
         Tab(text: 'Playlists'),
         Tab(text: 'Reposts'),
@@ -1278,6 +1296,45 @@ class _ProfilePlaylistCover extends StatelessWidget {
                 ),
               ),
       ),
+    );
+  }
+}
+
+class _ProfilePlaylistsList extends StatelessWidget {
+  const _ProfilePlaylistsList({required this.playlists});
+
+  final List<PlaylistEntity> playlists;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: playlists.length,
+      separatorBuilder: (_, __) => const Divider(
+        color: Colors.white12,
+        height: 1,
+      ),
+      itemBuilder: (context, index) {
+        final playlist = playlists[index];
+        return ListTile(
+          leading: _ProfilePlaylistCover(playlist: playlist),
+          title: Text(
+            playlist.title,
+            style: const TextStyle(color: Colors.white),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            '${playlist.tracksCount} tracks • ${playlist.likesCount} likes',
+            style: const TextStyle(color: Colors.white60, fontSize: 12),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right,
+            color: Colors.white54,
+          ),
+          onTap: () => context.push('/playlist/${playlist.playlistId}'),
+        );
+      },
     );
   }
 }
