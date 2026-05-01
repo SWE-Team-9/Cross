@@ -8,8 +8,11 @@ import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playlists/data/local/recent_playlists_store.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/playlists/domain/repositories/playlists_repository.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
@@ -29,6 +32,8 @@ class _LibraryPageState extends State<LibraryPage> {
   late final RecentlyPlayedCubit _historyCubit;
   bool _isLoadingRecentPlaylists = false;
   List<PlaylistEntity> _recentPlaylists = const <PlaylistEntity>[];
+  bool _isLoadingLikedPlaylists = false;
+  List<PlaylistEntity> _likedPlaylists = const <PlaylistEntity>[];
 
   void _goToOwnProfile(AuthState state) {
     if (state is! AuthAuthenticated || state.user.handle.isEmpty) return;
@@ -40,9 +45,17 @@ class _LibraryPageState extends State<LibraryPage> {
     super.initState();
     _historyCubit = GetIt.I<RecentlyPlayedCubit>()..loadListeningHistory();
     _loadRecentPlaylists();
+    _loadLikedPlaylists();
   }
 
   Future<void> _loadRecentPlaylists() async {
+    final localPlaylists = await const RecentPlaylistsStore().load(limit: 10);
+    if (mounted && localPlaylists.isNotEmpty) {
+      setState(() {
+        _recentPlaylists = localPlaylists;
+      });
+    }
+
     if (!GetIt.I.isRegistered<GetRecentPlaylistsUseCase>()) return;
 
     setState(() {
@@ -53,12 +66,12 @@ class _LibraryPageState extends State<LibraryPage> {
       final playlists = await GetIt.I<GetRecentPlaylistsUseCase>()(limit: 10);
       if (!mounted) return;
       setState(() {
-        _recentPlaylists = playlists;
+        _recentPlaylists = _mergePlaylists(playlists, localPlaylists);
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _recentPlaylists = const <PlaylistEntity>[];
+        _recentPlaylists = localPlaylists;
       });
     } finally {
       if (!mounted) return;
@@ -68,7 +81,60 @@ class _LibraryPageState extends State<LibraryPage> {
     }
   }
 
+  Future<void> _loadLikedPlaylists() async {
+    if (!GetIt.I.isRegistered<PlaylistsRepository>()) return;
+
+    setState(() {
+      _isLoadingLikedPlaylists = true;
+    });
+
+    try {
+      final playlists =
+          await GetIt.I<PlaylistsRepository>().getLikedPlaylists(limit: 20);
+      if (!mounted) return;
+      setState(() {
+        _likedPlaylists = playlists;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _likedPlaylists = const <PlaylistEntity>[];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingLikedPlaylists = false;
+      });
+    }
+  }
+
+  List<PlaylistEntity> _mergePlaylists(
+    List<PlaylistEntity> primary,
+    List<PlaylistEntity> fallback,
+  ) {
+    final merged = <PlaylistEntity>[];
+    final seenIds = <String>{};
+
+    for (final playlist in [...primary, ...fallback]) {
+      if (playlist.playlistId.isEmpty || !seenIds.add(playlist.playlistId)) {
+        continue;
+      }
+      merged.add(playlist);
+      if (merged.length >= 10) break;
+    }
+
+    return merged;
+  }
+
   Future<Track> _ensurePlayableTrack(Track track) async {
+    if (GetIt.I.isRegistered<OfflineCubit>()) {
+      final offlineCubit = GetIt.I<OfflineCubit>();
+      final localPath = offlineCubit.getPath(track.id);
+      if (localPath != null && localPath.trim().isNotEmpty) {
+        return track.copyWith(localPath: localPath);
+      }
+    }
+
     if (track.audioUrl.trim().isNotEmpty) return track;
 
     try {
@@ -228,6 +294,22 @@ class _LibraryPageState extends State<LibraryPage> {
                   onTap: () => _goToOwnProfile(state),
                 ),
               ),
+              _LibraryItem(
+                title: 'Downloaded tracks',
+                onTap: () => context.push('/library/downloads/tracks'),
+              ),
+              _LibraryItem(
+                title: 'Downloaded playlists',
+                onTap: () => context.push('/library/downloads/playlists'),
+              ),
+              const SizedBox(height: 20),
+              _PlaylistSection(
+                title: 'Liked playlists',
+                loading: _isLoadingLikedPlaylists,
+                playlists: _likedPlaylists,
+                emptyMessage: 'No liked playlists yet',
+              ),
+              const SizedBox(height: 20),
               BlocBuilder<RecentlyPlayedCubit, List<Track>>(
                 builder: (context, tracks) {
                   if (tracks.isEmpty) {
@@ -279,25 +361,31 @@ class _LibraryItem extends StatelessWidget {
   }
 }
 
-class _RecentPlaylistsSection extends StatelessWidget {
-  const _RecentPlaylistsSection({
+class _PlaylistSection extends StatelessWidget {
+  const _PlaylistSection({
+    required this.title,
     required this.loading,
     required this.playlists,
+    required this.emptyMessage,
+    this.openOffline = false,
   });
 
+  final String title;
   final bool loading;
   final List<PlaylistEntity> playlists;
+  final String emptyMessage;
+  final bool openOffline;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
-            'Recently played playlists',
-            style: TextStyle(
+            title,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -313,11 +401,11 @@ class _RecentPlaylistsSection extends StatelessWidget {
             ),
           )
         else if (playlists.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Text(
-              'No recently played playlists yet',
-              style: TextStyle(color: Colors.white54),
+              emptyMessage,
+              style: const TextStyle(color: Colors.white54),
             ),
           )
         else
@@ -329,7 +417,10 @@ class _RecentPlaylistsSection extends StatelessWidget {
               itemCount: playlists.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, index) {
-                return _RecentPlaylistCard(playlist: playlists[index]);
+                return _RecentPlaylistCard(
+                  playlist: playlists[index],
+                  openOffline: openOffline,
+                );
               },
             ),
           ),
@@ -338,10 +429,35 @@ class _RecentPlaylistsSection extends StatelessWidget {
   }
 }
 
+class _RecentPlaylistsSection extends StatelessWidget {
+  const _RecentPlaylistsSection({
+    required this.loading,
+    required this.playlists,
+  });
+
+  final bool loading;
+  final List<PlaylistEntity> playlists;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PlaylistSection(
+      title: 'Recently played playlists',
+      loading: loading,
+      playlists: playlists,
+      emptyMessage: 'No recently played playlists yet',
+      openOffline: true,
+    );
+  }
+}
+
 class _RecentPlaylistCard extends StatelessWidget {
-  const _RecentPlaylistCard({required this.playlist});
+  const _RecentPlaylistCard({
+    required this.playlist,
+    this.openOffline = false,
+  });
 
   final PlaylistEntity playlist;
+  final bool openOffline;
 
   @override
   Widget build(BuildContext context) {
@@ -350,7 +466,10 @@ class _RecentPlaylistCard extends StatelessWidget {
     final owner = playlist.owner?.displayName.trim() ?? '';
 
     return GestureDetector(
-      onTap: () => context.push('/playlist/${playlist.playlistId}'),
+      onTap: () => context.push(
+        '/playlist/${playlist.playlistId}',
+        extra: openOffline && playlist.tracks.isNotEmpty ? playlist : null,
+      ),
       child: SizedBox(
         width: 132,
         child: Column(
