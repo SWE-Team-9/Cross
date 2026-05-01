@@ -54,6 +54,7 @@ PlaylistEntity _playlist({
     description: 'desc',
     visibility: PlaylistVisibility.publicPlaylist,
     secretToken: null,
+    coverImageUrl: null,
     owner: null,
     tracks: tracks,
     tracksCount: count ?? tracks.length,
