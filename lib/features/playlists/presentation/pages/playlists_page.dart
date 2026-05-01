@@ -16,12 +16,35 @@ class PlaylistsPage extends StatefulWidget {
 }
 
 class _PlaylistsPageState extends State<PlaylistsPage> {
+  late final ScrollController _scrollController;
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PlaylistsCubit>().loadMyPlaylists();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    final shouldLoadMore = position.pixels >= position.maxScrollExtent - 320;
+
+    if (!shouldLoadMore) return;
+
+    context.read<PlaylistsCubit>().loadMoreMyPlaylists();
   }
 
   Future<void> _createPlaylist() async {
@@ -130,6 +153,8 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
                       .loadMyPlaylists(refresh: true),
                   child: playlists.isEmpty
                       ? ListView(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           children: const [
                             SizedBox(height: 120),
                             Center(
@@ -141,11 +166,36 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
                           ],
                         )
                       : ListView.separated(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: playlists.length,
-                          separatorBuilder: (_, __) =>
-                              const Divider(color: Colors.white12, height: 1),
+                          itemCount: playlists.length +
+                              (state.isLoadingMoreMyPlaylists ? 1 : 0),
+                          separatorBuilder: (_, index) {
+                            if (index >= playlists.length - 1) {
+                              return const SizedBox.shrink();
+                            }
+                            return const Divider(
+                              color: Colors.white12,
+                              height: 1,
+                            );
+                          },
                           itemBuilder: (context, index) {
+                            if (index >= playlists.length) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 18),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
                             final playlist = playlists[index];
                             final subtitle = playlist.description.isEmpty
                                 ? '${playlist.tracksCount} tracks • ${playlist.likesCount} likes'
