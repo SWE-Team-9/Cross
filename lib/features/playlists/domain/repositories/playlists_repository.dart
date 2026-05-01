@@ -10,11 +10,16 @@ abstract class PlaylistsRepository {
     int limit = 10,
   });
 
+  Future<List<PlaylistEntity>> getTopPlaylists({
+    int limit = 10,
+  });
+
   Future<PlaylistEntity> createPlaylist({
     required String title,
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
   });
 
   Future<PlaylistEntity> getPlaylistDetails(String playlistId);
@@ -26,6 +31,7 @@ abstract class PlaylistsRepository {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
   });
 
   Future<String?> uploadPlaylistCover({

@@ -16,11 +16,16 @@ abstract class PlaylistsRemoteDataSource {
     int limit = 10,
   });
 
+  Future<List<PlaylistDto>> getTopPlaylists({
+    int limit = 10,
+  });
+
   Future<PlaylistDto> createPlaylist({
     required String title,
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
   });
 
   Future<PlaylistDto> getPlaylistDetails(String playlistId);
@@ -32,6 +37,7 @@ abstract class PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
   });
 
   Future<String?> uploadPlaylistCover({
@@ -117,8 +123,39 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
   @override
   Future<List<PlaylistDto>> getRecentPlaylists({
     int limit = 10,
-  }) {
-    return getMyPlaylists(page: 1, limit: limit);
+  }) async {
+    final response = await dioClient.get(
+      ApiConstants.recentPlaylists,
+      queryParameters: {'limit': limit},
+    );
+
+    final payload = _decode(response.data);
+    final rawList = _extractPlaylistList(payload);
+    if (rawList.isEmpty) return const <PlaylistDto>[];
+
+    return rawList
+        .map((item) => PlaylistDto.fromJson(_asMap(item)))
+        .where((playlist) => playlist.playlistId.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<PlaylistDto>> getTopPlaylists({
+    int limit = 10,
+  }) async {
+    final response = await dioClient.get(
+      ApiConstants.topPlaylists,
+      queryParameters: {'limit': limit},
+    );
+
+    final payload = _decode(response.data);
+    final rawList = _extractPlaylistList(payload);
+    if (rawList.isEmpty) return const <PlaylistDto>[];
+
+    return rawList
+        .map((item) => PlaylistDto.fromJson(_asMap(item)))
+        .where((playlist) => playlist.playlistId.isNotEmpty)
+        .toList(growable: false);
   }
 
   @override
@@ -127,6 +164,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
   }) async {
     final response = await dioClient.post(
       ApiConstants.playlistsBase,
@@ -135,6 +173,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
         'description': description,
         'visibility': visibility.apiValue,
         'trackIds': initialTrackIds,
+        if (genre != null && genre.trim().isNotEmpty) 'genre': genre.trim(),
       },
     );
 
@@ -174,6 +213,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
   }) async {
     await dioClient.patch(
       ApiConstants.playlistByIdPath(playlistId),
@@ -181,6 +221,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
         if (title != null) 'title': title,
         if (description != null) 'description': description,
         if (visibility != null) 'visibility': visibility.apiValue,
+        if (genre != null) 'genre': genre.trim(),
       },
     );
   }

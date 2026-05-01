@@ -62,6 +62,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
       initialTitle: editablePlaylist.title,
       initialDescription: editablePlaylist.description,
       initialVisibility: editablePlaylist.visibility,
+      initialGenre: editablePlaylist.genre,
       initialCoverImageUrl: editablePlaylist.coverImageUrl,
     );
 
@@ -72,6 +73,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
           title: result.title,
           description: result.description,
           visibility: result.visibility,
+          genre: result.genre,
           coverImagePath: result.coverImagePath,
         );
   }

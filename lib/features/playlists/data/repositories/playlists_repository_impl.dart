@@ -27,17 +27,27 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
   }
 
   @override
+  Future<List<PlaylistEntity>> getTopPlaylists({
+    int limit = 10,
+  }) async {
+    final dtos = await remoteDataSource.getTopPlaylists(limit: limit);
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  }
+
+  @override
   Future<PlaylistEntity> createPlaylist({
     required String title,
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
   }) async {
     final dto = await remoteDataSource.createPlaylist(
       title: title,
       description: description,
       visibility: visibility,
       initialTrackIds: initialTrackIds,
+      genre: genre,
     );
     return dto.toEntity();
   }
@@ -60,12 +70,14 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
   }) {
     return remoteDataSource.updatePlaylist(
       playlistId: playlistId,
       title: title,
       description: description,
       visibility: visibility,
+      genre: genre,
     );
   }
 
@@ -185,7 +197,10 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
             title: edit.title,
             description: edit.description,
             visibility: edit.visibility,
+            genre: edit.genre,
+            genreId: edit.genreId,
             coverImageUrl: edit.coverImageUrl,
+            likesCount: edit.likesCount,
           );
         } catch (_) {
           return playlist;

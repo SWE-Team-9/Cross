@@ -11,12 +11,14 @@ class UpdatePlaylistUseCase {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
   }) {
     return repository.updatePlaylist(
       playlistId: playlistId,
       title: title,
       description: description,
       visibility: visibility,
+      genre: genre,
     );
   }
 }

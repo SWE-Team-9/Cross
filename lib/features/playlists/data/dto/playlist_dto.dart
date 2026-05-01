@@ -6,11 +6,14 @@ class PlaylistDto {
   final String title;
   final String description;
   final PlaylistVisibility visibility;
+  final String? genre;
+  final int? genreId;
   final String? secretToken;
   final String? coverImageUrl;
   final PlaylistOwner? owner;
   final List<Track> tracks;
   final int tracksCount;
+  final int likesCount;
   final bool isLiked;
 
   const PlaylistDto({
@@ -18,12 +21,15 @@ class PlaylistDto {
     required this.title,
     required this.description,
     required this.visibility,
+    this.genre,
+    this.genreId,
     required this.secretToken,
     required this.coverImageUrl,
     required this.owner,
     required this.tracks,
     required this.tracksCount,
-    required this.isLiked,
+    this.likesCount = 0,
+    this.isLiked = false,
   });
 
   factory PlaylistDto.fromJson(Map<String, dynamic> json) {
@@ -58,6 +64,16 @@ class PlaylistDto {
       title: _asString(json['title'], fallback: 'Untitled playlist'),
       description: _asString(json['description']),
       visibility: playlistVisibilityFromApi(_asString(json['visibility'])),
+      genre: _normalizeNullable(
+        _asString(
+          json['genre'] ??
+              json['genreSlug'] ??
+              json['genre_slug'] ??
+              _asMap(json['genre'])['slug'] ??
+              _asMap(json['genre'])['name'],
+        ),
+      ),
+      genreId: _asInt(json['genreId'] ?? json['genre_id']),
       secretToken: _normalizeNullable(
         _asString(json['secretToken'] ?? json['secret_token']),
       ),
@@ -74,6 +90,7 @@ class PlaylistDto {
       owner: owner,
       tracks: tracks,
       tracksCount: trackCount,
+      likesCount: _asInt(json['likesCount'] ?? json['likes_count']) ?? 0,
       isLiked: _asBool(
         json['isLiked'] ??
             json['is_liked'] ??
@@ -94,11 +111,14 @@ class PlaylistDto {
       title: title,
       description: description,
       visibility: visibility,
+      genre: genre,
+      genreId: genreId,
       secretToken: secretToken,
       coverImageUrl: coverImageUrl,
       owner: owner,
       tracks: tracks,
       tracksCount: tracksCount,
+      likesCount: likesCount,
       isLiked: isLiked,
     );
   }
@@ -123,13 +143,19 @@ Track? _trackFromJson(Map<String, dynamic> json) {
   );
   if (id.isEmpty) return null;
 
-  final uploaderMap =
-      _asMap(json['uploader'] ?? json['owner'] ?? json['artist']);
+  final rawArtist = json['artist'];
+  final artistMap = rawArtist is Map ? _asMap(rawArtist) : <String, dynamic>{};
+  final uploaderMap = _asMap(json['uploader'] ?? json['owner']);
 
   final title = _asString(json['title'], fallback: 'Untitled');
   final artist = _asString(
     json['artistName'] ??
-        json['artist'] ??
+        json['artist_name'] ??
+        (rawArtist is String ? rawArtist : null) ??
+        artistMap['displayName'] ??
+        artistMap['display_name'] ??
+        artistMap['name'] ??
+        artistMap['username'] ??
         uploaderMap['display_name'] ??
         uploaderMap['displayName'] ??
         uploaderMap['username'],
@@ -146,6 +172,8 @@ Track? _trackFromJson(Map<String, dynamic> json) {
     _asString(
       json['artistId'] ??
           json['artist_id'] ??
+          artistMap['id'] ??
+          artistMap['userId'] ??
           uploaderMap['id'] ??
           uploaderMap['userId'],
     ),
