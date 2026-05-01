@@ -10,6 +10,7 @@ import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/widgets/playlist_editor_sheet.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/widgets/playlist_track_picker_sheet.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/widgets/share_track_to_conversation_sheet.dart';
 
 class PlaylistDetailPage extends StatefulWidget {
   final String playlistId;
@@ -67,6 +68,13 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
           visibility: result.visibility,
           coverImagePath: result.coverImagePath,
         );
+  }
+
+  Future<void> _sharePlaylist(PlaylistEntity playlist) async {
+    await showSharePlaylistToConversationSheet(
+      context: context,
+      playlistId: playlist.playlistId,
+    );
   }
 
   Future<void> _deletePlaylist(String playlistId) async {
@@ -331,6 +339,12 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                     ? null
                     : () => _openEmbedCode(playlist.playlistId),
                 tooltip: 'Get embed code',
+              ),
+              IconButton(
+                icon: const Icon(Icons.share_outlined),
+                onPressed:
+                    state.isSubmitting ? null : () => _sharePlaylist(playlist),
+                tooltip: 'Share playlist',
               ),
               IconButton(
                 icon: state.isLoadingEditDetails

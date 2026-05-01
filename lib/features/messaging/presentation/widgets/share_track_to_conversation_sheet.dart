@@ -39,3 +39,37 @@ Future<void> showShareTrackToConversationSheet({
     },
   );
 }
+
+Future<void> showSharePlaylistToConversationSheet({
+  required BuildContext context,
+  required String playlistId,
+  String? text,
+}) async {
+  await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      return BlocProvider(
+        create: (_) => GetIt.I<ShareTrackToConversationCubit>(),
+        child: Builder(
+          builder: (innerContext) {
+            return ConversationPickerSheet(
+              title: 'Send playlist to',
+              actionLabel: 'Send',
+              onConversationSelected: (ConversationEntity conversation) {
+                return innerContext
+                    .read<ShareTrackToConversationCubit>()
+                    .sharePlaylist(
+                      conversation: conversation,
+                      playlistId: playlistId,
+                      text: text,
+                    );
+              },
+            );
+          },
+        ),
+      );
+    },
+  );
+}

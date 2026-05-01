@@ -686,6 +686,7 @@ Future<void> setupDependencies() async {
       () => ShareTrackToConversationCubit(
         getConversationsUseCase: getIt<GetConversationsUseCase>(),
         shareTrackMessageUseCase: getIt<ShareTrackMessageUseCase>(),
+        sharePlaylistMessageUseCase: getIt<SharePlaylistMessageUseCase>(),
       ),
     );
   }
