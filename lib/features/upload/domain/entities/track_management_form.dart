@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'managed_track.dart';
+import 'track_genre.dart';
 import 'track_management_visibility.dart';
 
 class TrackManagementForm extends Equatable {
@@ -12,6 +13,7 @@ class TrackManagementForm extends Equatable {
     this.genreName,
     this.tags = const <String>[],
     this.releaseDate,
+    this.coverArtPath,
   });
 
   factory TrackManagementForm.fromTrack(ManagedTrack track) {
@@ -32,6 +34,7 @@ class TrackManagementForm extends Equatable {
   final String? genreName;
   final List<String> tags;
   final DateTime? releaseDate;
+  final String? coverArtPath;
   final TrackManagementVisibility visibility;
 
   String get normalizedTitle => title.trim();
@@ -42,8 +45,7 @@ class TrackManagementForm extends Equatable {
   }
 
   String? get normalizedGenreName {
-    final value = (genreName ?? '').trim();
-    return value.isEmpty ? null : value;
+    return normalizeTrackGenreName(genreName);
   }
 
   List<String> get sanitizedTags {
@@ -74,8 +76,8 @@ class TrackManagementForm extends Equatable {
       return 'Title is required.';
     }
 
-    if (normalizedTitle.length > 255) {
-      return 'Title must be 255 characters or fewer.';
+    if (normalizedTitle.length > 100) {
+      return 'Title must be 100 characters or fewer.';
     }
 
     return null;
@@ -106,8 +108,8 @@ class TrackManagementForm extends Equatable {
     }
 
     for (final tag in tags) {
-      if (tag.length > 50) {
-        return 'Each tag must be 50 characters or fewer.';
+      if (tag.length > 30) {
+        return 'Each tag must be 30 characters or fewer.';
       }
     }
 
@@ -123,9 +125,10 @@ class TrackManagementForm extends Equatable {
   bool hasMetadataChangesComparedTo(ManagedTrack track) {
     return normalizedTitle != track.title.trim() ||
         normalizedDescription != _normalizeNullable(track.description) ||
-        normalizedGenreName != _normalizeNullable(track.genreName) ||
+        normalizedGenreName != _normalizeGenreNullable(track.genreName) ||
         _normalizeDateOnly(releaseDate) !=
             _normalizeDateOnly(track.releaseDate) ||
+        _normalizeNullable(coverArtPath) != null ||
         !_sameTags(sanitizedTags, track.tags);
   }
 
@@ -167,6 +170,8 @@ class TrackManagementForm extends Equatable {
     List<String>? tags,
     DateTime? releaseDate,
     bool clearReleaseDate = false,
+    String? coverArtPath,
+    bool clearCoverArtPath = false,
     TrackManagementVisibility? visibility,
   }) {
     return TrackManagementForm(
@@ -176,6 +181,8 @@ class TrackManagementForm extends Equatable {
       genreName: clearGenreName ? null : (genreName ?? this.genreName),
       tags: tags ?? this.tags,
       releaseDate: clearReleaseDate ? null : (releaseDate ?? this.releaseDate),
+      coverArtPath:
+          clearCoverArtPath ? null : (coverArtPath ?? this.coverArtPath),
       visibility: visibility ?? this.visibility,
     );
   }
@@ -188,6 +195,7 @@ class TrackManagementForm extends Equatable {
         genreName,
         tags,
         releaseDate,
+        coverArtPath,
         visibility,
       ];
 }
@@ -195,6 +203,10 @@ class TrackManagementForm extends Equatable {
 String? _normalizeNullable(String? value) {
   final normalized = (value ?? '').trim();
   return normalized.isEmpty ? null : normalized;
+}
+
+String? _normalizeGenreNullable(String? value) {
+  return normalizeTrackGenreName(value);
 }
 
 bool _sameTags(List<String> first, List<String> second) {
