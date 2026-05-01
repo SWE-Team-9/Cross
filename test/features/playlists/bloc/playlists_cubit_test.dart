@@ -9,9 +9,11 @@ import 'package:soundcloud_clone/features/playlists/domain/usecases/delete_playl
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_my_playlists_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_details_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/like_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/update_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
@@ -42,11 +44,17 @@ class MockResolveSecretPlaylistUseCase extends Mock
 class MockGetPlaylistEmbedCodeUseCase extends Mock
     implements GetPlaylistEmbedCodeUseCase {}
 
+class MockLikePlaylistUseCase extends Mock implements LikePlaylistUseCase {}
+
+class MockUnlikePlaylistUseCase extends Mock implements UnlikePlaylistUseCase {}
+
 PlaylistEntity _playlist({
   String id = 'pl_1',
   String? title,
   List<Track> tracks = const <Track>[],
   int? count,
+  int likesCount = 0,
+  bool isLiked = false,
 }) {
   return PlaylistEntity(
     playlistId: id,
@@ -58,6 +66,8 @@ PlaylistEntity _playlist({
     owner: null,
     tracks: tracks,
     tracksCount: count ?? tracks.length,
+    likesCount: likesCount,
+    isLiked: isLiked,
   );
 }
 
@@ -81,7 +91,8 @@ void main() {
   late MockReorderPlaylistTracksUseCase reorder;
   late MockResolveSecretPlaylistUseCase resolveSecret;
   late MockGetPlaylistEmbedCodeUseCase embed;
-
+  late MockLikePlaylistUseCase like;
+  late MockUnlikePlaylistUseCase unlike;
   setUp(() {
     getMy = MockGetMyPlaylistsUseCase();
     create = MockCreatePlaylistUseCase();
@@ -93,6 +104,8 @@ void main() {
     reorder = MockReorderPlaylistTracksUseCase();
     resolveSecret = MockResolveSecretPlaylistUseCase();
     embed = MockGetPlaylistEmbedCodeUseCase();
+    like = MockLikePlaylistUseCase();
+    unlike = MockUnlikePlaylistUseCase();
   });
 
   PlaylistsCubit buildCubit() => PlaylistsCubit(
@@ -106,8 +119,9 @@ void main() {
         reorderPlaylistTracksUseCase: reorder,
         resolveSecretPlaylistUseCase: resolveSecret,
         getPlaylistEmbedCodeUseCase: embed,
+        likePlaylistUseCase: like,
+        unlikePlaylistUseCase: unlike,
       );
-
   group('PlaylistsCubit', () {
     test('initial state is defaults', () {
       final cubit = buildCubit();
@@ -740,6 +754,233 @@ void main() {
       expect(cubit.state.errorMessage, 'Playlist not found');
       expect(cubit.state.isSubmitting, isFalse);
     });
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'likePlaylist optimistically likes selected playlist and list item',
+      build: () {
+        when(() => like('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(id: 'pl_1', likesCount: 3);
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.likePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isTrue)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 4),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having((s) => s.infoMessage, 'info', 'Playlist liked')
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4),
+      ],
+      verify: (_) {
+        verify(() => like('pl_1')).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'likePlaylist rolls back selected playlist and list item on failure',
+      build: () {
+        when(() => like('pl_1')).thenThrow(Exception('network failed'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(id: 'pl_1', likesCount: 3);
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.likePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isFalse)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 3)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isFalse)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 3)
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Network error. Please check your connection',
+            ),
+      ],
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'likePlaylist keeps liked state when backend says already liked',
+      build: () {
+        when(() => like('pl_1')).thenThrow(Exception('409 already liked'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(id: 'pl_1', likesCount: 3);
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.likePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isTrue)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 4)
+            .having((s) => s.infoMessage, 'info', 'Playlist liked'),
+      ],
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'unlikePlaylist optimistically unlikes selected playlist and list item',
+      build: () {
+        when(() => unlike('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          likesCount: 3,
+          isLiked: true,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.unlikePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isFalse)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 2),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having((s) => s.infoMessage, 'info', 'Playlist unliked')
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2),
+      ],
+      verify: (_) {
+        verify(() => unlike('pl_1')).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'unlikePlaylist rolls back selected playlist and list item on failure',
+      build: () {
+        when(() => unlike('pl_1')).thenThrow(Exception('network failed'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          likesCount: 3,
+          isLiked: true,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.unlikePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 3)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isTrue)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 3)
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Network error. Please check your connection',
+            ),
+      ],
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'unlikePlaylist keeps unliked state when backend says not liked',
+      build: () {
+        when(() => unlike('pl_1')).thenThrow(Exception('409 not liked'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          likesCount: 3,
+          isLiked: true,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.unlikePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isFalse)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 2)
+            .having((s) => s.infoMessage, 'info', 'Playlist unliked'),
+      ],
+    );
 
     blocTest<PlaylistsCubit, PlaylistsState>(
       'removeTrackFromPlaylist applies optimistic update then confirms',
