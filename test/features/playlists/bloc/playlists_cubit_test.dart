@@ -12,6 +12,7 @@ import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist
 import 'package:soundcloud_clone/features/playlists/domain/usecases/like_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/record_playlist_playback_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/update_playlist_usecase.dart';
@@ -47,6 +48,9 @@ class MockGetPlaylistEmbedCodeUseCase extends Mock
 class MockLikePlaylistUseCase extends Mock implements LikePlaylistUseCase {}
 
 class MockUnlikePlaylistUseCase extends Mock implements UnlikePlaylistUseCase {}
+
+class MockRecordPlaylistPlaybackUseCase extends Mock
+    implements RecordPlaylistPlaybackUseCase {}
 
 PlaylistEntity _playlist({
   String id = 'pl_1',
@@ -93,6 +97,7 @@ void main() {
   late MockGetPlaylistEmbedCodeUseCase embed;
   late MockLikePlaylistUseCase like;
   late MockUnlikePlaylistUseCase unlike;
+  late MockRecordPlaylistPlaybackUseCase recordPlayback;
   setUp(() {
     getMy = MockGetMyPlaylistsUseCase();
     create = MockCreatePlaylistUseCase();
@@ -106,6 +111,7 @@ void main() {
     embed = MockGetPlaylistEmbedCodeUseCase();
     like = MockLikePlaylistUseCase();
     unlike = MockUnlikePlaylistUseCase();
+    recordPlayback = MockRecordPlaylistPlaybackUseCase();
   });
 
   PlaylistsCubit buildCubit() => PlaylistsCubit(
@@ -121,6 +127,7 @@ void main() {
         getPlaylistEmbedCodeUseCase: embed,
         likePlaylistUseCase: like,
         unlikePlaylistUseCase: unlike,
+        recordPlaylistPlaybackUseCase: recordPlayback,
       );
   group('PlaylistsCubit', () {
     test('initial state is defaults', () {
@@ -981,7 +988,54 @@ void main() {
             .having((s) => s.infoMessage, 'info', 'Playlist unliked'),
       ],
     );
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'recordPlaylistPlayback calls usecase without emitting state',
+      build: () {
+        when(() => recordPlayback('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      act: (cubit) => cubit.recordPlaylistPlayback('pl_1'),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verify(() => recordPlayback('pl_1')).called(1);
+      },
+    );
 
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'recordPlaylistPlayback trims playlist id before usecase call',
+      build: () {
+        when(() => recordPlayback('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      act: (cubit) => cubit.recordPlaylistPlayback('  pl_1  '),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verify(() => recordPlayback('pl_1')).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'recordPlaylistPlayback ignores empty playlist id',
+      build: buildCubit,
+      act: (cubit) => cubit.recordPlaylistPlayback('   '),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verifyZeroInteractions(recordPlayback);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'recordPlaylistPlayback swallows usecase failure',
+      build: () {
+        when(() => recordPlayback('pl_1')).thenThrow(Exception('network'));
+        return buildCubit();
+      },
+      act: (cubit) => cubit.recordPlaylistPlayback('pl_1'),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verify(() => recordPlayback('pl_1')).called(1);
+      },
+    );
     blocTest<PlaylistsCubit, PlaylistsState>(
       'removeTrackFromPlaylist applies optimistic update then confirms',
       build: () {
