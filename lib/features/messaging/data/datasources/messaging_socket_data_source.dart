@@ -52,11 +52,11 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
     print('Socket.IO cookie exists => ${cookieHeader.isNotEmpty}');
 
     _socket = IO.io(
-      'http:dev.iqa3.tech',
+      ApiConstants.baseUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
-          .setPath('/messages')
+          .setPath(ApiConstants.messagingBase)
           .setExtraHeaders(
             cookieHeader.isEmpty
                 ? <String, String>{}

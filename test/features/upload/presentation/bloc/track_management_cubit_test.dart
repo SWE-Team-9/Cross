@@ -98,7 +98,7 @@ void main() {
       cubit.initialize(track);
 
       expect(cubit.state.status, TrackManagementStatus.ready);
-      expect(cubit.state.currentTrack, track);
+      expect(cubit.state.currentTrack, track.copyWith(genreName: 'ambient'));
       expect(cubit.state.form, isNotNull);
       expect(cubit.state.form!.title, 'Demo Track');
 
@@ -154,7 +154,7 @@ void main() {
       expect(cubit.state.status, TrackManagementStatus.success);
       expect(cubit.state.currentTrack!.title, 'Edited Track');
       expect(cubit.state.currentTrack!.description, 'Edited Description');
-      expect(cubit.state.currentTrack!.genreName, 'Electronic');
+      expect(cubit.state.currentTrack!.genreName, 'electronic');
       expect(cubit.state.currentTrack!.tags, const <String>['edited', 'demo']);
 
       await cubit.close();

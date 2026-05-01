@@ -8,6 +8,10 @@ class ManagedTrackDto {
   const ManagedTrackDto({
     required this.id,
     required this.title,
+    this.artistName,
+    this.artistHandle,
+    this.likesCount,
+    this.repostsCount,
     required this.visibility,
     this.status = TrackStatus.PROCESSING,
     this.waveformData = const WaveformData.empty(),
@@ -26,7 +30,13 @@ class ManagedTrackDto {
     return ManagedTrackDto(
       id: (json['id'] ?? json['trackId'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
+      artistName: _parseArtistName(json),
+      artistHandle: _parseArtistHandle(json),
       description: _parseDescription(json),
+      likesCount:
+          _parseInt(json['likesCount'] ?? json['likes_count'] ?? json['likes']),
+      repostsCount: _parseInt(
+          json['repostsCount'] ?? json['reposts_count'] ?? json['reposts']),
       genreId: _parseGenreId(json),
       genreName: _parseGenreName(json),
       tags: _parseTags(_extractRawTags(json)),
@@ -56,6 +66,8 @@ class ManagedTrackDto {
 
   final String id;
   final String title;
+  final String? artistName;
+  final String? artistHandle;
   final String? description;
   final int? genreId;
   final String? genreName;
@@ -68,11 +80,15 @@ class ManagedTrackDto {
   final String? deletedAt;
   final TrackStatus status;
   final WaveformData waveformData;
+  final int? likesCount;
+  final int? repostsCount;
 
   ManagedTrack toEntity() {
     return ManagedTrack(
       id: id,
       title: title,
+      artistName: artistName,
+      artistHandle: artistHandle,
       description: description,
       genreId: genreId,
       genreName: genreName,
@@ -85,8 +101,41 @@ class ManagedTrackDto {
       isDeleted: deletedAt != null,
       status: status,
       waveformData: waveformData,
+      likesCount: likesCount ?? 0,
+      repostsCount: repostsCount ?? 0,
     );
   }
+}
+
+String? _parseArtistName(Map<String, dynamic> json) {
+  final Map<String, dynamic>? user = _extractUserMap(json);
+  final String? value = user?['displayName']?.toString() ??
+      user?['display_name']?.toString() ??
+      user?['name']?.toString() ??
+      json['artistName']?.toString() ??
+      json['artist_name']?.toString() ??
+      json['artist']?.toString();
+  final String normalized = (value ?? '').trim();
+  return normalized.isEmpty ? null : normalized;
+}
+
+String? _parseArtistHandle(Map<String, dynamic> json) {
+  final Map<String, dynamic>? user = _extractUserMap(json);
+  final String? value = user?['handle']?.toString() ??
+      user?['username']?.toString() ??
+      json['artistHandle']?.toString() ??
+      json['artist_handle']?.toString() ??
+      json['handle']?.toString();
+  final String normalized = (value ?? '').trim();
+  return normalized.isEmpty ? null : normalized;
+}
+
+Map<String, dynamic>? _extractUserMap(Map<String, dynamic> json) {
+  final dynamic user = json['user'] ?? json['artist'] ?? json['owner'];
+  if (user is Map<String, dynamic>) {
+    return user;
+  }
+  return null;
 }
 
 String? _parseDescription(Map<String, dynamic> json) {

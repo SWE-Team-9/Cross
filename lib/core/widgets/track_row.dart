@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/widgets/track_options_sheet.dart';
 import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
@@ -29,115 +30,130 @@ class TrackRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return BlocBuilder<PlayerCubit, PlayerUIState>(
-          builder: (context, state) {
-            final isCurrentTrack = state.currentTrack?.id == track.id;
-            final isPlaying = isCurrentTrack && state.isPlaying;
-            final wasPlayed = state.wasPlayed(track.id);
+    return Builder(builder: (context) {
+      PlayerCubit? playerCubit;
+      try {
+        playerCubit = context.read<PlayerCubit>();
+      } catch (_) {
+        playerCubit = null;
+      }
 
-            final opacity = wasPlayed && !isCurrentTrack ? 0.45 : 1.0;
+      Widget buildForState(PlayerUIState state) {
+        final isCurrentTrack = state.currentTrack?.id == track.id;
+        final isPlaying = isCurrentTrack && state.isPlaying;
+        final wasPlayed = state.wasPlayed(track.id);
 
-            return Opacity(
-              opacity: opacity,
-              child: InkWell(
-                onTap: () => _playTrack(context),
-                splashColor: Colors.white10,
-                child: Container(
-                  color: isCurrentTrack
-                      ? Colors.white.withValues(alpha: 0.05) // ✅ UI IMPROVEMENT
-                      : Colors.transparent,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            color: Colors.grey[800],
-                            image: track.artworkUrl != null
-                                ? DecorationImage(
-                                    image: NetworkImage(track.artworkUrl!),
-                                    fit: BoxFit.cover,
-                                    onError: (_, __) {},
-                                  )
-                                : null,
+        final opacity = wasPlayed && !isCurrentTrack ? 0.45 : 1.0;
+
+        return Opacity(
+          opacity: opacity,
+          child: InkWell(
+            onTap: () => _playTrack(context),
+            splashColor: Colors.white10,
+            child: Container(
+              color: isCurrentTrack
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.transparent,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.grey[800],
+                        image: track.artworkUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(track.artworkUrl!),
+                                fit: BoxFit.cover,
+                                onError: (_, __) {},
+                              )
+                            : null,
+                      ),
+                      child: track.artworkUrl == null
+                          ? const Icon(Icons.music_note, color: Colors.white)
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            track.title,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          child: track.artworkUrl == null
-                              ? const Icon(Icons.music_note,
-                                  color: Colors.white)
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                track.title,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                          const SizedBox(height: 3),
+                          if (isPlaying)
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.equalizer,
+                                  color: Color(0xFFFF5500),
+                                  size: 16,
                                 ),
-                              ),
-                              const SizedBox(height: 3),
-                              if (isPlaying)
-                                const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.equalizer,
-                                      color: Color(0xFFFF5500),
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Now Playing',
-                                      style: TextStyle(
-                                        color: Color(0xFFFF5500),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              else
+                                SizedBox(width: 6),
                                 Text(
-                                  showLikesCount
-                                      ? '${track.artist} - ${track.likesCount} likes'
-                                      : track.artist,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFF999999),
+                                  'Now Playing',
+                                  style: TextStyle(
+                                    color: Color(0xFFFF5500),
                                     fontSize: 12,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () =>
-                              TrackOptionsSheet.show(context, track: track),
-                          icon: const Icon(
-                            Icons.more_vert,
-                            color: Color(0xFF666666),
-                          ),
-                        ),
-                      ],
+                              ],
+                            )
+                          else
+                            Text(
+                              showLikesCount
+                                  ? '${track.artist} - ${track.likesCount} likes'
+                                  : track.artist,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF999999),
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
+                    IconButton(
+                      onPressed: () =>
+                          TrackOptionsSheet.show(context, track: track),
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
+            ),
+          ),
         );
-      },
-    );
+      }
+
+      if (playerCubit != null) {
+        return BlocBuilder<PlayerCubit, PlayerUIState>(
+          bloc: playerCubit,
+          builder: (context, state) => buildForState(state),
+        );
+      }
+
+      final defaultState = PlayerUIState(
+        playerState: const PlayerState(
+            status: PlayerStatus.idle, position: Duration.zero),
+      );
+      return buildForState(defaultState);
+    });
   }
 
   Future<void> _playTrack(BuildContext context) async {
