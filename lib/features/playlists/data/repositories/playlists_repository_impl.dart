@@ -19,6 +19,15 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
   }
 
   @override
+  Future<List<PlaylistEntity>> getRecentPlaylists({
+    int limit = 10,
+  }) async {
+    final dtos = await remoteDataSource.getRecentPlaylists(limit: limit);
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  }
+  }
+
+  @override
   Future<PlaylistEntity> createPlaylist({
     required String title,
     required String description,
@@ -73,9 +82,8 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
   }
 
   @override
-  Future<List<PlaylistEntity>> getRecentPlaylists({int limit = 10}) async {
-    final dtos = await remoteDataSource.getRecentPlaylists(limit: limit);
-    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  Future<void> deletePlaylist(String playlistId) {
+    return remoteDataSource.deletePlaylist(playlistId);
   }
 
   @override
@@ -114,12 +122,6 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
     return remoteDataSource.unlikePlaylist(playlistId);
   }
 
-  @override
-  Future<void> deletePlaylist(String playlistId) {
-    return remoteDataSource.deletePlaylist(playlistId);
-  }
-
-  @override
   Future<void> addTrackToPlaylist({
     required String playlistId,
     required String trackId,

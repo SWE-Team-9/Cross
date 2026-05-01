@@ -10,10 +10,42 @@ import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 
 class MockAudioService extends Mock implements AudioPlayerService {}
 
 class MockPlayerCubit extends Mock implements PlayerCubit {}
+
+/// ✅ FIX: Fake repo instead of throwing error
+class FakeOfflineRepository implements OfflineRepository {
+  final Map<String, String> _storage = {};
+
+  @override
+  late final DioClient dio;
+
+  @override
+  Future<String> downloadTrack(String trackId) async {
+    final path = '/fake/$trackId.mp3';
+    _storage[trackId] = path;
+    return path;
+  }
+
+  @override
+  Future<Map<String, String>> getDownloadedTracks() async {
+    return _storage;
+  }
+
+  @override
+  Future<void> saveDownloadedTracks(Map<String, String> data) async {
+    _storage
+      ..clear()
+      ..addAll(data);
+  }
+}
 
 void main() {
   late MockAudioService audioService;
@@ -64,12 +96,23 @@ void main() {
   });
 
   Widget buildSubject() {
-    return BlocProvider<PlayerCubit>.value(
-      value: playerCubit,
-      child: MaterialApp(
-        home: Builder(
-          builder: (context) => const MockSearchPage(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<PlayerCubit>.value(value: playerCubit),
+
+        /// ✅ FIXED
+        BlocProvider<OfflineCubit>(
+          create: (_) => OfflineCubit(FakeOfflineRepository()),
         ),
+
+        BlocProvider(
+          create: (_) => SubscriptionCubit(
+            MockSubscriptionRepository(),
+          )..loadSubscription(),
+        ),
+      ],
+      child: const MaterialApp(
+        home: MockSearchPage(),
       ),
     );
   }

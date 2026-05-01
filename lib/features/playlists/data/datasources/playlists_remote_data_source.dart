@@ -12,6 +12,10 @@ abstract class PlaylistsRemoteDataSource {
     int limit = 20,
   });
 
+  Future<List<PlaylistDto>> getRecentPlaylists({
+    int limit = 10,
+  });
+
   Future<PlaylistDto> createPlaylist({
     required String title,
     required String description,
@@ -35,7 +39,7 @@ abstract class PlaylistsRemoteDataSource {
     required String filePath,
   });
 
-  Future<List<PlaylistDto>> getRecentPlaylists({int limit = 10});
+  Future<void> deletePlaylist(String playlistId);
 
   Future<List<PlaylistDto>> getLikedPlaylists({
     int page = 1,
@@ -51,8 +55,6 @@ abstract class PlaylistsRemoteDataSource {
   Future<void> likePlaylist(String playlistId);
 
   Future<void> unlikePlaylist(String playlistId);
-
-  Future<void> deletePlaylist(String playlistId);
 
   Future<void> addTrackToPlaylist({
     required String playlistId,
@@ -110,6 +112,13 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
         .map((item) => PlaylistDto.fromJson(_asMap(item)))
         .where((playlist) => playlist.playlistId.isNotEmpty)
         .toList(growable: false);
+  }
+
+  @override
+  Future<List<PlaylistDto>> getRecentPlaylists({
+    int limit = 10,
+  }) {
+    return getMyPlaylists(page: 1, limit: limit);
   }
 
   @override
@@ -181,7 +190,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     required String playlistId,
     required String filePath,
   }) async {
-    final formData = FormData.fromMap({
+    final FormData formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath),
     });
 
@@ -193,38 +202,31 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
 
     final payload = _decode(response.data);
     final data = _extractData(payload);
-    final map = _asMap(data);
-    return _normalizeNullable(
-      (map['coverImageUrl'] ??
-                  map['cover_image_url'] ??
-                  map['url'] ??
-                  _asMap(map['data'])['coverImageUrl'])
-              ?.toString() ??
-          '',
-    );
+
+    if (data is Map<String, dynamic>) {
+      final dynamic url =
+          data['url'] ?? data['coverUrl'] ?? data['cover_url'] ?? data['image'];
+      if (url != null && url.toString().trim().isNotEmpty) {
+        return url.toString();
+      }
+    }
+
+    if (payload is Map<String, dynamic>) {
+      final dynamic url = payload['url'] ??
+          payload['coverUrl'] ??
+          payload['cover_url'] ??
+          payload['image'];
+      if (url != null && url.toString().trim().isNotEmpty) {
+        return url.toString();
+      }
+    }
+
+    return null;
   }
 
   @override
-  Future<List<PlaylistDto>> getRecentPlaylists({int limit = 10}) async {
-    final response = await dioClient.get(
-      ApiConstants.recentPlaylists,
-      queryParameters: {'limit': limit},
-    );
-
-    final payload = _decode(response.data);
-    final data = _extractData(payload);
-    final rawList = data is Map<String, dynamic>
-        ? data['playlists'] ?? data['items'] ?? data['data']
-        : payload is Map<String, dynamic>
-            ? payload['playlists'] ?? payload['items'] ?? payload['data']
-            : payload;
-
-    if (rawList is! List) return const <PlaylistDto>[];
-
-    return rawList
-        .map((item) => PlaylistDto.fromJson(_asMap(item)))
-        .where((playlist) => playlist.playlistId.isNotEmpty)
-        .toList(growable: false);
+  Future<void> deletePlaylist(String playlistId) async {
+    await dioClient.delete(ApiConstants.playlistByIdPath(playlistId));
   }
 
   @override
@@ -287,11 +289,6 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
   @override
   Future<void> unlikePlaylist(String playlistId) async {
     await dioClient.delete(ApiConstants.likePlaylistPath(playlistId));
-  }
-
-  @override
-  Future<void> deletePlaylist(String playlistId) async {
-    await dioClient.delete(ApiConstants.playlistByIdPath(playlistId));
   }
 
   @override

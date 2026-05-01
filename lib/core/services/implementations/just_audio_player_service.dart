@@ -101,6 +101,7 @@ class JustAudioPlayerService implements AudioPlayerService {
               track.artworkUrl != null ? Uri.parse(track.artworkUrl!) : null,
           extras: {
             'url': track.audioUrl,
+            'localPath': track.localPath, // NEW
             if (track.durationMs != null) 'durationMs': track.durationMs,
           },
         );
@@ -137,6 +138,27 @@ class JustAudioPlayerService implements AudioPlayerService {
       startIndex: 0,
       source: "single",
     );
+  }
+
+  @override
+  Future<void> playLocalFile(String path) async {
+    await _handler.stop();
+
+    final appHandler = _handler as AppAudioHandler;
+
+    await appHandler.setQueue([
+      MediaItem(
+        id: path,
+        title: 'Offline Track',
+        artist: 'Unknown',
+        extras: {
+          'url': path,
+          'localPath': path,
+        },
+      ),
+    ]);
+
+    await appHandler.play();
   }
 
   @override

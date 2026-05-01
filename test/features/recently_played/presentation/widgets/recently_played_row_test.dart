@@ -46,6 +46,8 @@ class FakeAudioPlayerService implements AudioPlayerService {
   @override
   Future<void> dispose() async {}
   @override
+  Future<void> playLocalFile(String path) async {}
+  @override
   Future<void> playFromContext({
     required List<Track> tracks,
     required int startIndex,
