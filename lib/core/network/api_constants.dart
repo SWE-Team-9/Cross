@@ -139,8 +139,6 @@ abstract class ApiConstants {
   static String playlistCoverPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/cover';
 
-  static String likePlaylistPath(String playlistId) =>
-      '${playlistByIdPath(playlistId)}/like';
   static String playlistTracksPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/tracks';
 
