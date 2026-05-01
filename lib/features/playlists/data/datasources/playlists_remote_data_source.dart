@@ -545,7 +545,13 @@ dynamic _decode(dynamic responseData) {
 
 dynamic _extractData(dynamic payload) {
   if (payload is Map<String, dynamic>) {
-    return payload['data'] ?? payload;
+    final data = payload['data'];
+    if (data != null) return data;
+
+    final playlist = payload['playlist'];
+    if (playlist != null) return playlist;
+
+    return payload;
   }
   return payload;
 }
