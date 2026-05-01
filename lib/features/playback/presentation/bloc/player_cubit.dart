@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 
 import 'player_ui_state.dart';
@@ -286,8 +288,11 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     List<Track> tracks,
     int index,
   ) async {
-    final resolvedTracks = List<Track>.from(tracks);
+    final resolvedTracks = _withOfflinePaths(tracks);
     final selected = resolvedTracks[index];
+    if (selected.localPath != null && selected.localPath!.trim().isNotEmpty) {
+      return resolvedTracks;
+    }
 
     final getTrackDetail = _getTrackDetail;
     if (getTrackDetail == null) return resolvedTracks;
@@ -302,12 +307,33 @@ class PlayerCubit extends Cubit<PlayerUIState> {
       ));
 
       // ✅ Only replace track if needed
-      if (selected.audioUrl.trim().isEmpty) {
-        resolvedTracks[index] = detail.toPlaybackTrack();
+      if (selected.audioUrl.trim().isEmpty &&
+          (selected.localPath == null || selected.localPath!.trim().isEmpty)) {
+        resolvedTracks[index] = _withOfflinePath(detail.toPlaybackTrack());
       }
     }
 
     return resolvedTracks;
+  }
+
+  List<Track> _withOfflinePaths(List<Track> tracks) {
+    return tracks.map(_withOfflinePath).toList();
+  }
+
+  Track _withOfflinePath(Track track) {
+    final offlineCubit = _offlineCubit();
+    if (offlineCubit == null || !offlineCubit.isDownloaded(track.id)) {
+      return track;
+    }
+
+    final localPath = offlineCubit.getPath(track.id);
+    if (localPath == null || localPath.trim().isEmpty) return track;
+    return track.copyWith(localPath: localPath);
+  }
+
+  OfflineCubit? _offlineCubit() {
+    if (!GetIt.I.isRegistered<OfflineCubit>()) return null;
+    return GetIt.I<OfflineCubit>();
   }
 
   Track? _trackFromServiceState(PlayerState playerState) {

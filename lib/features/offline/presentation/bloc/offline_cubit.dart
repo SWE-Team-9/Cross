@@ -10,6 +10,8 @@ class OfflineCubit extends Cubit<OfflineState> {
   }
 
   Future<void> download(String trackId) async {
+    if (isDownloaded(trackId)) return;
+
     try {
       final path = await repo.downloadTrack(trackId);
 

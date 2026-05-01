@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
@@ -11,6 +13,8 @@ import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_
 import 'package:soundcloud_clone/features/playlists/presentation/widgets/playlist_editor_sheet.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/widgets/playlist_track_picker_sheet.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/widgets/share_track_to_conversation_sheet.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 
 class PlaylistDetailPage extends StatefulWidget {
   final String playlistId;
@@ -27,6 +31,8 @@ class PlaylistDetailPage extends StatefulWidget {
 }
 
 class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
+  bool _isDownloadingPlaylist = false;
+
   @override
   void initState() {
     super.initState();
@@ -238,6 +244,110 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     );
   }
 
+  Future<void> _downloadPlaylist(PlaylistEntity playlist) async {
+    final offlineCubit = _lookupCubit<OfflineCubit>();
+    if (offlineCubit == null) {
+      _showPlaylistSnack('Offline downloads are not available right now');
+      return;
+    }
+
+    final missingTracks = playlist.tracks
+        .where((track) => !offlineCubit.isDownloaded(track.id))
+        .toList();
+
+    if (missingTracks.isEmpty) {
+      _showPlaylistSnack('Playlist already downloaded');
+      return;
+    }
+
+    setState(() => _isDownloadingPlaylist = true);
+
+    var downloadedCount = 0;
+    try {
+      for (final track in missingTracks) {
+        await offlineCubit.download(track.id);
+        downloadedCount++;
+      }
+
+      if (!mounted) return;
+      _showPlaylistSnack(
+        downloadedCount == playlist.tracks.length
+            ? 'Playlist saved for offline listening'
+            : 'Saved $downloadedCount track(s) for offline listening',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      if (e.toString().contains('UPGRADE_REQUIRED')) {
+        Navigator.pushNamed(context, '/upgrade');
+      } else {
+        _showPlaylistSnack(
+          downloadedCount == 0
+              ? 'Playlist download failed'
+              : 'Saved $downloadedCount track(s). Some downloads failed',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloadingPlaylist = false);
+      }
+    }
+  }
+
+  Widget _buildDownloadPlaylistButton(
+    PlaylistEntity playlist,
+    bool isSubmitting,
+  ) {
+    final subscriptionCubit = _lookupCubit<SubscriptionCubit>();
+    final offlineCubit = _lookupCubit<OfflineCubit>();
+    if (subscriptionCubit == null || offlineCubit == null) {
+      return const SizedBox.shrink();
+    }
+
+    return BlocBuilder<SubscriptionCubit, Subscription?>(
+      bloc: subscriptionCubit,
+      builder: (context, subscription) {
+        if (subscription?.canDownload != true) return const SizedBox.shrink();
+
+        return BlocBuilder<OfflineCubit, OfflineState>(
+          bloc: offlineCubit,
+          builder: (context, offlineState) {
+            final total = playlist.tracks.length;
+            final downloaded = playlist.tracks
+                .where((track) => offlineCubit.isDownloaded(track.id))
+                .length;
+            final allDownloaded = total > 0 && downloaded == total;
+
+            return OutlinedButton.icon(
+              onPressed: total == 0 || isSubmitting || _isDownloadingPlaylist
+                  ? null
+                  : () => _downloadPlaylist(playlist),
+              icon: _isDownloadingPlaylist
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      allDownloaded
+                          ? Icons.download_done_rounded
+                          : Icons.download_for_offline_outlined,
+                      color: Colors.white,
+                    ),
+              label: Text(
+                allDownloaded
+                    ? 'Playlist downloaded'
+                    : downloaded > 0
+                        ? 'Download playlist ($downloaded/$total)'
+                        : 'Download playlist',
+                style: const TextStyle(color: Colors.white),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   PlayerCubit? _playerCubit() {
     try {
       return context.read<PlayerCubit>();
@@ -248,6 +358,22 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     }
 
     return null;
+  }
+
+  T? _lookupCubit<T extends Object>() {
+    try {
+      return context.read<T>();
+    } catch (_) {
+      if (getIt.isRegistered<T>()) return getIt<T>();
+      return null;
+    }
+  }
+
+  void _showPlaylistSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   Future<void> _removeTrack(PlaylistEntity playlist, Track track) async {
@@ -487,6 +613,11 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                         'Play playlist',
                         style: TextStyle(color: Colors.white),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDownloadPlaylistButton(
+                      playlist,
+                      state.isSubmitting,
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
