@@ -37,6 +37,12 @@ abstract class PlaylistsRemoteDataSource {
 
   Future<List<PlaylistDto>> getRecentPlaylists({int limit = 10});
 
+  Future<List<PlaylistDto>> searchPublicPlaylists(
+    String query, {
+    int page = 1,
+    int limit = 20,
+  });
+
   Future<void> likePlaylist(String playlistId);
 
   Future<void> unlikePlaylist(String playlistId);
@@ -217,6 +223,35 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
   }
 
   @override
+  Future<List<PlaylistDto>> searchPublicPlaylists(
+    String query, {
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const <PlaylistDto>[];
+
+    final response = await dioClient.get(
+      ApiConstants.discoverySearchPath,
+      queryParameters: {
+        'q': trimmed,
+        'type': 'playlists',
+        'page': page,
+        'limit': limit,
+      },
+    );
+
+    final payload = _decode(response.data);
+    final rawList = _extractPlaylistList(payload);
+    if (rawList.isEmpty) return const <PlaylistDto>[];
+
+    return rawList
+        .map((item) => PlaylistDto.fromJson(_asMap(item)))
+        .where((playlist) => playlist.playlistId.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
   Future<void> likePlaylist(String playlistId) async {
     await dioClient.post(ApiConstants.likePlaylistPath(playlistId));
   }
@@ -318,6 +353,26 @@ Map<String, dynamic> _asMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) return Map<String, dynamic>.from(value);
   return <String, dynamic>{};
+}
+
+List<dynamic> _extractPlaylistList(dynamic payload) {
+  if (payload is List) return payload;
+
+  if (payload is Map<String, dynamic>) {
+    final data = payload['data'];
+    if (data is List) return data;
+    if (data is Map<String, dynamic>) {
+      final nested =
+          data['playlists'] ?? data['items'] ?? data['results'] ?? data['data'];
+      if (nested is List) return nested;
+    }
+
+    final direct =
+        payload['playlists'] ?? payload['items'] ?? payload['results'];
+    if (direct is List) return direct;
+  }
+
+  return const <dynamic>[];
 }
 
 String? _normalizeNullable(String value) {

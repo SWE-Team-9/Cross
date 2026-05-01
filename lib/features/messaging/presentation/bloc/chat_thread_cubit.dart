@@ -9,6 +9,8 @@ import '../../domain/usecases/delete_message_usecase.dart';
 import '../../domain/usecases/get_conversation_messages_usecase.dart';
 import '../../domain/usecases/mark_conversation_read_usecase.dart';
 import '../../domain/usecases/send_text_message_usecase.dart';
+import '../../domain/usecases/share_playlist_message_usecase.dart';
+import '../../domain/usecases/share_track_message_usecase.dart';
 import 'chat_thread_state.dart';
 
 class ChatThreadCubit extends Cubit<ChatThreadState> {
@@ -17,6 +19,8 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   final MarkConversationReadUseCase markConversationReadUseCase;
   final DeleteMessageUseCase deleteMessageUseCase;
   final ConnectMessagingSocketUseCase connectMessagingSocketUseCase;
+  final ShareTrackMessageUseCase shareTrackMessageUseCase;
+  final SharePlaylistMessageUseCase sharePlaylistMessageUseCase;
 
   StreamSubscription<RealtimeMessageEventEntity>? _socketSub;
 
@@ -30,6 +34,8 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     required this.markConversationReadUseCase,
     required this.deleteMessageUseCase,
     required this.connectMessagingSocketUseCase,
+    required this.shareTrackMessageUseCase,
+    required this.sharePlaylistMessageUseCase,
   }) : super(ChatThreadState.initial());
 
   Future<void> load({
@@ -171,6 +177,52 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     }
   }
 
+  Future<void> shareTrack(String trackId, {String? text}) async {
+    if (!_canMessage) {
+      emit(state.copyWith(errorMessage: 'You cannot message this user.'));
+      return;
+    }
+
+    final receiverId = _receiverId;
+    if (receiverId == null || trackId.trim().isEmpty) return;
+
+    emit(state.copyWith(isSending: true, clearError: true));
+
+    try {
+      final message = await shareTrackMessageUseCase(
+        receiverId: receiverId,
+        trackId: trackId.trim(),
+        text: text,
+      );
+      _appendSentMessage(message);
+    } catch (e) {
+      emit(state.copyWith(isSending: false, errorMessage: e.toString()));
+    }
+  }
+
+  Future<void> sharePlaylist(String playlistId, {String? text}) async {
+    if (!_canMessage) {
+      emit(state.copyWith(errorMessage: 'You cannot message this user.'));
+      return;
+    }
+
+    final receiverId = _receiverId;
+    if (receiverId == null || playlistId.trim().isEmpty) return;
+
+    emit(state.copyWith(isSending: true, clearError: true));
+
+    try {
+      final message = await sharePlaylistMessageUseCase(
+        receiverId: receiverId,
+        playlistId: playlistId.trim(),
+        text: text,
+      );
+      _appendSentMessage(message);
+    } catch (e) {
+      emit(state.copyWith(isSending: false, errorMessage: e.toString()));
+    }
+  }
+
   Future<void> deleteMessage(String messageId) async {
     try {
       await deleteMessageUseCase(messageId);
@@ -306,6 +358,26 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     final list = [...messages];
     list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return list;
+  }
+
+  void _appendSentMessage(MessageEntity message) {
+    if (!state.isSocketConnected) {
+      final merged = _sortMessages([
+        ...state.messages,
+        message.copyWith(createdAt: DateTime.now()),
+      ]);
+
+      emit(
+        state.copyWith(
+          isSending: false,
+          messages: merged,
+          clearError: true,
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(isSending: false, clearError: true));
   }
 
   @override

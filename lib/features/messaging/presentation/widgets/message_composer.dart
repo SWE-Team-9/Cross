@@ -5,11 +5,13 @@ import '../messaging_theme.dart';
 class MessageComposer extends StatefulWidget {
   final bool isSending;
   final ValueChanged<String> onSend;
+  final VoidCallback? onAttach;
 
   const MessageComposer({
     super.key,
     required this.isSending,
     required this.onSend,
+    this.onAttach,
   });
 
   @override
@@ -52,6 +54,25 @@ class _MessageComposerState extends State<MessageComposer> {
         top: false,
         child: Row(
           children: [
+            if (widget.onAttach != null) ...[
+              GestureDetector(
+                onTap: widget.isSending ? null : widget.onAttach,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: MessagingTheme.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: MessagingTheme.border),
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: MessagingTheme.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
