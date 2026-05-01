@@ -118,25 +118,34 @@ void main() {
     });
 
     blocTest<PlaylistsCubit, PlaylistsState>(
-      'loadMyPlaylists emits loaded list',
+      'loadMyPlaylists emits first paginated list',
       build: () {
-        when(() => getMy()).thenAnswer((_) async => [_playlist()]);
+        when(
+          () => getMy(page: 1, limit: 20),
+        ).thenAnswer((_) async => [_playlist()]);
         return buildCubit();
       },
       act: (cubit) => cubit.loadMyPlaylists(),
       expect: () => [
         isA<PlaylistsState>()
-            .having((s) => s.isLoadingMyPlaylists, 'loading', isTrue),
+            .having((s) => s.isLoadingMyPlaylists, 'loading', isTrue)
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isFalse),
         isA<PlaylistsState>()
             .having((s) => s.isLoadingMyPlaylists, 'loading', isFalse)
-            .having((s) => s.playlists.length, 'length', 1),
+            .having((s) => s.playlists.length, 'length', 1)
+            .having((s) => s.myPlaylistsPage, 'page', 1)
+            .having((s) => s.hasMoreMyPlaylists, 'has more', isFalse),
       ],
+      verify: (_) {
+        verify(() => getMy(page: 1, limit: 20)).called(1);
+      },
     );
-
     blocTest<PlaylistsCubit, PlaylistsState>(
       'loadMyPlaylists emits login message on unauthorized failure',
       build: () {
-        when(() => getMy()).thenThrow(Exception('401 unauthorized'));
+        when(
+          () => getMy(page: 1, limit: 20),
+        ).thenThrow(Exception('401 unauthorized'));
         return buildCubit();
       },
       act: (cubit) => cubit.loadMyPlaylists(),
@@ -146,6 +155,115 @@ void main() {
         isA<PlaylistsState>()
             .having((s) => s.isLoadingMyPlaylists, 'loading', isFalse)
             .having((s) => s.errorMessage, 'error', 'Please log in again'),
+      ],
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMoreMyPlaylists appends next unique page',
+      build: () {
+        when(
+          () => getMy(page: 2, limit: 20),
+        ).thenAnswer(
+          (_) async => [
+            _playlist(id: 'pl_2'),
+            _playlist(id: 'pl_3'),
+          ],
+        );
+        return buildCubit();
+      },
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1')],
+        myPlaylistsPage: 1,
+        hasMoreMyPlaylists: true,
+      ),
+      act: (cubit) => cubit.loadMoreMyPlaylists(),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isFalse)
+            .having((s) => s.playlists.length, 'length', 3)
+            .having((s) => s.playlists.last.playlistId, 'last id', 'pl_3')
+            .having((s) => s.myPlaylistsPage, 'page', 2)
+            .having((s) => s.hasMoreMyPlaylists, 'has more', isFalse),
+      ],
+      verify: (_) {
+        verify(() => getMy(page: 2, limit: 20)).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMoreMyPlaylists skips duplicate playlist ids',
+      build: () {
+        when(
+          () => getMy(page: 2, limit: 20),
+        ).thenAnswer(
+          (_) async => [
+            _playlist(id: 'pl_1'),
+            _playlist(id: 'pl_2'),
+          ],
+        );
+        return buildCubit();
+      },
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1')],
+        myPlaylistsPage: 1,
+        hasMoreMyPlaylists: true,
+      ),
+      act: (cubit) => cubit.loadMoreMyPlaylists(),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isFalse)
+            .having((s) => s.playlists.length, 'length', 2)
+            .having((s) => s.playlists.first.playlistId, 'first id', 'pl_1')
+            .having((s) => s.playlists.last.playlistId, 'last id', 'pl_2'),
+      ],
+      verify: (_) {
+        verify(() => getMy(page: 2, limit: 20)).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMoreMyPlaylists does nothing when no more pages exist',
+      build: buildCubit,
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1')],
+        myPlaylistsPage: 1,
+        hasMoreMyPlaylists: false,
+      ),
+      act: (cubit) => cubit.loadMoreMyPlaylists(),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verifyZeroInteractions(getMy);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMoreMyPlaylists emits friendly error on failure',
+      build: () {
+        when(
+          () => getMy(page: 2, limit: 20),
+        ).thenThrow(Exception('network timeout'));
+        return buildCubit();
+      },
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1')],
+        myPlaylistsPage: 1,
+        hasMoreMyPlaylists: true,
+      ),
+      act: (cubit) => cubit.loadMoreMyPlaylists(),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isFalse)
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Network error. Please check your connection',
+            ),
       ],
     );
 
