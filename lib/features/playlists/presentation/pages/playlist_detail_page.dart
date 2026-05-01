@@ -236,8 +236,10 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     );
   }
 
-  Future<void> _playPlaylist(PlaylistEntity playlist,
-      {int startIndex = 0}) async {
+  Future<void> _playPlaylist(
+    PlaylistEntity playlist, {
+    int startIndex = 0,
+  }) async {
     final tracks = playlist.tracks;
     if (tracks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -248,6 +250,9 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
     final playerCubit = _playerCubit();
     await const RecentPlaylistsStore().record(playlist);
+    await context
+        .read<PlaylistsCubit>()
+        .recordPlaylistPlayback(playlist.playlistId);
     await playerCubit?.playFromContext(
       tracks: tracks,
       startIndex: startIndex,
