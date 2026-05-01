@@ -48,15 +48,15 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
         cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
 
     print('Socket.IO base URL => ${ApiConstants.baseUrl}');
-    print('Socket.IO path => ${ApiConstants.messagingBase}');
+    print('Socket.IO path => /messages');
     print('Socket.IO cookie exists => ${cookieHeader.isNotEmpty}');
 
     _socket = IO.io(
-      ApiConstants.baseUrl,
+      'http://10.0.2.2:3006/messages',
       IO.OptionBuilder()
           .setTransports(['websocket'])
-          .disableAutoConnect()
-          .setPath(ApiConstants.messagingBase)
+           .disableAutoConnect()
+          // .setPath('/messages')
           .setExtraHeaders(
             cookieHeader.isEmpty
                 ? <String, String>{}
