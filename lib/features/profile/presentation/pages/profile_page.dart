@@ -715,20 +715,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             itemBuilder: (context, index) {
               final playlist = playlists[index];
               return ListTile(
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C1C),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    playlist.visibility.isSecret
-                        ? Icons.lock_outline
-                        : Icons.queue_music,
-                    color: const Color(0xFFFF5500),
-                  ),
-                ),
+                leading: _ProfilePlaylistCover(playlist: playlist),
                 title: Text(
                   playlist.title,
                   style: const TextStyle(color: Colors.white),
@@ -1253,6 +1240,44 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         shape: BoxShape.circle,
       ),
       child: const Icon(Icons.play_arrow, color: Colors.black),
+    );
+  }
+}
+
+class _ProfilePlaylistCover extends StatelessWidget {
+  const _ProfilePlaylistCover({required this.playlist});
+
+  final PlaylistEntity playlist;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 44,
+        height: 44,
+        color: const Color(0xFF1C1C1C),
+        child: coverUrl == null
+            ? Icon(
+                playlist.visibility.isSecret
+                    ? Icons.lock_outline
+                    : Icons.queue_music,
+                color: const Color(0xFFFF5500),
+              )
+            : Image.network(
+                coverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  playlist.visibility.isSecret
+                      ? Icons.lock_outline
+                      : Icons.queue_music,
+                  color: const Color(0xFFFF5500),
+                ),
+              ),
+      ),
     );
   }
 }

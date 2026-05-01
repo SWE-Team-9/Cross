@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
@@ -70,6 +71,7 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
       title: result.title,
       description: result.description,
       visibility: result.visibility,
+      coverImagePath: result.coverImagePath,
       initialTrackIds: [widget.track.id],
     );
 
@@ -204,22 +206,7 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
                           .any((track) => track.id == widget.track.id);
 
                       return ListTile(
-                        leading: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[800],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Icon(
-                            playlist.visibility ==
-                                    PlaylistVisibility.privatePlaylist
-                                ? Icons.lock_outline
-                                : Icons.queue_music,
-                            color: Colors.white54,
-                            size: 20,
-                          ),
-                        ),
+                        leading: _PlaylistCoverThumb(playlist: playlist),
                         title: Text(
                           playlist.title,
                           style: const TextStyle(color: Colors.white),
@@ -249,6 +236,44 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
           ),
         );
       },
+    );
+  }
+}
+
+class _PlaylistCoverThumb extends StatelessWidget {
+  const _PlaylistCoverThumb({required this.playlist});
+
+  final PlaylistEntity playlist;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        width: 44,
+        height: 44,
+        color: Colors.grey[800],
+        child: coverUrl == null
+            ? Icon(
+                playlist.visibility == PlaylistVisibility.privatePlaylist
+                    ? Icons.lock_outline
+                    : Icons.queue_music,
+                color: Colors.white54,
+                size: 20,
+              )
+            : Image.network(
+                coverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.queue_music,
+                  color: Colors.white54,
+                  size: 20,
+                ),
+              ),
+      ),
     );
   }
 }
