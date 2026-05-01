@@ -37,6 +37,42 @@ const List<String> kTrackGenreNames = <String>[
   'islamic',
 ];
 
+const List<String> kPlaylistGenreNames = <String>[
+  kTrackGenreNone,
+  'electronic',
+  'hip-hop',
+  'pop',
+  'rock',
+  'alternative',
+  'ambient',
+  'classical',
+  'jazz',
+  'r-b-soul',
+  'metal',
+  'folk-singer-songwriter',
+  'country',
+  'reggaeton',
+  'dancehall',
+  'drum-bass',
+  'house',
+  'techno',
+  'deep-house',
+  'trance',
+  'lo-fi',
+  'indie',
+  'punk',
+  'blues',
+  'latin',
+  'afrobeat',
+  'trap',
+  'experimental',
+  'world',
+  'gospel',
+  'spoken-word',
+  'sha3by',
+  'islamic',
+];
+
 const Map<String, String> _trackGenreAliases = <String, String>{
   'electronic': 'electronic',
   'hip hop': 'hip-hop',
@@ -153,4 +189,20 @@ String? trackGenreApiValue(String? value) {
   }
 
   return _trackGenreApiValues[normalized] ?? normalized;
+}
+
+int? playlistGenreId(String? value) {
+  final normalized = normalizeTrackGenreName(value);
+  if (normalized == null || normalized == kTrackGenreNone) return null;
+
+  final index = kPlaylistGenreNames.indexOf(normalized);
+  if (index <= 0) return null;
+  return index;
+}
+
+String? playlistGenreNameFromId(int? genreId) {
+  if (genreId == null || genreId <= 0) return null;
+  if (genreId >= kPlaylistGenreNames.length) return null;
+  final genre = kPlaylistGenreNames[genreId];
+  return genre == kTrackGenreNone ? null : genre;
 }

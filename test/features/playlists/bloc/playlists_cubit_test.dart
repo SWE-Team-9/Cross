@@ -335,6 +335,7 @@ void main() {
             title: 'Renamed',
             description: null,
             visibility: null,
+            genreId: null,
           ),
         ).thenAnswer((_) async {});
         when(() => details('pl_1'))
@@ -371,6 +372,7 @@ void main() {
           title: 'New',
           description: null,
           visibility: null,
+          genreId: null,
         ),
       ).thenThrow(Exception('update failed'));
 

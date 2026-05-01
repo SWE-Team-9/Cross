@@ -91,7 +91,10 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
     _descriptionController =
         TextEditingController(text: widget.initialDescription);
     _visibility = widget.initialVisibility;
-    _genre = normalizeTrackGenreName(widget.initialGenre) ?? kTrackGenreNone;
+    final normalizedGenre = normalizeTrackGenreName(widget.initialGenre);
+    _genre = kPlaylistGenreNames.contains(normalizedGenre)
+        ? normalizedGenre!
+        : kTrackGenreNone;
   }
 
   @override
@@ -233,7 +236,7 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue:
-                kTrackGenreNames.contains(_genre) ? _genre : kTrackGenreNone,
+                kPlaylistGenreNames.contains(_genre) ? _genre : kTrackGenreNone,
             dropdownColor: const Color(0xFF222222),
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
@@ -249,7 +252,7 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
                 _genre = value;
               });
             },
-            items: kTrackGenreNames
+            items: kPlaylistGenreNames
                 .map(
                   (genre) => DropdownMenuItem<String>(
                     value: genre,
