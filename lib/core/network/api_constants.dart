@@ -156,6 +156,8 @@ abstract class ApiConstants {
   static String resolveSecretPlaylistPath(String secretToken) =>
       '$playlistsBase/secret/$secretToken';
 
+  static String playlistPlayPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/play';
   static String playlistEmbedPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/embed';
 }
