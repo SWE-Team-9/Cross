@@ -994,6 +994,7 @@ Future<void> setupDependencies() async {
         getPlaylistEmbedCodeUseCase: getIt<GetPlaylistEmbedCodeUseCase>(),
         likePlaylistUseCase: getIt<LikePlaylistUseCase>(),
         unlikePlaylistUseCase: getIt<UnlikePlaylistUseCase>(),
+        recordPlaylistPlaybackUseCase: getIt<RecordPlaylistPlaybackUseCase>(),
       ),
     );
   }
