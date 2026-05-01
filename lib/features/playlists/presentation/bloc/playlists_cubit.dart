@@ -78,7 +78,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isLoadingMyPlaylists: false,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -155,7 +155,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isSubmitting: false,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
       return null;
@@ -192,7 +192,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isLoadingDetails: false,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -308,7 +308,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isSubmitting: false,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -353,7 +353,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isLoadingEditDetails: false,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
       return null;
@@ -412,7 +412,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           isSubmitting: false,
           selectedPlaylist: previousSelected,
           playlists: previousPlaylists,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -463,7 +463,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           isSubmitting: false,
           selectedPlaylist: previousSelected,
           playlists: previousPlaylists,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -500,7 +500,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isSubmitting: false,
-          errorMessage: e.toString(),
+         errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -663,7 +663,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         state.copyWith(
           isSubmitting: false,
           selectedPlaylist: reverted,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -706,7 +706,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         state.copyWith(
           isReordering: false,
           selectedPlaylist: selected.copyWith(tracks: previousTracks),
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -734,7 +734,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isLoadingDetails: false,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -778,7 +778,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isSubmitting: false,
-          errorMessage: e.toString(),
+          errorMessage: _playlistErrorMessage(e),
         ),
       );
     }
@@ -871,6 +871,51 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
   }
 
   String _normalizeTitle(String title) => title.trim().toLowerCase();
+
+  String _playlistErrorMessage(Object error) {
+    final normalized = error.toString().toLowerCase();
+
+    if (normalized.contains('401') ||
+        normalized.contains('unauthorized') ||
+        normalized.contains('not authenticated')) {
+      return 'Please log in again';
+    }
+
+    if (normalized.contains('403') ||
+        normalized.contains('forbidden') ||
+        normalized.contains('permission')) {
+      return 'You do not have permission to do this';
+    }
+
+    if (normalized.contains('404') ||
+        normalized.contains('not found')) {
+      return 'Playlist not found';
+    }
+
+    if (normalized.contains('409')) {
+      if (normalized.contains('already') && normalized.contains('liked')) {
+        return 'Playlist already liked';
+      }
+      if (normalized.contains('not liked')) {
+        return 'Playlist is not liked';
+      }
+      return 'This playlist action was already done';
+    }
+
+    if (normalized.contains('400') ||
+        normalized.contains('bad request') ||
+        normalized.contains('validation')) {
+      return 'Invalid playlist data';
+    }
+
+    if (normalized.contains('timeout') ||
+        normalized.contains('connection') ||
+        normalized.contains('network')) {
+      return 'Network error. Please check your connection';
+    }
+
+    return 'Something went wrong. Please try again';
+  }
 
   int? _playlistGenreId(String? genre) => playlistGenreId(genre);
 }
