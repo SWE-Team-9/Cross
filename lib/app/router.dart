@@ -106,7 +106,6 @@ void _handleDeepLinkDestination(
   switch (destination) {
     case TrackDeepLink(:final trackId):
       path = _trackPath(trackId);
-      debugPrint('[DeepLink] TrackDeepLink — path: $path');
 
     case SecretTrackDeepLink(:final secretToken):
       path = _secretPath(secretToken);
@@ -124,12 +123,10 @@ void _handleDeepLinkDestination(
       path = _searchPath(query);
 
     case OAuthCallbackDeepLink():
-      debugPrint('[DeepLink] OAuth callback received');
       router.go('/oauth-debug', extra: destination);
       return;
 
-    case InvalidDeepLink(:final reason):
-      debugPrint('[DeepLink] Invalid link ignored: $reason');
+    case InvalidDeepLink():
       return;
   }
 
@@ -142,9 +139,7 @@ void _handleDeepLinkDestination(
 
   if (isOnAuthScreen) {
     _pendingDeepLink = path;
-    debugPrint('[DeepLink] Stored pending: $path');
   } else {
-    debugPrint('[DeepLink] Navigating to: $path');
     router.go(path);
   }
 }
@@ -409,8 +404,8 @@ GoRouter _createRouter() {
         pageBuilder: (context, state) {
           return MaterialPage(
             child: InboxPage(
-              onOpenConversation: (conversation) {
-                MessagingRoutes.goToConversation(context, conversation);
+              onOpenConversation: (conversation) async {
+                await MessagingRoutes.goToConversation(context, conversation);
               },
             ),
           );

@@ -25,6 +25,7 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
   IO.Socket? _socket;
 
   bool _isConnected = false;
+  bool _hasEmittedConnectionError = false;
 
   MessagingSocketDataSourceImpl({
     required this.cookieJar,
@@ -46,15 +47,10 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
     final cookieHeader =
         cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
 
-    print('Socket.IO base URL => ${ApiConstants.baseUrl}');
-    print('Socket.IO path => ${ApiConstants.messagingBase}');
-    print('Socket.IO cookie exists => ${cookieHeader.isNotEmpty}');
-
     _socket = IO.io(
       ApiConstants.baseUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
-          .disableAutoConnect()
           .setPath(ApiConstants.messagingBase)
           .setExtraHeaders(
             cookieHeader.isEmpty
@@ -69,40 +65,42 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
 
     _socket!.onConnect((_) {
       _isConnected = true;
-      print('Socket.IO connected');
+      _hasEmittedConnectionError = false;
     });
 
     _socket!.onDisconnect((_) {
       _isConnected = false;
-      print('Socket.IO disconnected');
     });
 
     _socket!.onConnectError((dynamic error) {
       _isConnected = false;
-      print('Socket.IO connect error: $error');
-      _controller.addError(error);
+      if (!_hasEmittedConnectionError) {
+        _controller.addError(error);
+        _hasEmittedConnectionError = true;
+      }
     });
 
     _socket!.onError((dynamic error) {
-      print('Socket.IO error: $error');
-      _controller.addError(error);
+      if (!_hasEmittedConnectionError) {
+        _controller.addError(error);
+        _hasEmittedConnectionError = true;
+      }
     });
 
     _socket!.onReconnect((_) {
       _isConnected = true;
-      print('Socket.IO reconnected');
+      _hasEmittedConnectionError = false;
     });
 
     _socket!.onReconnectError((dynamic error) {
       _isConnected = false;
-      print('Socket.IO reconnect error: $error');
-      _controller.addError(error);
+      if (!_hasEmittedConnectionError) {
+        _controller.addError(error);
+        _hasEmittedConnectionError = true;
+      }
     });
 
     _socket!.onAny((String event, dynamic data) {
-      print('Socket.IO event => $event');
-      print('Socket.IO data => $data');
-
       try {
         if (data is! Map) return;
 

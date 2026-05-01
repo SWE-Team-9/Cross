@@ -62,6 +62,7 @@ abstract class ApiConstants {
   static String playerTrackPlayPath(String trackId) =>
       '/api/v1/player/tracks/$trackId/play';
   static const String listeningHistoryPath = '/api/v1/player/me/history';
+  static const String discoverySearchPath = '/api/v1/discovery/search';
 
   // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';
@@ -126,9 +127,17 @@ abstract class ApiConstants {
   // ── Playlists ───────────────────────────────────────────────────────────
   static const String playlistsBase = '/api/v1/playlists';
   static const String myPlaylists = '$playlistsBase/me';
+  static const String myLikedPlaylists = '$playlistsBase/me/liked';
+  static const String recentPlaylists = '$playlistsBase/recent';
 
   static String playlistByIdPath(String playlistId) =>
       '$playlistsBase/$playlistId';
+
+  static String playlistEditPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/edit';
+
+  static String playlistCoverPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/cover';
 
   static String playlistTracksPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/tracks';
@@ -145,7 +154,4 @@ abstract class ApiConstants {
 
   static String playlistEmbedPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/embed';
-
-  static String playlistCoverPath(String playlistId) =>
-      '${playlistByIdPath(playlistId)}/cover';
 }

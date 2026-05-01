@@ -1,11 +1,5 @@
-// features/playlist/data/repositories/playlist_repository_mock.dart
-//
-// TODO: Replace with real API calls when backend is ready.
-// Backend will need endpoints like:
-//   GET    /api/v1/playlists          (get user playlists)
-//   POST   /api/v1/playlists          (create playlist)
-//   POST   /api/v1/playlists/{id}/tracks  (add track)
-//   DELETE /api/v1/playlists/{id}/tracks/{trackId}
+// Legacy in-memory playlist helper kept for older playback-only flows.
+// The API-backed playlist feature lives under features/playlists.
 
 import 'package:soundcloud_clone/core/models/track.dart';
 
@@ -43,7 +37,6 @@ class PlaylistRepository {
 
   List<PlaylistModel> getAll() => List.unmodifiable(_playlists);
 
-  // TODO: POST /api/v1/playlists
   PlaylistModel createPlaylist(String name) {
     final playlist = PlaylistModel(
       id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
@@ -54,7 +47,6 @@ class PlaylistRepository {
     return playlist;
   }
 
-  // TODO: POST /api/v1/playlists/{id}/tracks
   bool addTrack(String playlistId, Track track) {
     final index = _playlists.indexWhere((p) => p.id == playlistId);
     if (index == -1) return false;

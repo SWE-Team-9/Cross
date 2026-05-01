@@ -94,7 +94,7 @@ class ConversationTile extends StatelessWidget {
               children: [
                 if (conversation.lastMessage != null)
                   Text(
-                    _formatTime(conversation.lastMessage!.createdAt),
+                    _formatTime(conversation.lastMessage!.createdAt.toLocal()),
                     style: const TextStyle(
                       color: MessagingTheme.textMuted,
                       fontSize: 11,

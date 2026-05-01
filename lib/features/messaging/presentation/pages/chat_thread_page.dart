@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 
 import '../../../../core/utils/platform_url_utils.dart';
@@ -9,11 +10,14 @@ import '../../domain/usecases/delete_message_usecase.dart';
 import '../../domain/usecases/get_conversation_messages_usecase.dart';
 import '../../domain/usecases/mark_conversation_read_usecase.dart';
 import '../../domain/usecases/send_text_message_usecase.dart';
+import '../../domain/usecases/share_playlist_message_usecase.dart';
+import '../../domain/usecases/share_track_message_usecase.dart';
 import '../bloc/chat_thread_cubit.dart';
 import '../bloc/chat_thread_state.dart';
 import '../messaging_theme.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_composer.dart';
+import '../widgets/share_message_item_sheet.dart';
 
 class ChatThreadPage extends StatelessWidget {
   final String conversationId;
@@ -39,6 +43,10 @@ class ChatThreadPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authState = _authStateOf(context);
+    final currentUserId =
+        authState is AuthAuthenticated ? authState.user.id : null;
+
     return BlocProvider(
       create: (_) => ChatThreadCubit(
         getConversationMessagesUseCase:
@@ -47,9 +55,13 @@ class ChatThreadPage extends StatelessWidget {
         markConversationReadUseCase: GetIt.I<MarkConversationReadUseCase>(),
         deleteMessageUseCase: GetIt.I<DeleteMessageUseCase>(),
         connectMessagingSocketUseCase: GetIt.I<ConnectMessagingSocketUseCase>(),
+        shareTrackMessageUseCase: _getItOrNull<ShareTrackMessageUseCase>(),
+        sharePlaylistMessageUseCase:
+            _getItOrNull<SharePlaylistMessageUseCase>(),
       )..load(
           conversationId: conversationId,
           receiverId: receiverId,
+          currentUserId: currentUserId,
           canMessage: canMessage,
         ),
       child: _ChatThreadView(
@@ -63,6 +75,23 @@ class ChatThreadPage extends StatelessWidget {
         onBack: onBack,
       ),
     );
+  }
+
+  AuthState? _authStateOf(BuildContext context) {
+    try {
+      return context.read<AuthCubit>().state;
+    } catch (_) {
+      final getIt = GetIt.I;
+      if (getIt.isRegistered<AuthCubit>()) {
+        return getIt<AuthCubit>().state;
+      }
+      return null;
+    }
+  }
+
+  T? _getItOrNull<T extends Object>() {
+    final getIt = GetIt.I;
+    return getIt.isRegistered<T>() ? getIt<T>() : null;
   }
 }
 
@@ -120,6 +149,22 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
     return null;
   }
 
+  Future<void> _openShareSheet() async {
+    await ShareMessageItemSheet.show(
+      context,
+      onShareTrack: (track) =>
+          context.read<ChatThreadCubit>().shareTrack(track.id),
+      onSharePlaylist: (playlist) =>
+          context.read<ChatThreadCubit>().sharePlaylist(playlist.playlistId),
+    );
+  }
+
+  void _openParticipantProfile() {
+    final handle = widget.participantHandle.trim().replaceFirst('@', '');
+    if (handle.isEmpty) return;
+    context.push('/profile/$handle');
+  }
+
   @override
   Widget build(BuildContext context) {
     final avatarUrl =
@@ -143,18 +188,22 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
         titleSpacing: 0,
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: MessagingTheme.surface,
-              foregroundImage:
-                  avatarUrl != null ? NetworkImage(avatarUrl) : null,
-              child: Text(
-                widget.participantDisplayName.isNotEmpty
-                    ? widget.participantDisplayName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+            InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: _openParticipantProfile,
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: MessagingTheme.surface,
+                foregroundImage:
+                    avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                child: Text(
+                  widget.participantDisplayName.isNotEmpty
+                      ? widget.participantDisplayName[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -318,6 +367,11 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
                               .read<ChatThreadCubit>()
                               .deleteMessage(message.id)
                           : null,
+                      onPlaylistTap: message.sharedPlaylist == null
+                          ? null
+                          : () => context.push(
+                                '/playlist/${message.sharedPlaylist!.id}',
+                              ),
                     );
                   },
                 );
@@ -333,6 +387,7 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
               builder: (context, state) {
                 return MessageComposer(
                   isSending: state.isSending,
+                  onAttach: _openShareSheet,
                   onSend: (text) {
                     context.read<ChatThreadCubit>().sendText(text);
                   },
