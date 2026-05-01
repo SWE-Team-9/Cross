@@ -25,7 +25,6 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
     final dtos = await remoteDataSource.getRecentPlaylists(limit: limit);
     return dtos.map((dto) => dto.toEntity()).toList(growable: false);
   }
-  }
 
   @override
   Future<PlaylistEntity> createPlaylist({
@@ -122,6 +121,7 @@ class PlaylistsRepositoryImpl implements PlaylistsRepository {
     return remoteDataSource.unlikePlaylist(playlistId);
   }
 
+  @override
   Future<void> addTrackToPlaylist({
     required String playlistId,
     required String trackId,

@@ -37,7 +37,6 @@ class ManagedTrackDto {
           _parseInt(json['likesCount'] ?? json['likes_count'] ?? json['likes']),
       repostsCount: _parseInt(
           json['repostsCount'] ?? json['reposts_count'] ?? json['reposts']),
-      description: _parseDescription(json),
       genreId: _parseGenreId(json),
       genreName: _parseGenreName(json),
       tags: _parseTags(_extractRawTags(json)),
@@ -138,6 +137,7 @@ Map<String, dynamic>? _extractUserMap(Map<String, dynamic> json) {
   }
   return null;
 }
+
 String? _parseDescription(Map<String, dynamic> json) {
   final Map<String, dynamic>? metadata = _extractMetadataMap(json);
   final dynamic metadataDescription = metadata?['description'] ??

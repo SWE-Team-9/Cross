@@ -126,7 +126,7 @@ void _handleDeepLinkDestination(
       router.go('/oauth-debug', extra: destination);
       return;
 
-    case InvalidDeepLink(:final reason):
+    case InvalidDeepLink():
       return;
   }
 

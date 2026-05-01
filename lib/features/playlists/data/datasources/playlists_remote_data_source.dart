@@ -400,6 +400,4 @@ List<dynamic> _extractPlaylistList(dynamic payload) {
   return const <dynamic>[];
 }
 
-String? _normalizeNullable(String value) {
-  return value.trim().isEmpty ? null : value.trim();
-}
+

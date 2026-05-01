@@ -125,19 +125,23 @@ void main() {
     ).thenAnswer((_) async {});
 
     when(
-      () => shareTrackMessageUseCase(any()),
+      () => shareTrackMessageUseCase(
+        receiverId: any(named: 'receiverId'),
+        trackId: any(named: 'trackId'),
+        text: any(named: 'text'),
+      ),
     ).thenAnswer((_) async => MessageEntity(
-      id: 'message-1',
-      conversationId: 'conversation-1',
-      senderId: 'sender-1',
-      receiverId: 'receiver-1',
-      type: MessageType.trackShare,
-      text: null,
-      isRead: false,
-      createdAt: DateTime(2026, 4, 30, 10),
-      sharedTrack: null,
-      sharedPlaylist: null,
-    ));
+          id: 'message-1',
+          conversationId: 'conversation-1',
+          senderId: 'sender-1',
+          receiverId: 'receiver-1',
+          type: MessageType.trackShare,
+          text: null,
+          isRead: false,
+          createdAt: DateTime(2026, 4, 30, 10),
+          sharedTrack: null,
+          sharedPlaylist: null,
+        ));
 
     when(
       () => connectMessagingSocketUseCase(),
