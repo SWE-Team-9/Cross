@@ -96,6 +96,7 @@ import '../../features/playlists/domain/usecases/get_playlist_details_usecase.da
 import '../../features/playlists/domain/usecases/get_playlist_edit_details_usecase.dart';
 import '../../features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
 import '../../features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/get_liked_playlists_usecase.dart';
 import '../../features/playlists/domain/usecases/get_top_playlists_usecase.dart';
 import '../../features/playlists/domain/usecases/like_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
@@ -105,6 +106,7 @@ import '../../features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/update_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/upload_playlist_cover_usecase.dart';
 import '../../features/playlists/presentation/bloc/playlists_cubit.dart';
+import '../../features/library/presentation/bloc/library_cubit.dart';
 
 // Comments
 import '../../features/comments/data/datasources/comments_remote_data_source.dart';
@@ -910,6 +912,12 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<GetLikedPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetLikedPlaylistsUseCase>(
+      () => GetLikedPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<GetTopPlaylistsUseCase>()) {
     getIt.registerLazySingleton<GetTopPlaylistsUseCase>(
       () => GetTopPlaylistsUseCase(getIt<PlaylistsRepository>()),
@@ -980,6 +988,15 @@ Future<void> setupDependencies() async {
         getPlaylistEmbedCodeUseCase: getIt<GetPlaylistEmbedCodeUseCase>(),
         likePlaylistUseCase: getIt<LikePlaylistUseCase>(),
         unlikePlaylistUseCase: getIt<UnlikePlaylistUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<LibraryCubit>()) {
+    getIt.registerFactory<LibraryCubit>(
+      () => LibraryCubit(
+        getRecentPlaylistsUseCase: getIt<GetRecentPlaylistsUseCase>(),
+        getLikedPlaylistsUseCase: getIt<GetLikedPlaylistsUseCase>(),
       ),
     );
   }
