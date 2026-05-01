@@ -20,8 +20,8 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   final MarkConversationReadUseCase markConversationReadUseCase;
   final DeleteMessageUseCase deleteMessageUseCase;
   final ConnectMessagingSocketUseCase connectMessagingSocketUseCase;
-  final ShareTrackMessageUseCase shareTrackMessageUseCase;
-  final SharePlaylistMessageUseCase sharePlaylistMessageUseCase;
+  final ShareTrackMessageUseCase? shareTrackMessageUseCase;
+  final SharePlaylistMessageUseCase? sharePlaylistMessageUseCase;
 
   StreamSubscription<RealtimeMessageEventEntity>? _socketSub;
 
@@ -36,8 +36,8 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     required this.markConversationReadUseCase,
     required this.deleteMessageUseCase,
     required this.connectMessagingSocketUseCase,
-    required this.shareTrackMessageUseCase,
-    required this.sharePlaylistMessageUseCase,
+    this.shareTrackMessageUseCase,
+    this.sharePlaylistMessageUseCase,
   }) : super(ChatThreadState.initial());
 
   Future<void> load({
@@ -193,11 +193,20 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
     final receiverId = _receiverId;
     if (receiverId == null || trackId.trim().isEmpty) return;
+    final shareTrack = shareTrackMessageUseCase;
+    if (shareTrack == null) {
+      emit(
+        state.copyWith(
+          errorMessage: 'Track sharing is not available right now.',
+        ),
+      );
+      return;
+    }
 
     emit(state.copyWith(isSending: true, clearError: true));
 
     try {
-      final message = await shareTrackMessageUseCase(
+      final message = await shareTrack(
         receiverId: receiverId,
         trackId: trackId.trim(),
         text: text,
@@ -216,11 +225,20 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
 
     final receiverId = _receiverId;
     if (receiverId == null || playlistId.trim().isEmpty) return;
+    final sharePlaylist = sharePlaylistMessageUseCase;
+    if (sharePlaylist == null) {
+      emit(
+        state.copyWith(
+          errorMessage: 'Playlist sharing is not available right now.',
+        ),
+      );
+      return;
+    }
 
     emit(state.copyWith(isSending: true, clearError: true));
 
     try {
-      final message = await sharePlaylistMessageUseCase(
+      final message = await sharePlaylist(
         receiverId: receiverId,
         playlistId: playlistId.trim(),
         text: text,
@@ -451,7 +469,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     MessageEntity replacement,
   ) {
     final replacementAlreadyExists = state.messages.any(
-      (message) => message.id == replacement.id,
+      (message) => message.id == replacement.id && message.id != messageId,
     );
     var replaced = false;
 

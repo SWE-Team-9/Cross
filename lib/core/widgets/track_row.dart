@@ -9,9 +9,13 @@ import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cu
 import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
 import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 
 class TrackRow extends StatelessWidget {
@@ -125,6 +129,7 @@ class TrackRow extends StatelessWidget {
                         ],
                       ),
                     ),
+                    _buildDownloadAction(context),
                     IconButton(
                       onPressed: () =>
                           TrackOptionsSheet.show(context, track: track),
@@ -158,14 +163,16 @@ class TrackRow extends StatelessWidget {
 
   Future<void> _playTrack(BuildContext context) async {
     final playerCubit = context.read<PlayerCubit>();
+    final offlineCubit = _lookupCubit<OfflineCubit>(context);
     final tracks = queue ?? [track];
     final index = tracks.indexWhere((t) => t.id == track.id);
     final safeIndex = index >= 0 ? index : 0;
-    final selectedTrack = tracks[safeIndex];
+    final playableTracks = _withOfflinePaths(tracks, offlineCubit);
+    final selectedTrack = playableTracks[safeIndex];
 
     if (selectedTrack.audioUrl.trim().isNotEmpty) {
       await playerCubit.playFromContext(
-        tracks: tracks,
+        tracks: playableTracks,
         startIndex: safeIndex,
         source: source,
       );
@@ -196,9 +203,128 @@ class TrackRow extends StatelessWidget {
     }
 
     await playerCubit.playFromContext(
-      tracks: [detail.toPlaybackTrack()],
+      tracks: [_withOfflinePath(detail.toPlaybackTrack(), offlineCubit)],
       startIndex: 0,
       source: source,
+    );
+  }
+
+  Widget _buildDownloadAction(BuildContext context) {
+    final subscriptionCubit = _lookupCubit<SubscriptionCubit>(context);
+    final offlineCubit = _lookupCubit<OfflineCubit>(context);
+
+    if (subscriptionCubit == null || offlineCubit == null) {
+      return const SizedBox.shrink();
+    }
+
+    return BlocBuilder<SubscriptionCubit, Subscription?>(
+      bloc: subscriptionCubit,
+      builder: (context, subscription) {
+        final canDownload = subscription?.canDownload ?? false;
+        if (!canDownload) return const SizedBox.shrink();
+
+        return BlocBuilder<OfflineCubit, OfflineState>(
+          bloc: offlineCubit,
+          builder: (context, offlineState) {
+            final isDownloaded = offlineCubit.isDownloaded(track.id);
+
+            return _DownloadButton(
+              isDownloaded: isDownloaded,
+              onTap: () async {
+                try {
+                  await offlineCubit.download(track.id);
+                  if (!context.mounted) return;
+                  _showDownloadSnackbar(context, true);
+                } catch (e) {
+                  if (!context.mounted) return;
+                  if (e.toString().contains('UPGRADE_REQUIRED')) {
+                    Navigator.pushNamed(context, '/upgrade');
+                  } else {
+                    _showDownloadSnackbar(context, false);
+                  }
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<Track> _withOfflinePaths(
+    List<Track> tracks,
+    OfflineCubit? offlineCubit,
+  ) {
+    if (offlineCubit == null) return tracks;
+
+    return tracks.map((item) => _withOfflinePath(item, offlineCubit)).toList();
+  }
+
+  Track _withOfflinePath(Track track, OfflineCubit? offlineCubit) {
+    if (offlineCubit == null || !offlineCubit.isDownloaded(track.id)) {
+      return track;
+    }
+
+    final localPath = offlineCubit.getPath(track.id);
+    if (localPath == null || localPath.trim().isEmpty) return track;
+    return track.copyWith(localPath: localPath);
+  }
+
+  T? _lookupCubit<T extends Object>(BuildContext context) {
+    try {
+      return context.read<T>();
+    } catch (_) {
+      if (getIt.isRegistered<T>()) return getIt<T>();
+      return null;
+    }
+  }
+
+  void _showDownloadSnackbar(BuildContext context, bool success) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(
+            color: success
+                ? const Color(0xFFFF5500).withValues(alpha: 0.4)
+                : Colors.red.withValues(alpha: 0.4),
+            width: 0.5,
+          ),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        duration: const Duration(seconds: 2),
+        content: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: success
+                    ? const Color(0xFFFF5500).withValues(alpha: 0.15)
+                    : Colors.red.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(
+                success ? Icons.download_done_rounded : Icons.error_outline,
+                color: success ? const Color(0xFFFF5500) : Colors.red,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              success ? 'Saved for offline listening' : 'Download failed',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -310,6 +436,49 @@ class TrackRow extends StatelessWidget {
               },
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _DownloadButton extends StatelessWidget {
+  final bool isDownloaded;
+  final VoidCallback onTap;
+
+  const _DownloadButton({
+    required this.isDownloaded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: isDownloaded
+              ? const Color(0xFFFF5500).withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isDownloaded
+                ? const Color(0xFFFF5500).withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.15),
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          isDownloaded
+              ? Icons.download_done_rounded
+              : Icons.arrow_downward_rounded,
+          color: isDownloaded
+              ? const Color(0xFFFF5500)
+              : Colors.white.withValues(alpha: 0.5),
+          size: 15,
         ),
       ),
     );
