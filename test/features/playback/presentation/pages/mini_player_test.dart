@@ -111,6 +111,9 @@ class _StubPlayerCubit extends Cubit<PlayerUIState> implements PlayerCubit {
   @override
   void closeFullPlayer() {}
   @override
+  @override
+void reorderQueue(List<Track> newQueue) {}
+@override
   void hideMiniPlayer() {}
 
   @override
