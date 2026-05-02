@@ -250,14 +250,24 @@ class TrackRow extends StatelessWidget {
     return BlocBuilder<SubscriptionCubit, SubscriptionState>(
       bloc: subscriptionCubit,
       builder: (context, subscriptionState) {
-        final canDownload = subscriptionState.subscription.canDownload;
-
-        if (!canDownload) {
+        if (subscriptionState.isInitial || subscriptionState.isLoading) {
           return const SizedBox.shrink();
         }
 
-        return BlocBuilder<OfflineCubit, OfflineState>(
-          bloc: offlineCubit,
+        final canDownload = subscriptionState.subscription.canDownload;
+
+        if (!canDownload) {
+          return _DownloadButton(
+            isDownloaded: false,
+            isLocked: true,
+            onTap: () {
+              _showDownloadSnackbar(context, _DownloadSnack.upgradeRequired);
+              _openUpgradePage(context);
+            },
+          );
+        }
+
+        return BlocBuilder<OfflineCubit, OfflineState>(          bloc: offlineCubit,
           builder: (context, offlineState) {
             final isDownloaded = offlineCubit.isDownloaded(track.id);
 
@@ -534,41 +544,54 @@ class TrackRow extends StatelessWidget {
 
 class _DownloadButton extends StatelessWidget {
   final bool isDownloaded;
+  final bool isLocked;
   final VoidCallback onTap;
 
   const _DownloadButton({
     required this.isDownloaded,
     required this.onTap,
+    this.isLocked = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(
-          color: isDownloaded
-              ? const Color(0xFFFF5500).withValues(alpha: 0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isDownloaded
-                ? const Color(0xFFFF5500).withValues(alpha: 0.5)
-                : Colors.white.withValues(alpha: 0.15),
-            width: 0.5,
+    final isHighlighted = isDownloaded || isLocked;
+
+    return Tooltip(
+      message: isLocked
+          ? 'Upgrade for offline downloads'
+          : isDownloaded
+              ? 'Downloaded'
+              : 'Download for offline listening',
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: isHighlighted
+                ? const Color(0xFFFF5500).withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isHighlighted
+                  ? const Color(0xFFFF5500).withValues(alpha: 0.5)
+                  : Colors.white.withValues(alpha: 0.15),
+              width: 0.5,
+            ),
           ),
-        ),
-        child: Icon(
-          isDownloaded
-              ? Icons.download_done_rounded
-              : Icons.arrow_downward_rounded,
-          color: isDownloaded
-              ? const Color(0xFFFF5500)
-              : Colors.white.withValues(alpha: 0.5),
-          size: 15,
+          child: Icon(
+            isLocked
+                ? Icons.workspace_premium_rounded
+                : isDownloaded
+                    ? Icons.download_done_rounded
+                    : Icons.arrow_downward_rounded,
+            color: isHighlighted
+                ? const Color(0xFFFF5500)
+                : Colors.white.withValues(alpha: 0.5),
+            size: 15,
+          ),
         ),
       ),
     );
