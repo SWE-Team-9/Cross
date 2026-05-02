@@ -46,6 +46,122 @@ class MockGetPlaylistEmbedCodeUseCase extends Mock
 
 void main() {
   group('PlaylistsPage pagination', () {
+    testWidgets('shows loader while first page is loading', (tester) async {
+      final getMy = MockGetMyPlaylistsUseCase();
+      final completer = Completer<List<PlaylistEntity>>();
+
+      when(() => getMy(page: 1, limit: 20)).thenAnswer(
+        (_) => completer.future,
+      );
+
+      final cubit = _buildCubit(getMy: getMy);
+
+      await tester.pumpWidget(_buildSubject(cubit));
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      completer.complete(const <PlaylistEntity>[]);
+      await tester.pumpAndSettle();
+
+      await cubit.close();
+    });
+
+    testWidgets('shows empty state after loading no playlists',
+        (tester) async {
+      final getMy = MockGetMyPlaylistsUseCase();
+
+      when(() => getMy(page: 1, limit: 20)).thenAnswer(
+        (_) async => const <PlaylistEntity>[],
+      );
+
+      final cubit = _buildCubit(getMy: getMy);
+
+      await tester.pumpWidget(_buildSubject(cubit));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No playlists yet'), findsOneWidget);
+      expect(find.text('New Playlist'), findsOneWidget);
+
+      await cubit.close();
+    });
+
+    testWidgets('shows error feedback from failed load', (tester) async {
+      final getMy = MockGetMyPlaylistsUseCase();
+
+      when(() => getMy(page: 1, limit: 20)).thenThrow(
+        Exception('network down'),
+      );
+
+      final cubit = _buildCubit(getMy: getMy);
+
+      await tester.pumpWidget(_buildSubject(cubit));
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        find.text('Network error. Please check your connection'),
+        findsOneWidget,
+      );
+      expect(cubit.state.errorMessage, isNull);
+
+      await cubit.close();
+    });
+
+    testWidgets('refresh reloads the first page', (tester) async {
+      final getMy = MockGetMyPlaylistsUseCase();
+
+      when(() => getMy(page: 1, limit: 20)).thenAnswer(
+        (_) async => <PlaylistEntity>[
+          _playlist(id: 'pl_1', title: 'Playlist 1'),
+        ],
+      );
+
+      final cubit = _buildCubit(getMy: getMy);
+
+      await tester.pumpWidget(_buildSubject(cubit));
+      await tester.pumpAndSettle();
+
+      final indicator = tester.widget<RefreshIndicator>(
+        find.byType(RefreshIndicator),
+      );
+      await indicator.onRefresh();
+      await tester.pump();
+
+      verify(() => getMy(page: 1, limit: 20)).called(2);
+
+      await cubit.close();
+    });
+
+    testWidgets('renders playlist metadata and private cover state',
+        (tester) async {
+      final getMy = MockGetMyPlaylistsUseCase();
+
+      when(() => getMy(page: 1, limit: 20)).thenAnswer(
+        (_) async => <PlaylistEntity>[
+          _playlist(
+            id: 'secret',
+            title: 'Secret mix',
+            description: 'Bedroom demos',
+            visibility: PlaylistVisibility.privatePlaylist,
+            tracksCount: 3,
+            likesCount: 7,
+          ),
+        ],
+      );
+
+      final cubit = _buildCubit(getMy: getMy);
+
+      await tester.pumpWidget(_buildSubject(cubit));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Secret mix'), findsOneWidget);
+      expect(find.textContaining('Bedroom demos'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+
+      await cubit.close();
+    });
+
     testWidgets('loads more playlists when scrolled near bottom',
         (tester) async {
       final getMy = MockGetMyPlaylistsUseCase();
@@ -151,17 +267,21 @@ PlaylistsCubit _buildCubit({
 PlaylistEntity _playlist({
   required String id,
   required String title,
+  String description = '',
+  PlaylistVisibility visibility = PlaylistVisibility.publicPlaylist,
+  int tracksCount = 0,
+  int likesCount = 0,
 }) {
   return PlaylistEntity(
     playlistId: id,
     title: title,
-    description: '',
-    visibility: PlaylistVisibility.publicPlaylist,
+    description: description,
+    visibility: visibility,
     secretToken: null,
     coverImageUrl: null,
     owner: null,
     tracks: const [],
-    tracksCount: 0,
-    likesCount: 0,
+    tracksCount: tracksCount,
+    likesCount: likesCount,
   );
 }
