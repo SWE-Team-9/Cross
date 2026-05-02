@@ -67,8 +67,7 @@ void main() {
       await cubit.close();
     });
 
-    testWidgets('shows empty state after loading no playlists',
-        (tester) async {
+    testWidgets('shows empty state after loading no playlists', (tester) async {
       final getMy = MockGetMyPlaylistsUseCase();
 
       when(() => getMy(page: 1, limit: 20)).thenAnswer(
