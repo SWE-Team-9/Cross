@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../domain/entities/picked_image_file.dart';
@@ -320,9 +320,10 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                   physics: const BouncingScrollPhysics(),
                   children: [
                     _UserAccountCard(user: user),
+                    const SizedBox(height: 16),
+                    const _UploadQuotaCard(),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
+                    ElevatedButton.icon(                      style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -605,6 +606,130 @@ class _UserAccountCard extends StatelessWidget {
   }
 }
 
+class _UploadQuotaCard extends StatelessWidget {
+  const _UploadQuotaCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SubscriptionCubit, SubscriptionState>(
+      builder: (context, state) {
+        if (state.isInitial || state.isLoading) {
+          return const _SleekContainer(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Loading upload quota...',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final subscription = state.subscription;
+        final isUnlimited = subscription.isUnlimited;
+        final remainingUploads = subscription.remainingUploads;
+        final hasReachedLimit = !isUnlimited && remainingUploads <= 0;
+        final quotaText = isUnlimited
+            ? 'Unlimited uploads'
+            : '${subscription.displayRemainingUploads} uploads remaining / ${subscription.displayUploadLimit}';
+
+        return _SleekContainer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    hasReachedLimit
+                        ? Icons.lock_outline
+                        : Icons.cloud_upload_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Upload quota',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      subscription.isPremium ? 'Premium' : 'Free',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                quotaText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                hasReachedLimit
+                    ? 'You reached your current upload limit. Upgrade to continue uploading tracks.'
+                    : subscription.isPremium
+                        ? 'Your premium plan gives you more room to publish music.'
+                        : 'Free artists have a limited number of uploads.',
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  height: 1.4,
+                ),
+              ),
+              if (hasReachedLimit) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => context.go('/upgrade'),
+                    icon: const Icon(Icons.workspace_premium_rounded),
+                    label: const Text('Upgrade to upload more'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
 class _UploadMetadataCard extends StatelessWidget {
   const _UploadMetadataCard({
     required this.titleController,
