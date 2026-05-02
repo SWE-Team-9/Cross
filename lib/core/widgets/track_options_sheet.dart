@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
@@ -24,6 +26,15 @@ class TrackOptionsSheet extends StatelessWidget {
     required this.scrollController,
     required this.parentContext,
   });
+
+  // ── URL builder ────────────────────────────────────────────────────────────
+  static String _trackUrl(Track t) {
+  debugPrint('handle: ${t.handle}, slug: ${t.slug}');
+  if (t.handle != null && t.slug != null) {
+    return 'https://dev.iqa3.tech/${t.handle}/${t.slug}';
+  }
+  return 'https://dev.iqa3.tech/track/${t.id}';
+}
 
   static Future<void> show(BuildContext context, {required Track track}) {
     isTrackSheetOpen.value = true;
@@ -65,6 +76,36 @@ class TrackOptionsSheet extends StatelessWidget {
       isTrackSheetOpen.value = false;
     });
   }
+
+  // ── Copy link to clipboard ─────────────────────────────────────────────────
+  Future<void> _copyLink(BuildContext context) async {
+    final url = _trackUrl(track);
+    await Clipboard.setData(ClipboardData(text: url));
+    if (context.mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Link copied!'),
+          backgroundColor: const Color(0xFFFF5500),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // ── Native share sheet ─────────────────────────────────────────────────────
+Future<void> _shareTrack(BuildContext context) async {
+  Navigator.pop(context);
+  final url = _trackUrl(track);
+  final artistHandle = track.handle ?? track.artist;
+
+  final text = 'Check out "${track.title}" by @$artistHandle\n$url';
+
+  await Share.share(text, subject: track.title);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -141,12 +182,32 @@ class TrackOptionsSheet extends StatelessWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  _ShareItem(icon: Icons.send_outlined, label: 'Message'),
-                  _ShareItem(icon: Icons.copy_outlined, label: 'Copy Link'),
-                  _ShareItem(icon: Icons.share_outlined, label: 'WhatsApp'),
-                  _ShareItem(icon: Icons.camera_alt_outlined, label: 'Status'),
-                  _ShareItem(icon: Icons.headphones_outlined, label: 'Audio'),
+                children: [
+                  _ShareItem(
+                    icon: Icons.send_outlined,
+                    label: 'Message',
+                    onTap: () => Navigator.pop(context), // TODO: messaging flow
+                  ),
+                  _ShareItem(
+                    icon: Icons.copy_outlined,
+                    label: 'Copy Link',
+                    onTap: () => _copyLink(context),
+                  ),
+                  _ShareItem(
+                    icon: Icons.share_outlined,
+                    label: 'Share',
+                    onTap: () => _shareTrack(context),
+                  ),
+                  _ShareItem(
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Status',
+                    onTap: () => Navigator.pop(context), // TODO
+                  ),
+                  _ShareItem(
+                    icon: Icons.headphones_outlined,
+                    label: 'Audio',
+                    onTap: () => Navigator.pop(context), // TODO
+                  ),
                 ],
               ),
             ),
@@ -327,38 +388,43 @@ class _OptionTile extends StatelessWidget {
 class _ShareItem extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   const _ShareItem({
     required this.icon,
     required this.label,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.grey[850],
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.grey[850],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 22),
             ),
-            child: Icon(icon, color: Colors.white, size: 22),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

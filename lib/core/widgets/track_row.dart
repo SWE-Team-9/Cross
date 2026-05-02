@@ -25,14 +25,14 @@ class TrackRow extends StatelessWidget {
   final Track track;
   final List<Track>? queue;
   final bool showLikesCount;
-  final String source; // ✅ NEW
+  final String source;
 
   const TrackRow({
     super.key,
     required this.track,
     this.queue,
     this.showLikesCount = false,
-    this.source = "unknown", // ✅ DEFAULT
+    this.source = 'unknown',
   });
 
   @override
@@ -49,7 +49,6 @@ class TrackRow extends StatelessWidget {
         final isCurrentTrack = state.currentTrack?.id == track.id;
         final isPlaying = isCurrentTrack && state.isPlaying;
         final wasPlayed = state.wasPlayed(track.id);
-
         final opacity = wasPlayed && !isCurrentTrack ? 0.45 : 1.0;
 
         return Opacity(
@@ -167,12 +166,16 @@ class TrackRow extends StatelessWidget {
   Future<void> _playTrack(BuildContext context) async {
     final playerCubit = context.read<PlayerCubit>();
     final offlineCubit = _lookupCubit<OfflineCubit>(context);
-    final tracks = queue ?? [track];
-    final index = tracks.indexWhere((t) => t.id == track.id);
+
+    // ✅ الـ queue الكاملة + offline paths مرة واحدة بس
+    final fullQueue = queue ?? [track];
+    final playableTracks = _withOfflinePaths(fullQueue, offlineCubit);
+
+    final index = playableTracks.indexWhere((t) => t.id == track.id);
     final safeIndex = index >= 0 ? index : 0;
-    final playableTracks = _withOfflinePaths(tracks, offlineCubit);
     final selectedTrack = playableTracks[safeIndex];
 
+    // ✅ Case 1: عندها URL أو offline path — شغّل الـ queue كاملة
     if (selectedTrack.audioUrl.trim().isNotEmpty ||
         (selectedTrack.localPath != null &&
             selectedTrack.localPath!.trim().isNotEmpty)) {
@@ -187,6 +190,7 @@ class TrackRow extends StatelessWidget {
       return;
     }
 
+    // ✅ Case 2: محتاجة تـfetch الـ detail
     if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -210,14 +214,24 @@ class TrackRow extends StatelessWidget {
       return;
     }
 
+    // ✅ نفس الـ object بيتحط في الـ queue والـ RecentlyPlayed
+    final resolvedTrack = _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
+
+    final resolvedQueue = List<Track>.from(playableTracks);
+    resolvedQueue[safeIndex] = resolvedTrack;
+
+    if (getIt.isRegistered<RecentlyPlayedCubit>()) {
+      getIt<RecentlyPlayedCubit>().addTrack(resolvedTrack);
+    }
+
     final playbackTrack =
         _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
     if (getIt.isRegistered<RecentlyPlayedCubit>()) {
       getIt<RecentlyPlayedCubit>().addTrack(playbackTrack);
     }
     await playerCubit.playFromContext(
-      tracks: [playbackTrack],
-      startIndex: 0,
+      tracks: resolvedQueue,
+      startIndex: safeIndex,
       source: source,
     );
   }
@@ -269,12 +283,8 @@ class TrackRow extends StatelessWidget {
     );
   }
 
-  List<Track> _withOfflinePaths(
-    List<Track> tracks,
-    OfflineCubit? offlineCubit,
-  ) {
+  List<Track> _withOfflinePaths(List<Track> tracks, OfflineCubit? offlineCubit) {
     if (offlineCubit == null) return tracks;
-
     return tracks.map((item) => _withOfflinePath(item, offlineCubit)).toList();
   }
 
@@ -282,7 +292,6 @@ class TrackRow extends StatelessWidget {
     if (offlineCubit == null || !offlineCubit.isDownloaded(track.id)) {
       return track;
     }
-
     final localPath = offlineCubit.getPath(track.id);
     if (localPath == null || localPath.trim().isEmpty) return track;
     return track.copyWith(localPath: localPath);
@@ -355,7 +364,6 @@ class TrackRow extends StatelessWidget {
 
   void _openComments(BuildContext context) {
     Navigator.pop(context);
-
     Navigator.push(
       context,
       MaterialPageRoute(

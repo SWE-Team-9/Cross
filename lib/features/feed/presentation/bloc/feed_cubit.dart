@@ -2,12 +2,11 @@
 //  feed_cubit.dart  —  Presentation Logic
 //
 //  Manages:
-//    ✓ Tab switching   (Discover ↔ Following)
-//    ✓ Initial load
-//    ✓ Pagination      (infinite scroll → loadMore)
+//    ✓ Initial load           (GET /api/v1/feed)
+//    ✓ Pagination             (infinite scroll → loadMore)
 //    ✓ Pull-to-refresh
 //    ✓ Optimistic like / repost (instant UI, rollback on error)
-//    ✓ Play track      (get stream URL + record play event)
+//    ✓ Play track             (get stream URL + record play event)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,6 +16,10 @@ import '../../domain/usecases/toggle_like.dart';
 import '../../domain/usecases/toggle_repost.dart';
 import '../../domain/repositories/feed_repository.dart';
 import 'feed_state.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  FeedCubit  —  Activity Feed
+// ─────────────────────────────────────────────────────────────────────────────
 
 class FeedCubit extends Cubit<FeedState> {
   final GetFeedUseCase _getFeed;
@@ -33,34 +36,22 @@ class FeedCubit extends Cubit<FeedState> {
         _toggleLike = toggleLike,
         _toggleRepost = toggleRepost,
         _repository = repository,
-        super(const FeedLoading(FeedTab.following));
-
-  // ─── Tab switching ────────────────────────────────────────────────────────
-
-  Future<void> setTab(FeedTab tab) async {
-    if (state.tab == tab && state is FeedLoaded) return;
-    emit(FeedLoading(tab));
-    await _loadPage(tab: tab, page: 1, reset: true);
-  }
+        super(const FeedLoading());
 
   // ─── Initial load ─────────────────────────────────────────────────────────
 
   Future<void> initialize() async {
-    emit(FeedLoading(state.tab));
-    await _loadPage(tab: state.tab, page: 1, reset: true);
+    emit(const FeedLoading());
+    await _loadPage(page: 1, reset: true);
   }
 
   // ─── Pull-to-refresh ──────────────────────────────────────────────────────
 
   Future<void> refresh() async {
-    final currentTab = state.tab;
-
-    // Keep showing current items while refreshing (no full skeleton)
     if (state is FeedLoaded) {
       emit((state as FeedLoaded).copyWith(isRefreshing: true));
     }
-
-    await _loadPage(tab: currentTab, page: 1, reset: true, isRefresh: true);
+    await _loadPage(page: 1, reset: true, isRefresh: true);
   }
 
   // ─── Infinite scroll ──────────────────────────────────────────────────────
@@ -71,27 +62,23 @@ class FeedCubit extends Cubit<FeedState> {
     if (!loaded.hasMore || loaded.isLoadingMore) return;
 
     emit(loaded.copyWith(isLoadingMore: true));
-    await _loadPage(tab: loaded.tab, page: loaded.nextPage, reset: false);
+    await _loadPage(page: loaded.nextPage, reset: false);
   }
 
   // ─── Core loader ──────────────────────────────────────────────────────────
 
   Future<void> _loadPage({
-    required FeedTab tab,
     required int page,
     required bool reset,
     bool isRefresh = false,
   }) async {
     try {
-      final result = await _getFeed(tab: tab.key, page: page);
+      final result = await _getFeed(page: page);
 
       if (isClosed) return;
 
-      // Discard if user switched tabs while request was in-flight
-      if (state.tab != tab) return;
-
       if (result.items.isEmpty && reset) {
-        emit(FeedEmpty(tab));
+        emit(const FeedEmpty());
         return;
       }
 
@@ -100,7 +87,6 @@ class FeedCubit extends Cubit<FeedState> {
           : <FeedItem>[];
 
       emit(FeedLoaded(
-        tab: tab,
         items: [...previousItems, ...result.items],
         nextPage: page + 1,
         hasMore: result.hasMore,
@@ -109,16 +95,15 @@ class FeedCubit extends Cubit<FeedState> {
       ));
     } catch (e) {
       if (isClosed) return;
-      if (state.tab != tab) return;
 
-      // If we already have items, keep them and show a snackbar (handled in UI)
       if (state is FeedLoaded && !reset) {
         emit((state as FeedLoaded).copyWith(
           isLoadingMore: false,
           isRefreshing: false,
         ));
       } else {
-        emit(FeedError(tab, e.toString()));
+        // مؤقتاً عشان نشوف الـ error الحقيقي
+          emit(FeedError('$e\n${StackTrace.current}'));
       }
     }
   }
@@ -139,16 +124,17 @@ class FeedCubit extends Cubit<FeedState> {
     // 1. Optimistic update
     emit(loaded.copyWith(
       items: _updateTrack(
-          loaded.items,
-          idx,
-          item.copyWith(
-            track: item.track.copyWith(
-              userState: item.track.userState.copyWith(liked: !wasLiked),
-              stats: item.track.stats.copyWith(
-                likesCount: wasLiked ? prevCount - 1 : prevCount + 1,
-              ),
+        loaded.items,
+        idx,
+        item.copyWith(
+          track: item.track.copyWith(
+            userState: item.track.userState.copyWith(liked: !wasLiked),
+            stats: item.track.stats.copyWith(
+              likesCount: wasLiked ? prevCount - 1 : prevCount + 1,
             ),
-          )),
+          ),
+        ),
+      ),
     ));
 
     try {
@@ -165,16 +151,17 @@ class FeedCubit extends Cubit<FeedState> {
         final rollbackItem = current.items[rollbackIdx];
         emit(current.copyWith(
           items: _updateTrack(
-              current.items,
-              rollbackIdx,
-              rollbackItem.copyWith(
-                track: rollbackItem.track.copyWith(
-                  userState:
-                      rollbackItem.track.userState.copyWith(liked: wasLiked),
-                  stats:
-                      rollbackItem.track.stats.copyWith(likesCount: prevCount),
-                ),
-              )),
+            current.items,
+            rollbackIdx,
+            rollbackItem.copyWith(
+              track: rollbackItem.track.copyWith(
+                userState:
+                    rollbackItem.track.userState.copyWith(liked: wasLiked),
+                stats:
+                    rollbackItem.track.stats.copyWith(likesCount: prevCount),
+              ),
+            ),
+          ),
         ));
       }
     }
@@ -196,16 +183,17 @@ class FeedCubit extends Cubit<FeedState> {
     // 1. Optimistic update
     emit(loaded.copyWith(
       items: _updateTrack(
-          loaded.items,
-          idx,
-          item.copyWith(
-            track: item.track.copyWith(
-              userState: item.track.userState.copyWith(reposted: !wasReposted),
-              stats: item.track.stats.copyWith(
-                repostsCount: wasReposted ? prevCount - 1 : prevCount + 1,
-              ),
+        loaded.items,
+        idx,
+        item.copyWith(
+          track: item.track.copyWith(
+            userState: item.track.userState.copyWith(reposted: !wasReposted),
+            stats: item.track.stats.copyWith(
+              repostsCount: wasReposted ? prevCount - 1 : prevCount + 1,
             ),
-          )),
+          ),
+        ),
+      ),
     ));
 
     try {
@@ -220,16 +208,17 @@ class FeedCubit extends Cubit<FeedState> {
         final rollbackItem = current.items[rollbackIdx];
         emit(current.copyWith(
           items: _updateTrack(
-              current.items,
-              rollbackIdx,
-              rollbackItem.copyWith(
-                track: rollbackItem.track.copyWith(
-                  userState: rollbackItem.track.userState
-                      .copyWith(reposted: wasReposted),
-                  stats: rollbackItem.track.stats
-                      .copyWith(repostsCount: prevCount),
-                ),
-              )),
+            current.items,
+            rollbackIdx,
+            rollbackItem.copyWith(
+              track: rollbackItem.track.copyWith(
+                userState: rollbackItem.track.userState
+                    .copyWith(reposted: wasReposted),
+                stats: rollbackItem.track.stats
+                    .copyWith(repostsCount: prevCount),
+              ),
+            ),
+          ),
         ));
       }
     }
@@ -238,14 +227,27 @@ class FeedCubit extends Cubit<FeedState> {
   // ─── Play track ───────────────────────────────────────────────────────────
 
   /// Returns playback access with stream URL (if allowed).
+  /// Prefers audio_url from feed payload; falls back to /source endpoint.
   /// Also fires recordPlay in parallel.
-  Future<PlaybackAccessResult> handlePlay(String trackId) async {
+  Future<PlaybackAccessResult> handlePlay(
+    String trackId, {
+    String? feedAudioUrl,
+  }) async {
     try {
+      // If the feed already gave us an audio_url, use it directly
+      if (feedAudioUrl != null && feedAudioUrl.isNotEmpty) {
+        await _repository.recordPlay(trackId);
+        return PlaybackAccessResult(
+          accessState: 'PLAYABLE',
+          streamUrl: feedAudioUrl,
+        );
+      }
+
+      // Otherwise resolve via /source endpoint
       final access = await _repository.getPlaybackAccess(trackId);
       if (!access.canPlay || access.streamUrl == null) {
         return access;
       }
-
       await _repository.recordPlay(trackId);
       return access;
     } catch (_) {
@@ -255,9 +257,71 @@ class FeedCubit extends Cubit<FeedState> {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  List<FeedItem> _updateTrack(List<FeedItem> items, int idx, FeedItem updated) {
+  List<FeedItem> _updateTrack(
+      List<FeedItem> items, int idx, FeedItem updated) {
     final copy = List<FeedItem>.from(items);
     copy[idx] = updated;
     return copy;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SearchCubit  —  Global Search
+// ─────────────────────────────────────────────────────────────────────────────
+
+class SearchCubit extends Cubit<SearchState> {
+  final SearchUseCase _search;
+
+  SearchCubit({required SearchUseCase search})
+      : _search = search,
+        super(const SearchIdle());
+
+  Future<void> query(String q) async {
+    if (q.trim().isEmpty) {
+      emit(const SearchIdle());
+      return;
+    }
+    emit(const SearchLoading());
+    try {
+      final results = await _search(query: q.trim());
+      if (isClosed) return;
+      final isEmpty = results.users.isEmpty &&
+          results.tracks.isEmpty &&
+          results.playlists.isEmpty;
+      if (isEmpty) {
+        emit(SearchEmpty(q));
+      } else {
+        emit(SearchLoaded(results: results, query: q));
+      }
+    } catch (e) {
+      if (isClosed) return;
+      emit(SearchError(e.toString()));
+    }
+  }
+
+  void clear() => emit(const SearchIdle());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TrendingCubit  —  Trending Charts
+// ─────────────────────────────────────────────────────────────────────────────
+
+class TrendingCubit extends Cubit<TrendingState> {
+  final GetTrendingUseCase _getTrending;
+
+  TrendingCubit({required GetTrendingUseCase getTrending})
+      : _getTrending = getTrending,
+        super(const TrendingLoading());
+
+  Future<void> load() async {
+    emit(const TrendingLoading());
+    try {
+      final tracks = await _getTrending();
+      if (isClosed) return;
+      emit(TrendingLoaded(tracks));
+    } catch (e) {
+      if (isClosed) return;
+      emit(TrendingError(e.toString()));
+    }
   }
 }
