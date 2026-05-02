@@ -1,22 +1,18 @@
 {
-  "latest_version": "1.1.0",
-  "min_required_version": "1.1.0",
-  "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v1.1.0/app-release.apk",
+  "latest_version": "1.1.1",
+  "min_required_version": "1.1.1",
+  "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v1.1.1/app-release.apk",
   "release": {
-    "title": "Version 1.1.0",
-    "subtitle": "What's new:",
-    "new_features": [
-      "Messaging: inbox and chat threads with websocket integration",
-      "Playlists: list view, detail page, and secret playlist deep links",
-      "Offline downloads: downloaded tracks/playlists and local file playback"
-    ],
+    "title": "Version 1.1.1",
+    "subtitle": "Smoother updates & bug fixes",
+    "new_features": [],
     "improvements": [
-      "Home screen: added 'Top playlists' shelf and favorite‑genre trending feed",
-      "Library: added playlist sections (liked + recently played) and download entries",
-      "CI: updated GitHub Actions and forced Node.js 24 compatibility",
-      "Reduced noisy logging in auth, network, and deep link services",
-      "Updated reCAPTCHA test page and .env.example Windows URL"
+      "Update check now waits until you finish with the update dialog – no more sudden navigation",
+      "App will not proceed to the home/welcome screen until update choice is completed"
     ],
-    "bug_fixes": []
+    "bug_fixes": [
+      "Fixed an issue where the app could skip the update screen and go straight to the main app",
+      "Resolved a rare timing problem that could freeze the splash screen during mandatory updates"
+    ]
   }
 }
