@@ -1,10 +1,10 @@
 import '../entities/subscription.dart';
 import '../entities/plan.dart';
 
+/// Minimal abstract repository kept to preserve the public API.
 abstract class SubscriptionRepository {
   Future<Subscription> getMySubscription();
 
-  // NEW
   Future<String> createCheckout(String plan);
 
   Future<List<Plan>> getPlans();

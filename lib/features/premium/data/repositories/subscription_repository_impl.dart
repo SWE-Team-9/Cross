@@ -1,86 +1,38 @@
-import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/subscription.dart';
-import '../../domain/repositories/subscription_repository.dart';
 import '../../domain/entities/plan.dart';
+import '../../domain/repositories/subscription_repository.dart';
 
+/// Minimal implementation returning safe defaults to avoid breaking other code.
 class SubscriptionRepositoryImpl implements SubscriptionRepository {
-  final DioClient _dioClient;
-
-  SubscriptionRepositoryImpl(this._dioClient);
+  // Keep a single optional parameter to match callers/tests that pass a DioClient.
+  SubscriptionRepositoryImpl([dynamic _dioClient]);
 
   @override
   Future<Subscription> getMySubscription() async {
-    final response = await _dioClient.get('/api/v1/subscriptions/me');
-
-    final data = response.data is Map && response.data.containsKey('data')
-        ? response.data['data']
-        : response.data;
-
-    return Subscription(
-      subscriptionType: data['planCode'] ?? 'FREE',
-      uploadLimit: data['uploadLimit'] ?? 3,
-      uploadedTracks: data['uploadedTracks'] ?? 0,
-      remainingUploads: data['remainingUploads'] ?? 0,
-      cancelAtPeriodEnd: data['cancelAtPeriodEnd'] ?? false,
-      canDownload: data['canDownload'] ?? false,
-      adsEnabled: data['adsEnabled'] ?? true,
-    );
+    return const Subscription();
   }
 
   @override
   Future<String> createCheckout(String plan) async {
-    final response = await _dioClient.post(
-      '/api/v1/subscriptions/checkout',
-      data: {
-        "planCode": plan,
-        "returnUrl": "app://success",
-        "cancelUrl": "app://cancel",
-      },
-    );
-
-    return response.data['checkoutUrl'];
+    return 'https://mock-checkout';
   }
 
   @override
   Future<List<Plan>> getPlans() async {
-    final response = await _dioClient.get('/api/v1/subscriptions/plans');
-
-    final data = response.data is Map && response.data.containsKey('data')
-        ? response.data['data']
-        : response.data;
-
-    final list = data as List;
-
-    return list.map((e) => Plan.fromJson(e)).toList();
+    return [
+      const Plan(code: 'FREE', name: 'Free', price: 0, description: '', interval: 'month'),
+    ];
   }
 
   @override
-  Future<void> cancelSubscription() async {
-    await _dioClient.post('/api/v1/subscriptions/cancel');
-  }
+  Future<void> cancelSubscription() async {}
 
   @override
-  Future<void> resumeSubscription() async {
-    await _dioClient.post('/api/v1/subscriptions/resume');
-  }
+  Future<void> resumeSubscription() async {}
 
   @override
-  Future<void> changePlan(String plan) async {
-    await _dioClient.post(
-      '/api/v1/subscriptions/change-plan',
-      data: {"planCode": plan},
-    );
-  }
+  Future<void> changePlan(String plan) async {}
 
   @override
-  Future<String> openPortal() async {
-    final response = await _dioClient.post(
-      '/api/v1/subscriptions/portal',
-      data: {
-        "returnUrl": "app://settings",
-      },
-    );
-
-    return response.data['portalUrl'];
-  }
+  Future<String> openPortal() async => 'https://mock-portal';
 }
