@@ -81,7 +81,6 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
           description: result.description,
           visibility: result.visibility,
           genre: result.genre,
-          genreId: playlistGenreId(result.genre),
           coverImagePath: result.coverImagePath,
         );
   }
