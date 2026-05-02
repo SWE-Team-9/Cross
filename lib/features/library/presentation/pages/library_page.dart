@@ -21,6 +21,7 @@ import 'package:soundcloud_clone/features/recently_played/presentation/widgets/r
 import 'package:soundcloud_clone/features/settings/presentation/page/settings_page.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
+import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -188,8 +189,13 @@ class _LibraryPageState extends State<LibraryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 12),
-                  BlocBuilder<AuthCubit, AuthState>(
-                    builder: (context, state) => _LibraryItem(
+                  const PremiumAwareAdBanner(
+                    title: 'Take your library offline',
+                    subtitle:
+                        'Upgrade to remove sponsored cards, download music, and unlock more uploads.',
+                    actionLabel: 'Upgrade',
+                  ),
+                  BlocBuilder<AuthCubit, AuthState>(                    builder: (context, state) => _LibraryItem(
                       title: 'Your likes',
                       onTap: () => _goToOwnProfile(state),
                     ),
