@@ -492,8 +492,7 @@ void main() {
         playlistId: 'playlist-1',
         title: 'Offline Mix',
         description: 'Saved playlist',
-        visibility: PlaylistVisibility.public,
-        genre: 'Electronic',
+visibility: PlaylistVisibility.publicPlaylist,        genre: 'Electronic',
         genreId: 7,
         slug: 'offline-mix',
         playlistType: 'PLAYLIST',
@@ -530,8 +529,7 @@ void main() {
       expect(savedPlaylist.playlistId, 'playlist-1');
       expect(savedPlaylist.title, 'Offline Mix');
       expect(savedPlaylist.description, 'Saved playlist');
-      expect(savedPlaylist.visibility, PlaylistVisibility.public);
-      expect(savedPlaylist.genre, 'Electronic');
+expect(savedPlaylist.visibility, PlaylistVisibility.publicPlaylist);      expect(savedPlaylist.genre, 'Electronic');
       expect(savedPlaylist.genreId, 7);
       expect(savedPlaylist.slug, 'offline-mix');
       expect(savedPlaylist.playlistType, 'PLAYLIST');

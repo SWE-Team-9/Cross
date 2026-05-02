@@ -127,8 +127,7 @@ void main() {
     test('shows premium plan title and billing route for premium users', () {
       expect(
         source,
-        contains("'${subscription.displayPlanName} plan'"),
-      );
+contains(r"'${subscription.displayPlanName} plan'"),      );
       expect(
         source,
         contains("'Manage billing, invoices, and premium features'"),

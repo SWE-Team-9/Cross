@@ -4,7 +4,6 @@ import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
-import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 
 void main() {
@@ -488,8 +487,7 @@ PlaylistEntity _playlist({
     playlistId: playlistId,
     title: 'Offline Mix',
     description: 'Saved playlist',
-    visibility: PlaylistVisibility.public,
-    genre: 'Electronic',
+visibility: PlaylistVisibility.publicPlaylist,    genre: 'Electronic',
     genreId: 7,
     slug: 'offline-mix',
     playlistType: 'PLAYLIST',
