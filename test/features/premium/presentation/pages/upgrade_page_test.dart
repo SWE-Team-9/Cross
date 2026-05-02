@@ -131,7 +131,7 @@ void main() {
       expect(find.text('Current plan'), findsWidgets);
     });
 
-    testWidgets('manage billing button navigates to billing route',
+    testWidgets('manage billing navigates to billing route without opening portal',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
@@ -144,6 +144,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Billing Route'), findsOneWidget);
+      expect(repository.openBillingPortalSessionCalls, 0);
+    });
+
+    testWidgets('does not show manage billing for free users', (tester) async {
+      final repository = _FakeSubscriptionRepository(
+        subscription: freeSubscription,
+        plans: const <Plan>[freePlan, proPlan],
+      );
+
+      await _pumpUpgradePage(tester, repository);
+
+      expect(find.text('Manage billing'), findsNothing);
+      expect(repository.openBillingPortalSessionCalls, 0);
     });
 
     testWidgets('refresh action reloads subscription and plans',
@@ -172,7 +185,10 @@ void main() {
 
       await _pumpUpgradePage(tester, repository);
 
-      expect(find.text('No premium plans are available right now.'), findsOneWidget);
+      expect(
+        find.text('No premium plans are available right now.'),
+        findsOneWidget,
+      );
       expect(find.text('Refresh'), findsOneWidget);
     });
 
@@ -260,7 +276,10 @@ void main() {
       expect(repository.createCheckoutCalls, 1);
       expect(repository.lastCheckoutPlan, 'PRO');
       expect(find.text('Subscription upgraded.'), findsOneWidget);
-      expect(find.text('Checkout link is not available right now.'), findsOneWidget);
+      expect(
+        find.text('Checkout link is not available right now.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('upgrade validates invalid checkout url', (tester) async {
@@ -277,7 +296,10 @@ void main() {
 
       expect(repository.createCheckoutCalls, 1);
       expect(find.text('Subscription upgraded.'), findsOneWidget);
-      expect(find.text('Invalid link returned from the server.'), findsOneWidget);
+      expect(
+        find.text('Invalid link returned from the server.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('upgrade error shows snackbar', (tester) async {
