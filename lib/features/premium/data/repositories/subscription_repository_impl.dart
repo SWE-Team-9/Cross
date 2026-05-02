@@ -1,38 +1,89 @@
-import '../../domain/entities/subscription.dart';
+import '../../../../core/network/dio_client.dart';
+import '../../domain/entities/billing_invoice.dart';
+import '../../domain/entities/billing_portal_session.dart';
+import '../../domain/entities/offline_track_entitlement.dart';
 import '../../domain/entities/plan.dart';
+import '../../domain/entities/subscription.dart';
 import '../../domain/repositories/subscription_repository.dart';
+import '../datasources/subscription_remote_data_source.dart';
 
-/// Minimal implementation returning safe defaults to avoid breaking other code.
 class SubscriptionRepositoryImpl implements SubscriptionRepository {
-  // Keep a single optional parameter to match callers/tests that pass a DioClient.
-  SubscriptionRepositoryImpl([dynamic _dioClient]);
+  SubscriptionRepositoryImpl([dynamic dependency])
+      : _remoteDataSource = _resolveRemoteDataSource(dependency);
+
+  final SubscriptionRemoteDataSource _remoteDataSource;
 
   @override
-  Future<Subscription> getMySubscription() async {
-    return const Subscription();
+  Future<Subscription> getMySubscription() {
+    return _remoteDataSource.getMySubscription();
   }
 
   @override
-  Future<String> createCheckout(String plan) async {
-    return 'https://mock-checkout';
+  Future<List<Plan>> getPlans() {
+    return _remoteDataSource.getPlans();
   }
 
   @override
-  Future<List<Plan>> getPlans() async {
-    return [
-      const Plan(code: 'FREE', name: 'Free', price: 0, description: '', interval: 'month'),
-    ];
+  Future<String> createCheckout(String plan) {
+    return _remoteDataSource.createCheckout(
+      planCode: plan,
+    );
   }
 
   @override
-  Future<void> cancelSubscription() async {}
+  Future<String> subscribe(String plan) {
+    return _remoteDataSource.subscribe(
+      subscriptionType: plan,
+    );
+  }
 
   @override
-  Future<void> resumeSubscription() async {}
+  Future<BillingPortalSession> openBillingPortalSession() {
+    return _remoteDataSource.openBillingPortalSession();
+  }
 
   @override
-  Future<void> changePlan(String plan) async {}
+  Future<List<BillingInvoice>> getInvoices() {
+    return _remoteDataSource.getInvoices();
+  }
 
   @override
-  Future<String> openPortal() async => 'https://mock-portal';
+  Future<Subscription> cancelSubscription() async {
+    await _remoteDataSource.cancelSubscription();
+    return _remoteDataSource.getMySubscription();
+  }
+
+  @override
+  Future<Subscription> resumeSubscription() {
+    return _remoteDataSource.resumeSubscription();
+  }
+
+  @override
+  Future<Subscription> changePlan(String plan) {
+    return _remoteDataSource.changePlan(
+      planCode: plan,
+    );
+  }
+
+  @override
+  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(String trackId) {
+    return _remoteDataSource.getOfflineTrackEntitlement(
+      trackId: trackId,
+    );
+  }
+}
+
+SubscriptionRemoteDataSource _resolveRemoteDataSource(dynamic dependency) {
+  if (dependency is SubscriptionRemoteDataSource) {
+    return dependency;
+  }
+
+  if (dependency is DioClient) {
+    return SubscriptionRemoteDataSourceImpl(dependency);
+  }
+
+  throw ArgumentError(
+    'SubscriptionRepositoryImpl requires a SubscriptionRemoteDataSource '
+    'or DioClient dependency.',
+  );
 }
