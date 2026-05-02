@@ -84,7 +84,30 @@ import '../../features/interactions/presentation/bloc/engagement_list_cubit.dart
 import '../../features/interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
 import '../../features/interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
 
-// Comments
+// Playlists
+import '../../features/playlists/data/datasources/playlists_remote_data_source.dart';
+import '../../features/playlists/data/repositories/playlists_repository_impl.dart';
+import '../../features/playlists/domain/repositories/playlists_repository.dart';
+import '../../features/playlists/domain/usecases/add_track_to_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/create_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/delete_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/get_my_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/get_playlist_details_usecase.dart';
+import '../../features/playlists/domain/usecases/get_playlist_edit_details_usecase.dart';
+import '../../features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
+import '../../features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/get_liked_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/get_top_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/like_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
+import '../../features/playlists/domain/usecases/record_playlist_playback_usecase.dart';
+import '../../features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/unlike_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/update_playlist_usecase.dart';
+import '../../features/playlists/domain/usecases/upload_playlist_cover_usecase.dart';
+import '../../features/playlists/presentation/bloc/playlists_cubit.dart';
+import '../../features/library/presentation/bloc/library_cubit.dart';
 import '../../features/comments/data/datasources/comments_remote_data_source.dart';
 import '../../features/comments/data/repositories/comments_repository_impl.dart';
 import '../../features/comments/domain/repositories/comments_repository.dart';
@@ -110,11 +133,38 @@ import '../../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../oauth/oauth_pending_request_store.dart';
 import '../oauth/windows_oauth_callback_server.dart';
+//messaging
+import '../../features/messaging/data/datasources/messaging_remote_data_source.dart';
+import '../../features/messaging/data/repositories/messaging_repository_impl.dart';
+import '../../features/messaging/domain/repositories/messaging_repository.dart';
+import '../../features/messaging/data/datasources/messaging_socket_data_source.dart';
+import '../../features/messaging/data/repositories/messaging_realtime_repository_impl.dart';
+import '../../features/messaging/domain/repositories/messaging_realtime_repository.dart';
+import '../../features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
+import '../../features/messaging/domain/usecases/delete_message_usecase.dart';
+import '../../features/messaging/domain/usecases/get_conversation_messages_usecase.dart';
+import '../../features/messaging/domain/usecases/get_conversations_usecase.dart';
+import '../../features/messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
+import '../../features/messaging/domain/usecases/get_unread_count_usecase.dart';
+import '../../features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
+import '../../features/messaging/domain/usecases/send_text_message_usecase.dart';
+import '../../features/messaging/domain/usecases/share_playlist_message_usecase.dart';
+import '../../features/messaging/domain/usecases/share_track_message_usecase.dart';
+import '../../features/messaging/presentation/bloc/unread_count_cubit.dart';
+import '../../features/messaging/presentation/bloc/share_track_to_conversation_cubit.dart';
+import '../../features/messaging/presentation/bloc/start_direct_conversation_cubit.dart';
+import '../../features/messaging/domain/usecases/archive_conversation_usecase.dart';
+import '../../features/messaging/domain/usecases/get_conversation_meta_usecase.dart';
+import '../../features/messaging/domain/usecases/mark_conversation_unread_usecase.dart';
+import '../../features/messaging/domain/usecases/unarchive_conversation_usecase.dart';
 
 // Premium
-import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/subscription_repository_impl.dart';
+import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -126,6 +176,9 @@ Future<void> setupDependencies() async {
     storage: FileStorage('${appDocDir.path}/.cookies/'),
   );
 
+  if (!getIt.isRegistered<PersistCookieJar>()) {
+    getIt.registerLazySingleton<PersistCookieJar>(() => cookieJar);
+  }
   // ── Core ─────────────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
@@ -162,7 +215,7 @@ Future<void> setupDependencies() async {
       () => DioClient(
         baseUrl: ApiConstants.baseUrl,
         secureStorage: getIt<SecureStorage>(),
-        cookieJar: cookieJar,
+        cookieJar: getIt<PersistCookieJar>(),
       ),
     );
   }
@@ -529,6 +582,152 @@ Future<void> setupDependencies() async {
     );
   }
 
+  // ── Messaging Feature ────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<MessagingRemoteDataSource>()) {
+    getIt.registerLazySingleton<MessagingRemoteDataSource>(
+      () => MessagingRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<MessagingSocketDataSource>()) {
+    getIt.registerLazySingleton<MessagingSocketDataSource>(
+      () => MessagingSocketDataSourceImpl(
+        cookieJar: getIt<PersistCookieJar>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<MessagingRepository>()) {
+    getIt.registerLazySingleton<MessagingRepository>(
+      () => MessagingRepositoryImpl(getIt<MessagingRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<MessagingRealtimeRepository>()) {
+    getIt.registerLazySingleton<MessagingRealtimeRepository>(
+      () => MessagingRealtimeRepositoryImpl(
+        getIt<MessagingSocketDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetConversationsUseCase>()) {
+    getIt.registerLazySingleton<GetConversationsUseCase>(
+      () => GetConversationsUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetOrCreateDirectConversationUseCase>()) {
+    getIt.registerLazySingleton<GetOrCreateDirectConversationUseCase>(
+      () => GetOrCreateDirectConversationUseCase(
+        getIt<MessagingRepository>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetConversationMessagesUseCase>()) {
+    getIt.registerLazySingleton<GetConversationMessagesUseCase>(
+      () => GetConversationMessagesUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SendTextMessageUseCase>()) {
+    getIt.registerLazySingleton<SendTextMessageUseCase>(
+      () => SendTextMessageUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ShareTrackMessageUseCase>()) {
+    getIt.registerLazySingleton<ShareTrackMessageUseCase>(
+      () => ShareTrackMessageUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SharePlaylistMessageUseCase>()) {
+    getIt.registerLazySingleton<SharePlaylistMessageUseCase>(
+      () => SharePlaylistMessageUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetUnreadCountUseCase>()) {
+    getIt.registerLazySingleton<GetUnreadCountUseCase>(
+      () => GetUnreadCountUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<MarkConversationReadUseCase>()) {
+    getIt.registerLazySingleton<MarkConversationReadUseCase>(
+      () => MarkConversationReadUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DeleteMessageUseCase>()) {
+    getIt.registerLazySingleton<DeleteMessageUseCase>(
+      () => DeleteMessageUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ConnectMessagingSocketUseCase>()) {
+    getIt.registerLazySingleton<ConnectMessagingSocketUseCase>(
+      () => ConnectMessagingSocketUseCase(
+        getIt<MessagingRealtimeRepository>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<UnreadCountCubit>()) {
+    getIt.registerFactory<UnreadCountCubit>(
+      () => UnreadCountCubit(
+        getUnreadCountUseCase: getIt<GetUnreadCountUseCase>(),
+        connectMessagingSocketUseCase: getIt<ConnectMessagingSocketUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<ShareTrackToConversationCubit>()) {
+    getIt.registerFactory<ShareTrackToConversationCubit>(
+      () => ShareTrackToConversationCubit(
+        getConversationsUseCase: getIt<GetConversationsUseCase>(),
+        shareTrackMessageUseCase: getIt<ShareTrackMessageUseCase>(),
+        sharePlaylistMessageUseCase: getIt<SharePlaylistMessageUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<StartDirectConversationCubit>()) {
+    getIt.registerFactory<StartDirectConversationCubit>(
+      () => StartDirectConversationCubit(
+        getOrCreateDirectConversationUseCase:
+            getIt<GetOrCreateDirectConversationUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetConversationMetaUseCase>()) {
+    getIt.registerLazySingleton<GetConversationMetaUseCase>(
+      () => GetConversationMetaUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<MarkConversationUnreadUseCase>()) {
+    getIt.registerLazySingleton<MarkConversationUnreadUseCase>(
+      () => MarkConversationUnreadUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ArchiveConversationUseCase>()) {
+    getIt.registerLazySingleton<ArchiveConversationUseCase>(
+      () => ArchiveConversationUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnarchiveConversationUseCase>()) {
+    getIt.registerLazySingleton<UnarchiveConversationUseCase>(
+      () => UnarchiveConversationUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
   // ── Profile Feature ──────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<profile_data.ProfileRemoteDataSource>()) {
@@ -659,17 +858,187 @@ Future<void> setupDependencies() async {
     );
   }
 
+  // ── Playlists Feature ───────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<PlaylistsRemoteDataSource>()) {
+    getIt.registerLazySingleton<PlaylistsRemoteDataSource>(
+      () => PlaylistsRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<PlaylistsRepository>()) {
+    getIt.registerLazySingleton<PlaylistsRepository>(
+      () => PlaylistsRepositoryImpl(getIt<PlaylistsRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetMyPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetMyPlaylistsUseCase>(
+      () => GetMyPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CreatePlaylistUseCase>()) {
+    getIt.registerLazySingleton<CreatePlaylistUseCase>(
+      () => CreatePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetPlaylistDetailsUseCase>()) {
+    getIt.registerLazySingleton<GetPlaylistDetailsUseCase>(
+      () => GetPlaylistDetailsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+  if (!getIt.isRegistered<GetPlaylistEditDetailsUseCase>()) {
+    getIt.registerLazySingleton<GetPlaylistEditDetailsUseCase>(
+      () => GetPlaylistEditDetailsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+  if (!getIt.isRegistered<UpdatePlaylistUseCase>()) {
+    getIt.registerLazySingleton<UpdatePlaylistUseCase>(
+      () => UpdatePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+  if (!getIt.isRegistered<UploadPlaylistCoverUseCase>()) {
+    getIt.registerLazySingleton<UploadPlaylistCoverUseCase>(
+      () => UploadPlaylistCoverUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetRecentPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetRecentPlaylistsUseCase>(
+      () => GetRecentPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetLikedPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetLikedPlaylistsUseCase>(
+      () => GetLikedPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTopPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetTopPlaylistsUseCase>(
+      () => GetTopPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<LikePlaylistUseCase>()) {
+    getIt.registerLazySingleton<LikePlaylistUseCase>(
+      () => LikePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnlikePlaylistUseCase>()) {
+    getIt.registerLazySingleton<UnlikePlaylistUseCase>(
+      () => UnlikePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<RecordPlaylistPlaybackUseCase>()) {
+    getIt.registerLazySingleton<RecordPlaylistPlaybackUseCase>(
+      () => RecordPlaylistPlaybackUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DeletePlaylistUseCase>()) {
+    getIt.registerLazySingleton<DeletePlaylistUseCase>(
+      () => DeletePlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<AddTrackToPlaylistUseCase>()) {
+    getIt.registerLazySingleton<AddTrackToPlaylistUseCase>(
+      () => AddTrackToPlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<RemoveTrackFromPlaylistUseCase>()) {
+    getIt.registerLazySingleton<RemoveTrackFromPlaylistUseCase>(
+      () => RemoveTrackFromPlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ReorderPlaylistTracksUseCase>()) {
+    getIt.registerLazySingleton<ReorderPlaylistTracksUseCase>(
+      () => ReorderPlaylistTracksUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ResolveSecretPlaylistUseCase>()) {
+    getIt.registerLazySingleton<ResolveSecretPlaylistUseCase>(
+      () => ResolveSecretPlaylistUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetPlaylistEmbedCodeUseCase>()) {
+    getIt.registerLazySingleton<GetPlaylistEmbedCodeUseCase>(
+      () => GetPlaylistEmbedCodeUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<PlaylistsCubit>()) {
+    getIt.registerFactory<PlaylistsCubit>(
+      () => PlaylistsCubit(
+        getMyPlaylistsUseCase: getIt<GetMyPlaylistsUseCase>(),
+        createPlaylistUseCase: getIt<CreatePlaylistUseCase>(),
+        getPlaylistDetailsUseCase: getIt<GetPlaylistDetailsUseCase>(),
+        getPlaylistEditDetailsUseCase: getIt<GetPlaylistEditDetailsUseCase>(),
+        updatePlaylistUseCase: getIt<UpdatePlaylistUseCase>(),
+        uploadPlaylistCoverUseCase: getIt<UploadPlaylistCoverUseCase>(),
+        deletePlaylistUseCase: getIt<DeletePlaylistUseCase>(),
+        addTrackToPlaylistUseCase: getIt<AddTrackToPlaylistUseCase>(),
+        removeTrackFromPlaylistUseCase: getIt<RemoveTrackFromPlaylistUseCase>(),
+        reorderPlaylistTracksUseCase: getIt<ReorderPlaylistTracksUseCase>(),
+        resolveSecretPlaylistUseCase: getIt<ResolveSecretPlaylistUseCase>(),
+        getPlaylistEmbedCodeUseCase: getIt<GetPlaylistEmbedCodeUseCase>(),
+        likePlaylistUseCase: getIt<LikePlaylistUseCase>(),
+        unlikePlaylistUseCase: getIt<UnlikePlaylistUseCase>(),
+        recordPlaylistPlaybackUseCase: getIt<RecordPlaylistPlaybackUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<LibraryCubit>()) {
+    getIt.registerFactory<LibraryCubit>(
+      () => LibraryCubit(
+        getRecentPlaylistsUseCase: getIt<GetRecentPlaylistsUseCase>(),
+        getLikedPlaylistsUseCase: getIt<GetLikedPlaylistsUseCase>(),
+      ),
+    );
+  }
+
   // ── Premium Feature ─────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<SubscriptionRepository>()) {
     getIt.registerLazySingleton<SubscriptionRepository>(
-      () => MockSubscriptionRepository(),
+      () => SubscriptionRepositoryImpl(getIt<DioClient>()),
     );
   }
 
   if (!getIt.isRegistered<CheckUploadLimitUseCase>()) {
     getIt.registerLazySingleton<CheckUploadLimitUseCase>(
       () => CheckUploadLimitUseCase(),
+    );
+  }
+
+  if (!getIt.isRegistered<SubscriptionCubit>()) {
+    getIt.registerLazySingleton<SubscriptionCubit>(
+      () => SubscriptionCubit(getIt<SubscriptionRepository>()),
+    );
+  }
+
+  // ── Offline Feature ─────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<OfflineRepository>()) {
+    getIt.registerLazySingleton<OfflineRepository>(
+      () => OfflineRepository(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<OfflineCubit>()) {
+    getIt.registerLazySingleton<OfflineCubit>(
+      () => OfflineCubit(getIt<OfflineRepository>()),
     );
   }
 

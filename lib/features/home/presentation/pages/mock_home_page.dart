@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-
-import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
@@ -13,6 +12,16 @@ import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_state.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/routes/messaging_routes.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/get_top_playlists_usecase.dart';
+import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
+
+import '/features/profile/presentation/routes/profile_routes.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
@@ -22,27 +31,114 @@ class MockHomePage extends StatefulWidget {
 }
 
 class _MockHomePageState extends State<MockHomePage> {
+  static const String _topLikeGenre = 'Top like';
+
   int _selectedTab = 0;
-  String _selectedGenre = 'ELECTRONIC';
+  String _selectedGenre = _topLikeGenre;
   bool _isLoadingTrending = false;
   String? _trendingError;
-  List<dynamic>? _trendingRawTrackPool;
-  Future<List<dynamic>>? _trendingRawTrackPoolRequest;
   List<Track> _trendingTracks = const <Track>[];
+  bool _isLoadingTopPlaylists = false;
+  List<PlaylistEntity> _topPlaylists = const <PlaylistEntity>[];
+  List<String> _visibleGenres = const <String>[_topLikeGenre];
 
-  final _genres = const [
-    'ELECTRONIC',
-    'FOLK',
-    'HOUSE',
-    'TECHNO',
-    'POP',
-    'HIP-HOP',
+  final _fallbackGenres = const [
+    _topLikeGenre,
+    'electronic',
+    'hip-hop',
+    'pop',
+    'rock',
+    'alternative',
+    'ambient',
+    'classical',
+    'jazz',
+    'r-b-soul',
+    'metal',
+    'folk-singer-songwriter',
+    'country',
+    'reggaeton',
+    'dancehall',
+    'drum-bass',
+    'house',
+    'techno',
+    'deep-house',
+    'trance',
+    'lo-fi',
+    'indie',
+    'punk',
+    'blues',
+    'latin',
+    'afrobeat',
+    'trap',
+    'experimental',
+    'world',
+    'gospel',
+    'spoken-word',
+    'sha3by',
+    'islamic',
   ];
 
   @override
   void initState() {
     super.initState();
+    _loadFavoriteGenres();
     _loadTrendingTracks();
+    _loadTopPlaylists();
+  }
+
+  Future<void> _loadFavoriteGenres() async {
+    if (!getIt.isRegistered<ProfileRepository>()) return;
+
+    try {
+      final profile = await getIt<ProfileRepository>().getMyProfile();
+      final genres = profile.favoriteGenres
+          .map((genre) => genre.trim().toLowerCase())
+          .where((genre) => genre.isNotEmpty && genre != 'quran')
+          .where(_fallbackGenres.contains)
+          .toSet()
+          .toList(growable: false);
+
+      if (!mounted) return;
+      setState(() {
+        _visibleGenres = <String>[_topLikeGenre, ...genres];
+        if (!_visibleGenres.contains(_selectedGenre)) {
+          _selectedGenre = _visibleGenres.first;
+        }
+      });
+      _filterCachedTrendingTracks();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _visibleGenres = const <String>[_topLikeGenre];
+        _selectedGenre = _topLikeGenre;
+      });
+    }
+  }
+
+  Future<void> _loadTopPlaylists() async {
+    if (!getIt.isRegistered<GetTopPlaylistsUseCase>()) return;
+
+    setState(() {
+      _isLoadingTopPlaylists = true;
+    });
+
+    try {
+      final playlists = await getIt<GetTopPlaylistsUseCase>()(limit: 10);
+      if (!mounted) return;
+      setState(() {
+        _topPlaylists = playlists;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _topPlaylists = const <PlaylistEntity>[];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingTopPlaylists = false;
+      });
+    }
   }
 
   Future<void> _loadTrendingTracks() async {
@@ -52,12 +148,16 @@ class _MockHomePageState extends State<MockHomePage> {
     });
 
     try {
-      final rawList = await _getTrendingRawTrackPool();
-      final tracks = _buildTrendingTracksForSelectedGenre(rawList);
+      final rawList = await _fetchTrendingRawTracks(_selectedGenre);
+      final mappedTracks = rawList
+          .map(_mapToTrack)
+          .whereType<Track>()
+          .take(5)
+          .toList(growable: false);
+      final tracks = await Future.wait(mappedTracks.map(_withTrackDetails));
 
       if (!mounted) return;
       setState(() {
-        _trendingRawTrackPool = rawList;
         _trendingTracks = tracks;
       });
     } catch (_) {
@@ -75,168 +175,94 @@ class _MockHomePageState extends State<MockHomePage> {
   }
 
   void _filterCachedTrendingTracks() {
-    final rawList = _trendingRawTrackPool;
-    if (rawList == null) {
-      if (!_isLoadingTrending) {
-        _loadTrendingTracks();
-      }
-      return;
+    if (!_isLoadingTrending) {
+      _loadTrendingTracks();
     }
-
-    setState(() {
-      _trendingError = null;
-      _trendingTracks = _buildTrendingTracksForSelectedGenre(rawList);
-    });
   }
 
-  List<Track> _buildTrendingTracksForSelectedGenre(List<dynamic> rawList) {
-    final trackLikeRawList = rawList
-        .where(_looksLikeTrackPayload)
-        .where(_isDiscoverableTrackPayload)
-        .toList(growable: false);
-    final genreMatched = trackLikeRawList
-        .where((raw) => _rawMatchesGenre(raw, _selectedGenre))
-        .toList(growable: false);
-    final filteredRawList =
-        genreMatched.isEmpty ? trackLikeRawList : genreMatched;
-
-    return filteredRawList
-        .map(_mapToTrack)
-        .whereType<Track>()
-        .toList(growable: false)
-      ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
-  }
-
-  Future<List<dynamic>> _getTrendingRawTrackPool() {
-    final cached = _trendingRawTrackPool;
-    if (cached != null) return Future.value(cached);
-
-    final inFlight = _trendingRawTrackPoolRequest;
-    if (inFlight != null) return inFlight;
-
-    final request = _fetchTrendingRawTracks().whenComplete(() {
-      _trendingRawTrackPoolRequest = null;
-    });
-    _trendingRawTrackPoolRequest = request;
-    return request;
-  }
-
-  bool _looksLikeTrackPayload(dynamic raw) {
-    if (raw is! Map) return false;
-    final map = Map<String, dynamic>.from(raw);
-    final nestedTrack = map['track'];
-    if (nestedTrack is Map) return true;
-    return map.containsKey('title') ||
-        map.containsKey('genre') ||
-        map.containsKey('coverArtUrl') ||
-        map.containsKey('duration');
-  }
-
-  bool _isDiscoverableTrackPayload(dynamic raw) {
-    if (raw is! Map) return false;
-    final map = Map<String, dynamic>.from(raw);
-    final nestedTrack = map['track'];
-    final source =
-        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
-
-    final visibility = (source['visibility'] ?? '').toString().toUpperCase();
-    if (visibility == 'PRIVATE') return false;
-
-    final status = (source['status'] ?? '').toString().toUpperCase();
-    if (status == 'PROCESSING' || status == 'FAILED') return false;
-
-    return true;
-  }
-
-  Future<List<dynamic>> _fetchTrendingRawTracks() async {
+  Future<List<dynamic>> _fetchTrendingRawTracks(String selectedGenre) async {
     final dioClient = GetIt.I<DioClient>();
-    final authState = context.read<AuthCubit>().state;
-    final String viewerId =
-        authState is AuthAuthenticated ? authState.user.id.trim() : '';
-    final List<dynamic> collected = <dynamic>[];
-    final Set<String> seenTrackIds = <String>{};
-    final Set<String> userIdsToLoad = <String>{};
+    final isTopLike = selectedGenre == _topLikeGenre;
+    final response = await dioClient.get(
+      isTopLike
+          ? ApiConstants.discoveryTrendingPath
+          : ApiConstants.discoveryTrendingGenreTracksPath(selectedGenre),
+      queryParameters: const <String, dynamic>{'limit': 5},
+    );
 
-    void addTracks(Iterable<dynamic> tracks) {
-      for (final raw in tracks) {
-        if (raw is! Map) continue;
-        final map = Map<String, dynamic>.from(raw);
-        final nestedTrack = map['track'];
-        final source =
-            nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
-        final id =
-            (source['id'] ?? source['trackId'] ?? source['track_id'] ?? '')
-                .toString()
-                .trim();
-        if (id.isEmpty || seenTrackIds.contains(id)) continue;
-        seenTrackIds.add(id);
-        collected.add(raw);
-      }
-    }
-
-    if (viewerId.isNotEmpty) {
-      userIdsToLoad.add(viewerId);
-
-      try {
-        final followingResponse = await dioClient.get(
-          ApiConstants.followingPath(viewerId),
-          queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
-        );
-        userIdsToLoad.addAll(_extractUserIds(followingResponse.data));
-      } catch (_) {}
-    }
-
-    for (final userId in userIdsToLoad.take(10)) {
-      try {
-        final response = await dioClient.get(
-          ApiConstants.userTracksPath(userId),
-          queryParameters: const <String, dynamic>{
-            'page': 1,
-            'limit': 20,
-          },
-        );
-        addTracks(_extractTracksList(response.data));
-      } catch (_) {}
-
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-    }
-
-    return collected;
+    return _extractTracksList(response.data);
   }
 
-  List<String> _extractUserIds(dynamic responseData) {
-    final List<dynamic> rawUsers = <dynamic>[
-      if (responseData is Map<String, dynamic>) ...[
-        ...(responseData['following'] is List
-            ? responseData['following'] as List
-            : const <dynamic>[]),
-        ...(responseData['followers'] is List
-            ? responseData['followers'] as List
-            : const <dynamic>[]),
-        ...(responseData['users'] is List
-            ? responseData['users'] as List
-            : const <dynamic>[]),
-        ...(responseData['items'] is List
-            ? responseData['items'] as List
-            : const <dynamic>[]),
-        ...(responseData['results'] is List
-            ? responseData['results'] as List
-            : const <dynamic>[]),
-        if (responseData['data'] is List) ...(responseData['data'] as List),
-      ] else if (responseData is List)
-        ...responseData,
-    ];
+  Future<Track> _withTrackDetails(Track track) async {
+    try {
+      final response = await GetIt.I<DioClient>().get(
+        ApiConstants.trackByIdPath(track.id),
+      );
+      final detail = _asMap(_extractData(response.data));
+      if (detail.isEmpty) return track;
+      final stats = _asMap(detail['stats']);
 
-    return rawUsers
-        .whereType<Map>()
-        .map((raw) => Map<String, dynamic>.from(raw))
-        .map(
-          (item) => (item['id'] ?? item['userId'] ?? item['user_id'] ?? '')
-              .toString(),
-        )
-        .where((id) => id.trim().isNotEmpty)
-        .toSet()
-        .toList(growable: false);
+      final artistValue = detail['artist'];
+      final artistMap =
+          artistValue is Map ? Map<String, dynamic>.from(artistValue) : null;
+      final uploaderMap = _asMap(
+        detail['uploader'] ?? detail['user'] ?? detail['owner'],
+      );
+      final artist = (detail['artistName'] ??
+              detail['artist_name'] ??
+              (artistValue is String ? artistValue : null) ??
+              artistMap?['displayName'] ??
+              artistMap?['display_name'] ??
+              artistMap?['name'] ??
+              uploaderMap['displayName'] ??
+              uploaderMap['display_name'] ??
+              uploaderMap['username'] ??
+              track.artist)
+          .toString()
+          .trim();
+
+      return track.copyWith(
+        title: (detail['title'] ?? track.title).toString(),
+        artist: artist.isEmpty ? track.artist : artist,
+        artworkUrl: (detail['coverArtUrl'] ??
+                detail['cover_art_url'] ??
+                detail['artworkUrl'] ??
+                track.artworkUrl)
+            ?.toString(),
+        handle: (artistMap?['handle'] ??
+                uploaderMap['handle'] ??
+                uploaderMap['username'] ??
+                track.handle)
+            ?.toString(),
+        artistId: (artistMap?['id'] ??
+                artistMap?['userId'] ??
+                uploaderMap['id'] ??
+                uploaderMap['userId'] ??
+                detail['artistId'] ??
+                detail['artist_id'] ??
+                track.artistId)
+            ?.toString(),
+        likesCount: _asInt(
+          detail['likesCount'] ??
+              detail['likes_count'] ??
+              stats['likesCount'] ??
+              stats['likes_count'] ??
+              track.likesCount,
+        ),
+        repostsCount: _asInt(
+          detail['repostsCount'] ??
+              detail['reposts_count'] ??
+              stats['repostsCount'] ??
+              stats['reposts_count'] ??
+              track.repostsCount,
+        ),
+        durationMs: _asInt(
+          detail['durationMs'] ?? detail['duration_ms'] ?? track.durationMs,
+        ),
+      );
+    } catch (_) {
+      return track;
+    }
   }
 
   List<dynamic> _extractTracksList(dynamic responseData) {
@@ -259,6 +285,22 @@ class _MockHomePageState extends State<MockHomePage> {
       }
     }
     return const <dynamic>[];
+  }
+
+  dynamic _extractData(dynamic responseData) {
+    if (responseData is Map<String, dynamic>)
+      return responseData['data'] ?? responseData;
+    if (responseData is Map) {
+      final typed = Map<String, dynamic>.from(responseData);
+      return typed['data'] ?? typed;
+    }
+    return responseData;
+  }
+
+  Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return <String, dynamic>{};
   }
 
   Track? _mapToTrack(dynamic raw) {
@@ -284,7 +326,10 @@ class _MockHomePageState extends State<MockHomePage> {
         : <String, dynamic>{};
 
     final likesCount = _asInt(
-      source['likesCount'] ?? source['likes_count'] ?? stats['likesCount'],
+      source['likesCount'] ??
+          source['likes_count'] ??
+          stats['likesCount'] ??
+          stats['likes_count'],
     );
     final repostsCount = _asInt(
       source['repostsCount'] ??
@@ -322,41 +367,6 @@ class _MockHomePageState extends State<MockHomePage> {
     );
   }
 
-  bool _rawMatchesGenre(dynamic raw, String selectedGenre) {
-    if (raw is! Map) return false;
-    final map = Map<String, dynamic>.from(raw);
-    final nestedTrack = map['track'];
-    final source =
-        nestedTrack is Map ? Map<String, dynamic>.from(nestedTrack) : map;
-
-    final genreValue = source['genre'];
-    String resolvedGenre = '';
-    if (genreValue is String) {
-      resolvedGenre = genreValue;
-    } else if (genreValue is Map) {
-      final typedGenre = Map<String, dynamic>.from(genreValue);
-      resolvedGenre = (typedGenre['name'] ?? '').toString();
-    } else {
-      resolvedGenre =
-          (source['genreName'] ?? source['genre_name'] ?? '').toString();
-    }
-
-    if (resolvedGenre.trim().isEmpty) return false;
-
-    final normalizedResolved = _normalizeGenreToken(resolvedGenre);
-    final normalizedSelected = _normalizeGenreToken(selectedGenre);
-    return normalizedResolved == normalizedSelected;
-  }
-
-  String _normalizeGenreToken(String value) {
-    final upper = value.trim().toUpperCase();
-    if (upper.isEmpty) return upper;
-
-    final compact = upper.replaceAll(RegExp(r'[^A-Z0-9]'), '');
-    if (compact == 'HIPHOP') return 'HIPHOP';
-    return compact;
-  }
-
   int _asInt(dynamic value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -365,87 +375,95 @@ class _MockHomePageState extends State<MockHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthUnauthenticated) {
-          context.go('/welcome');
-        } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
-        }
-      },
-      builder: (context, state) {
-        String currentHandle = '';
-        if (state is AuthAuthenticated) {
-          currentHandle = state.user.handle;
-        }
+    return BlocProvider<UnreadCountCubit>(
+      create: (_) => getIt<UnreadCountCubit>()..load(),
+      child: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthUnauthenticated) {
+            context.go('/welcome');
+          } else if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          String currentHandle = '';
+          if (state is AuthAuthenticated) {
+            currentHandle = state.user.handle;
+          }
 
-        return Scaffold(
-          backgroundColor: Colors.black,
-          // ── Bottom Nav ──────────────────────────────────────────────────
-          bottomNavigationBar: BottomNavBar(
-            selected: _selectedTab,
-            onTap: (i) {
-              setState(() => _selectedTab = i);
-              switch (i) {
-                case 0:
-                  break;
-                case 1:
-                  context.go('/feed');
-                  break;
-                case 2:
-                  context.go('/search');
-                  break;
-                case 3:
-                  context.go('/library');
-                  break;
-                case 4:
-                  context.go('/upgrade');
-                  break;
-              }
-            },
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                _TopBar(
-                  currentUserHandle: currentHandle,
-                  authState: state,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SectionHeader(title: 'More of what you like'),
-                        const _RelatedTracksRow(),
-                        const _SectionHeader(title: 'Mixed for you'),
-                        _MixesRow(userHandle: currentHandle),
-                        const _SectionHeader(title: 'Trending by genre'),
-                        _GenreChips(
-                          genres: _genres,
-                          selected: _selectedGenre,
-                          onSelect: (g) {
-                            setState(() => _selectedGenre = g);
-                            _filterCachedTrendingTracks();
-                          },
-                        ),
-                        _TrendingByGenreTracks(
-                          loading: _isLoadingTrending,
-                          error: _trendingError,
-                          tracks: _trendingTracks,
-                        ),
-                        const SizedBox(height: 100),
-                      ],
+          return Scaffold(
+            backgroundColor: Colors.black,
+            bottomNavigationBar: BottomNavBar(
+              selected: _selectedTab,
+              onTap: (i) {
+                setState(() => _selectedTab = i);
+                switch (i) {
+                  case 0:
+                    break;
+                  case 1:
+                    context.go('/feed');
+                    break;
+                  case 2:
+                    context.go('/search');
+                    break;
+                  case 3:
+                    context.go('/library');
+                    break;
+                  case 4:
+                    context.go('/upgrade');
+                    break;
+                }
+              },
+            ),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  _TopBar(
+                    currentUserHandle: currentHandle,
+                    authState: state,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionHeader(title: 'More of what you like'),
+                          const _RelatedTracksRow(),
+                          _PlaylistShelf(
+                            title: 'Top playlists',
+                            loading: _isLoadingTopPlaylists,
+                            playlists: _topPlaylists,
+                            showLikesCount: true,
+                          ),
+                          const _SectionHeader(title: 'Mixed for you'),
+                          _MixesRow(userHandle: currentHandle),
+                          const _SectionHeader(title: 'Your favorite genres'),
+                          _GenreChips(
+                            genres: _visibleGenres,
+                            selected: _selectedGenre,
+                            onSelect: (g) {
+                              setState(() => _selectedGenre = g);
+                              _filterCachedTrendingTracks();
+                            },
+                          ),
+                          _TrendingByGenreTracks(
+                            loading: _isLoadingTrending,
+                            error: _trendingError,
+                            tracks: _trendingTracks,
+                          ),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -492,7 +510,7 @@ class _TrendingByGenreTracks extends StatelessWidget {
       );
     }
 
-    final visibleTracks = tracks.take(10).toList(growable: false);
+    final visibleTracks = tracks.take(5).toList(growable: false);
 
     return Column(
       children: visibleTracks
@@ -509,7 +527,135 @@ class _TrendingByGenreTracks extends StatelessWidget {
   }
 }
 
-// ── Top bar ───────────────────────────────────────────────────────────────────
+class _PlaylistShelf extends StatelessWidget {
+  const _PlaylistShelf({
+    required this.title,
+    required this.loading,
+    required this.playlists,
+    this.showLikesCount = false,
+  });
+
+  final String title;
+  final bool loading;
+  final List<PlaylistEntity> playlists;
+  final bool showLikesCount;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading && playlists.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: SizedBox(
+          height: 96,
+          child: Center(
+            child: CircularProgressIndicator(color: Color(0xFFFF5500)),
+          ),
+        ),
+      );
+    }
+
+    if (playlists.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: title),
+        SizedBox(
+          height: 190,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            itemCount: playlists.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              return _PlaylistCard(
+                playlist: playlists[index],
+                showLikesCount: showLikesCount,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlaylistCard extends StatelessWidget {
+  const _PlaylistCard({
+    required this.playlist,
+    this.showLikesCount = false,
+  });
+
+  final PlaylistEntity playlist;
+  final bool showLikesCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
+    final ownerName = playlist.owner?.displayName.trim() ?? '';
+
+    return GestureDetector(
+      onTap: () => context.push('/playlist/${playlist.playlistId}'),
+      child: SizedBox(
+        width: 140,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                width: 140,
+                height: 140,
+                color: const Color(0xFF242424),
+                child: coverUrl == null
+                    ? const Icon(
+                        Icons.queue_music,
+                        color: Colors.white54,
+                        size: 38,
+                      )
+                    : Image.network(
+                        coverUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.queue_music,
+                          color: Colors.white54,
+                          size: 38,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              playlist.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              showLikesCount
+                  ? '${playlist.likesCount} likes'
+                  : ownerName.isEmpty
+                      ? 'Playlist'
+                      : ownerName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF999999),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TopBar extends StatelessWidget {
   final String currentUserHandle;
   final AuthState authState;
@@ -607,14 +753,7 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'GET PRO',
-            style: TextStyle(
-              color: Color(0xFFFF5500),
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          const _SubscriptionBadge(),
           const Spacer(),
           if (authState is AuthAuthenticated)
             _IconBtn(
@@ -665,11 +804,93 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           _IconBtn(icon: Icons.cast, onTap: () {}),
+          BlocBuilder<UnreadCountCubit, UnreadCountState>(
+            builder: (context, unreadState) {
+              return _BadgeIconBtn(
+                icon: Icons.forum_outlined,
+                count: unreadState.count,
+                onTap: () => MessagingRoutes.goToInbox(context),
+              );
+            },
+          ),
           _IconBtn(
             icon: Icons.upload_outlined,
             onTap: () => context.push('/upload-picker'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SubscriptionBadge extends StatelessWidget {
+  const _SubscriptionBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = _subscriptionCubitOf(context);
+
+    if (cubit == null) {
+      return _buildBadge(context, null);
+    }
+
+    return BlocBuilder<SubscriptionCubit, Subscription?>(
+      bloc: cubit,
+      builder: (context, subscription) => _buildBadge(context, subscription),
+    );
+  }
+
+  SubscriptionCubit? _subscriptionCubitOf(BuildContext context) {
+    try {
+      return context.read<SubscriptionCubit>();
+    } catch (_) {
+      final getIt = GetIt.I;
+      if (getIt.isRegistered<SubscriptionCubit>()) {
+        return getIt<SubscriptionCubit>();
+      }
+      return null;
+    }
+  }
+
+  Widget _buildBadge(BuildContext context, Subscription? subscription) {
+    final plan = subscription?.subscriptionType ?? 'FREE';
+    final isPremium = plan != 'FREE';
+
+    Color badgeColor;
+    String badgeLabel;
+
+    if (plan == 'GO_PLUS') {
+      badgeColor = const Color(0xFF4B9EFF);
+      badgeLabel = 'GO+';
+    } else if (plan == 'PRO') {
+      badgeColor = const Color(0xFF1DB954);
+      badgeLabel = 'PRO';
+    } else {
+      badgeColor = const Color(0xFFFF5500);
+      badgeLabel = 'GET PRO';
+    }
+
+    return GestureDetector(
+      onTap: isPremium ? null : () => context.go('/upgrade'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: badgeColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: badgeColor.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          badgeLabel,
+          style: TextStyle(
+            color: badgeColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+          ),
+        ),
       ),
     );
   }
@@ -688,6 +909,62 @@ class _IconBtn extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: Colors.white70, size: 22),
+      ),
+    );
+  }
+}
+
+class _BadgeIconBtn extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final VoidCallback onTap;
+
+  const _BadgeIconBtn({
+    required this.icon,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon, color: Colors.white70, size: 22),
+            if (count > 0)
+              Positioned(
+                right: -8,
+                top: -8,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5500),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.black, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -979,8 +1256,6 @@ class _GenreChips extends StatelessWidget {
     );
   }
 }
-
-// ── Data classes ──────────────────────────────────────────────────────────────
 
 class _AlbumData {
   final String label, sub, handle, topText;

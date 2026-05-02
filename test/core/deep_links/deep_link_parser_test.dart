@@ -62,6 +62,24 @@ void main() {
         expect(result, isA<PlaylistDeepLink>());
         expect((result as PlaylistDeepLink).playlistId, 'pl-uuid-001');
       });
+
+      test('parses valid secret playlist link', () {
+        final uri = Uri.parse(
+          'soundclone://playlist/secret/2e8b35f8-98d2-4f78-8899-b5fb688d809a',
+        );
+        final result = DeepLinkParser.parse(uri);
+        expect(result, isA<SecretPlaylistDeepLink>());
+        expect(
+          (result as SecretPlaylistDeepLink).secretToken,
+          '2e8b35f8-98d2-4f78-8899-b5fb688d809a',
+        );
+      });
+
+      test('returns invalid for secret playlist link with no token', () {
+        final uri = Uri.parse('soundclone://playlist/secret/');
+        final result = DeepLinkParser.parse(uri);
+        expect(result, isA<InvalidDeepLink>());
+      });
     });
 
     group('search links', () {

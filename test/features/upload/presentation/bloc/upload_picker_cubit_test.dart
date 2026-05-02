@@ -152,6 +152,7 @@ void main() {
       verifyNever(() => mockUploadRepository.uploadTrack(
             file: any(named: 'file'),
             title: any(named: 'title'),
+            coverArt: any(named: 'coverArt'),
           ));
     },
   );
@@ -170,6 +171,7 @@ void main() {
       when(() => mockUploadRepository.uploadTrack(
             file: any(named: 'file'),
             title: any(named: 'title'),
+            coverArt: any(named: 'coverArt'),
             genre: any(named: 'genre'),
             description: any(named: 'description'),
             tags: any(named: 'tags'),
@@ -219,6 +221,7 @@ void main() {
       when(() => mockUploadRepository.uploadTrack(
             file: any(named: 'file'),
             title: any(named: 'title'),
+            coverArt: any(named: 'coverArt'),
             genre: any(named: 'genre'),
             description: any(named: 'description'),
             tags: any(named: 'tags'),
@@ -320,12 +323,50 @@ void main() {
   );
 
   blocTest<UploadPickerCubit, UploadPickerState>(
+    'uploadSelectedFile emits failure when title exceeds api limit',
+    build: buildCubit,
+    seed: () => const UploadPickerState(
+      status: UploadPickerStatus.ready,
+      pickedAudioFile: tPickedAudioFile,
+    ),
+    act: (cubit) => cubit.uploadSelectedFile(title: 'a' * 101),
+    expect: () => [
+      const UploadPickerState(
+        status: UploadPickerStatus.failure,
+        pickedAudioFile: tPickedAudioFile,
+        errorMessage: 'Title must be 100 characters or fewer.',
+      ),
+    ],
+  );
+
+  blocTest<UploadPickerCubit, UploadPickerState>(
+    'uploadSelectedFile emits failure when tag exceeds api limit',
+    build: buildCubit,
+    seed: () => const UploadPickerState(
+      status: UploadPickerStatus.ready,
+      pickedAudioFile: tPickedAudioFile,
+    ),
+    act: (cubit) => cubit.uploadSelectedFile(
+      title: 'My Track',
+      tagsInput: 'short, ${'a' * 31}',
+    ),
+    expect: () => [
+      const UploadPickerState(
+        status: UploadPickerStatus.failure,
+        pickedAudioFile: tPickedAudioFile,
+        errorMessage: 'Each tag must be 30 characters or fewer.',
+      ),
+    ],
+  );
+
+  blocTest<UploadPickerCubit, UploadPickerState>(
     'uploadSelectedFile emits [uploading, processing, success] when upload and processing succeed immediately',
     build: () {
       when(
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -382,6 +423,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>['lofi'],
@@ -441,6 +483,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -474,6 +517,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -536,6 +580,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -617,6 +662,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -682,6 +728,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
@@ -748,6 +795,7 @@ void main() {
         () => mockUploadRepository.uploadTrack(
           file: tPickedAudioFile,
           title: 'My Track',
+          coverArt: null,
           genre: null,
           description: null,
           tags: const <String>[],
