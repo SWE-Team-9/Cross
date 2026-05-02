@@ -9,7 +9,8 @@ void main() {
 
   final lines = f.readAsLinesSync();
   String? current;
-  final Map<String, Map<String, int>> fileStats = {}; // path -> {total, covered}
+  final Map<String, Map<String, int>> fileStats =
+      {}; // path -> {total, covered}
 
   for (var line in lines) {
     if (line.startsWith('SF:')) {
@@ -23,7 +24,8 @@ void main() {
           final key = curNorm;
           fileStats.putIfAbsent(key, () => {'total': 0, 'covered': 0});
           fileStats[key]!['total'] = fileStats[key]!['total']! + 1;
-          if (hits > 0) fileStats[key]!['covered'] = fileStats[key]!['covered']! + 1;
+          if (hits > 0)
+            fileStats[key]!['covered'] = fileStats[key]!['covered']! + 1;
         }
       }
     }
