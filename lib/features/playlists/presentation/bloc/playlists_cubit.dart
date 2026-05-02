@@ -24,6 +24,7 @@ import 'playlists_state.dart';
 const int _kPlaylistTitleMaxLength = 100;
 const int _kPlaylistDescriptionMaxLength = 500;
 const int _kMyPlaylistsPageSize = 20;
+const int _kPlaylistTracksPageSize = 50;
 
 class PlaylistsCubit extends Cubit<PlaylistsState> {
   static const _likedPlaylistsStore = LikedPlaylistsStore();
@@ -250,9 +251,14 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     int? limit,
     int? offset,
   }) async {
+    final requestedLimit = limit ?? _kPlaylistTracksPageSize;
+    final requestedOffset = offset ?? 0;
+
     emit(
       state.copyWith(
         isLoadingDetails: true,
+        playlistTracksOffset: requestedOffset,
+        hasMorePlaylistTracks: true,
         clearError: true,
       ),
     );
@@ -260,14 +266,21 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     try {
       final playlist = await getPlaylistDetailsUseCase(
         playlistId,
-        limit: limit,
-        offset: offset,
+        limit: requestedLimit,
+        offset: requestedOffset,
       );
+
+      final loadedTrackCount = playlist.tracks.length;
+      final totalTrackCount = playlist.tracksCount;
+      final hasMoreTracks = totalTrackCount > loadedTrackCount;
+
       emit(
         state.copyWith(
           selectedPlaylist: playlist,
           playlists: _upsertPlaylist(state.playlists, playlist),
           isLoadingDetails: false,
+          playlistTracksOffset: loadedTrackCount,
+          hasMorePlaylistTracks: hasMoreTracks,
           clearError: true,
         ),
       );
@@ -275,6 +288,69 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       emit(
         state.copyWith(
           isLoadingDetails: false,
+          errorMessage: _playlistErrorMessage(e),
+        ),
+      );
+    }
+  }
+
+  Future<void> loadMorePlaylistTracks() async {
+    final current = state.selectedPlaylist;
+    if (current == null ||
+        state.isLoadingDetails ||
+        state.isLoadingMorePlaylistTracks ||
+        !state.hasMorePlaylistTracks) {
+      return;
+    }
+
+    final currentTracks = current.tracks;
+    final nextOffset = currentTracks.length;
+
+    if (current.tracksCount <= nextOffset) {
+      emit(state.copyWith(hasMorePlaylistTracks: false));
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        isLoadingMorePlaylistTracks: true,
+        clearError: true,
+      ),
+    );
+
+    try {
+      final nextPage = await getPlaylistDetailsUseCase(
+        current.playlistId,
+        limit: _kPlaylistTracksPageSize,
+        offset: nextOffset,
+      );
+
+      final mergedTracks = _appendUniqueTracks(
+        currentTracks,
+        nextPage.tracks,
+      );
+
+      final updatedPlaylist = current.copyWith(
+        tracks: mergedTracks,
+        tracksCount: nextPage.tracksCount,
+        likesCount: nextPage.likesCount,
+        isLiked: nextPage.isLiked,
+      );
+
+      emit(
+        state.copyWith(
+          selectedPlaylist: updatedPlaylist,
+          playlists: _upsertPlaylist(state.playlists, updatedPlaylist),
+          isLoadingMorePlaylistTracks: false,
+          playlistTracksOffset: mergedTracks.length,
+          hasMorePlaylistTracks: nextPage.tracksCount > mergedTracks.length,
+          clearError: true,
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isLoadingMorePlaylistTracks: false,
           errorMessage: _playlistErrorMessage(e),
         ),
       );
@@ -952,6 +1028,24 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         clearInfo: true,
       ),
     );
+  }
+
+  List<Track> _appendUniqueTracks(
+    List<Track> source,
+    List<Track> next,
+  ) {
+    if (source.isEmpty) return next;
+
+    final result = source.toList(growable: true);
+    final seenIds = source.map((track) => track.id).toSet();
+
+    for (final track in next) {
+      if (track.id.trim().isEmpty) continue;
+      if (!seenIds.add(track.id)) continue;
+      result.add(track);
+    }
+
+    return result.toList(growable: false);
   }
 
   List<PlaylistEntity> _appendUniquePlaylists(
