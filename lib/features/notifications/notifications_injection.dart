@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'data/datasources/notifications_remote_data_source.dart';
 import 'data/models/notification_model.dart';
 import 'data/repositories/notifications_repository_impl.dart';
+import 'data/services/fcm_registration_service.dart';
 import 'domain/repositories/notifications_repository.dart';
 import 'domain/usecases/delete_notification_use_case.dart';
 import 'domain/usecases/device_use_cases.dart';
@@ -11,6 +12,8 @@ import 'domain/usecases/get_unread_count_use_case.dart';
 import 'domain/usecases/mark_all_notifications_as_read_use_case.dart';
 import 'domain/usecases/mark_notification_as_read_use_case.dart';
 import 'domain/usecases/notification_preferences_use_cases.dart';
+import '../messaging/domain/usecases/get_conversation_meta_usecase.dart';
+import '../messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
 import 'presentation/bloc/notification_preferences_bloc.dart';
 import 'presentation/bloc/notifications_bloc.dart';
 
@@ -73,6 +76,24 @@ void registerNotificationsModule(GetIt sl) {
   }
   if (!sl.isRegistered<RemoveDeviceUseCase>()) {
     sl.registerLazySingleton(() => RemoveDeviceUseCase(sl()));
+  }
+  if (!sl.isRegistered<GetConversationMetaUseCase>()) {
+    sl.registerLazySingleton(() => GetConversationMetaUseCase(sl()));
+  }
+  if (!sl.isRegistered<GetOrCreateDirectConversationUseCase>()) {
+    sl.registerLazySingleton(
+      () => GetOrCreateDirectConversationUseCase(sl()),
+    );
+  }
+
+  if (!sl.isRegistered<FcmRegistrationService>()) {
+    sl.registerLazySingleton<FcmRegistrationService>(
+      () => FcmRegistrationService(
+        sl<RegisterDeviceUseCase>(),
+        sl<GetConversationMetaUseCase>(),
+        sl<GetOrCreateDirectConversationUseCase>(),
+      ),
+    );
   }
 
   // ── BLoCs ──────────────────────────────────────────────────────────────────
