@@ -34,7 +34,8 @@ class FcmNotificationSimulator {
         'id': 'notif-${DateTime.now().millisecondsSinceEpoch}',
         'createdAt': DateTime.now().toIso8601String(),
         'isRead': 'false',
-        'message': '$actorName reposted your track "${trackTitle ?? "your track"}"',
+        'message':
+            '$actorName reposted your track "${trackTitle ?? "your track"}"',
       },
     );
   }
@@ -68,7 +69,8 @@ class FcmNotificationSimulator {
         'id': 'notif-${DateTime.now().millisecondsSinceEpoch}',
         'createdAt': DateTime.now().toIso8601String(),
         'isRead': 'false',
-        'message': '$actorName liked your track "${trackTitle ?? "your track"}"',
+        'message':
+            '$actorName liked your track "${trackTitle ?? "your track"}"',
       },
     );
   }

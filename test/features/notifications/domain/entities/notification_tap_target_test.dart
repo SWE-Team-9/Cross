@@ -38,7 +38,7 @@ void main() {
     test('Tap targets can be checked with is operator', () {
       final comments = NotificationCommentsTapTarget(trackId: 'trk-1');
       final profile = NotificationProfileTapTarget(handle: 'user');
-      
+
       expect(comments, isA<NotificationCommentsTapTarget>());
       expect(profile, isA<NotificationProfileTapTarget>());
       expect(comments, isNot(isA<NotificationProfileTapTarget>()));

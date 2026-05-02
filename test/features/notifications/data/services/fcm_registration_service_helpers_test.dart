@@ -13,7 +13,8 @@ void main() {
     test('_looksLikeMessageKind identifies message types', () {
       expect(FcmRegistrationService.looksLikeMessageKind('message'), true);
       expect(FcmRegistrationService.looksLikeMessageKind('new_message'), true);
-      expect(FcmRegistrationService.looksLikeMessageKind('direct_message'), true);
+      expect(
+          FcmRegistrationService.looksLikeMessageKind('direct_message'), true);
       expect(FcmRegistrationService.looksLikeMessageKind('like'), false);
       expect(FcmRegistrationService.looksLikeMessageKind('comment'), false);
     });

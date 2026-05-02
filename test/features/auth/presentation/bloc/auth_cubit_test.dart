@@ -55,7 +55,7 @@ class MockOAuthPendingRequestStore extends Mock
     implements OAuthPendingRequestStore {}
 
 class MockFcmRegistrationService extends Mock
-  implements FcmRegistrationService {}
+    implements FcmRegistrationService {}
 
 void main() {
   late MockLoginUseCase mockLoginUseCase;

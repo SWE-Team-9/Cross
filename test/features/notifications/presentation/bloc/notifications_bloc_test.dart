@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -259,7 +259,8 @@ void main() {
       act: (bloc) => bloc.add(const MarkAllNotificationsRead()),
       expect: () => [
         isA<NotificationsLoaded>()
-            .having((s) => s.notifications.every((n) => n.isRead), 'allRead', true)
+            .having(
+                (s) => s.notifications.every((n) => n.isRead), 'allRead', true)
             .having((s) => s.unreadCount, 'unreadCount', 0),
       ],
     );
@@ -333,7 +334,8 @@ void main() {
       ),
       act: (bloc) => bloc.add(const RefreshUnreadCount()),
       expect: () => [
-        isA<NotificationsLoaded>().having((s) => s.unreadCount, 'unreadCount', 7),
+        isA<NotificationsLoaded>()
+            .having((s) => s.unreadCount, 'unreadCount', 7),
       ],
     );
   });

@@ -577,7 +577,7 @@ class FcmRegistrationService {
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'ANDROID'; 
+        return 'ANDROID';
       case TargetPlatform.iOS:
         return 'iOS';
       case TargetPlatform.macOS:
@@ -592,9 +592,11 @@ class FcmRegistrationService {
 
   Future<void> _startDebugNotificationServer() async {
     try {
-      _debugNotificationServer = await HttpServer.bind('127.0.0.1', _debugNotificationPort);
-      debugPrint('Debug notification server started on http://127.0.0.1:$_debugNotificationPort');
-      
+      _debugNotificationServer =
+          await HttpServer.bind('127.0.0.1', _debugNotificationPort);
+      debugPrint(
+          'Debug notification server started on http://127.0.0.1:$_debugNotificationPort');
+
       // Listen to requests without blocking the main thread
       unawaited(_debugNotificationServer!.forEach((request) async {
         if (request.method == 'POST' && request.uri.path == '/notify') {
@@ -602,10 +604,10 @@ class FcmRegistrationService {
             final body = await utf8.decoder.bind(request).join();
             final payload = jsonDecode(body) as Map<String, dynamic>;
             final message = _buildDebugRemoteMessage(payload);
-            
+
             await _showLocalNotification(message);
             _notificationRefreshController.add(null);
-            
+
             request.response
               ..statusCode = 200
               ..write('Notification sent')

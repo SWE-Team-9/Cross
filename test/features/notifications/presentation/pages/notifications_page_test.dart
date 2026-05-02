@@ -1,4 +1,4 @@
-﻿import 'package:bloc_test/bloc_test.dart';
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,7 +60,8 @@ void main() {
     when(() => preferencesBloc.stream).thenAnswer(
       (_) => const Stream<NotificationPreferencesState>.empty(),
     );
-    when(() => notificationsBloc.state).thenReturn(const NotificationsInitial());
+    when(() => notificationsBloc.state)
+        .thenReturn(const NotificationsInitial());
     when(() => preferencesBloc.state)
         .thenReturn(NotificationPreferencesState.initial());
   });
@@ -70,7 +71,8 @@ void main() {
       home: MultiBlocProvider(
         providers: [
           BlocProvider<NotificationsBloc>.value(value: notificationsBloc),
-          BlocProvider<NotificationPreferencesBloc>.value(value: preferencesBloc),
+          BlocProvider<NotificationPreferencesBloc>.value(
+              value: preferencesBloc),
         ],
         child: const NotificationsPage(),
       ),
@@ -78,7 +80,8 @@ void main() {
   }
 
   testWidgets('shows loading indicator while loading', (tester) async {
-    when(() => notificationsBloc.state).thenReturn(const NotificationsLoading());
+    when(() => notificationsBloc.state)
+        .thenReturn(const NotificationsLoading());
 
     await tester.pumpWidget(buildPage());
 
@@ -94,7 +97,8 @@ void main() {
     await tester.pump();
 
     expect(find.text('No notifications yet'), findsOneWidget);
-    expect(find.text('Likes, comments, and follows will appear here.'), findsOneWidget);
+    expect(find.text('Likes, comments, and follows will appear here.'),
+        findsOneWidget);
     expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
   });
 
@@ -125,7 +129,8 @@ void main() {
     expect(find.byType(NotificationCard), findsNWidgets(notifications.length));
   });
 
-  testWidgets('shows loading more spinner when appending results', (tester) async {
+  testWidgets('shows loading more spinner when appending results',
+      (tester) async {
     when(() => notificationsBloc.state).thenReturn(
       NotificationsLoadingMore(
         notifications: [makeNotification('like-1')],
@@ -142,7 +147,8 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets('dispatches load more when scrolled near the bottom', (tester) async {
+  testWidgets('dispatches load more when scrolled near the bottom',
+      (tester) async {
     final notifications = List.generate(
       30,
       (index) => makeNotification('n$index'),
@@ -163,7 +169,8 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -3000));
     await tester.pump();
 
-    verify(() => notificationsBloc.add(const LoadMoreNotifications())).called(1);
+    verify(() => notificationsBloc.add(const LoadMoreNotifications()))
+        .called(1);
   });
 
   testWidgets('shows error state when load fails', (tester) async {
