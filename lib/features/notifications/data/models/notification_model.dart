@@ -28,14 +28,14 @@ class NotificationModel extends NotificationEntity {
         : const <String, dynamic>{};
 
     final actorId = _firstNonEmpty([
+      actorMap['id'],
+      actorMap['_id'],
       actorMap['handle'],
       actorMap['username'],
       actorMap['userName'],
-      actorMap['id'],
-      actorMap['_id'],
+      json['actorId'],
       json['actorHandle'],
       json['actorUsername'],
-      json['actorId'],
     ]);
     final actorDisplayName = _firstNonEmpty([
       actorMap['displayName'],

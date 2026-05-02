@@ -12,6 +12,7 @@ import 'domain/usecases/get_unread_count_use_case.dart';
 import 'domain/usecases/mark_all_notifications_as_read_use_case.dart';
 import 'domain/usecases/mark_notification_as_read_use_case.dart';
 import 'domain/usecases/notification_preferences_use_cases.dart';
+import 'domain/usecases/resolve_notification_tap_target_use_case.dart';
 import '../messaging/domain/usecases/get_conversation_meta_usecase.dart';
 import '../messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
 import 'presentation/bloc/notification_preferences_bloc.dart';
@@ -76,6 +77,13 @@ void registerNotificationsModule(GetIt sl) {
   }
   if (!sl.isRegistered<RemoveDeviceUseCase>()) {
     sl.registerLazySingleton(() => RemoveDeviceUseCase(sl()));
+  }
+  if (!sl.isRegistered<ResolveNotificationTapTargetUseCase>()) {
+    sl.registerLazySingleton(
+      () => ResolveNotificationTapTargetUseCase(
+        sl<GetOrCreateDirectConversationUseCase>(),
+      ),
+    );
   }
   if (!sl.isRegistered<GetConversationMetaUseCase>()) {
     sl.registerLazySingleton(() => GetConversationMetaUseCase(sl()));

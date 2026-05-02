@@ -81,6 +81,7 @@ enum NotificationType {
   comment,
   follow,
   repost,
+  message,
   unknown;
 
   static NotificationType fromString(String value) {
@@ -103,6 +104,17 @@ enum NotificationType {
       case 'reposts':
       case 'reposted':
         return NotificationType.repost;
+      case 'message':
+      case 'messages':
+      case 'new_message':
+      case 'newmessage':
+      case 'new message':
+      case 'message_created':
+      case 'direct_message':
+      case 'directmessage':
+      case 'chat_message':
+      case 'chatmessage':
+        return NotificationType.message;
       default:
         return NotificationType.unknown;
     }
