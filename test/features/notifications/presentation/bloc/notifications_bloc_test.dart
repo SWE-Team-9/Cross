@@ -1,7 +1,8 @@
+﻿import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-
 import 'package:soundcloud_clone/core/errors/failure.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notifications_result.dart';
@@ -51,13 +52,23 @@ NotificationEntity makeNotification({
 }
 
 void main() {
-  late NotificationsBloc bloc;
   late MockGetNotificationsUseCase mockGetNotifications;
   late MockGetUnreadCountUseCase mockGetUnreadCount;
   late MockMarkNotificationAsReadUseCase mockMarkAsRead;
   late MockMarkAllNotificationsAsReadUseCase mockMarkAllAsRead;
   late MockDeleteNotificationUseCase mockDelete;
   late MockNotificationsRepository mockRepository;
+
+  NotificationsBloc createBloc() {
+    return NotificationsBloc(
+      getNotifications: mockGetNotifications,
+      getUnreadCount: mockGetUnreadCount,
+      markAsRead: mockMarkAsRead,
+      markAllAsRead: mockMarkAllAsRead,
+      delete: mockDelete,
+      repository: mockRepository,
+    );
+  }
 
   setUp(() {
     mockGetNotifications = MockGetNotificationsUseCase();
@@ -68,25 +79,14 @@ void main() {
     mockRepository = MockNotificationsRepository();
 
     when(() => mockRepository.notificationStream)
-        .thenAnswer((_) => const Stream.empty());
-
-    bloc = NotificationsBloc(
-      getNotifications: mockGetNotifications,
-      getUnreadCount: mockGetUnreadCount,
-      markAsRead: mockMarkAsRead,
-      markAllAsRead: mockMarkAllAsRead,
-      delete: mockDelete,
-      repository: mockRepository,
-    );
-  });
-
-  tearDown(() async {
-    await bloc.close();
+        .thenAnswer((_) => const Stream<NotificationEntity>.empty());
   });
 
   group('LoadNotifications', () {
     test('initial state is NotificationsInitial', () {
+      final bloc = createBloc();
       expect(bloc.state, const NotificationsInitial());
+      bloc.close();
     });
 
     blocTest<NotificationsBloc, NotificationsState>(
@@ -97,9 +97,9 @@ void main() {
         );
         when(() => mockGetUnreadCount())
             .thenAnswer((_) async => const NotificationsResult.success(1));
-        return bloc;
+        return createBloc();
       },
-      act: (b) => b.add(const LoadNotifications()),
+      act: (bloc) => bloc.add(const LoadNotifications()),
       expect: () => [
         const NotificationsLoading(),
         isA<NotificationsLoaded>()
@@ -119,9 +119,9 @@ void main() {
         );
         when(() => mockGetUnreadCount())
             .thenAnswer((_) async => const NotificationsResult.success(0));
-        return bloc;
+        return createBloc();
       },
-      act: (b) => b.add(const LoadNotifications()),
+      act: (bloc) => bloc.add(const LoadNotifications()),
       expect: () => [
         const NotificationsLoading(),
         const NotificationsError(
@@ -141,7 +141,7 @@ void main() {
         when(() => mockGetNotifications(page: 2, limit: 20)).thenAnswer(
           (_) async => NotificationsResult.success(nextPage),
         );
-        return bloc;
+        return createBloc();
       },
       seed: () => NotificationsLoaded(
         notifications: existing,
@@ -149,7 +149,7 @@ void main() {
         hasMore: true,
         currentPage: 1,
       ),
-      act: (b) => b.add(const LoadMoreNotifications()),
+      act: (bloc) => bloc.add(const LoadMoreNotifications()),
       expect: () => [
         isA<NotificationsLoadingMore>(),
         isA<NotificationsLoaded>()
@@ -159,39 +159,82 @@ void main() {
     );
 
     blocTest<NotificationsBloc, NotificationsState>(
+      'emits error when load more fails',
+      build: () {
+        when(() => mockGetNotifications(page: 2, limit: 20)).thenAnswer(
+          (_) async => NotificationsResult.failure(
+            const ServerFailure('Server error'),
+          ),
+        );
+        return createBloc();
+      },
+      seed: () => NotificationsLoaded(
+        notifications: existing,
+        unreadCount: 1,
+        hasMore: true,
+        currentPage: 1,
+      ),
+      act: (bloc) => bloc.add(const LoadMoreNotifications()),
+      expect: () => [
+        isA<NotificationsLoadingMore>(),
+        const NotificationsError(
+          'Unable to load notifications right now. Please try again.',
+        ),
+      ],
+    );
+
+    blocTest<NotificationsBloc, NotificationsState>(
       'does nothing if hasMore is false',
-      build: () => bloc,
+      build: () => createBloc(),
       seed: () => NotificationsLoaded(
         notifications: existing,
         unreadCount: 0,
         hasMore: false,
         currentPage: 1,
       ),
-      act: (b) => b.add(const LoadMoreNotifications()),
+      act: (bloc) => bloc.add(const LoadMoreNotifications()),
       expect: () => <NotificationsState>[],
     );
   });
 
   group('MarkNotificationRead', () {
     final unread = makeNotification(id: 'not_1', isRead: false);
+    final read = makeNotification(id: 'not_2', isRead: true);
 
     blocTest<NotificationsBloc, NotificationsState>(
-      'optimistically marks one as read and decrements unread',
+      'optimistically marks unread notification as read and decrements unread',
       build: () {
-        when(() => mockMarkAsRead('not_1'))
-            .thenAnswer((_) async => const NotificationsResult.success(null));
-        return bloc;
+        when(() => mockMarkAsRead('not_1')).thenAnswer(
+          (_) async => const NotificationsResult.success(null),
+        );
+        return createBloc();
       },
       seed: () => NotificationsLoaded(
         notifications: [unread],
         unreadCount: 1,
       ),
-      act: (b) => b.add(const MarkNotificationRead('not_1')),
+      act: (bloc) => bloc.add(const MarkNotificationRead('not_1')),
       expect: () => [
         isA<NotificationsLoaded>()
             .having((s) => s.notifications.first.isRead, 'isRead', true)
             .having((s) => s.unreadCount, 'unreadCount', 0),
       ],
+    );
+
+    blocTest<NotificationsBloc, NotificationsState>(
+      'keeps unread count when notification was already read',
+      build: () {
+        when(() => mockMarkAsRead('not_2')).thenAnswer(
+          (_) async => const NotificationsResult.success(null),
+        );
+        return createBloc();
+      },
+      seed: () => NotificationsLoaded(
+        notifications: [read],
+        unreadCount: 0,
+      ),
+      act: (bloc) => bloc.add(const MarkNotificationRead('not_2')),
+      expect: () => <NotificationsState>[],
     );
   });
 
@@ -204,19 +247,19 @@ void main() {
     blocTest<NotificationsBloc, NotificationsState>(
       'marks all read and sets unreadCount to zero',
       build: () {
-        when(() => mockMarkAllAsRead())
-            .thenAnswer((_) async => const NotificationsResult.success(null));
-        return bloc;
+        when(() => mockMarkAllAsRead()).thenAnswer(
+          (_) async => const NotificationsResult.success(null),
+        );
+        return createBloc();
       },
       seed: () => NotificationsLoaded(
         notifications: notifs,
         unreadCount: 2,
       ),
-      act: (b) => b.add(const MarkAllNotificationsRead()),
+      act: (bloc) => bloc.add(const MarkAllNotificationsRead()),
       expect: () => [
         isA<NotificationsLoaded>()
-            .having(
-                (s) => s.notifications.every((n) => n.isRead), 'allRead', true)
+            .having((s) => s.notifications.every((n) => n.isRead), 'allRead', true)
             .having((s) => s.unreadCount, 'unreadCount', 0),
       ],
     );
@@ -228,15 +271,16 @@ void main() {
     blocTest<NotificationsBloc, NotificationsState>(
       'removes notification from list',
       build: () {
-        when(() => mockDelete('not_1'))
-            .thenAnswer((_) async => const NotificationsResult.success(null));
-        return bloc;
+        when(() => mockDelete('not_1')).thenAnswer(
+          (_) async => const NotificationsResult.success(null),
+        );
+        return createBloc();
       },
       seed: () => NotificationsLoaded(
         notifications: [notif],
         unreadCount: 0,
       ),
-      act: (b) => b.add(const DeleteNotification('not_1')),
+      act: (bloc) => bloc.add(const DeleteNotification('not_1')),
       expect: () => [
         isA<NotificationsLoaded>()
             .having((s) => s.notifications, 'notifications', isEmpty),
@@ -250,16 +294,46 @@ void main() {
 
     blocTest<NotificationsBloc, NotificationsState>(
       'prepends realtime notification and increments unread count',
-      build: () => bloc,
+      build: () => createBloc(),
       seed: () => NotificationsLoaded(
         notifications: [existing],
         unreadCount: 0,
       ),
-      act: (b) => b.add(RealtimeNotificationReceived(realtime)),
+      act: (bloc) => bloc.add(RealtimeNotificationReceived(realtime)),
       expect: () => [
         isA<NotificationsLoaded>()
             .having((s) => s.notifications.first.id, 'first id', 'not_realtime')
             .having((s) => s.unreadCount, 'unreadCount', 1),
+      ],
+    );
+
+    blocTest<NotificationsBloc, NotificationsState>(
+      'ignores duplicate realtime notifications',
+      build: () => createBloc(),
+      seed: () => NotificationsLoaded(
+        notifications: [existing],
+        unreadCount: 1,
+      ),
+      act: (bloc) => bloc.add(RealtimeNotificationReceived(existing)),
+      expect: () => <NotificationsState>[],
+    );
+  });
+
+  group('RefreshUnreadCount', () {
+    blocTest<NotificationsBloc, NotificationsState>(
+      'updates unread count when the repository returns a value',
+      build: () {
+        when(() => mockGetUnreadCount())
+            .thenAnswer((_) async => const NotificationsResult.success(7));
+        return createBloc();
+      },
+      seed: () => NotificationsLoaded(
+        notifications: [makeNotification()],
+        unreadCount: 1,
+      ),
+      act: (bloc) => bloc.add(const RefreshUnreadCount()),
+      expect: () => [
+        isA<NotificationsLoaded>().having((s) => s.unreadCount, 'unreadCount', 7),
       ],
     );
   });

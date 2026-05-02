@@ -347,19 +347,19 @@ class FcmRegistrationService {
   Future<ConversationEntity?> _resolveConversationForData(
     Map<String, dynamic> data,
   ) async {
-    final kind = _normalizeKind(
+    final kind = normalizeKind(
       data['type'] ?? data['eventType'] ?? data['notificationType'],
     );
 
-    if (!_looksLikeMessageKind(kind)) {
+    if (!looksLikeMessageKind(kind)) {
       return null;
     }
 
-    final conversationId = _firstNonEmpty([
+    final conversationId = firstNonEmpty([
       data['conversationId'],
       data['conversation_id'],
-      _extractConversationId(data['message']),
-      _extractConversationId(data['conversation']),
+      extractConversationId(data['message']),
+      extractConversationId(data['conversation']),
     ]);
 
     if (conversationId.isNotEmpty) {
@@ -370,7 +370,7 @@ class FcmRegistrationService {
       }
     }
 
-    final participantId = _firstNonEmpty([
+    final participantId = firstNonEmpty([
       data['receiverId'],
       data['receiver_id'],
       data['senderId'],
@@ -456,11 +456,11 @@ class FcmRegistrationService {
     return _resolveConversationForData(data);
   }
 
-  static String _normalizeKind(dynamic raw) {
+  static String normalizeKind(dynamic raw) {
     return raw?.toString().trim().toLowerCase() ?? '';
   }
 
-  static bool _looksLikeMessageKind(String kind) {
+  static bool looksLikeMessageKind(String kind) {
     return kind == 'message' ||
         kind == 'messages' ||
         kind == 'new_message' ||
@@ -473,7 +473,7 @@ class FcmRegistrationService {
         kind == 'chatmessage';
   }
 
-  static String _firstNonEmpty(Iterable<dynamic> values) {
+  static String firstNonEmpty(Iterable<dynamic> values) {
     for (final value in values) {
       final text = value?.toString().trim() ?? '';
       if (text.isNotEmpty) {
@@ -483,10 +483,10 @@ class FcmRegistrationService {
     return '';
   }
 
-  static String _extractConversationId(dynamic value) {
+  static String extractConversationId(dynamic value) {
     if (value is Map) {
       final map = Map<String, dynamic>.from(value);
-      return _firstNonEmpty([
+      return firstNonEmpty([
         map['conversationId'],
         map['conversation_id'],
         map['id'],
