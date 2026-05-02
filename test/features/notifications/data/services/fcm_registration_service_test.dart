@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversation_meta_usecase.dart';
@@ -17,7 +17,8 @@ class MockGetOrCreateDirectConversationUseCase extends Mock
 void main() {
   late MockRegisterDeviceUseCase registerDeviceUseCase;
   late MockGetConversationMetaUseCase getConversationMetaUseCase;
-  late MockGetOrCreateDirectConversationUseCase getOrCreateDirectConversationUseCase;
+  late MockGetOrCreateDirectConversationUseCase
+      getOrCreateDirectConversationUseCase;
   late FcmRegistrationService service;
 
   setUp(() {

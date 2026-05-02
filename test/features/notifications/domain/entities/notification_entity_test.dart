@@ -19,7 +19,8 @@ void main() {
         createdAt: DateTime(2026, 3, 7, 10, 20),
       );
 
-      final updated = original.copyWith(isRead: true, message: 'Marked as read');
+      final updated =
+          original.copyWith(isRead: true, message: 'Marked as read');
 
       expect(updated.id, 'n1');
       expect(updated.isRead, true);
@@ -34,13 +35,15 @@ void main() {
       expect(NotificationType.fromString('follow'), NotificationType.follow);
       expect(NotificationType.fromString('repost'), NotificationType.repost);
       expect(NotificationType.fromString('message'), NotificationType.message);
-      expect(NotificationType.fromString('unknown_type'), NotificationType.unknown);
+      expect(NotificationType.fromString('unknown_type'),
+          NotificationType.unknown);
     });
 
     test('NotificationType.fromString case-insensitive parsing', () {
       expect(NotificationType.fromString('LIKE'), NotificationType.like);
       expect(NotificationType.fromString('Comment'), NotificationType.comment);
-      expect(NotificationType.fromString('NEW_MESSAGE'), NotificationType.message);
+      expect(
+          NotificationType.fromString('NEW_MESSAGE'), NotificationType.message);
     });
 
     test('NotificationEntity equality via props', () {

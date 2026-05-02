@@ -22,32 +22,40 @@ class _RepoSuccess implements MessagingRepository {
   }
 
   @override
-  Future<ConversationEntity> getOrCreateDirectConversation({required String receiverId}) async {
+  Future<ConversationEntity> getOrCreateDirectConversation(
+      {required String receiverId}) async {
     return conversation;
   }
 
   @override
-  Future<ConversationListPageEntity> getMyConversations({int page = 1, int limit = 20, bool archived = false}) {
+  Future<ConversationListPageEntity> getMyConversations(
+      {int page = 1, int limit = 20, bool archived = false}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<ConversationMessagesPageEntity> getConversationMessages(String conversationId, {int page = 1, int limit = 50}) {
+  Future<ConversationMessagesPageEntity> getConversationMessages(
+      String conversationId,
+      {int page = 1,
+      int limit = 50}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<MessageEntity> sendTextMessage({required String receiverId, required String text}) {
+  Future<MessageEntity> sendTextMessage(
+      {required String receiverId, required String text}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<MessageEntity> shareTrack({required String receiverId, required String trackId, String? text}) {
+  Future<MessageEntity> shareTrack(
+      {required String receiverId, required String trackId, String? text}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<MessageEntity> sharePlaylist({required String receiverId, required String playlistId, String? text}) {
+  Future<MessageEntity> sharePlaylist(
+      {required String receiverId, required String playlistId, String? text}) {
     throw UnimplementedError();
   }
 
@@ -89,32 +97,40 @@ class _RepoThrows implements MessagingRepository {
   }
 
   @override
-  Future<ConversationEntity> getOrCreateDirectConversation({required String receiverId}) async {
+  Future<ConversationEntity> getOrCreateDirectConversation(
+      {required String receiverId}) async {
     throw Exception('failed');
   }
 
   @override
-  Future<ConversationListPageEntity> getMyConversations({int page = 1, int limit = 20, bool archived = false}) {
+  Future<ConversationListPageEntity> getMyConversations(
+      {int page = 1, int limit = 20, bool archived = false}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<ConversationMessagesPageEntity> getConversationMessages(String conversationId, {int page = 1, int limit = 50}) {
+  Future<ConversationMessagesPageEntity> getConversationMessages(
+      String conversationId,
+      {int page = 1,
+      int limit = 50}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<MessageEntity> sendTextMessage({required String receiverId, required String text}) {
+  Future<MessageEntity> sendTextMessage(
+      {required String receiverId, required String text}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<MessageEntity> shareTrack({required String receiverId, required String trackId, String? text}) {
+  Future<MessageEntity> shareTrack(
+      {required String receiverId, required String trackId, String? text}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<MessageEntity> sharePlaylist({required String receiverId, required String playlistId, String? text}) {
+  Future<MessageEntity> sharePlaylist(
+      {required String receiverId, required String playlistId, String? text}) {
     throw UnimplementedError();
   }
 
@@ -176,7 +192,8 @@ void main() {
       expect((target as NotificationCommentsTapTarget).trackId, 'track-123');
     });
 
-    test('message resolves to conversation when getOrCreate succeeds', () async {
+    test('message resolves to conversation when getOrCreate succeeds',
+        () async {
       final convo = ConversationEntity(
         conversationId: 'conv-1',
         participant: ParticipantEntity(
@@ -221,7 +238,10 @@ void main() {
 
       final target = await usecase.call(notification);
       expect(target, isA<NotificationConversationTapTarget>());
-      expect((target as NotificationConversationTapTarget).conversation.conversationId,
+      expect(
+          (target as NotificationConversationTapTarget)
+              .conversation
+              .conversationId,
           'conv-1');
     });
 

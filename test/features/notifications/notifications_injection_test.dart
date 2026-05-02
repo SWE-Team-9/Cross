@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversation_meta_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
@@ -63,7 +63,8 @@ class FakeNotificationsRemoteDataSource
   Future<void> removeDevice(String deviceId) async {}
 
   @override
-  Future<void> updatePreferences(NotificationPreferencesModel preferences) async {}
+  Future<void> updatePreferences(
+      NotificationPreferencesModel preferences) async {}
 }
 
 void main() {

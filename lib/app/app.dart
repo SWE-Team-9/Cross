@@ -271,7 +271,9 @@ class _NotificationRefreshBridgeState
     }
 
     if (mounted && notification.id.isNotEmpty) {
-      context.read<NotificationsBloc>().add(MarkNotificationRead(notification.id));
+      context
+          .read<NotificationsBloc>()
+          .add(MarkNotificationRead(notification.id));
     }
   }
 
