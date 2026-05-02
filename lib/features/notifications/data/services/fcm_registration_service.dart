@@ -500,14 +500,15 @@ class FcmRegistrationService {
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'android';
+        return 'ANDROID'; 
       case TargetPlatform.iOS:
-        return 'ios';
+        return 'iOS';
       case TargetPlatform.macOS:
-        return 'macos';
+        return 'DESKTOP';
+      case TargetPlatform.windows:
+        return 'DESKTOP';
       case TargetPlatform.fuchsia:
       case TargetPlatform.linux:
-      case TargetPlatform.windows:
         return null;
     }
   }
