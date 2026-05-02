@@ -287,7 +287,6 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
     String? description,
     PlaylistVisibility? visibility,
     String? genre,
-    int? genreId,
     String? playlistType,
     DateTime? releaseDate,
     List<String>? tags,
@@ -297,7 +296,9 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
 
     final normalizedTitle = title?.trim();
     final normalizedDescription = description?.trim();
-
+    final normalizedGenre = genre?.trim();
+    final normalizedGenreId =
+        normalizedGenre == null ? null : _playlistGenreId(normalizedGenre);
     final validationMessage = _validatePlaylistInput(
       title: normalizedTitle,
       description: normalizedDescription,
@@ -337,7 +338,7 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
         title: normalizedTitle,
         description: normalizedDescription,
         visibility: visibility,
-        genreId: genreId,
+        genre: normalizedGenre,
         playlistType: playlistType,
         releaseDate: releaseDate,
         tags: tags,
@@ -361,10 +362,10 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
           title: normalizedTitle,
           description: normalizedDescription,
           visibility: visibility,
-          genre: genre,
-          clearGenre: genre != null && genre.trim().isEmpty,
-          genreId: genreId,
-          clearGenreId: genreId == null && genre != null,
+          genre: normalizedGenre,
+          clearGenre: normalizedGenre != null && normalizedGenre.isEmpty,
+          genreId: normalizedGenreId,
+          clearGenreId: normalizedGenre != null && normalizedGenre.isEmpty,
           playlistType: playlistType,
           releaseDate: releaseDate,
           tags: tags,
@@ -376,13 +377,13 @@ class PlaylistsCubit extends Cubit<PlaylistsState> {
       final updatedList = state.playlists.map((playlist) {
         if (playlist.playlistId != playlistId) return playlist;
         return playlist.copyWith(
-          title: title,
-          description: description,
+          title: normalizedTitle,
+          description: normalizedDescription,
           visibility: visibility,
-          genre: genre,
-          clearGenre: genre != null && genre.trim().isEmpty,
-          genreId: genreId,
-          clearGenreId: genreId == null && genre != null,
+          genre: normalizedGenre,
+          clearGenre: normalizedGenre != null && normalizedGenre.isEmpty,
+          genreId: normalizedGenreId,
+          clearGenreId: normalizedGenre != null && normalizedGenre.isEmpty,
           playlistType: playlistType,
           releaseDate: releaseDate,
           tags: tags,
