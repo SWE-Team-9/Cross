@@ -1,29 +1,32 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class LoggingInterceptor extends Interceptor {
-  // ← Changed from ErrorInterceptor to LoggingInterceptor
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    print('Request: ${options.method} ${options.path}');
-    print('Headers: ${options.headers}');
-    if (options.data != null) {
-      print('Data: ${options.data}');
+    if (kDebugMode) {
+      debugPrint('[HTTP] ${options.method} ${options.uri}');
     }
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    print('Response: ${response.statusCode} ${response.requestOptions.path}');
-    print('Data: ${response.data}');
+    if (kDebugMode) {
+      debugPrint(
+        '[HTTP] ${response.statusCode} ${response.requestOptions.uri}',
+      );
+    }
     handler.next(response);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    print('Error: ${err.message}');
-    print('Status Code: ${err.response?.statusCode}');
-    print('Response: ${err.response?.data}');
+    if (kDebugMode) {
+      debugPrint('[HTTP ERROR] ${err.requestOptions.method} '
+          '${err.requestOptions.uri}');
+      debugPrint('[HTTP ERROR] ${err.response?.statusCode} ${err.message}');
+    }
     handler.next(err);
   }
 }

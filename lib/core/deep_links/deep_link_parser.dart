@@ -66,6 +66,16 @@ abstract final class DeepLinkParser {
     if (segments.isEmpty || segments.first.isEmpty) {
       return const InvalidDeepLink(reason: 'Playlist link missing ID');
     }
+
+    if (segments.first == 'secret') {
+      if (segments.length < 2 || segments[1].isEmpty) {
+        return const InvalidDeepLink(
+          reason: 'Secret playlist link missing token',
+        );
+      }
+      return SecretPlaylistDeepLink(secretToken: segments[1]);
+    }
+
     return PlaylistDeepLink(playlistId: segments.first);
   }
 

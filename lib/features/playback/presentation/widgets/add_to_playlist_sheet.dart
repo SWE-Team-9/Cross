@@ -1,9 +1,12 @@
-// features/playlist/presentation/widgets/add_to_playlist_sheet.dart
-
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
-
-import '../../data/repositories/playlist_repository.dart';
+import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
+import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
+import 'package:soundcloud_clone/features/playlists/presentation/widgets/playlist_editor_sheet.dart';
 
 class AddToPlaylistSheet extends StatefulWidget {
   final Track track;
@@ -19,7 +22,10 @@ class AddToPlaylistSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => AddToPlaylistSheet(track: track),
+      builder: (_) => BlocProvider<PlaylistsCubit>(
+        create: (_) => getIt<PlaylistsCubit>()..loadMyPlaylists(),
+        child: AddToPlaylistSheet(track: track),
+      ),
     );
   }
 
@@ -28,18 +34,14 @@ class AddToPlaylistSheet extends StatefulWidget {
 }
 
 class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
-  final _repo = PlaylistRepository.instance;
-  final _nameController = TextEditingController();
-  bool _showCreate = false;
+  Future<void> _addToPlaylist(String playlistId, String playlistTitle) async {
+    final added = await context.read<PlaylistsCubit>().addTrackToPlaylist(
+          playlistId: playlistId,
+          track: widget.track,
+        );
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
+    if (!mounted || !added) return;
 
-  void _addToPlaylist(String playlistId, String playlistName) {
-    final added = _repo.addTrack(playlistId, widget.track);
     Navigator.pop(context);
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -49,19 +51,32 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         content: Text(
-          added ? 'Added to $playlistName' : 'Already in $playlistName',
+          'Added to $playlistTitle',
           style: const TextStyle(color: Colors.white),
         ),
       ),
     );
   }
 
-  void _createAndAdd() {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) return;
+  Future<void> _createAndAdd() async {
+    final result = await PlaylistEditorSheet.show(
+      context,
+      title: 'Create playlist',
+      submitLabel: 'Create',
+    );
 
-    final playlist = _repo.createPlaylist(name);
-    _repo.addTrack(playlist.id, widget.track);
+    if (!mounted || result == null) return;
+
+    final playlist = await context.read<PlaylistsCubit>().createPlaylist(
+      title: result.title,
+      description: result.description,
+      visibility: result.visibility,
+      coverImagePath: result.coverImagePath,
+      initialTrackIds: [widget.track.id],
+    );
+
+    if (!mounted || playlist == null) return;
+
     Navigator.pop(context);
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -71,7 +86,7 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         content: Text(
-          'Created "$name" and added track',
+          'Created "${playlist.title}" with "${widget.track.title}"',
           style: const TextStyle(color: Colors.white),
         ),
       ),
@@ -80,163 +95,184 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final playlists = _repo.getAll();
+    return BlocConsumer<PlaylistsCubit, PlaylistsState>(
+      listener: (context, state) {
+        if (state.errorMessage == null || state.errorMessage!.trim().isEmpty) {
+          return;
+        }
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(2),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF3D0000),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            content: Text(
+              state.errorMessage!,
+              style: const TextStyle(color: Colors.white),
             ),
           ),
-          const SizedBox(height: 16),
+        );
 
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Add to playlist',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => setState(() => _showCreate = !_showCreate),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white30),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add, color: Colors.white, size: 16),
-                        SizedBox(width: 4),
-                        Text(
-                          'New playlist',
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        context.read<PlaylistsCubit>().clearFeedback();
+      },
+      builder: (context, state) {
+        final playlists = state.playlists;
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-
-          // Create new playlist input
-          if (_showCreate) ...[
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _nameController,
-                      autofocus: true,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Playlist name',
-                        hintStyle: const TextStyle(color: Colors.white38),
-                        filled: true,
-                        fillColor: Colors.white10,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: _createAndAdd,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF5500),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Create',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-          ],
-
-          const SizedBox(height: 8),
-
-          // Playlist list
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.4,
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: playlists.length,
-              itemBuilder: (_, index) {
-                final playlist = playlists[index];
-                final alreadyAdded =
-                    _repo.containsTrack(playlist.id, widget.track.id);
-
-                return ListTile(
-                  leading: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(4),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Add to playlist',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    child: const Icon(Icons.queue_music,
-                        color: Colors.white54, size: 20),
+                    GestureDetector(
+                      onTap: state.isSubmitting ? null : _createAndAdd,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white30),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add, color: Colors.white, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              'New playlist',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (state.isLoadingMyPlaylists)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: CircularProgressIndicator(),
+                )
+              else if (playlists.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    'No playlists found',
+                    style: TextStyle(color: Colors.white60),
                   ),
-                  title: Text(
-                    playlist.name,
-                    style: const TextStyle(color: Colors.white),
+                )
+              else
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
                   ),
-                  subtitle: Text(
-                    '${playlist.tracks.length} tracks',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                  trailing: alreadyAdded
-                      ? const Icon(Icons.check,
-                          color: Color(0xFFFF5500), size: 20)
-                      : null,
-                  onTap: alreadyAdded
-                      ? null
-                      : () => _addToPlaylist(playlist.id, playlist.name),
-                );
-              },
-            ),
-          ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: playlists.length,
+                    itemBuilder: (_, index) {
+                      final playlist = playlists[index];
+                      final alreadyAdded = playlist.tracks
+                          .any((track) => track.id == widget.track.id);
 
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
-        ],
+                      return ListTile(
+                        leading: _PlaylistCoverThumb(playlist: playlist),
+                        title: Text(
+                          playlist.title,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        subtitle: Text(
+                          '${playlist.tracksCount} tracks',
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12),
+                        ),
+                        trailing: alreadyAdded
+                            ? const Icon(
+                                Icons.check,
+                                color: Color(0xFFFF5500),
+                                size: 20,
+                              )
+                            : null,
+                        onTap: alreadyAdded || state.isSubmitting
+                            ? null
+                            : () => _addToPlaylist(
+                                playlist.playlistId, playlist.title),
+                      );
+                    },
+                  ),
+                ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PlaylistCoverThumb extends StatelessWidget {
+  const _PlaylistCoverThumb({required this.playlist});
+
+  final PlaylistEntity playlist;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        width: 44,
+        height: 44,
+        color: Colors.grey[800],
+        child: coverUrl == null
+            ? Icon(
+                playlist.visibility == PlaylistVisibility.privatePlaylist
+                    ? Icons.lock_outline
+                    : Icons.queue_music,
+                color: Colors.white54,
+                size: 20,
+              )
+            : Image.network(
+                coverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.queue_music,
+                  color: Colors.white54,
+                  size: 20,
+                ),
+              ),
       ),
     );
   }
