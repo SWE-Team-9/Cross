@@ -52,22 +52,6 @@ class _UpgradePageState extends State<UpgradePage> {
     }
   }
 
-  Future<void> _handleOpenBillingPortal() async {
-    try {
-      final portalUrl = await context.read<SubscriptionCubit>().openBillingPortal();
-
-      if (!mounted) return;
-
-      if (portalUrl.trim().isEmpty) {
-        _showSnackBar('Billing portal is not available right now.');
-        return;
-      }
-
-      await _launchExternalUrl(portalUrl);
-    } catch (_) {
-      // The cubit already emits a readable actionErrorMessage.
-    }
-  }
 
   Future<void> _launchExternalUrl(String rawUrl) async {
     final uri = Uri.tryParse(rawUrl.trim());
@@ -155,12 +139,11 @@ class _UpgradePageState extends State<UpgradePage> {
                         const SizedBox(height: 20),
                         _CurrentPlanCard(
                           state: state,
-                          onOpenBillingPortal:
+                          onOpenBilling:
                               state.subscription.isPremium && !state.isActionLoading
-                                  ? _handleOpenBillingPortal
+                                  ? () => context.go('/billing')
                                   : null,
-                        ),
-                        const SizedBox(height: 28),
+                        ),                        const SizedBox(height: 28),
                         Text(
                           'Choose your plan',
                           style: Theme.of(context)
@@ -312,12 +295,11 @@ class _HeroHeader extends StatelessWidget {
 class _CurrentPlanCard extends StatelessWidget {
   const _CurrentPlanCard({
     required this.state,
-    required this.onOpenBillingPortal,
+    required this.onOpenBilling,
   });
 
   final SubscriptionState state;
-  final VoidCallback? onOpenBillingPortal;
-
+  final VoidCallback? onOpenBilling;
   @override
   Widget build(BuildContext context) {
     final subscription = state.subscription;
@@ -391,25 +373,15 @@ class _CurrentPlanCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: onOpenBillingPortal,
+                onPressed: onOpenBilling,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white24),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                icon: state.isActionLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.receipt_long_outlined),
+                icon: const Icon(Icons.receipt_long_outlined),
                 label: const Text('Manage billing'),
-              ),
-            ),
+              ),            ),
           ],
         ],
       ),
