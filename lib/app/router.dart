@@ -38,8 +38,10 @@ import '../features/playback/presentation/pages/track_deep_link_bridge_page.dart
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_cubit.dart';
 
 // Project — library
+import '../features/library/presentation/pages/downloaded_items_page.dart';
 import '../features/library/presentation/pages/library_page.dart';
 import '../features/playlists/presentation/bloc/playlists_cubit.dart';
+import '../features/playlists/domain/entities/playlist_entity.dart';
 import '../features/playlists/presentation/pages/playlist_detail_page.dart';
 import '../features/playlists/presentation/pages/playlists_page.dart';
 
@@ -221,6 +223,22 @@ GoRouter _createRouter() {
         name: 'library',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: LibraryPage()),
+      ),
+      GoRoute(
+        path: '/library/downloads/tracks',
+        name: 'downloaded-tracks',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: DownloadedTracksPage(),
+        ),
+      ),
+      GoRoute(
+        path: '/library/downloads/playlists',
+        name: 'downloaded-playlists',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: DownloadedPlaylistsPage(),
+        ),
       ),
 
       // ── Upload picker ───────────────────────────────────────────────────────
@@ -469,10 +487,16 @@ GoRouter _createRouter() {
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final playlistId = state.pathParameters['playlistId'] ?? '';
+          final initialPlaylist = state.extra is PlaylistEntity
+              ? state.extra as PlaylistEntity
+              : null;
           return MaterialPage(
             child: BlocProvider<PlaylistsCubit>(
               create: (_) => getIt<PlaylistsCubit>(),
-              child: PlaylistDetailPage(playlistId: playlistId),
+              child: PlaylistDetailPage(
+                playlistId: playlistId,
+                initialPlaylist: initialPlaylist,
+              ),
             ),
           );
         },

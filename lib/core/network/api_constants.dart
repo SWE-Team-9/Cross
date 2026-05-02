@@ -63,6 +63,9 @@ abstract class ApiConstants {
       '/api/v1/player/tracks/$trackId/play';
   static const String listeningHistoryPath = '/api/v1/player/me/history';
   static const String discoverySearchPath = '/api/v1/discovery/search';
+  static const String discoveryTrendingPath = '/api/v1/discovery/trending';
+  static String discoveryTrendingGenreTracksPath(String genreSlug) =>
+      '/api/v1/discovery/trending/genres/$genreSlug/tracks';
 
   // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';
@@ -91,7 +94,7 @@ abstract class ApiConstants {
   static const String myRepostedTracks = '/api/v1/interactions/me/reposts';
 
   static String likePlaylistPath(String playlistId) =>
-      '$interactionsBase/playlists/$playlistId/like';
+      '$playlistsBase/$playlistId/like';
 
   // ── Messaging ─────────────────────────────────────────────────────────────
   static const String messagingBase = '/api/v1/messages';
@@ -129,6 +132,7 @@ abstract class ApiConstants {
   static const String myPlaylists = '$playlistsBase/me';
   static const String myLikedPlaylists = '$playlistsBase/me/liked';
   static const String recentPlaylists = '$playlistsBase/recent';
+  static const String topPlaylists = '$playlistsBase/top';
 
   static String playlistByIdPath(String playlistId) =>
       '$playlistsBase/$playlistId';
@@ -152,6 +156,8 @@ abstract class ApiConstants {
   static String resolveSecretPlaylistPath(String secretToken) =>
       '$playlistsBase/secret/$secretToken';
 
+  static String playlistPlayPath(String playlistId) =>
+      '${playlistByIdPath(playlistId)}/play';
   static String playlistEmbedPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/embed';
 }

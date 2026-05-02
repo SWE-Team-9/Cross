@@ -11,12 +11,14 @@ class CreatePlaylistUseCase {
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
   }) {
     return repository.createPlaylist(
       title: title,
       description: description,
       visibility: visibility,
       initialTrackIds: initialTrackIds,
+      genre: genre,
     );
   }
 }

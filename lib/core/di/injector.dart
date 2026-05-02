@@ -96,16 +96,18 @@ import '../../features/playlists/domain/usecases/get_playlist_details_usecase.da
 import '../../features/playlists/domain/usecases/get_playlist_edit_details_usecase.dart';
 import '../../features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
 import '../../features/playlists/domain/usecases/get_recent_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/get_liked_playlists_usecase.dart';
+import '../../features/playlists/domain/usecases/get_top_playlists_usecase.dart';
 import '../../features/playlists/domain/usecases/like_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
+import '../../features/playlists/domain/usecases/record_playlist_playback_usecase.dart';
 import '../../features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/update_playlist_usecase.dart';
 import '../../features/playlists/domain/usecases/upload_playlist_cover_usecase.dart';
 import '../../features/playlists/presentation/bloc/playlists_cubit.dart';
-
-// Comments
+import '../../features/library/presentation/bloc/library_cubit.dart';
 import '../../features/comments/data/datasources/comments_remote_data_source.dart';
 import '../../features/comments/data/repositories/comments_repository_impl.dart';
 import '../../features/comments/domain/repositories/comments_repository.dart';
@@ -909,6 +911,18 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<GetLikedPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetLikedPlaylistsUseCase>(
+      () => GetLikedPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTopPlaylistsUseCase>()) {
+    getIt.registerLazySingleton<GetTopPlaylistsUseCase>(
+      () => GetTopPlaylistsUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<LikePlaylistUseCase>()) {
     getIt.registerLazySingleton<LikePlaylistUseCase>(
       () => LikePlaylistUseCase(getIt<PlaylistsRepository>()),
@@ -920,6 +934,13 @@ Future<void> setupDependencies() async {
       () => UnlikePlaylistUseCase(getIt<PlaylistsRepository>()),
     );
   }
+
+  if (!getIt.isRegistered<RecordPlaylistPlaybackUseCase>()) {
+    getIt.registerLazySingleton<RecordPlaylistPlaybackUseCase>(
+      () => RecordPlaylistPlaybackUseCase(getIt<PlaylistsRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<DeletePlaylistUseCase>()) {
     getIt.registerLazySingleton<DeletePlaylistUseCase>(
       () => DeletePlaylistUseCase(getIt<PlaylistsRepository>()),
@@ -973,6 +994,16 @@ Future<void> setupDependencies() async {
         getPlaylistEmbedCodeUseCase: getIt<GetPlaylistEmbedCodeUseCase>(),
         likePlaylistUseCase: getIt<LikePlaylistUseCase>(),
         unlikePlaylistUseCase: getIt<UnlikePlaylistUseCase>(),
+        recordPlaylistPlaybackUseCase: getIt<RecordPlaylistPlaybackUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<LibraryCubit>()) {
+    getIt.registerFactory<LibraryCubit>(
+      () => LibraryCubit(
+        getRecentPlaylistsUseCase: getIt<GetRecentPlaylistsUseCase>(),
+        getLikedPlaylistsUseCase: getIt<GetLikedPlaylistsUseCase>(),
       ),
     );
   }

@@ -21,6 +21,9 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubi
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
+import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 
 // ─── Fakes & Mocks ────────────────────────────────────────────────────────────
@@ -78,6 +81,8 @@ class MockGetUnreadCountUseCase extends Mock implements GetUnreadCountUseCase {}
 class MockConnectMessagingSocketUseCase extends Mock
     implements ConnectMessagingSocketUseCase {}
 
+class MockProfileRepository extends Mock implements ProfileRepository {}
+
 // ─── Shared test user ─────────────────────────────────────────────────────────
 
 const _testUser = User(
@@ -97,6 +102,7 @@ Future<void> _setUp() async {
 
   final getUnreadCountUseCase = MockGetUnreadCountUseCase();
   final connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+  final profileRepository = MockProfileRepository();
 
   audioService = FakeAudioPlayerService();
 
@@ -109,8 +115,40 @@ Future<void> _setUp() async {
   when(() => connectMessagingSocketUseCase.eventsStream).thenAnswer(
     (_) => const Stream<RealtimeMessageEventEntity>.empty(),
   );
+  when(() => profileRepository.getMyProfile()).thenAnswer(
+    (_) async => const ProfileEntity(
+      id: 'profile_1',
+      displayName: 'Test User',
+      handle: 'testuser',
+      accountTier: AccountTier.LISTENER,
+      favoriteGenres: <String>['electronic', 'hip-hop', 'pop'],
+      externalLinks: <String, String>{},
+      visibility: ProfileVisibility.PUBLIC,
+      followersCount: 0,
+      followingCount: 0,
+    ),
+  );
+
+  when(() => profileRepository.getProfile(any())).thenAnswer(
+    (_) async => const ProfileEntity(
+      id: 'profile_1',
+      displayName: 'Test User',
+      handle: 'testuser',
+      accountTier: AccountTier.LISTENER,
+      favoriteGenres: <String>['electronic', 'hip-hop', 'pop'],
+      externalLinks: <String, String>{},
+      visibility: ProfileVisibility.PUBLIC,
+      followersCount: 0,
+      followingCount: 0,
+    ),
+  );
+
+  when(() => profileRepository.getUserTracks(any())).thenAnswer(
+    (_) async => const <ManagedTrack>[],
+  );
 
   GetIt.I.registerSingleton<AudioPlayerService>(audioService);
+  GetIt.I.registerSingleton<ProfileRepository>(profileRepository);
 
   GetIt.I.registerSingleton<RecentlyPlayedCubit>(
     RecentlyPlayedCubit(),
@@ -243,7 +281,7 @@ void main() {
 
       expect(find.textContaining('More of what you like'), findsOneWidget);
       expect(find.textContaining('Mixed for you'), findsOneWidget);
-      expect(find.textContaining('Trending by genre'), findsOneWidget);
+      expect(find.textContaining('Your favorite genres'), findsOneWidget);
     });
   });
 
@@ -466,7 +504,7 @@ void main() {
 
     expect(find.text('Home'), findsWidgets);
     expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
-    expect(find.text('Trending by genre'), findsOneWidget);
+    expect(find.text('Your favorite genres'), findsOneWidget);
   });
 }
 

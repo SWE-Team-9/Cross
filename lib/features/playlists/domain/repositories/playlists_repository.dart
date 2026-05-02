@@ -10,14 +10,23 @@ abstract class PlaylistsRepository {
     int limit = 10,
   });
 
+  Future<List<PlaylistEntity>> getTopPlaylists({
+    int limit = 10,
+  });
+
   Future<PlaylistEntity> createPlaylist({
     required String title,
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
   });
 
-  Future<PlaylistEntity> getPlaylistDetails(String playlistId);
+  Future<PlaylistEntity> getPlaylistDetails(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  });
 
   Future<PlaylistEntity> getPlaylistEditDetails(String playlistId);
 
@@ -26,8 +35,11 @@ abstract class PlaylistsRepository {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
   });
-
   Future<String?> uploadPlaylistCover({
     required String playlistId,
     required String filePath,
@@ -49,6 +61,9 @@ abstract class PlaylistsRepository {
   Future<void> likePlaylist(String playlistId);
 
   Future<void> unlikePlaylist(String playlistId);
+
+  Future<void> recordPlaylistPlayback(String playlistId);
+
   Future<void> addTrackToPlaylist({
     required String playlistId,
     required String trackId,
@@ -66,5 +81,13 @@ abstract class PlaylistsRepository {
 
   Future<PlaylistEntity> resolveSecretPlaylist(String secretToken);
 
-  Future<String> getPlaylistEmbedCode(String playlistId);
+  Future<String> getPlaylistEmbedCode(
+    String playlistId, {
+    String? theme,
+    bool? autoplay,
+    int? start,
+    bool? hideArtwork,
+    int? width,
+    int? height,
+  });
 }
