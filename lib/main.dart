@@ -2,7 +2,6 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
-import 'package:soundcloud_clone/features/premium/premium_di.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 
 import 'app/app.dart';
@@ -26,8 +25,6 @@ void main() async {
   );
 
   await setupDependencies();
-
-  registerPremiumDependencies(getIt);
 
   await getIt<DeepLinkService>().init();
 
