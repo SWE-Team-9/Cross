@@ -29,6 +29,8 @@ const List<String> supportedFavoriteGenreSlugs = [
   'world',
   'gospel',
   'spoken-word',
+  'sha3by',
+  'islamic',
 ];
 
 String normalizeFavoriteGenreSlug(String genre) {
@@ -39,6 +41,8 @@ String normalizeFavoriteGenreSlug(String genre) {
     'drum & bass' => 'drum-bass',
     'deep house' => 'deep-house',
     'spoken word' => 'spoken-word',
+    'sha3by' => 'sha3by',
+    'islamic' => 'islamic',
     'folk / singer-songwriter' ||
     'folk singer songwriter' =>
       'folk-singer-songwriter',
@@ -69,6 +73,10 @@ String favoriteGenreLabel(String value) {
       return 'Lo-fi';
     case 'spoken-word':
       return 'Spoken Word';
+    case 'sha3by':
+      return 'Sha3by';
+    case 'islamic':
+      return 'Islamic';
     case 'folk-singer-songwriter':
       return 'Folk / Singer-Songwriter';
     default:

@@ -6,7 +6,15 @@ class GetPlaylistDetailsUseCase {
 
   GetPlaylistDetailsUseCase(this.repository);
 
-  Future<PlaylistEntity> call(String playlistId) {
-    return repository.getPlaylistDetails(playlistId);
+  Future<PlaylistEntity> call(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  }) {
+    return repository.getPlaylistDetails(
+      playlistId,
+      limit: limit,
+      offset: offset,
+    );
   }
 }

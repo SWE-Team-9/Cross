@@ -4,151 +4,153 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
-
-import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_cubit.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_state.dart';
 import 'package:soundcloud_clone/features/library/presentation/pages/library_page.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
-
-class FakeAudioPlayerService implements AudioPlayerService {
-  double _currentVolume = 1;
-
-  @override
-  Stream<PlayerState> get playerStateStream =>
-      const Stream<PlayerState>.empty();
-
-  @override
-  Future<void> play(Track track) async {}
-
-  @override
-  Future<void> pause() async {}
-
-  @override
-  Future<void> resume() async {}
-
-  @override
-  Future<void> stop() async {}
-
-  @override
-  Future<void> seek(Duration position) async {}
-
-  @override
-  Future<void> setVolume(double volume) async {
-    _currentVolume = volume;
-  }
-
-  @override
-  Future<void> setRepeatMode(AppRepeatMode mode) async {}
-
-  @override
-  double get currentVolume => _currentVolume;
-
-  @override
-  Future<void> dispose() async {}
-  @override
-  Future<void> playLocalFile(String path) async {}
-  @override
-  Future<void> playFromContext({
-    required List<Track> tracks,
-    required int startIndex,
-    required String source,
-  }) async {}
-}
+import 'package:soundcloud_clone/core/models/player_state.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
+class MockPlayerCubit extends Mock implements PlayerCubit {}
+
+class MockRecentlyPlayedCubit extends MockCubit<List<Track>>
+    implements RecentlyPlayedCubit {}
+
+class MockLibraryCubit extends MockCubit<LibraryState>
+    implements LibraryCubit {}
+
 void main() {
-  late MockAuthCubit mockAuthCubit;
+  late MockAuthCubit authCubit;
+  late MockPlayerCubit playerCubit;
+  late MockRecentlyPlayedCubit recentlyPlayedCubit;
+  late MockLibraryCubit libraryCubit;
 
-  setUp(() async {
-    await GetIt.I.reset();
+  setUp(() {
+    authCubit = MockAuthCubit();
+    playerCubit = MockPlayerCubit();
+    recentlyPlayedCubit = MockRecentlyPlayedCubit();
+    libraryCubit = MockLibraryCubit();
 
-    GetIt.I.registerSingleton<AudioPlayerService>(
-      FakeAudioPlayerService(),
+    when(() => authCubit.state).thenReturn(
+      AuthAuthenticated(_user()),
     );
-
-    // 🔥 FIX: Register ONE shared cubit instance
-    GetIt.I.registerSingleton<RecentlyPlayedCubit>(
-      RecentlyPlayedCubit(),
-    );
-
-    mockAuthCubit = MockAuthCubit();
-
-    when(() => mockAuthCubit.state).thenReturn(
-      AuthAuthenticated(
-        const User(
-          id: '1',
-          email: 'test@example.com',
-          handle: 'test',
-          displayName: 'Test User',
-          avatarUrl: null,
+    when(() => playerCubit.state).thenReturn(
+      const PlayerUIState(
+        playerState: PlayerState(
+          status: PlayerStatus.idle,
+          position: Duration.zero,
         ),
       ),
     );
+    when(() => recentlyPlayedCubit.state).thenReturn(const <Track>[]);
+    when(() => recentlyPlayedCubit.loadListeningHistory()).thenAnswer(
+      (_) async {},
+    );
+    when(() => libraryCubit.state).thenReturn(
+      LibraryState.initial().copyWith(
+        likedPlaylists: [
+          _playlist(id: 'liked_1', title: 'Liked Playlist'),
+        ],
+        recentPlaylists: [
+          _playlist(id: 'recent_1', title: 'Recent Playlist'),
+        ],
+      ),
+    );
+    when(() => libraryCubit.loadLibraryPlaylists()).thenAnswer((_) async {});
+
+    GetIt.I.registerSingleton<RecentlyPlayedCubit>(recentlyPlayedCubit);
+    GetIt.I.registerSingleton<LibraryCubit>(libraryCubit);
   });
 
   tearDown(() async {
     await GetIt.I.reset();
   });
 
-  Widget buildTestWidget() {
-    return MaterialApp(
-      home: MultiBlocProvider(
-        providers: [
-          BlocProvider<AuthCubit>.value(
-            value: mockAuthCubit,
+  group('LibraryPage', () {
+    testWidgets('renders playlist sections from LibraryCubit', (tester) async {
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthCubit>.value(value: authCubit),
+            BlocProvider<PlayerCubit>.value(value: playerCubit),
+          ],
+          child: const MaterialApp(
+            home: LibraryPage(),
           ),
-          BlocProvider<PlayerCubit>(
-            create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.text('Library'), findsWidgets);
+      expect(find.text('Liked playlists'), findsOneWidget);
+      expect(find.text('Liked Playlist'), findsOneWidget);
+      expect(find.text('Recently played playlists'), findsOneWidget);
+      expect(find.text('Recent Playlist'), findsOneWidget);
+
+      verify(() => recentlyPlayedCubit.loadListeningHistory()).called(1);
+      verify(() => libraryCubit.loadLibraryPlaylists()).called(1);
+    });
+
+    testWidgets('shows empty playlist messages from empty LibraryCubit state',
+        (tester) async {
+      when(() => libraryCubit.state).thenReturn(LibraryState.initial());
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthCubit>.value(value: authCubit),
+            BlocProvider<PlayerCubit>.value(value: playerCubit),
+          ],
+          child: const MaterialApp(
+            home: LibraryPage(),
           ),
+        ),
+      );
 
-          // 🔥 FIX: Use SAME cubit from GetIt
-          BlocProvider<RecentlyPlayedCubit>.value(
-            value: GetIt.I<RecentlyPlayedCubit>(),
-          ),
-        ],
-        child: const LibraryPage(),
-      ),
-    );
-  }
+      await tester.pump();
 
-  testWidgets('LibraryPage builds without crashing', (tester) async {
-    await tester.pumpWidget(buildTestWidget());
-    await tester.pumpAndSettle();
-
-    expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.text('Library'), findsNWidgets(2));
+      expect(find.text('No liked playlists yet'), findsOneWidget);
+      expect(find.text('No recently played playlists yet'), findsOneWidget);
+      expect(find.text('No recently played tracks yet'), findsOneWidget);
+    });
   });
+}
 
-  testWidgets('shows empty state when no tracks', (tester) async {
-    await tester.pumpWidget(buildTestWidget());
-    await tester.pumpAndSettle();
+User _user() {
+  return const User(
+    id: 'user_1',
+    email: 'user@example.com',
+    displayName: 'Ali',
+    handle: 'ali',
+    isVerified: true,
+  );
+}
 
-    expect(find.textContaining('No recently'), findsOneWidget);
-  });
-
-  testWidgets('shows recently played content when tracks exist',
-      (tester) async {
-    final cubit = GetIt.I<RecentlyPlayedCubit>();
-
-    await tester.pumpWidget(buildTestWidget());
-
-    cubit.addTrack(
-      const Track(
-        id: '1',
-        title: 'Test Song',
-        artist: 'Test Artist',
-        audioUrl: 'url',
-      ),
-    );
-
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('No recently'), findsNothing);
-  });
+PlaylistEntity _playlist({
+  required String id,
+  required String title,
+}) {
+  return PlaylistEntity(
+    playlistId: id,
+    title: title,
+    description: '',
+    visibility: PlaylistVisibility.publicPlaylist,
+    secretToken: null,
+    coverImageUrl: null,
+    owner: const PlaylistOwner(
+      id: 'owner_1',
+      displayName: 'Owner One',
+    ),
+    tracks: const [],
+    tracksCount: 0,
+    likesCount: 0,
+  );
 }

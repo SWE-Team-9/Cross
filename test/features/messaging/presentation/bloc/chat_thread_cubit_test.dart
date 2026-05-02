@@ -241,6 +241,37 @@ void main() {
       );
     });
 
+    test('loadMore emits error on failure', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((invocation) async {
+        final requestedPage = invocation.namedArguments[#page] as int;
+        if (requestedPage == 1) {
+          return page(
+            pageNumber: 1,
+            limit: 1,
+            messages: <MessageEntity>[message('message-1')],
+          );
+        }
+        throw Exception('load more failed');
+      });
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await cubit.loadMore();
+
+      expect(cubit.state.isLoadingMore, isFalse);
+      expect(cubit.state.errorMessage, contains('load more failed'));
+      expect(cubit.state.messages.single.id, 'message-1');
+    });
+
     test('sendText trims text, sends message, and appends result', () async {
       when(
         () => getConversationMessagesUseCase(
@@ -367,6 +398,35 @@ void main() {
       expect(cubit.state.messages.single.isDeleted, isFalse);
     });
 
+    test('sendText rolls back optimistic message on failure', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+
+      when(
+        () => sendTextMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          text: any(named: 'text'),
+        ),
+      ).thenThrow(Exception('send failed'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+        currentUserId: 'sender-1',
+      );
+
+      await cubit.sendText('Nope');
+
+      expect(cubit.state.isSending, isFalse);
+      expect(cubit.state.messages, isEmpty);
+      expect(cubit.state.errorMessage, contains('send failed'));
+    });
+
     test('socket echo replaces matching optimistic message', () async {
       when(
         () => getConversationMessagesUseCase(
@@ -456,6 +516,237 @@ void main() {
       expect(cubit.state.errorMessage, 'You cannot message this user.');
     });
 
+    test('sendText returns early when receiver is unknown', () async {
+      await cubit.sendText('Hello');
+
+      verifyNever(
+        () => sendTextMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          text: any(named: 'text'),
+        ),
+      );
+    });
+
+    test('shareTrack sends trimmed track id and appends result', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+      when(
+        () => shareTrackMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          trackId: any(named: 'trackId'),
+          text: any(named: 'text'),
+        ),
+      ).thenAnswer((_) async => message('shared-track'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await cubit.shareTrack(' track-1 ', text: 'listen');
+
+      expect(cubit.state.isSending, isFalse);
+      expect(cubit.state.messages.single.id, 'shared-track');
+      verify(
+        () => shareTrackMessageUseCase(
+          receiverId: 'receiver-1',
+          trackId: 'track-1',
+          text: 'listen',
+        ),
+      ).called(1);
+    });
+
+    test('shareTrack reports unavailable use case', () async {
+      final localCubit = ChatThreadCubit(
+        getConversationMessagesUseCase: getConversationMessagesUseCase,
+        sendTextMessageUseCase: sendTextMessageUseCase,
+        markConversationReadUseCase: markConversationReadUseCase,
+        deleteMessageUseCase: deleteMessageUseCase,
+        connectMessagingSocketUseCase: connectMessagingSocketUseCase,
+      );
+      addTearDown(localCubit.close);
+
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page());
+
+      await localCubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await localCubit.shareTrack('track-1');
+
+      expect(
+        localCubit.state.errorMessage,
+        'Track sharing is not available right now.',
+      );
+    });
+
+    test('shareTrack handles blank ids, blocked state, and failure', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+      when(
+        () => shareTrackMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          trackId: any(named: 'trackId'),
+          text: any(named: 'text'),
+        ),
+      ).thenThrow(Exception('share failed'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await cubit.shareTrack('   ');
+      verifyNever(
+        () => shareTrackMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          trackId: any(named: 'trackId'),
+          text: any(named: 'text'),
+        ),
+      );
+
+      await cubit.shareTrack('track-1');
+      expect(cubit.state.isSending, isFalse);
+      expect(cubit.state.errorMessage, contains('share failed'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+        canMessage: false,
+      );
+      await cubit.shareTrack('track-1');
+
+      expect(cubit.state.errorMessage, 'You cannot message this user.');
+    });
+
+    test('sharePlaylist sends trimmed playlist id and appends result',
+        () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+      when(
+        () => sharePlaylistMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          playlistId: any(named: 'playlistId'),
+          text: any(named: 'text'),
+        ),
+      ).thenAnswer((_) async => message('shared-playlist'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await cubit.sharePlaylist(' playlist-1 ', text: 'mix');
+
+      expect(cubit.state.isSending, isFalse);
+      expect(cubit.state.messages.single.id, 'shared-playlist');
+      verify(
+        () => sharePlaylistMessageUseCase(
+          receiverId: 'receiver-1',
+          playlistId: 'playlist-1',
+          text: 'mix',
+        ),
+      ).called(1);
+    });
+
+    test('sharePlaylist reports unavailable use case', () async {
+      final localCubit = ChatThreadCubit(
+        getConversationMessagesUseCase: getConversationMessagesUseCase,
+        sendTextMessageUseCase: sendTextMessageUseCase,
+        markConversationReadUseCase: markConversationReadUseCase,
+        deleteMessageUseCase: deleteMessageUseCase,
+        connectMessagingSocketUseCase: connectMessagingSocketUseCase,
+      );
+      addTearDown(localCubit.close);
+
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page());
+
+      await localCubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await localCubit.sharePlaylist('playlist-1');
+
+      expect(
+        localCubit.state.errorMessage,
+        'Playlist sharing is not available right now.',
+      );
+    });
+
+    test('sharePlaylist handles blank ids, blocked state, and failure',
+        () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+      when(
+        () => sharePlaylistMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          playlistId: any(named: 'playlistId'),
+          text: any(named: 'text'),
+        ),
+      ).thenThrow(Exception('playlist share failed'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await cubit.sharePlaylist('   ');
+      verifyNever(
+        () => sharePlaylistMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          playlistId: any(named: 'playlistId'),
+          text: any(named: 'text'),
+        ),
+      );
+
+      await cubit.sharePlaylist('playlist-1');
+      expect(cubit.state.isSending, isFalse);
+      expect(cubit.state.errorMessage, contains('playlist share failed'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+        canMessage: false,
+      );
+      await cubit.sharePlaylist('playlist-1');
+
+      expect(cubit.state.errorMessage, 'You cannot message this user.');
+    });
+
     test('deleteMessage marks message as deleted, then removes placeholder',
         () async {
       when(
@@ -498,6 +789,53 @@ void main() {
       expect(cubit.state.messages.map((m) => m.id), ['message-2']);
     });
 
+    test('deleteMessage emits error on failure', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[message('m')]));
+      when(() => deleteMessageUseCase(any())).thenThrow(
+        Exception('delete failed'),
+      );
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await cubit.deleteMessage('m');
+
+      expect(cubit.state.messages.single.isDeleted, isFalse);
+      expect(cubit.state.errorMessage, contains('delete failed'));
+    });
+
+    test('markCurrentConversationAsRead returns early and swallows failures',
+        () async {
+      await cubit.markCurrentConversationAsRead();
+      verifyNever(() => markConversationReadUseCase(any()));
+
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page());
+      when(
+        () => markConversationReadUseCase(any()),
+      ).thenThrow(Exception('read failed'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      expect(cubit.state.errorMessage, isNull);
+    });
+
     test('socket newMessage appends matching conversation message', () async {
       when(
         () => getConversationMessagesUseCase(
@@ -523,6 +861,48 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(cubit.state.messages.single.id, 'socket-message');
+    });
+
+    test('socket newMessage ignores unrelated, null, and duplicate messages',
+        () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[message('m')]));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      socketController
+        ..add(
+          RealtimeMessageEventEntity(
+            type: RealtimeMessageEventType.newMessage,
+            conversationId: 'other-conversation',
+            message: message('ignored', conversationId: 'other-conversation'),
+          ),
+        )
+        ..add(
+          const RealtimeMessageEventEntity(
+            type: RealtimeMessageEventType.newMessage,
+            conversationId: 'conversation-1',
+          ),
+        )
+        ..add(
+          RealtimeMessageEventEntity(
+            type: RealtimeMessageEventType.newMessage,
+            conversationId: 'conversation-1',
+            message: message('m'),
+          ),
+        );
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.messages.map((m) => m.id), ['m']);
     });
 
     test('socket messageDeleted marks matching message as deleted', () async {
@@ -562,6 +942,33 @@ void main() {
       expect(deleted.isDeleted, isTrue);
     });
 
+    test('socket messageDeleted ignores an empty id', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[message('m')]));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      socketController.add(
+        const RealtimeMessageEventEntity(
+          type: RealtimeMessageEventType.messageDeleted,
+          conversationId: 'conversation-1',
+          messageId: '',
+        ),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.messages.single.isDeleted, isFalse);
+    });
+
     test('socket userBlocked disables sending and emits error', () async {
       when(
         () => getConversationMessagesUseCase(
@@ -596,6 +1003,97 @@ void main() {
           text: any(named: 'text'),
         ),
       );
+    });
+
+    test('socket userUnblocked re-enables sending', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+      when(
+        () => sendTextMessageUseCase(
+          receiverId: any(named: 'receiverId'),
+          text: any(named: 'text'),
+        ),
+      ).thenAnswer((_) async => message('sent'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      socketController
+        ..add(
+          const RealtimeMessageEventEntity(
+            type: RealtimeMessageEventType.userBlocked,
+            conversationId: 'conversation-1',
+          ),
+        )
+        ..add(
+          const RealtimeMessageEventEntity(
+            type: RealtimeMessageEventType.userUnblocked,
+            conversationId: 'conversation-1',
+          ),
+        );
+      await Future<void>.delayed(Duration.zero);
+
+      await cubit.sendText('Hello again');
+
+      expect(cubit.state.errorMessage, isNull);
+      expect(cubit.state.messages.single.id, 'sent');
+    });
+
+    test('socket status and errors update connection state', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page());
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      socketController
+        ..add(
+          const RealtimeMessageEventEntity(
+            type: RealtimeMessageEventType.unknown,
+            conversationId: 'conversation-1',
+          ),
+        )
+        ..addError(Exception('socket failed'));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.isSocketConnected, isFalse);
+      expect(cubit.state.errorMessage, contains('socket failed'));
+    });
+
+    test('load records socket connection failures', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page());
+      when(
+        () => connectMessagingSocketUseCase(),
+      ).thenThrow(Exception('connect failed'));
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      expect(cubit.state.isSocketConnected, isFalse);
+      expect(cubit.state.errorMessage, contains('connect failed'));
     });
   });
 }

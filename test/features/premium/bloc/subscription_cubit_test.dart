@@ -44,4 +44,36 @@ void main() {
     act: (cubit) => cubit.upgrade('PRO'),
     expect: () => [], // ✅ FIX
   );
+  blocTest<SubscriptionCubit, Subscription?>(
+    'refreshAfterPayment reloads subscription',
+    build: () {
+      when(() => repo.getMySubscription()).thenAnswer((_) async => freeSub);
+      return cubit;
+    },
+    act: (cubit) => cubit.refreshAfterPayment(),
+    expect: () => [freeSub],
+  );
+
+  blocTest<SubscriptionCubit, Subscription?>(
+    'cancel resume and changePlan reload subscription state',
+    build: () {
+      when(() => repo.cancelSubscription()).thenAnswer((_) async {});
+      when(() => repo.resumeSubscription()).thenAnswer((_) async {});
+      when(() => repo.changePlan('PRO')).thenAnswer((_) async {});
+      when(() => repo.getMySubscription()).thenAnswer((_) async => freeSub);
+      return cubit;
+    },
+    act: (cubit) async {
+      await cubit.cancel();
+      await cubit.resume();
+      await cubit.changePlan('PRO');
+    },
+    expect: () => [freeSub],
+  );
+
+  test('openBillingPortal delegates to repository', () async {
+    when(() => repo.openPortal()).thenAnswer((_) async => 'https://portal');
+
+    expect(await cubit.openBillingPortal(), 'https://portal');
+  });
 }
