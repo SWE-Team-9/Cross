@@ -11,7 +11,11 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_i
 import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_interaction_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
-
+import 'package:go_router/go_router.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
 import '../../features/playback/presentation/widgets/add_to_playlist_sheet.dart';
 
 class TrackOptionsSheet extends StatelessWidget {
@@ -188,6 +192,10 @@ class TrackOptionsSheet extends StatelessWidget {
                       );
                     },
                   ),
+                  _DownloadOptionTile(
+                    track: track,
+                    parentContext: parentContext,
+                  ),
                   _OptionTile(
                     icon: Icons.playlist_add,
                     label: 'Add to playlist',
@@ -195,8 +203,8 @@ class TrackOptionsSheet extends StatelessWidget {
                       Navigator.pop(context);
                       AddToPlaylistSheet.show(context, track: track);
                     },
-                  ),
-                  _OptionTile(
+                  ),              
+                      _OptionTile(
                     icon: interactionState.isReposted
                         ? Icons.repeat
                         : Icons.repeat_outlined,
@@ -295,6 +303,150 @@ class TrackOptionsSheet extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       duration: const Duration(seconds: 2),
       content: Text(message, style: const TextStyle(color: Colors.white)),
+    );
+  }
+}
+class _DownloadOptionTile extends StatelessWidget {
+  const _DownloadOptionTile({
+    required this.track,
+    required this.parentContext,
+  });
+
+  final Track track;
+  final BuildContext parentContext;
+
+  @override
+  Widget build(BuildContext context) {
+    final subscriptionCubit = _lookupCubit<SubscriptionCubit>(parentContext);
+    final offlineCubit = _lookupCubit<OfflineCubit>(parentContext);
+
+    if (subscriptionCubit == null || offlineCubit == null) {
+      return const SizedBox.shrink();
+    }
+
+    return BlocBuilder<SubscriptionCubit, SubscriptionState>(
+      bloc: subscriptionCubit,
+      builder: (context, subscriptionState) {
+        if (subscriptionState.isInitial || subscriptionState.isLoading) {
+          return const SizedBox.shrink();
+        }
+
+        if (!subscriptionState.subscription.canDownload) {
+          return _OptionTile(
+            icon: Icons.workspace_premium_rounded,
+            label: 'Download requires Premium',
+            onTap: () {
+              Navigator.pop(context);
+              _showSnackBar(
+                parentContext,
+                'Upgrade required for offline downloads',
+              );
+              _openUpgradePage(parentContext);
+            },
+          );
+        }
+
+        return BlocBuilder<OfflineCubit, OfflineState>(
+          bloc: offlineCubit,
+          builder: (context, _) {
+            final isDownloaded = offlineCubit.isDownloaded(track.id);
+
+            return _OptionTile(
+              icon: isDownloaded
+                  ? Icons.download_done_rounded
+                  : Icons.download_for_offline_outlined,
+              label: isDownloaded
+                  ? 'Downloaded for offline'
+                  : 'Download for offline',
+              onTap: () async {
+                Navigator.pop(context);
+
+                if (isDownloaded) {
+                  _showSnackBar(parentContext, 'Music already downloaded');
+                  return;
+                }
+
+                try {
+                  await offlineCubit.downloadTrack(track);
+
+                  if (!parentContext.mounted) return;
+
+                  _showSnackBar(parentContext, 'Saved for offline listening');
+                } catch (error) {
+                  if (!parentContext.mounted) return;
+
+                  if (_isUpgradeRequired(error)) {
+                    _showSnackBar(
+                      parentContext,
+                      'Upgrade required for offline downloads',
+                    );
+                    _openUpgradePage(parentContext);
+                    return;
+                  }
+
+                  _showSnackBar(
+                    parentContext,
+                    'Download failed',
+                    isError: true,
+                  );
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  T? _lookupCubit<T extends Object>(BuildContext context) {
+    try {
+      return context.read<T>();
+    } catch (_) {
+      if (getIt.isRegistered<T>()) return getIt<T>();
+      return null;
+    }
+  }
+
+  bool _isUpgradeRequired(Object error) {
+    final text = error.toString().toUpperCase();
+
+    return text.contains('UPGRADE_REQUIRED') ||
+        text.contains('PREMIUM') ||
+        text.contains('SUBSCRIPTION') ||
+        text.contains('403') ||
+        text.contains('401');
+  }
+
+  void _openUpgradePage(BuildContext context) {
+    try {
+      context.push('/upgrade');
+    } catch (_) {
+      _showSnackBar(context, 'Upgrade required for offline downloads');
+    }
+  }
+
+  void _showSnackBar(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF333333),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: isError ? Colors.redAccent : const Color(0xFFFF5500),
+          ),
+        ),
+        duration: const Duration(seconds: 2),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
     );
   }
 }
