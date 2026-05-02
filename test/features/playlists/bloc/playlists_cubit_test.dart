@@ -599,7 +599,7 @@ void main() {
             title: 'Renamed',
             description: null,
             visibility: null,
-            genreId: null,
+            genre: null,
           ),
         ).thenAnswer((_) async {});
         when(() => details('pl_1'))
@@ -636,7 +636,7 @@ void main() {
           title: 'New',
           description: null,
           visibility: null,
-          genreId: null,
+          genre: null,
         ),
       ).thenThrow(Exception('400 validation failed'));
       final cubit = buildCubit();
@@ -704,20 +704,22 @@ void main() {
           title: 'Renamed',
           description: 'Updated description',
           visibility: null,
-          genreId: null,
+          genre: 'electronic',
+          playlistType: null,
+          releaseDate: null,
+          tags: null,
         ),
       ).thenAnswer((_) async {});
-
       when(() => details('pl_1')).thenAnswer(
         (_) async => _playlist(id: 'pl_1', title: 'Renamed'),
       );
 
       final cubit = buildCubit();
-
       await cubit.updatePlaylist(
         playlistId: 'pl_1',
         title: '  Renamed  ',
         description: '  Updated description  ',
+        genre: ' electronic ',
       );
 
       verify(
@@ -726,7 +728,10 @@ void main() {
           title: 'Renamed',
           description: 'Updated description',
           visibility: null,
-          genreId: null,
+          genre: 'electronic',
+          playlistType: null,
+          releaseDate: null,
+          tags: null,
         ),
       ).called(1);
     });
