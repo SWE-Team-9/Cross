@@ -18,7 +18,7 @@ import 'package:soundcloud_clone/features/messaging/presentation/routes/messagin
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_top_playlists_usecase.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
-
+import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
 import '/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
@@ -428,10 +428,15 @@ class _MockHomePageState extends State<MockHomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const PremiumAwareAdBanner(
+                            title: 'Ad-free listening is one tap away',
+                            subtitle:
+                                'Go Premium to remove sponsored cards, save music offline, and unlock more uploads.',
+                            actionLabel: 'Upgrade',
+                          ),
                           const _SectionHeader(title: 'More of what you like'),
                           const _RelatedTracksRow(),
-                          _PlaylistShelf(
-                            title: 'Top playlists',
+                          _PlaylistShelf(                            title: 'Top playlists',
                             loading: _isLoadingTopPlaylists,
                             playlists: _topPlaylists,
                             showLikesCount: true,
