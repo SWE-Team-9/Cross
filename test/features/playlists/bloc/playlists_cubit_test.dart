@@ -481,7 +481,7 @@ void main() {
             trackId: 'trk_99',
           ),
         ).thenAnswer((_) async {});
-        when(() => details('pl_1'))
+        when(() => details('pl_1', limit: 50, offset: 0))
             .thenAnswer((_) async => _playlist(id: 'pl_1', count: 4));
         return buildCubit();
       },
@@ -569,10 +569,15 @@ void main() {
       verifyZeroInteractions(addTrack);
     });
     blocTest<PlaylistsCubit, PlaylistsState>(
-      'loadPlaylistDetails upserts selected playlist',
+      'loadPlaylistDetails loads first track page and stores pagination metadata',
       build: () {
-        when(() => details('pl_1'))
-            .thenAnswer((_) async => _playlist(id: 'pl_1', count: 3));
+        when(() => details('pl_1', limit: 50, offset: 0)).thenAnswer(
+          (_) async => _playlist(
+            id: 'pl_1',
+            tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+            count: 5,
+          ),
+        );
         return buildCubit();
       },
       seed: () => PlaylistsState.initial().copyWith(
@@ -581,15 +586,190 @@ void main() {
       act: (cubit) => cubit.loadPlaylistDetails('pl_1'),
       expect: () => [
         isA<PlaylistsState>()
-            .having((s) => s.isLoadingDetails, 'loading details', isTrue),
+            .having((s) => s.isLoadingDetails, 'loading details', isTrue)
+            .having((s) => s.playlistTracksOffset, 'offset', 0)
+            .having((s) => s.hasMorePlaylistTracks, 'has more', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isLoadingDetails, 'loading details', isFalse)
             .having((s) => s.selectedPlaylist?.playlistId, 'selected', 'pl_1')
+            .having((s) => s.selectedPlaylist?.tracks.length, 'tracks', 2)
+            .having((s) => s.playlistTracksOffset, 'offset', 2)
+            .having((s) => s.hasMorePlaylistTracks, 'has more', isTrue)
             .having(
-                (s) => s.playlists.first.playlistId, 'first list id', 'pl_1'),
+              (s) => s.playlists.first.playlistId,
+              'first list id',
+              'pl_1',
+            ),
+      ],
+      verify: (_) {
+        verify(() => details('pl_1', limit: 50, offset: 0)).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMorePlaylistTracks appends next track page',
+      build: () {
+        when(() => details('pl_1', limit: 50, offset: 2)).thenAnswer(
+          (_) async => _playlist(
+            id: 'pl_1',
+            tracks: [_track(id: 'trk_3'), _track(id: 'trk_4')],
+            count: 4,
+            likesCount: 7,
+            isLiked: true,
+          ),
+        );
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+          count: 4,
+          likesCount: 6,
+          isLiked: false,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+          playlistTracksOffset: 2,
+          hasMorePlaylistTracks: true,
+        );
+      },
+      act: (cubit) => cubit.loadMorePlaylistTracks(),
+      expect: () => [
+        isA<PlaylistsState>().having(
+          (s) => s.isLoadingMorePlaylistTracks,
+          'loading more tracks',
+          isTrue,
+        ),
+        isA<PlaylistsState>()
+            .having(
+              (s) => s.isLoadingMorePlaylistTracks,
+              'loading more tracks',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.tracks.length, 'tracks', 4)
+            .having(
+              (s) => s.selectedPlaylist?.tracks.last.id,
+              'last track',
+              'trk_4',
+            )
+            .having((s) => s.selectedPlaylist?.tracksCount, 'count', 4)
+            .having((s) => s.selectedPlaylist?.likesCount, 'likes', 7)
+            .having((s) => s.selectedPlaylist?.isLiked, 'liked', isTrue)
+            .having((s) => s.playlistTracksOffset, 'offset', 4)
+            .having((s) => s.hasMorePlaylistTracks, 'has more', isFalse),
+      ],
+      verify: (_) {
+        verify(() => details('pl_1', limit: 50, offset: 2)).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMorePlaylistTracks skips duplicate track ids',
+      build: () {
+        when(() => details('pl_1', limit: 50, offset: 2)).thenAnswer(
+          (_) async => _playlist(
+            id: 'pl_1',
+            tracks: [_track(id: 'trk_2'), _track(id: 'trk_3')],
+            count: 3,
+          ),
+        );
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+          count: 3,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+          playlistTracksOffset: 2,
+          hasMorePlaylistTracks: true,
+        );
+      },
+      act: (cubit) => cubit.loadMorePlaylistTracks(),
+      expect: () => [
+        isA<PlaylistsState>().having(
+          (s) => s.isLoadingMorePlaylistTracks,
+          'loading more tracks',
+          isTrue,
+        ),
+        isA<PlaylistsState>()
+            .having(
+              (s) => s.isLoadingMorePlaylistTracks,
+              'loading more tracks',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.tracks.length, 'tracks', 3)
+            .having(
+          (s) => s.selectedPlaylist?.tracks.map((track) => track.id),
+          'track ids',
+          ['trk_1', 'trk_2', 'trk_3'],
+        ).having((s) => s.hasMorePlaylistTracks, 'has more', isFalse),
       ],
     );
 
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMorePlaylistTracks does nothing when all tracks are loaded',
+      build: buildCubit,
+      seed: () => PlaylistsState.initial().copyWith(
+        selectedPlaylist: _playlist(
+          id: 'pl_1',
+          tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+          count: 2,
+        ),
+        playlistTracksOffset: 2,
+        hasMorePlaylistTracks: false,
+      ),
+      act: (cubit) => cubit.loadMorePlaylistTracks(),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verifyZeroInteractions(details);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMorePlaylistTracks emits friendly error on failure',
+      build: () {
+        when(() => details('pl_1', limit: 50, offset: 2))
+            .thenThrow(Exception('network timeout'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+          count: 4,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlistTracksOffset: 2,
+          hasMorePlaylistTracks: true,
+        );
+      },
+      act: (cubit) => cubit.loadMorePlaylistTracks(),
+      expect: () => [
+        isA<PlaylistsState>().having(
+          (s) => s.isLoadingMorePlaylistTracks,
+          'loading more tracks',
+          isTrue,
+        ),
+        isA<PlaylistsState>()
+            .having(
+              (s) => s.isLoadingMorePlaylistTracks,
+              'loading more tracks',
+              isFalse,
+            )
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Network error. Please check your connection',
+            ),
+      ],
+    );
     blocTest<PlaylistsCubit, PlaylistsState>(
       'updatePlaylist refreshes selected playlist details',
       build: () {
@@ -602,7 +782,7 @@ void main() {
             genre: null,
           ),
         ).thenAnswer((_) async {});
-        when(() => details('pl_1'))
+        when(() => details('pl_1', limit: 50, offset: 0))
             .thenAnswer((_) async => _playlist(id: 'pl_1', count: 5));
         return buildCubit();
       },
@@ -710,7 +890,7 @@ void main() {
           tags: null,
         ),
       ).thenAnswer((_) async {});
-      when(() => details('pl_1')).thenAnswer(
+      when(() => details('pl_1', limit: 50, offset: 0)).thenAnswer(
         (_) async => _playlist(id: 'pl_1', title: 'Renamed'),
       );
 
