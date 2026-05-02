@@ -42,12 +42,11 @@ abstract class PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    int? genreId,
+    String? genre,
     String? playlistType,
     DateTime? releaseDate,
     List<String>? tags,
   });
-
   Future<String?> uploadPlaylistCover({
     required String playlistId,
     required String filePath,
@@ -241,7 +240,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    int? genreId,
+    String? genre,
     String? playlistType,
     DateTime? releaseDate,
     List<String>? tags,
@@ -252,7 +251,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
         if (title != null) 'title': title,
         if (description != null) 'description': description,
         if (visibility != null) 'visibility': visibility.apiValue,
-        if (genreId != null) 'genreId': genreId,
+        if (genre != null && genre.trim().isNotEmpty) 'genre': genre.trim(),
         if (playlistType != null) 'type': playlistType,
         if (releaseDate != null) 'releaseDate': _formatReleaseDate(releaseDate),
         if (tags != null) 'tags': tags,
