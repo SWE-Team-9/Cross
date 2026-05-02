@@ -119,6 +119,7 @@ void main() {
         title: 'Updated',
         description: 'Updated description',
         visibility: PlaylistVisibility.publicPlaylist,
+        genre: 'electronic',
       );
       await repository.deletePlaylist('created');
       await repository.likePlaylist('created');
@@ -154,6 +155,7 @@ void main() {
       expect(secret.title, 'Secret playlist');
       expect(embedCode, '<iframe></iframe>');
       expect(remote.updatedPlaylistId, 'created');
+      expect(remote.updatedGenre, 'electronic');
       expect(remote.deletedPlaylistId, 'created');
       expect(remote.likedPlaylistId, 'created');
       expect(remote.unlikedPlaylistId, 'created');
@@ -218,6 +220,7 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   int? lastSearchLimit;
   List<String> createdTrackIds = const <String>[];
   String? updatedPlaylistId;
+  String? updatedGenre;
   String? deletedPlaylistId;
   String? likedPlaylistId;
   String? unlikedPlaylistId;
@@ -290,12 +293,13 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    int? genreId,
+    String? genre,
     String? playlistType,
     DateTime? releaseDate,
     List<String>? tags,
   }) async {
     updatedPlaylistId = playlistId;
+    updatedGenre = genre;
   }
 
   @override
