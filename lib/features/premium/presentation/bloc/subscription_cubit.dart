@@ -57,6 +57,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     try {
       final results = await Future.wait<dynamic>(<Future<dynamic>>[
         repository.getMySubscription(),
+        repository.getPlans(),
         repository.getInvoices(),
       ]);
 
@@ -65,7 +66,8 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
           status: SubscriptionStatus.loaded,
           actionStatus: SubscriptionActionStatus.success,
           subscription: results[0] as Subscription,
-          invoices: results[1] as List<BillingInvoice>,
+          plans: results[1] as List<Plan>,
+          invoices: results[2] as List<BillingInvoice>,
           actionMessage: 'Billing details loaded.',
           clearErrorMessage: true,
           clearActionErrorMessage: true,
@@ -181,6 +183,8 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
           clearActionErrorMessage: true,
         ),
       );
+
+      await _refreshBillingAfterAction();
     } catch (error) {
       emit(
         state.copyWith(
@@ -213,6 +217,8 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
           clearActionErrorMessage: true,
         ),
       );
+
+      await _refreshBillingAfterAction();
     } catch (error) {
       emit(
         state.copyWith(
@@ -245,6 +251,8 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
           clearActionErrorMessage: true,
         ),
       );
+
+      await _refreshBillingAfterAction();
     } catch (error) {
       emit(
         state.copyWith(
@@ -310,6 +318,30 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
         clearCheckoutUrl: true,
       ),
     );
+  }
+
+  Future<void> _refreshBillingAfterAction() async {
+    try {
+      final results = await Future.wait<dynamic>(<Future<dynamic>>[
+        repository.getMySubscription(),
+        repository.getPlans(),
+        repository.getInvoices(),
+      ]);
+
+      emit(
+        state.copyWith(
+          status: SubscriptionStatus.loaded,
+          actionStatus: SubscriptionActionStatus.success,
+          subscription: results[0] as Subscription,
+          plans: results[1] as List<Plan>,
+          invoices: results[2] as List<BillingInvoice>,
+          clearErrorMessage: true,
+          clearActionErrorMessage: true,
+        ),
+      );
+    } catch (_) {
+      // Keep the successful action state even if the follow-up refresh fails.
+    }
   }
 
   String _readableError(Object error) {
