@@ -25,6 +25,8 @@ import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_c
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
+import 'package:soundcloud_clone/features/playback/data/repositories/queue_repository.dart';
+
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
@@ -209,7 +211,10 @@ void main() {
     GetIt.I.registerFactory<AuthCubit>(() => authCubit);
 
     GetIt.I.registerLazySingleton<PlaybackCubit>(
-      () => PlaybackCubit(GetIt.I<AudioPlayerService>()),
+      () => PlaybackCubit(
+        GetIt.I<AudioPlayerService>(),
+        GetIt.I<QueueRepository>(),
+      ),
     );
 
     GetIt.I.registerLazySingleton<PlayerCubit>(
