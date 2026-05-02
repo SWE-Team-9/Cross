@@ -49,11 +49,11 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
     final cookies = await cookieJar.loadForRequest(baseUri);
     final cookieHeader =
         cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
-    final accessToken = (await secureStorage.read(SecureStorage.accessTokenKey) ?? '')
-        .trim();
+    final accessToken =
+        (await secureStorage.read(SecureStorage.accessTokenKey) ?? '').trim();
 
     _socket = IO.io(
-      '${ApiConstants.baseUrl}/api/v1/notifications',
+      '${ApiConstants.baseUrl}/api/v1/messages',
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .setPath('/api/v1/socket.io')
