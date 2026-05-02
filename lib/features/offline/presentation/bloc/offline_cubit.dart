@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+
 import '../../data/repositories/offline_repository.dart';
 import 'offline_state.dart';
 
@@ -12,98 +13,243 @@ class OfflineCubit extends Cubit<OfflineState> {
   }
 
   Future<void> download(String trackId) async {
-    if (isDownloaded(trackId)) return;
+    final normalizedTrackId = trackId.trim();
+
+    if (normalizedTrackId.isEmpty) {
+      throw Exception('DOWNLOAD_FAILED');
+    }
+
+    if (isDownloaded(normalizedTrackId)) return;
 
     try {
-      final path = await repo.downloadTrack(trackId);
+      final path = await repo.downloadTrack(normalizedTrackId);
 
-      final updated = Map<String, String>.from(state.downloadedTracks);
-      updated[trackId] = path;
+      final updatedTracks = Map<String, String>.from(state.downloadedTracks);
+      updatedTracks[normalizedTrackId] = path;
 
-      // ✅ persist
-      await repo.saveDownloadedTracks(updated);
+      final updatedDetails = Map<String, Track>.from(
+        await repo.getDownloadedTrackDetails(),
+      );
 
-      emit(state.copyWith(downloadedTracks: updated));
-    } catch (e) {
-      if (e.toString().contains('403')) {
-        throw Exception('UPGRADE_REQUIRED');
+      final downloadedDetail = updatedDetails[normalizedTrackId];
+      if (downloadedDetail != null) {
+        updatedDetails[normalizedTrackId] = downloadedDetail.copyWith(
+          localPath: path,
+        );
       }
-      throw Exception('DOWNLOAD_FAILED');
+
+      await repo.saveDownloadedTracks(updatedTracks);
+      await repo.saveDownloadedTrackDetails(updatedDetails);
+
+      emit(
+        state.copyWith(
+          downloadedTracks: updatedTracks,
+          downloadedTrackDetails: updatedDetails,
+        ),
+      );
+    } catch (error) {
+      throw Exception(_mapDownloadError(error));
     }
   }
 
   Future<void> downloadTrack(Track track) async {
-    if (!isDownloaded(track.id)) {
-      await download(track.id);
+    final normalizedTrackId = track.id.trim();
+
+    if (normalizedTrackId.isEmpty) {
+      throw Exception('DOWNLOAD_FAILED');
     }
 
-    final path = getPath(track.id);
+    if (!isDownloaded(normalizedTrackId)) {
+      await download(normalizedTrackId);
+    }
+
+    final path = getPath(normalizedTrackId);
     final updatedDetails = Map<String, Track>.from(
       state.downloadedTrackDetails,
     );
-    updatedDetails[track.id] = track.copyWith(
-      localPath: path ?? track.localPath,
+
+    final savedDetails = updatedDetails[normalizedTrackId];
+
+    updatedDetails[normalizedTrackId] = (savedDetails ?? track).copyWith(
+      id: normalizedTrackId,
+      title: savedDetails?.title ?? track.title,
+      artist: savedDetails?.artist ?? track.artist,
+      audioUrl: savedDetails?.audioUrl ?? track.audioUrl,
+      artworkUrl: savedDetails?.artworkUrl ?? track.artworkUrl,
+      handle: savedDetails?.handle ?? track.handle,
+      artistId: savedDetails?.artistId ?? track.artistId,
+      likesCount: savedDetails?.likesCount ?? track.likesCount,
+      repostsCount: savedDetails?.repostsCount ?? track.repostsCount,
+      durationMs: savedDetails?.durationMs ?? track.durationMs,
+      localPath: path ?? savedDetails?.localPath ?? track.localPath,
     );
 
     await repo.saveDownloadedTrackDetails(updatedDetails);
-    emit(state.copyWith(downloadedTrackDetails: updatedDetails));
+
+    emit(
+      state.copyWith(
+        downloadedTrackDetails: updatedDetails,
+      ),
+    );
   }
 
   Future<void> saveDownloadedPlaylist(PlaylistEntity playlist) async {
-    final tracks = playlist.tracks.map((track) {
+    final repairedTracks = playlist.tracks.map((track) {
       final saved = state.downloadedTrackDetails[track.id];
       final path = getPath(track.id);
-      return (saved ?? track).copyWith(localPath: path ?? saved?.localPath);
+
+      return (saved ?? track).copyWith(
+        localPath: path ?? saved?.localPath ?? track.localPath,
+      );
     }).toList(growable: false);
 
     final updatedPlaylists = Map<String, PlaylistEntity>.from(
       state.downloadedPlaylists,
     );
+
     updatedPlaylists[playlist.playlistId] = playlist.copyWith(
-      tracks: tracks,
-      tracksCount: tracks.length,
+      tracks: repairedTracks,
+      tracksCount: repairedTracks.length,
     );
 
     await repo.saveDownloadedPlaylists(updatedPlaylists);
-    emit(state.copyWith(downloadedPlaylists: updatedPlaylists));
+
+    emit(
+      state.copyWith(
+        downloadedPlaylists: updatedPlaylists,
+      ),
+    );
+  }
+
+  Future<void> removeDownloadedTrack(String trackId) async {
+    final normalizedTrackId = trackId.trim();
+    if (normalizedTrackId.isEmpty) return;
+
+    final updatedTracks = Map<String, String>.from(state.downloadedTracks);
+    final updatedDetails = Map<String, Track>.from(
+      state.downloadedTrackDetails,
+    );
+
+    updatedTracks.remove(normalizedTrackId);
+    updatedDetails.remove(normalizedTrackId);
+
+    await repo.saveDownloadedTracks(updatedTracks);
+    await repo.saveDownloadedTrackDetails(updatedDetails);
+
+    emit(
+      state.copyWith(
+        downloadedTracks: updatedTracks,
+        downloadedTrackDetails: updatedDetails,
+      ),
+    );
+  }
+
+  Future<void> removeDownloadedPlaylist(String playlistId) async {
+    final normalizedPlaylistId = playlistId.trim();
+    if (normalizedPlaylistId.isEmpty) return;
+
+    final updatedPlaylists = Map<String, PlaylistEntity>.from(
+      state.downloadedPlaylists,
+    );
+
+    updatedPlaylists.remove(normalizedPlaylistId);
+
+    await repo.saveDownloadedPlaylists(updatedPlaylists);
+
+    emit(
+      state.copyWith(
+        downloadedPlaylists: updatedPlaylists,
+      ),
+    );
+  }
+
+  Future<void> reload() {
+    return _load();
   }
 
   bool isDownloaded(String trackId) {
-    return state.downloadedTracks.containsKey(trackId);
+    return state.downloadedTracks.containsKey(trackId.trim());
+  }
+
+  bool isPlaylistDownloaded(String playlistId) {
+    return state.downloadedPlaylists.containsKey(playlistId.trim());
   }
 
   String? getPath(String trackId) {
-    return state.downloadedTracks[trackId];
+    return state.downloadedTracks[trackId.trim()];
+  }
+
+  Track? getDownloadedTrack(String trackId) {
+    return state.downloadedTrackDetails[trackId.trim()];
+  }
+
+  PlaylistEntity? getDownloadedPlaylist(String playlistId) {
+    return state.downloadedPlaylists[playlistId.trim()];
   }
 
   Future<void> _load() async {
     try {
-      final saved = await repo.getDownloadedTracks();
+      final savedTracks = await repo.getDownloadedTracks();
       final trackDetails = Map<String, Track>.from(
         await repo.getDownloadedTrackDetails(),
       );
+
       var repairedDetails = false;
-      for (final entry in saved.entries) {
-        if (trackDetails.containsKey(entry.key)) continue;
+
+      for (final entry in savedTracks.entries) {
+        final savedDetail = trackDetails[entry.key];
+
+        if (savedDetail != null) {
+          if (savedDetail.localPath != entry.value) {
+            trackDetails[entry.key] = savedDetail.copyWith(
+              localPath: entry.value,
+            );
+            repairedDetails = true;
+          }
+
+          continue;
+        }
+
         final detail = await repo.fetchTrackDetails(entry.key);
         if (detail == null) continue;
+
         trackDetails[entry.key] = detail.copyWith(localPath: entry.value);
         repairedDetails = true;
       }
+
       if (repairedDetails) {
         await repo.saveDownloadedTrackDetails(trackDetails);
       }
+
       final playlists = await repo.getDownloadedPlaylists();
+
       emit(
         state.copyWith(
-          downloadedTracks: saved,
+          downloadedTracks: savedTracks,
           downloadedTrackDetails: trackDetails,
           downloadedPlaylists: playlists,
         ),
       );
     } catch (_) {
-      // fallback to empty if anything fails
       emit(const OfflineState());
     }
+  }
+
+  String _mapDownloadError(Object error) {
+    final text = error.toString().toLowerCase();
+
+    if (text.contains('upgrade_required') ||
+        text.contains('premium') ||
+        text.contains('subscription') ||
+        text.contains('403') ||
+        text.contains('401')) {
+      return 'UPGRADE_REQUIRED';
+    }
+
+    if (text.contains('empty')) {
+      return 'DOWNLOAD_EMPTY';
+    }
+
+    return 'DOWNLOAD_FAILED';
   }
 }
