@@ -103,7 +103,7 @@ class FeedCubit extends Cubit<FeedState> {
         ));
       } else {
         // مؤقتاً عشان نشوف الـ error الحقيقي
-          emit(FeedError('$e\n${StackTrace.current}'));
+        emit(FeedError('$e\n${StackTrace.current}'));
       }
     }
   }
@@ -157,8 +157,7 @@ class FeedCubit extends Cubit<FeedState> {
               track: rollbackItem.track.copyWith(
                 userState:
                     rollbackItem.track.userState.copyWith(liked: wasLiked),
-                stats:
-                    rollbackItem.track.stats.copyWith(likesCount: prevCount),
+                stats: rollbackItem.track.stats.copyWith(likesCount: prevCount),
               ),
             ),
           ),
@@ -214,8 +213,8 @@ class FeedCubit extends Cubit<FeedState> {
               track: rollbackItem.track.copyWith(
                 userState: rollbackItem.track.userState
                     .copyWith(reposted: wasReposted),
-                stats: rollbackItem.track.stats
-                    .copyWith(repostsCount: prevCount),
+                stats:
+                    rollbackItem.track.stats.copyWith(repostsCount: prevCount),
               ),
             ),
           ),
@@ -257,8 +256,7 @@ class FeedCubit extends Cubit<FeedState> {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  List<FeedItem> _updateTrack(
-      List<FeedItem> items, int idx, FeedItem updated) {
+  List<FeedItem> _updateTrack(List<FeedItem> items, int idx, FeedItem updated) {
     final copy = List<FeedItem>.from(items);
     copy[idx] = updated;
     return copy;

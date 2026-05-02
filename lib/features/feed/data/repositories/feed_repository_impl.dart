@@ -37,7 +37,7 @@ class FeedRepositoryImpl implements FeedRepository {
   FeedItem _mapFeedItem(FeedActivityItemModel model) {
     return FeedItem(
       activityId: model.id,
-      action: model.actionType,           // 'POST' | 'REPOST'
+      action: model.actionType, // 'POST' | 'REPOST'
       timeAgo: _timeAgo(model.activityAt),
       createdAt: model.activityAt,
       actor: _mapActor(model.actor),
@@ -51,7 +51,7 @@ class FeedRepositoryImpl implements FeedRepository {
       displayName: model.displayName,
       handle: model.handle,
       avatarUrl: model.avatarUrl,
-      verified: false,                    // not in API yet — default false
+      verified: false, // not in API yet — default false
     );
   }
 
@@ -66,15 +66,15 @@ class FeedRepositoryImpl implements FeedRepository {
 
     final stats = TrackStats(
       likesCount: model.likesCount,
-      commentsCount: model.commentsCount,                   // not in API yet — default 0
+      commentsCount: model.commentsCount, // not in API yet — default 0
       repostsCount: model.repostsCount,
-      playsCount: 0,                      // not in API yet — default 0
+      playsCount: 0, // not in API yet — default 0
     );
 
     final userState = TrackUserState(
       liked: model.liked,
       reposted: model.reposted,
-      inLibrary: false,                   // not in API yet — default false
+      inLibrary: false, // not in API yet — default false
     );
 
     return FeedTrack(
@@ -85,7 +85,7 @@ class FeedRepositoryImpl implements FeedRepository {
       status: model.status,
       visibility: model.visibility,
       coverArtUrl: model.coverArtUrl,
-      genre: '',                          // not in API yet — default empty
+      genre: '', // not in API yet — default empty
       waveformData: model.waveformData,
       artist: artist,
       stats: stats,

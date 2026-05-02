@@ -23,10 +23,10 @@ class FakeFeedRepository implements FeedRepository {
   String? streamUrlResult = 'https://cdn.mock.com/track.mp3';
 
   @override
-  Future<FeedPage> getFeed({ required int page}) async {
+  Future<FeedPage> getFeed({required int page}) async {
     getCalls.add('$page:$page');
     if (getFeedError != null) throw getFeedError!;
-    return feedPageToReturn ?? makeFeedPage( page: page);
+    return feedPageToReturn ?? makeFeedPage(page: page);
   }
 
   @override
@@ -87,8 +87,7 @@ class FakeFeedRepository implements FeedRepository {
       );
 
   @override
-  Future<ResolveResult> resolve(String permalink) async =>
-      ResolveResult(
+  Future<ResolveResult> resolve(String permalink) async => ResolveResult(
         type: 'TRACK',
         resourceId: permalink,
       );

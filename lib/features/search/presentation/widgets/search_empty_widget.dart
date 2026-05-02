@@ -14,8 +14,7 @@ class SearchEmptyWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.search_off_rounded,
-              color: Colors.white24, size: 52),
+          const Icon(Icons.search_off_rounded, color: Colors.white24, size: 52),
           const SizedBox(height: 12),
           Text(
             'No results for "$query"',

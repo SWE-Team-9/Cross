@@ -15,7 +15,8 @@ class SearchIdleWidget extends StatelessWidget {
     _Genre('Workout', Color(0xFF16A34A), Icons.fitness_center_rounded),
     _Genre('Techno', Color(0xFFBE185D), Icons.graphic_eq_rounded),
     _Genre('House', Color(0xFFDC2626), Icons.speaker_rounded),
-    _Genre('Feel Good', Color(0xFFCA8A04), Icons.sentiment_very_satisfied_rounded),
+    _Genre(
+        'Feel Good', Color(0xFFCA8A04), Icons.sentiment_very_satisfied_rounded),
     _Genre('Healing Era', Color(0xFF2563EB), Icons.spa_rounded),
     _Genre('At Home', Color(0xFF7C3AED), Icons.home_rounded),
     _Genre('Study', Color(0xFFDB2777), Icons.menu_book_rounded),

@@ -238,6 +238,7 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
     );
   }
 }
+
 class _PlaylistCoverThumb extends StatelessWidget {
   const _PlaylistCoverThumb({required this.playlist});
 

@@ -69,7 +69,8 @@ class PlayerCubit extends Cubit<PlayerUIState> {
           : playerState;
 
       final serviceTrack = _trackFromServiceState(mergedPlayerState) ??
-          _trackById(mergedPlayerState.currentTrackId, mergedPlayerState.queue) ??
+          _trackById(
+              mergedPlayerState.currentTrackId, mergedPlayerState.queue) ??
           _trackById(mergedPlayerState.currentTrackId, localQueue);
 
       final nextTrack = serviceTrack ?? state.currentTrack;
@@ -145,9 +146,8 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     final previousSource = state.playerState.source;
     final sourceChanged = previousSource != null && previousSource != source;
 
-    final played = sourceChanged
-        ? <String>{}
-        : Set<String>.from(state.playedTrackIds);
+    final played =
+        sourceChanged ? <String>{} : Set<String>.from(state.playedTrackIds);
 
     if (state.currentTrack != null && !sourceChanged) {
       played.add(state.currentTrack!.id);
@@ -277,9 +277,8 @@ class PlayerCubit extends Cubit<PlayerUIState> {
         ? state.currentIndex
         : queue.indexWhere((item) => item.id == currentId);
     if (currentIndex < 0 || currentIndex >= queue.length) {
-      currentIndex = queue.isEmpty
-          ? -1
-          : state.currentIndex.clamp(0, queue.length - 1);
+      currentIndex =
+          queue.isEmpty ? -1 : state.currentIndex.clamp(0, queue.length - 1);
     }
 
     final insertAt = currentIndex < 0
@@ -319,8 +318,7 @@ class PlayerCubit extends Cubit<PlayerUIState> {
         ? state.currentIndex
         : queue.indexWhere((item) => item.id == currentTrack.id);
 
-    final safeIndex =
-        currentIndex >= 0 ? currentIndex : state.currentIndex;
+    final safeIndex = currentIndex >= 0 ? currentIndex : state.currentIndex;
 
     emit(state.copyWith(
       playerState: state.playerState.copyWith(

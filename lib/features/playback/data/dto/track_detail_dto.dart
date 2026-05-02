@@ -33,10 +33,9 @@ class TrackDetailDto {
 
   factory TrackDetailDto.fromJson(Map<String, dynamic> json) {
     // ✅ API returns "id" — fallback to "trackId" just in case
-    final trackId =
-        (json['id'] as String?)?.trim().isNotEmpty == true
-            ? (json['id'] as String).trim()
-            : (json['trackId'] as String?)?.trim() ?? '';
+    final trackId = (json['id'] as String?)?.trim().isNotEmpty == true
+        ? (json['id'] as String).trim()
+        : (json['trackId'] as String?)?.trim() ?? '';
 
     // Artist: flat field OR nested uploader.profile
     final uploader = json['uploader'] as Map<String, dynamic>?;
@@ -49,10 +48,9 @@ class TrackDetailDto {
             '';
 
     // artistId: flat OR uploaderId
-    final artistId =
-        (json['artistId'] as String?)?.trim().isNotEmpty == true
-            ? (json['artistId'] as String).trim()
-            : (json['uploaderId'] as String?)?.trim() ?? '';
+    final artistId = (json['artistId'] as String?)?.trim().isNotEmpty == true
+        ? (json['artistId'] as String).trim()
+        : (json['uploaderId'] as String?)?.trim() ?? '';
 
     // artistHandle: flat OR profile.handle
     final artistHandle =
@@ -66,8 +64,8 @@ class TrackDetailDto {
       artist: artist,
       artistId: artistId,
       artistHandle: artistHandle,
-      artworkUrl: json['coverArtUrl'] as String? ??
-          json['cover_art_url'] as String?,
+      artworkUrl:
+          json['coverArtUrl'] as String? ?? json['cover_art_url'] as String?,
       durationMs: json['durationMs'] as int?,
       likesCount: (json['likesCount'] as int?) ?? 0,
       repostsCount: (json['repostsCount'] as int?) ?? 0,

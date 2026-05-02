@@ -24,7 +24,8 @@ class AuthFailure extends Failure {
 
 /// 403 — logged in but no permission
 class ForbiddenFailure extends Failure {
-  const ForbiddenFailure([super.message = 'You don\'t have permission to do this.']);
+  const ForbiddenFailure(
+      [super.message = 'You don\'t have permission to do this.']);
 }
 
 /// 404

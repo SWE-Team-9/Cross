@@ -4,8 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 // نعرّف الـ enums مؤقتاً هنا للاختبار فقط
 // لأن search_state.dart هو part of search_cubit.dart
 enum SearchStatus { idle, loading, success, failure }
+
 enum SearchTab { all, tracks, people, playlists }
-enum SearchBodyMode { idle, recents, suggestions, loading, results, empty, failure }
+
+enum SearchBodyMode {
+  idle,
+  recents,
+  suggestions,
+  loading,
+  results,
+  empty,
+  failure
+}
 
 void main() {
   group('SearchStatus enum', () {

@@ -104,7 +104,8 @@ abstract final class DeepLinkParser {
     }
     if (segments.first == 'secret') {
       if (segments.length < 2 || segments[1].isEmpty) {
-        return const InvalidDeepLink(reason: 'Secret playlist link missing token');
+        return const InvalidDeepLink(
+            reason: 'Secret playlist link missing token');
       }
       return SecretPlaylistDeepLink(secretToken: segments[1]);
     }

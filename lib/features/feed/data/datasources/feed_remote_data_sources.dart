@@ -102,8 +102,8 @@ class FeedTrackModel {
     final artistHandle = (json['artistHandle'] as String?) ??
         (profile?['handle'] as String?) ??
         '';
-    final artistAvatarUrl =
-        (json['artistAvatarUrl'] as String?) ?? (profile?['avatarUrl'] as String?);
+    final artistAvatarUrl = (json['artistAvatarUrl'] as String?) ??
+        (profile?['avatarUrl'] as String?);
 
     // waveformData may arrive as List<num> or be absent.
     List<double>? waveform;
@@ -232,9 +232,8 @@ class FeedPaginationModel {
       limit: (json['limit'] as int?) ?? 20,
       offset: (json['offset'] as int?) ?? 0,
       total: (json['total'] as int?) ?? 0,
-      totalPages: (json['totalPages'] as int?) ??
-          (json['total_pages'] as int?) ??
-          1,
+      totalPages:
+          (json['totalPages'] as int?) ?? (json['total_pages'] as int?) ?? 1,
       hasNextPage: (json['hasNextPage'] as bool?) ?? false,
       hasPreviousPage: (json['hasPreviousPage'] as bool?) ?? false,
     );
@@ -255,20 +254,18 @@ class ActivityFeedPageModel {
 
   factory ActivityFeedPageModel.fromJson(Map<String, dynamic> json) {
     print('🔴 raw json keys: ${json.keys.toList()}');
-    final rawItems = (json['data'] as List<dynamic>?)
-    ?? (json['items'] as List<dynamic>?)
-    ?? [];
+    final rawItems = (json['data'] as List<dynamic>?) ??
+        (json['items'] as List<dynamic>?) ??
+        [];
     print('🔴 rawItems count: ${rawItems.length}');
 
     final items = rawItems
-        .map((e) =>
-            FeedActivityItemModel.fromJson(e as Map<String, dynamic>))
+        .map((e) => FeedActivityItemModel.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    final paginationJson =
-        (json['pagination'] as Map<String, dynamic>?) ??
-            (json['meta'] as Map<String, dynamic>?) ??
-            const {};
+    final paginationJson = (json['pagination'] as Map<String, dynamic>?) ??
+        (json['meta'] as Map<String, dynamic>?) ??
+        const {};
 
     return ActivityFeedPageModel(
       items: items,

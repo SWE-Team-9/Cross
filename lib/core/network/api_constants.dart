@@ -168,16 +168,16 @@ abstract class ApiConstants {
   static const String activityFeed = feedBase;
 
   // ── Player Queue ─────────────────────────────────────────────────────────
-static const String playerBase = '/api/v1/player';
+  static const String playerBase = '/api/v1/player';
 
-static String trackPreviewPath(String trackId) =>
-    '$playerBase/tracks/$trackId/preview';
+  static String trackPreviewPath(String trackId) =>
+      '$playerBase/tracks/$trackId/preview';
 
-static const String queueLoad     = '$playerBase/queue/load';
-static const String queueNext     = '$playerBase/queue/next';
-static const String queuePrevious = '$playerBase/queue/previous';
-static const String queueCurrent  = '$playerBase/queue';
-static const String queueJump     = '$playerBase/queue/jump';
+  static const String queueLoad = '$playerBase/queue/load';
+  static const String queueNext = '$playerBase/queue/next';
+  static const String queuePrevious = '$playerBase/queue/previous';
+  static const String queueCurrent = '$playerBase/queue';
+  static const String queueJump = '$playerBase/queue/jump';
 
   // ── Discovery ───────────────────────────────────────────────────────────
   static const String discoveryBase = '/api/v1/discovery';

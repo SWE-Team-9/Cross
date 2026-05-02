@@ -43,8 +43,6 @@ class DeepLinkService {
 
     _appLinks.uriLinkStream.listen(
       (uri) {
-
-
         _lastDestinationConsumed = false;
         _emitIfNotDuplicate(uri, source: 'stream');
       },
@@ -78,5 +76,4 @@ class DeepLinkService {
   Future<void> dispose() async {
     await _controller.close();
   }
-
 }

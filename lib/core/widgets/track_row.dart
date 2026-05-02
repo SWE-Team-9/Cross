@@ -215,7 +215,8 @@ class TrackRow extends StatelessWidget {
     }
 
     // ✅ نفس الـ object بيتحط في الـ queue والـ RecentlyPlayed
-    final resolvedTrack = _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
+    final resolvedTrack =
+        _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
 
     final resolvedQueue = List<Track>.from(playableTracks);
     resolvedQueue[safeIndex] = resolvedTrack;
@@ -283,7 +284,8 @@ class TrackRow extends StatelessWidget {
     );
   }
 
-  List<Track> _withOfflinePaths(List<Track> tracks, OfflineCubit? offlineCubit) {
+  List<Track> _withOfflinePaths(
+      List<Track> tracks, OfflineCubit? offlineCubit) {
     if (offlineCubit == null) return tracks;
     return tracks.map((item) => _withOfflinePath(item, offlineCubit)).toList();
   }

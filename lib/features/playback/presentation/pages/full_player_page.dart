@@ -991,8 +991,7 @@ class _QueueSheetState extends State<_QueueSheet> {
       // حدّث الـ currentIndex لو اتغير مكانه
       final currentTrackId = widget.playerState.currentTrack?.id;
       if (currentTrackId != null) {
-        _currentIndex =
-            _queue.indexWhere((t) => t.id == currentTrackId);
+        _currentIndex = _queue.indexWhere((t) => t.id == currentTrackId);
       }
     });
 

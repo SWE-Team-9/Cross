@@ -29,12 +29,12 @@ class TrackOptionsSheet extends StatelessWidget {
 
   // ── URL builder ────────────────────────────────────────────────────────────
   static String _trackUrl(Track t) {
-  debugPrint('handle: ${t.handle}, slug: ${t.slug}');
-  if (t.handle != null && t.slug != null) {
-    return 'https://dev.iqa3.tech/${t.handle}/${t.slug}';
+    debugPrint('handle: ${t.handle}, slug: ${t.slug}');
+    if (t.handle != null && t.slug != null) {
+      return 'https://dev.iqa3.tech/${t.handle}/${t.slug}';
+    }
+    return 'https://dev.iqa3.tech/track/${t.id}';
   }
-  return 'https://dev.iqa3.tech/track/${t.id}';
-}
 
   static Future<void> show(BuildContext context, {required Track track}) {
     isTrackSheetOpen.value = true;
@@ -97,15 +97,15 @@ class TrackOptionsSheet extends StatelessWidget {
   }
 
   // ── Native share sheet ─────────────────────────────────────────────────────
-Future<void> _shareTrack(BuildContext context) async {
-  Navigator.pop(context);
-  final url = _trackUrl(track);
-  final artistHandle = track.handle ?? track.artist;
+  Future<void> _shareTrack(BuildContext context) async {
+    Navigator.pop(context);
+    final url = _trackUrl(track);
+    final artistHandle = track.handle ?? track.artist;
 
-  final text = 'Check out "${track.title}" by @$artistHandle\n$url';
+    final text = 'Check out "${track.title}" by @$artistHandle\n$url';
 
-  await Share.share(text, subject: track.title);
-}
+    await Share.share(text, subject: track.title);
+  }
 
   @override
   Widget build(BuildContext context) {

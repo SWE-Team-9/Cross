@@ -36,7 +36,8 @@ void main() {
         ],
         users: const [],
         playlists: const [],
-        meta: const SearchMetaEntity(currentPage: 1, totalResults: 1, totalPages: 1),
+        meta: const SearchMetaEntity(
+            currentPage: 1, totalResults: 1, totalPages: 1),
       );
 
       expect(entity.isEmpty, false);
@@ -47,12 +48,14 @@ void main() {
 
   group('SearchMetaEntity', () {
     test('hasMore returns true when currentPage is less than totalPages', () {
-      const meta = SearchMetaEntity(currentPage: 1, totalResults: 10, totalPages: 2);
+      const meta =
+          SearchMetaEntity(currentPage: 1, totalResults: 10, totalPages: 2);
       expect(meta.hasMore, true);
     });
 
     test('hasMore returns false when currentPage equals totalPages', () {
-      const meta = SearchMetaEntity(currentPage: 2, totalResults: 10, totalPages: 2);
+      const meta =
+          SearchMetaEntity(currentPage: 2, totalResults: 10, totalPages: 2);
       expect(meta.hasMore, false);
     });
   });

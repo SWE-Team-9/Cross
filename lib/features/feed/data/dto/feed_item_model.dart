@@ -218,8 +218,8 @@ class FeedItemModel extends FeedItem {
             displayName:
                 trackSource['artistName'] as String? ?? actor.displayName,
             handle: trackSource['artistHandle'] as String? ?? actor.handle,
-            avatarUrl: trackSource['artistAvatarUrl'] as String? ??
-                actor.avatarUrl,
+            avatarUrl:
+                trackSource['artistAvatarUrl'] as String? ?? actor.avatarUrl,
             verified: false,
           );
 
@@ -239,9 +239,9 @@ class FeedItemModel extends FeedItem {
       stats = TrackStatsModel(
         likesCount: trackSource['likesCount'] as int? ?? 0,
         // commentsCount can be at top-level json OR inside trackSource
-        commentsCount: (json['commentsCount'] as int?)
-            ?? (trackSource['commentsCount'] as int?)
-            ?? 0,
+        commentsCount: (json['commentsCount'] as int?) ??
+            (trackSource['commentsCount'] as int?) ??
+            0,
         repostsCount: trackSource['repostsCount'] as int? ?? 0,
         playsCount: trackSource['playsCount'] as int? ?? 0,
       );
@@ -320,26 +320,25 @@ class FeedPageModel extends FeedPage {
   });
 
   factory FeedPageModel.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['data'] as List<dynamic>?
-        ?? json['items'] as List<dynamic>?
-        ?? [];
+    final rawItems =
+        json['data'] as List<dynamic>? ?? json['items'] as List<dynamic>? ?? [];
 
     final items = rawItems
         .map((e) => FeedItemModel.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    final pagination = json['pagination'] as Map<String, dynamic>?
-        ?? json['meta'] as Map<String, dynamic>?
-        ?? {};
+    final pagination = json['pagination'] as Map<String, dynamic>? ??
+        json['meta'] as Map<String, dynamic>? ??
+        {};
 
     return FeedPageModel(
       items: items,
       page: pagination['page'] as int? ?? 1,
       hasMore: pagination['hasNextPage'] as bool? ?? false,
       totalItems: pagination['total'] as int? ?? items.length,
-      totalPages: pagination['totalPages'] as int?
-          ?? pagination['total_pages'] as int?
-          ?? 1,
+      totalPages: pagination['totalPages'] as int? ??
+          pagination['total_pages'] as int? ??
+          1,
     );
   }
 }
@@ -422,12 +421,11 @@ class SearchResultsModel extends SearchResults {
 
     return SearchResultsModel(
       users: (data['users'] as List<dynamic>? ?? [])
-          .map((e) =>
-              SearchUserResultModel.fromJson(e as Map<String, dynamic>))
+          .map((e) => SearchUserResultModel.fromJson(e as Map<String, dynamic>))
           .toList(),
       tracks: (data['tracks'] as List<dynamic>? ?? [])
-          .map((e) =>
-              SearchTrackResultModel.fromJson(e as Map<String, dynamic>))
+          .map(
+              (e) => SearchTrackResultModel.fromJson(e as Map<String, dynamic>))
           .toList(),
       playlists: (data['playlists'] as List<dynamic>? ?? [])
           .map((e) =>
@@ -472,9 +470,8 @@ class TrendingTrackModel extends TrendingTrack {
           stats?['playsCount'] as int? ?? json['playsCount'] as int? ?? 0,
       likesCount:
           stats?['likesCount'] as int? ?? json['likesCount'] as int? ?? 0,
-      repostsCount: stats?['repostsCount'] as int? ??
-          json['repostsCount'] as int? ??
-          0,
+      repostsCount:
+          stats?['repostsCount'] as int? ?? json['repostsCount'] as int? ?? 0,
     );
   }
 }

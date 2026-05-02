@@ -126,9 +126,8 @@ class TrackInteractionCubit extends Cubit<TrackInteractionState> {
 
     final wasReposted = state.isReposted;
     final prevCount = state.repostsCount;
-    final nextCount = wasReposted
-        ? (prevCount > 0 ? prevCount - 1 : 0)
-        : prevCount + 1;
+    final nextCount =
+        wasReposted ? (prevCount > 0 ? prevCount - 1 : 0) : prevCount + 1;
 
     emit(state.copyWith(
       isSubmittingRepost: true,

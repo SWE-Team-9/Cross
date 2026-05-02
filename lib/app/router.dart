@@ -64,7 +64,6 @@ import '../features/messaging/presentation/routes/messaging_routes.dart';
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
 import '../features/discovery/presentation/page/discover_page.dart';
 
-
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
@@ -434,7 +433,7 @@ GoRouter _createRouter() {
 
       // ── Track detail ────────────────────────────────────────────────────────
       GoRoute(
-        path: AppRoutes.trackDetail,  // '/track/:trackId'
+        path: AppRoutes.trackDetail, // '/track/:trackId'
         name: 'track-detail',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
@@ -451,10 +450,8 @@ GoRouter _createRouter() {
         },
       ),
 
-
       // ── resolve ───────────────────────────────────────────────────────────
-      
-     
+
 //      GoRoute(
 //   path: AppRoutes.playlist,
 //   name: 'playlist',
@@ -470,8 +467,6 @@ GoRouter _createRouter() {
 //     );
 //   },
 // ),
-
-
 
       // ── Messaging ───────────────────────────────────────────────────────────
       GoRoute(
