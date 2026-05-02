@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/plan.dart';
@@ -52,7 +53,6 @@ class _UpgradePageState extends State<UpgradePage> {
     }
   }
 
-
   Future<void> _launchExternalUrl(String rawUrl) async {
     final uri = Uri.tryParse(rawUrl.trim());
 
@@ -92,9 +92,8 @@ class _UpgradePageState extends State<UpgradePage> {
             previous.errorMessage != current.errorMessage;
       },
       listener: (context, state) {
-        final message = state.actionErrorMessage ??
-            state.errorMessage ??
-            state.actionMessage;
+        final message =
+            state.actionErrorMessage ?? state.errorMessage ?? state.actionMessage;
 
         if (message == null || message.trim().isEmpty) {
           return;
@@ -143,7 +142,8 @@ class _UpgradePageState extends State<UpgradePage> {
                               state.subscription.isPremium && !state.isActionLoading
                                   ? () => context.go('/billing')
                                   : null,
-                        ),                        const SizedBox(height: 28),
+                        ),
+                        const SizedBox(height: 28),
                         Text(
                           'Choose your plan',
                           style: Theme.of(context)
@@ -179,8 +179,8 @@ class _UpgradePageState extends State<UpgradePage> {
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: _ErrorState(
-                      message: state.errorMessage ??
-                          'Could not load subscription plans.',
+                      message:
+                          state.errorMessage ?? 'Could not load subscription plans.',
                       onRetry: () =>
                           context.read<SubscriptionCubit>().loadSubscription(),
                     ),
@@ -201,17 +201,15 @@ class _UpgradePageState extends State<UpgradePage> {
                       separatorBuilder: (_, __) => const SizedBox(height: 14),
                       itemBuilder: (context, index) {
                         final plan = plans[index];
-                        final isCurrentPlan =
-                            plan.normalizedCode ==
-                                state.subscription.normalizedPlanCode;
+                        final isCurrentPlan = plan.normalizedCode ==
+                            state.subscription.normalizedPlanCode;
 
                         return _PlanCard(
                           plan: plan,
                           isCurrentPlan: isCurrentPlan,
                           isActionLoading: state.isActionLoading,
-                          onUpgrade: isCurrentPlan
-                              ? null
-                              : () => _handleUpgrade(plan),
+                          onUpgrade:
+                              isCurrentPlan ? null : () => _handleUpgrade(plan),
                         );
                       },
                     ),
@@ -300,6 +298,7 @@ class _CurrentPlanCard extends StatelessWidget {
 
   final SubscriptionState state;
   final VoidCallback? onOpenBilling;
+
   @override
   Widget build(BuildContext context) {
     final subscription = state.subscription;
@@ -381,7 +380,8 @@ class _CurrentPlanCard extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.receipt_long_outlined),
                 label: const Text('Manage billing'),
-              ),            ),
+              ),
+            ),
           ],
         ],
       ),
@@ -464,15 +464,16 @@ class _PlanCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _FeatureLine(
-            icon: plan.adsEnabled ? Icons.campaign_outlined : Icons.block_rounded,
+            icon: plan.adsEnabled
+                ? Icons.campaign_outlined
+                : Icons.block_rounded,
             text: plan.adsEnabled ? 'Ads supported' : 'Ad-free listening',
           ),
           const SizedBox(height: 8),
           _FeatureLine(
             icon: Icons.download_for_offline_outlined,
-            text: plan.canDownload
-                ? 'Offline downloads'
-                : 'Online streaming only',
+            text:
+                plan.canDownload ? 'Offline downloads' : 'Online streaming only',
           ),
           const SizedBox(height: 8),
           _FeatureLine(
@@ -512,7 +513,11 @@ class _PlanCard extends StatelessWidget {
                         color: Colors.white,
                       ),
                     )
-                  : Text(isCurrentPlan ? 'Current plan' : 'Upgrade to ${plan.displayName}'),
+                  : Text(
+                      isCurrentPlan
+                          ? 'Current plan'
+                          : 'Upgrade to ${plan.displayName}',
+                    ),
             ),
           ),
         ],
