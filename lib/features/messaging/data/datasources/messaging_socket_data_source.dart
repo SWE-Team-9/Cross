@@ -4,6 +4,7 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import '../../../../core/network/api_constants.dart';
+import '../../../../core/storage/secure_storage.dart';
 import '../dto/socket_message_event_dto.dart';
 
 abstract class MessagingSocketDataSource {
@@ -18,6 +19,7 @@ abstract class MessagingSocketDataSource {
 
 class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
   final PersistCookieJar cookieJar;
+  final SecureStorage secureStorage;
 
   final StreamController<SocketMessageEventDto> _controller =
       StreamController<SocketMessageEventDto>.broadcast();
@@ -29,6 +31,7 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
 
   MessagingSocketDataSourceImpl({
     required this.cookieJar,
+    required this.secureStorage,
   });
 
   @override
@@ -46,20 +49,23 @@ class MessagingSocketDataSourceImpl implements MessagingSocketDataSource {
     final cookies = await cookieJar.loadForRequest(baseUri);
     final cookieHeader =
         cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
+    final accessToken = (await secureStorage.read(SecureStorage.accessTokenKey) ?? '')
+        .trim();
 
     _socket = IO.io(
-      ApiConstants.baseUrl,
+      '${ApiConstants.baseUrl}/api/v1/notifications',
       IO.OptionBuilder()
           .setTransports(['websocket'])
-          .setPath(ApiConstants.messagingBase)
+          .setPath('/api/v1/socket.io')
           .setExtraHeaders(
             cookieHeader.isEmpty
                 ? <String, String>{}
                 : {'Cookie': cookieHeader},
           )
+          .setAuth(accessToken.isNotEmpty ? {'token': accessToken} : {})
           .enableReconnection()
-          .setReconnectionAttempts(5)
-          .setReconnectionDelay(1000)
+          .setReconnectionAttempts(99999)
+          .setReconnectionDelay(2000)
           .build(),
     );
 
