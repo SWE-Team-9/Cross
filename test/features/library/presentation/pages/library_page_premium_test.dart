@@ -128,10 +128,8 @@ void main() {
       );
       expect(
         source,
-        contains('Icons.workspace_premium_rounded'),
-        isFalse,
-      );
-    });
+        isNot(contains('Icons.workspace_premium_rounded')),
+      );    });
 
     test('shows loading indicator while subscription state is loading', () {
       expect(

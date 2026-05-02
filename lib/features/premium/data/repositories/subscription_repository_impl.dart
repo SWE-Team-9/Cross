@@ -43,8 +43,13 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   }
 
   @override
-  Future<List<BillingInvoice>> getInvoices() {
-    return _remoteDataSource.getInvoices();
+  Future<String> openPortal() async {
+    final session = await openBillingPortalSession();
+    return session.launchUrl;
+  }
+
+  @override
+  Future<List<BillingInvoice>> getInvoices() {    return _remoteDataSource.getInvoices();
   }
 
   @override

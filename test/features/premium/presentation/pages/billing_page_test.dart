@@ -443,8 +443,6 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
     ),
     this.loadBillingError,
     this.openPortalError,
-    this.cancelError,
-    this.resumeError,
     this.changePlanError,
   });
 
@@ -455,8 +453,6 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
 
   Object? loadBillingError;
   Object? openPortalError;
-  Object? cancelError;
-  Object? resumeError;
   Object? changePlanError;
 
   int getMySubscriptionCalls = 0;
@@ -529,10 +525,6 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   Future<Subscription> cancelSubscription() async {
     cancelSubscriptionCalls++;
 
-    final error = cancelError;
-    if (error != null) {
-      throw error;
-    }
 
     subscription = subscription.copyWith(
       cancelAtPeriodEnd: true,
@@ -546,10 +538,6 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   Future<Subscription> resumeSubscription() async {
     resumeSubscriptionCalls++;
 
-    final error = resumeError;
-    if (error != null) {
-      throw error;
-    }
 
     subscription = subscription.copyWith(
       cancelAtPeriodEnd: false,
