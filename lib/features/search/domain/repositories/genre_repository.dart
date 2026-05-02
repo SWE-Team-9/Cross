@@ -14,6 +14,6 @@ abstract class GenreRepository {
   /// Follow or unfollow a user.
   Future<Either<Failure, void>> followUser({
     required String userId,
-    required bool   follow,
+    required bool follow,
   });
 }

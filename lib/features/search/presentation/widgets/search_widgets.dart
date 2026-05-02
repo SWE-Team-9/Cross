@@ -222,7 +222,8 @@ class _AllTab extends StatelessWidget {
               padding: EdgeInsets.all(20),
               child: Center(
                 child: SizedBox(
-                  width: 20, height: 20,
+                  width: 20,
+                  height: 20,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Color(0xFFFF5500)),
                 ),
@@ -279,7 +280,8 @@ class _ListTab extends StatelessWidget {
             padding: EdgeInsets.all(20),
             child: Center(
               child: SizedBox(
-                width: 20, height: 20,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: Color(0xFFFF5500)),
               ),
@@ -343,16 +345,14 @@ class _TopResultTile extends StatelessWidget {
             const Icon(Icons.play_arrow, color: Colors.white38, size: 12),
             const SizedBox(width: 2),
             Text(_fmt(track.playbackCount),
-                style:
-                    const TextStyle(color: Colors.white38, fontSize: 12)),
+                style: const TextStyle(color: Colors.white38, fontSize: 12)),
             const Text(' · ',
                 style: TextStyle(color: Colors.white38, fontSize: 12)),
             Text(track.formattedDuration,
-                style:
-                    const TextStyle(color: Colors.white38, fontSize: 12)),
+                style: const TextStyle(color: Colors.white38, fontSize: 12)),
           ]),
-          trailing: const Icon(Icons.more_horiz,
-              color: Colors.white38, size: 20),
+          trailing:
+              const Icon(Icons.more_horiz, color: Colors.white38, size: 20),
         ),
       ),
     );
@@ -368,21 +368,17 @@ class _TrackTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: _Artwork(url: track.artworkUrl, size: 46, radius: 6),
       title: Text(track.title,
           style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500),
+              color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
           maxLines: 1,
           overflow: TextOverflow.ellipsis),
       subtitle: Row(children: [
         Flexible(
           child: Text(track.artistName,
-              style:
-                  const TextStyle(color: Colors.white54, fontSize: 12),
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis),
         ),
@@ -395,12 +391,10 @@ class _TrackTile extends StatelessWidget {
               style: TextStyle(color: Colors.white38, fontSize: 12)),
           const Icon(Icons.play_arrow, color: Colors.white38, size: 11),
           Text(_fmt(track.playbackCount),
-              style:
-                  const TextStyle(color: Colors.white38, fontSize: 11)),
+              style: const TextStyle(color: Colors.white38, fontSize: 11)),
         ],
       ]),
-      trailing: const Icon(Icons.more_horiz,
-          color: Colors.white38, size: 20),
+      trailing: const Icon(Icons.more_horiz, color: Colors.white38, size: 20),
     );
   }
 }
@@ -414,14 +408,12 @@ class _UserTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: CircleAvatar(
         radius: 23,
         backgroundColor: const Color(0xFF1C1C1C),
-        backgroundImage: user.avatarUrl.isNotEmpty
-            ? NetworkImage(user.avatarUrl)
-            : null,
+        backgroundImage:
+            user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
         child: user.avatarUrl.isEmpty
             ? Text(
                 user.displayName.isNotEmpty
@@ -464,8 +456,7 @@ class _PlaylistTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Stack(children: [
         _Artwork(
             url: playlist.artworkUrl,
@@ -474,13 +465,13 @@ class _PlaylistTile extends StatelessWidget {
             fallback: Icons.queue_music_rounded),
         if (playlist.isPrivate)
           Positioned(
-            bottom: 0, right: 0,
+            bottom: 0,
+            right: 0,
             child: Container(
               padding: const EdgeInsets.all(2),
               decoration: const BoxDecoration(
                 color: Colors.black,
-                borderRadius:
-                    BorderRadius.only(topLeft: Radius.circular(4)),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(4)),
               ),
               child: const Icon(Icons.lock_outline_rounded,
                   color: Colors.white54, size: 10),
@@ -489,16 +480,13 @@ class _PlaylistTile extends StatelessWidget {
       ]),
       title: Text(playlist.title,
           style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500),
+              color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
           maxLines: 1,
           overflow: TextOverflow.ellipsis),
       subtitle: Row(children: [
         Flexible(
           child: Text(playlist.ownerName,
-              style:
-                  const TextStyle(color: Colors.white54, fontSize: 12),
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis),
         ),
@@ -507,8 +495,7 @@ class _PlaylistTile extends StatelessWidget {
         Text('${playlist.trackCount} tracks',
             style: const TextStyle(color: Colors.white38, fontSize: 12)),
       ]),
-      trailing: const Icon(Icons.more_horiz,
-          color: Colors.white38, size: 20),
+      trailing: const Icon(Icons.more_horiz, color: Colors.white38, size: 20),
     );
   }
 }
@@ -540,7 +527,8 @@ class _Artwork extends StatelessWidget {
       child: url.isNotEmpty
           ? ClipRRect(
               borderRadius: BorderRadius.circular(radius),
-              child: Image.network(url, fit: BoxFit.cover,
+              child: Image.network(url,
+                  fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) =>
                       Icon(fallback, color: Colors.white38, size: size * 0.46)),
             )
@@ -581,8 +569,7 @@ class SearchEmptyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.search_off_rounded,
-            color: Colors.white24, size: 52),
+        const Icon(Icons.search_off_rounded, color: Colors.white24, size: 52),
         const SizedBox(height: 12),
         Text('No results for "$query"',
             style: const TextStyle(
@@ -616,7 +603,8 @@ class SearchErrorWidget extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(
             _isNetwork ? Icons.wifi_off_rounded : Icons.error_outline_rounded,
-            color: Colors.white24, size: 52,
+            color: Colors.white24,
+            size: 52,
           ),
           const SizedBox(height: 12),
           Text(
@@ -626,9 +614,7 @@ class SearchErrorWidget extends StatelessWidget {
                     ? 'Session expired'
                     : 'Something went wrong',
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600),
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           Text(
@@ -648,8 +634,8 @@ class SearchErrorWidget extends StatelessWidget {
                 context.read<SearchCubit>().submitSearch(q);
               }
             },
-            style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFFF5500)),
+            style:
+                TextButton.styleFrom(foregroundColor: const Color(0xFFFF5500)),
             child: const Text('Try again'),
           ),
         ]),

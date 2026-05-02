@@ -25,8 +25,8 @@ class FeedLoaded extends FeedState {
   final List<FeedItem> items;
   final int nextPage;
   final bool hasMore;
-  final bool isLoadingMore;  // footer spinner
-  final bool isRefreshing;   // pull-to-refresh
+  final bool isLoadingMore; // footer spinner
+  final bool isRefreshing; // pull-to-refresh
 
   const FeedLoaded({
     required this.items,

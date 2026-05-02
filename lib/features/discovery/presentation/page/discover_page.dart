@@ -56,17 +56,29 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final dataSource = DiscoveryRemoteDataSourceImpl(getIt<DioClient>());
       final repo = TrendingRepositoryImpl(remoteDataSource: dataSource);
       final result = await GetTrendingUseCase(repo)();
       result.fold(
-        (failure) => setState(() { _error = failure.toString(); _loading = false; }),
-        (tracks)  => setState(() { _tracks = tracks; _loading = false; }),
+        (failure) => setState(() {
+          _error = failure.toString();
+          _loading = false;
+        }),
+        (tracks) => setState(() {
+          _tracks = tracks;
+          _loading = false;
+        }),
       );
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 
@@ -78,23 +90,24 @@ class _DiscoverPageState extends State<DiscoverPage> {
       body: Stack(
         children: [
           if (_loading)
-            const Center(child: CircularProgressIndicator(color: Color(0xFFFF5500)))
+            const Center(
+                child: CircularProgressIndicator(color: Color(0xFFFF5500)))
           else if (_error != null)
             _ErrorState(message: _error!, onRetry: _load)
           else if (_tracks.isEmpty)
             const _EmptyState()
           else
             _ReelsPager(tracks: _tracks),
-
           SafeArea(
             child: Align(
               alignment: Alignment.topCenter,
               child: _DiscoverHeader(),
             ),
           ),
-
           Positioned(
-            bottom: 0, left: 0, right: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: const BottomNavBar(selected: 1),
           ),
         ],
@@ -143,7 +156,7 @@ class _ReelsPagerState extends State<_ReelsPager> {
           create: (_) => getIt<TrackInteractionCubit>()
             ..load(
               trackId: track.id,
-              likesCount: 0,    // سيتحدث من getTrackDetail
+              likesCount: 0, // سيتحدث من getTrackDetail
               repostsCount: 0,
             ),
           child: _ReelCard(
@@ -198,10 +211,10 @@ class _ReelCardState extends State<_ReelCard> {
       final detail = result.detail;
       if (result.failure != null || detail == null || !mounted) return;
       context.read<TrackInteractionCubit>().load(
-        trackId: widget.track.id,
-        likesCount: detail.likesCount,
-        repostsCount: detail.repostsCount,
-      );
+            trackId: widget.track.id,
+            likesCount: detail.likesCount,
+            repostsCount: detail.repostsCount,
+          );
     } catch (_) {}
   }
 
@@ -226,7 +239,10 @@ class _ReelCardState extends State<_ReelCard> {
   Future<void> _toggleFollow() async {
     if (_followLoading) return;
     final repo = getIt<SocialRepo>();
-    setState(() { _followLoading = true; _isFollowing = !_isFollowing; });
+    setState(() {
+      _followLoading = true;
+      _isFollowing = !_isFollowing;
+    });
     try {
       if (_isFollowing) {
         await repo.followUser(widget.track.ownerId);
@@ -276,23 +292,25 @@ class _ReelCardState extends State<_ReelCard> {
   }
 
   Future<void> _startPlayback() async {
-    final queue = widget.allTracks.map((t) => Track(
-      id: t.id,
-      title: t.title,
-      artist: t.ownerDisplayName,
-      audioUrl: '',
-      artworkUrl: t.coverUrl.isNotEmpty ? t.coverUrl : null,
-      handle: t.ownerHandle,
-      artistId: t.ownerId,
-      likesCount: t.likesCount,
-      repostsCount: t.repostsCount,
-    )).toList();
+    final queue = widget.allTracks
+        .map((t) => Track(
+              id: t.id,
+              title: t.title,
+              artist: t.ownerDisplayName,
+              audioUrl: '',
+              artworkUrl: t.coverUrl.isNotEmpty ? t.coverUrl : null,
+              handle: t.ownerHandle,
+              artistId: t.ownerId,
+              likesCount: t.likesCount,
+              repostsCount: t.repostsCount,
+            ))
+        .toList();
 
     await context.read<PlayerCubit>().playFromContext(
-      tracks: queue,
-      startIndex: widget.index,
-      source: 'discover',
-    );
+          tracks: queue,
+          startIndex: widget.index,
+          source: 'discover',
+        );
   }
 
   void _openComments() {
@@ -308,17 +326,19 @@ class _ReelCardState extends State<_ReelCard> {
   }
 
   void _openOptions() {
-    TrackOptionsSheet.show(context, track: Track(
-      id: widget.track.id,
-      title: widget.track.title,
-      artist: widget.track.ownerDisplayName,
-      audioUrl: '',
-      artworkUrl: widget.track.coverUrl.isNotEmpty ? widget.track.coverUrl : null,
-      handle: widget.track.ownerHandle,
-      artistId: widget.track.ownerId,
-      likesCount: widget.track.likesCount,
-      repostsCount: widget.track.repostsCount,
-    ));
+    TrackOptionsSheet.show(context,
+        track: Track(
+          id: widget.track.id,
+          title: widget.track.title,
+          artist: widget.track.ownerDisplayName,
+          audioUrl: '',
+          artworkUrl:
+              widget.track.coverUrl.isNotEmpty ? widget.track.coverUrl : null,
+          handle: widget.track.ownerHandle,
+          artistId: widget.track.ownerId,
+          likesCount: widget.track.likesCount,
+          repostsCount: widget.track.repostsCount,
+        ));
   }
 
   @override
@@ -384,7 +404,8 @@ class _ReelCardState extends State<_ReelCard> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 64, height: 64,
+                              width: 64,
+                              height: 64,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.black.withValues(alpha: 0.5),
@@ -414,7 +435,8 @@ class _ReelCardState extends State<_ReelCard> {
                         onTap: _openOptions,
                         behavior: HitTestBehavior.opaque,
                         child: Container(
-                          width: 36, height: 36,
+                          width: 36,
+                          height: 36,
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.4),
                             shape: BoxShape.circle,
@@ -457,17 +479,20 @@ class _ReelCardState extends State<_ReelCard> {
                             icon: Icons.playlist_add,
                             label: 'Add',
                             onTap: () {
-                              AddToPlaylistSheet.show(context, track: Track(
-                                id: track.id,
-                                title: track.title,
-                                artist: track.ownerDisplayName,
-                                audioUrl: '',
-                                artworkUrl: track.coverUrl.isNotEmpty ? track.coverUrl : null,
-                                handle: track.ownerHandle,
-                                artistId: track.ownerId,
-                                likesCount: track.likesCount,
-                                repostsCount: track.repostsCount,
-                              ));
+                              AddToPlaylistSheet.show(context,
+                                  track: Track(
+                                    id: track.id,
+                                    title: track.title,
+                                    artist: track.ownerDisplayName,
+                                    audioUrl: '',
+                                    artworkUrl: track.coverUrl.isNotEmpty
+                                        ? track.coverUrl
+                                        : null,
+                                    handle: track.ownerHandle,
+                                    artistId: track.ownerId,
+                                    likesCount: track.likesCount,
+                                    repostsCount: track.repostsCount,
+                                  ));
                             },
                           ),
                         ],
@@ -476,7 +501,8 @@ class _ReelCardState extends State<_ReelCard> {
 
                     // ── Bottom bar ──────────────────────────────────────
                     Positioned(
-                      left: 12, right: 12,
+                      left: 12,
+                      right: 12,
                       bottom: bottomBarBottom,
                       child: _buildBottomBar(track, playerState, isPlaying),
                     ),
@@ -503,8 +529,12 @@ class _ReelCardState extends State<_ReelCard> {
 
   Widget _fallbackBg(TrendingTrack track) {
     const colors = [
-      Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460),
-      Color(0xFF1B1B2F), Color(0xFF2D132C), Color(0xFF1B262C),
+      Color(0xFF1A1A2E),
+      Color(0xFF16213E),
+      Color(0xFF0F3460),
+      Color(0xFF1B1B2F),
+      Color(0xFF2D132C),
+      Color(0xFF1B262C),
     ];
     final idx = track.id.codeUnits.fold(0, (a, b) => a + b) % colors.length;
     return Container(color: colors[idx]);
@@ -517,12 +547,11 @@ class _ReelCardState extends State<_ReelCard> {
   ) {
     final isSameTrack = playerState.currentTrack?.id == track.id;
     final duration = playerState.duration;
-    final double progress = isSameTrack &&
-            duration != null &&
-            duration.inMilliseconds > 0
-        ? (playerState.position.inMilliseconds / duration.inMilliseconds)
-            .clamp(0.0, 1.0)
-        : 0.0;
+    final double progress =
+        isSameTrack && duration != null && duration.inMilliseconds > 0
+            ? (playerState.position.inMilliseconds / duration.inMilliseconds)
+                .clamp(0.0, 1.0)
+            : 0.0;
 
     final isOwnTrack = _currentUserId == track.ownerId;
 
@@ -632,7 +661,8 @@ class _ReelCardState extends State<_ReelCard> {
           GestureDetector(
             onTap: _handleIconTap,
             child: SizedBox(
-              width: 52, height: 52,
+              width: 52,
+              height: 52,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -645,7 +675,8 @@ class _ReelCardState extends State<_ReelCard> {
                     ),
                   ),
                   Container(
-                    width: 40, height: 40,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white.withValues(alpha: 0.15),
@@ -667,13 +698,18 @@ class _ReelCardState extends State<_ReelCard> {
 
   Widget _buildAvatar(TrendingTrack track) {
     const colors = [
-      Color(0xFFFF5500), Color(0xFF1DA0F2), Color(0xFF1DB954),
-      Color(0xFF9B59B6), Color(0xFFF39C12), Color(0xFFE74C3C),
+      Color(0xFFFF5500),
+      Color(0xFF1DA0F2),
+      Color(0xFF1DB954),
+      Color(0xFF9B59B6),
+      Color(0xFFF39C12),
+      Color(0xFFE74C3C),
     ];
     final idx =
         track.ownerId.codeUnits.fold(0, (a, b) => a + b) % colors.length;
     return Container(
-      width: 44, height: 44,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
@@ -688,7 +724,9 @@ class _ReelCardState extends State<_ReelCard> {
             ? track.ownerDisplayName[0].toUpperCase()
             : '?',
         style: const TextStyle(
-          fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
         ),
       ),
     );
@@ -722,14 +760,18 @@ class _ActionButton extends StatelessWidget {
       onTap: onTap,
       child: Column(
         children: [
-          Icon(icon, color: iconColor, size: 28,
+          Icon(icon,
+              color: iconColor,
+              size: 28,
               shadows: const [Shadow(blurRadius: 4)]),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(
-            fontSize: 12, color: Colors.white,
-            fontWeight: FontWeight.w500,
-            shadows: [Shadow(blurRadius: 4)],
-          )),
+          Text(label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                shadows: [Shadow(blurRadius: 4)],
+              )),
         ],
       ),
     );
@@ -746,18 +788,23 @@ class _DiscoverHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('Discover', style: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white,
-            shadows: [Shadow(blurRadius: 6, color: Colors.black)],
-          )),
+          const Text('Discover',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                shadows: [Shadow(blurRadius: 6, color: Colors.black)],
+              )),
           const SizedBox(width: 28),
           GestureDetector(
             onTap: () => context.go('/feed'),
-            child: const Text('Following', style: TextStyle(
-              fontSize: 16, fontWeight: FontWeight.w500,
-              color: Color(0xAAFFFFFF),
-              shadows: [Shadow(blurRadius: 6, color: Colors.black)],
-            )),
+            child: const Text('Following',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xAAFFFFFF),
+                  shadows: [Shadow(blurRadius: 6, color: Colors.black)],
+                )),
           ),
         ],
       ),
@@ -775,8 +822,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.trending_up, size: 56, color: Color(0xFF333333)),
         SizedBox(height: 14),
-        Text('No trending tracks', style: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+        Text('No trending tracks',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white)),
         SizedBox(height: 6),
         Text('Check back later',
             style: TextStyle(fontSize: 13, color: Color(0xFF666666))),
@@ -796,7 +846,8 @@ class _ErrorState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.wifi_off_rounded, size: 48, color: Color(0xFF444444)),
+          const Icon(Icons.wifi_off_rounded,
+              size: 48, color: Color(0xFF444444)),
           const SizedBox(height: 14),
           Text(message,
               style: const TextStyle(color: Color(0xFF888888), fontSize: 13),

@@ -11,7 +11,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../../core/models/track.dart';
-import 'search_entities.dart';    // PlaylistEntity
+import 'search_entities.dart'; // PlaylistEntity
 
 // ── Album ─────────────────────────────────────────────────────────────────────
 
@@ -20,15 +20,15 @@ class AlbumEntity extends Equatable {
   final String title;
   final String artistName;
   final String artworkUrl;
-  final int    trackCount;
-  final int    releaseYear;
+  final int trackCount;
+  final int releaseYear;
 
   const AlbumEntity({
     required this.id,
     required this.title,
     required this.artistName,
     required this.artworkUrl,
-    this.trackCount  = 0,
+    this.trackCount = 0,
     this.releaseYear = 0,
   });
 
@@ -44,7 +44,7 @@ class GenreProfileEntity extends Equatable {
   final String username;
   final String displayName;
   final String avatarUrl;
-  final bool   isVerified;
+  final bool isVerified;
 
   const GenreProfileEntity({
     required this.id,
@@ -55,34 +55,33 @@ class GenreProfileEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props =>
-      [id, username, displayName, avatarUrl, isVerified];
+  List<Object?> get props => [id, username, displayName, avatarUrl, isVerified];
 }
 
 // ── Genre Page Data ───────────────────────────────────────────────────────────
 // Aggregates all sections needed to render the genre page.
 
 class GenrePageData {
-  final String                   headerImageUrl;
-  final List<Track>              trending;
-  final Track?                   introducing;
-  final List<Track>              introducingExtras;
-  final List<PlaylistEntity>     playlists;
-  final List<AlbumEntity>        albums;
+  final String headerImageUrl;
+  final List<Track> trending;
+  final Track? introducing;
+  final List<Track> introducingExtras;
+  final List<PlaylistEntity> playlists;
+  final List<AlbumEntity> albums;
   final List<GenreProfileEntity> profiles;
-  final List<Track>              discoverMore;
-  final Set<String>              followingIds;   // IDs the current user follows
+  final List<Track> discoverMore;
+  final Set<String> followingIds; // IDs the current user follows
 
   const GenrePageData({
-    this.headerImageUrl    = '',
-    this.trending          = const [],
+    this.headerImageUrl = '',
+    this.trending = const [],
     this.introducing,
     this.introducingExtras = const [],
-    this.playlists         = const [],
-    this.albums            = const [],
-    this.profiles          = const [],
-    this.discoverMore      = const [],
-    this.followingIds      = const {},
+    this.playlists = const [],
+    this.albums = const [],
+    this.profiles = const [],
+    this.discoverMore = const [],
+    this.followingIds = const {},
   });
 }
 

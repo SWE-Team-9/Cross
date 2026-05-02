@@ -26,26 +26,27 @@ class QueueRepository {
   }
 
   Future<Track?> next() async {
-  final res = await _dio.post<Map<String, dynamic>>(ApiConstants.queueNext);
-  final data = res.data;
-  if (data == null || data['track'] == null) return null;
-  return Track.fromJson(data['track'] as Map<String, dynamic>);
-}
+    final res = await _dio.post<Map<String, dynamic>>(ApiConstants.queueNext);
+    final data = res.data;
+    if (data == null || data['track'] == null) return null;
+    return Track.fromJson(data['track'] as Map<String, dynamic>);
+  }
 
-Future<Track?> previous() async {
-  final res = await _dio.post<Map<String, dynamic>>(ApiConstants.queuePrevious);
-  final data = res.data;
-  if (data == null || data['track'] == null) return null;
-  return Track.fromJson(data['track'] as Map<String, dynamic>);
-}
+  Future<Track?> previous() async {
+    final res =
+        await _dio.post<Map<String, dynamic>>(ApiConstants.queuePrevious);
+    final data = res.data;
+    if (data == null || data['track'] == null) return null;
+    return Track.fromJson(data['track'] as Map<String, dynamic>);
+  }
 
-Future<Track?> jumpTo(int index) async {
-  final res = await _dio.post<Map<String, dynamic>>(
-    ApiConstants.queueJump,
-    data: {'index': index},
-  );
-  final data = res.data;
-  if (data == null || data['track'] == null) return null;
-  return Track.fromJson(data['track'] as Map<String, dynamic>);
-}
+  Future<Track?> jumpTo(int index) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      ApiConstants.queueJump,
+      data: {'index': index},
+    );
+    final data = res.data;
+    if (data == null || data['track'] == null) return null;
+    return Track.fromJson(data['track'] as Map<String, dynamic>);
+  }
 }

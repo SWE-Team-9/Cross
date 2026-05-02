@@ -16,30 +16,30 @@ void main() {
       repository = FeedRepositoryImpl(dataSource: dataSource);
     });
 
-test('getFeed returns data source page', () async {
-  final page = ActivityFeedPageModel(
-    items: const [],
-    pagination: const FeedPaginationModel(
-      page: 1,
-      limit: 20,
-      offset: 0,
-      total: 0,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false,
-    ),
-  );
-  when(() => dataSource.getFeed(page: 1)).thenAnswer(
-    (_) async => page,
-  );
+    test('getFeed returns data source page', () async {
+      final page = ActivityFeedPageModel(
+        items: const [],
+        pagination: const FeedPaginationModel(
+          page: 1,
+          limit: 20,
+          offset: 0,
+          total: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        ),
+      );
+      when(() => dataSource.getFeed(page: 1)).thenAnswer(
+        (_) async => page,
+      );
 
-  final result = await repository.getFeed(page: 1);
+      final result = await repository.getFeed(page: 1);
 
-  // الـ repository بيحول ActivityFeedPageModel → FeedPage
-  expect(result, isA<FeedPage>());
-  expect(result.page, 1);
-  expect(result.items, isEmpty);
-});
+      // الـ repository بيحول ActivityFeedPageModel → FeedPage
+      expect(result, isA<FeedPage>());
+      expect(result.page, 1);
+      expect(result.items, isEmpty);
+    });
 
     test('toggleLike maps explicit and fallback values', () async {
       when(

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../bloc/search_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart'; // ← السطر الناقص
 
-
 /// الـ page بتبعت controller بس — الـ counts بتجيب من BlocBuilder جوا الـ widget.
 class SearchTabsWidget extends StatelessWidget {
   final TabController controller;

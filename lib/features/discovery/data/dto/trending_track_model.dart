@@ -27,10 +27,13 @@ class TrendingTrackModel extends TrendingTrack {
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       genre: json['genre'] as String? ?? '',
-      audioUrl: json['audioUrl'] as String? ?? json['audio_url'] as String? ?? '',
-      coverUrl: json['coverArtUrl'] as String? ?? json['cover_url'] as String? ?? '',
+      audioUrl:
+          json['audioUrl'] as String? ?? json['audio_url'] as String? ?? '',
+      coverUrl:
+          json['coverArtUrl'] as String? ?? json['cover_url'] as String? ?? '',
       trendingScore: (json['velocityScore'] as num?)?.toDouble() ??
-          (json['trending_score'] as num?)?.toDouble() ?? 0.0,
+          (json['trending_score'] as num?)?.toDouble() ??
+          0.0,
       playCount: json['recentPlays'] as int? ?? 0,
       likesCount: json['recentLikes'] as int? ?? 0,
       repostsCount: 0,
@@ -38,7 +41,8 @@ class TrendingTrackModel extends TrendingTrack {
       isLiked: json['liked'] as bool? ?? false,
       ownerHandle: uploader['handle'] as String? ?? '',
       ownerDisplayName: uploader['displayName'] as String? ?? '',
-      ownerId: uploader['userId'] as String? ?? json['uploaderId'] as String? ?? '',
+      ownerId:
+          uploader['userId'] as String? ?? json['uploaderId'] as String? ?? '',
     );
   }
 }

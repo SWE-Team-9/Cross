@@ -19,13 +19,11 @@ class SearchResultsEntity extends Equatable {
     required this.meta,
   });
 
-  bool get isEmpty =>
-      tracks.isEmpty && users.isEmpty && playlists.isEmpty;
+  bool get isEmpty => tracks.isEmpty && users.isEmpty && playlists.isEmpty;
 
   bool get hasResults => !isEmpty;
 
-  int get totalCount =>
-      tracks.length + users.length + playlists.length;
+  int get totalCount => tracks.length + users.length + playlists.length;
 
   @override
   List<Object?> get props => [tracks, users, playlists, meta];
@@ -110,7 +108,6 @@ class UserEntity extends Equatable {
   final String country;
   final bool isFollowing; // ← جديد
 
-
   const UserEntity({
     required this.id,
     required this.username,
@@ -122,11 +119,9 @@ class UserEntity extends Equatable {
     required this.city,
     required this.country,
     this.isFollowing = false, // ← جديد
-
   });
 
-  String get location =>
-      [city, country].where((s) => s.isNotEmpty).join(', ');
+  String get location => [city, country].where((s) => s.isNotEmpty).join(', ');
 
   @override
   List<Object?> get props => [id, username];

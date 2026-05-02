@@ -32,7 +32,7 @@ class FollowUserUseCase {
 
   Future<Either<Failure, void>> call({
     required String userId,
-    required bool   follow,
+    required bool follow,
   }) =>
       _repo.followUser(userId: userId, follow: follow);
 }

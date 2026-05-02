@@ -89,6 +89,7 @@ class FeedTrack {
   final FeedActor artist;
   final TrackStats stats;
   final TrackUserState userState;
+
   /// Direct audio URL returned by the feed endpoint
   final String? audioUrl;
 
@@ -143,11 +144,11 @@ class FeedTrack {
 // Matches GET /api/v1/feed → data[]
 
 class FeedItem {
-  final String activityId;   // feed_id from API
+  final String activityId; // feed_id from API
   /// 'UPLOAD' | 'REPOST' | 'LIKE'  — from action_type
   final String action;
-  final String timeAgo;      // derived from created_at
-  final String? createdAt;   // raw ISO timestamp from API
+  final String timeAgo; // derived from created_at
+  final String? createdAt; // raw ISO timestamp from API
   final FeedActor actor;
   final FeedTrack track;
 
@@ -282,7 +283,7 @@ class TrendingTrack {
 // Matches GET /api/v1/discovery/resolve
 
 class ResolveResult {
-  final String type;       // 'TRACK' | 'USER' | 'PLAYLIST'
+  final String type; // 'TRACK' | 'USER' | 'PLAYLIST'
   final String resourceId;
   final String? ownerId;
 

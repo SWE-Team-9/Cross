@@ -100,9 +100,8 @@ class TrackModel extends TrackEntity {
             j['cover_art_url'] as String? ??
             j['artwork_url'] as String? ??
             '',
-        streamUrl: j['streamUrl'] as String? ??
-            j['stream_url'] as String? ??
-            '',
+        streamUrl:
+            j['streamUrl'] as String? ?? j['stream_url'] as String? ?? '',
         duration: Duration(
           seconds: (j['duration'] as num?)?.toInt() ?? 0,
         ),
@@ -113,12 +112,10 @@ class TrackModel extends TrackEntity {
             (j['likes_count'] as num?)?.toInt() ??
             0,
         genre: j['genre'] as String? ?? '',
-        isPrivate: j['sharing'] == 'private' ||    // ← التصحيح
+        isPrivate: j['sharing'] == 'private' || // ← التصحيح
             (j['isPrivate'] as bool? ?? false),
         createdAt: DateTime.tryParse(
-              j['createdAt'] as String? ??
-              j['created_at'] as String? ??
-              '',
+              j['createdAt'] as String? ?? j['created_at'] as String? ?? '',
             ) ??
             DateTime(1970),
       );
@@ -149,9 +146,8 @@ class UserModel extends UserEntity {
             j['display_name'] as String? ??
             j['username'] as String? ??
             '',
-        avatarUrl: j['avatarUrl'] as String? ??
-            j['avatar_url'] as String? ??
-            '',
+        avatarUrl:
+            j['avatarUrl'] as String? ?? j['avatar_url'] as String? ?? '',
         followersCount: (j['followersCount'] as num?)?.toInt() ??
             (j['followers_count'] as num?)?.toInt() ??
             0,
@@ -190,12 +186,12 @@ class PlaylistModel extends PlaylistEntity {
         trackCount: (j['trackCount'] as num?)?.toInt() ??
             (j['track_count'] as num?)?.toInt() ??
             0,
-        ownerName: (j['user'] as Map<String, dynamic>?)?['username']
-                as String? ??
-            j['ownerName'] as String? ??
-            '',
+        ownerName:
+            (j['user'] as Map<String, dynamic>?)?['username'] as String? ??
+                j['ownerName'] as String? ??
+                '',
         isAlbum: j['is_album'] as bool? ?? j['isAlbum'] as bool? ?? false,
-        isPrivate: j['sharing'] == 'private' ||    // ← التصحيح
+        isPrivate: j['sharing'] == 'private' || // ← التصحيح
             (j['isPrivate'] as bool? ?? false),
         duration: Duration(
           seconds: (j['duration'] as num?)?.toInt() ?? 0,
@@ -204,9 +200,7 @@ class PlaylistModel extends PlaylistEntity {
             (j['likes_count'] as num?)?.toInt() ??
             0,
         createdAt: DateTime.tryParse(
-              j['createdAt'] as String? ??
-              j['created_at'] as String? ??
-              '',
+              j['createdAt'] as String? ?? j['created_at'] as String? ?? '',
             ) ??
             DateTime(1970),
       );
@@ -215,7 +209,6 @@ class PlaylistModel extends PlaylistEntity {
     if (tracks is! List || tracks.isEmpty) return null;
     final first = tracks.first;
     if (first is! Map<String, dynamic>) return null;
-    return first['coverArtUrl'] as String? ??
-        first['artwork_url'] as String?;
+    return first['coverArtUrl'] as String? ?? first['artwork_url'] as String?;
   }
 }

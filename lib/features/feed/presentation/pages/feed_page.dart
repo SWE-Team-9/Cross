@@ -226,11 +226,14 @@ class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   const _PinnedHeaderDelegate({required this.height, required this.child});
 
-  @override double get minExtent => height;
-  @override double get maxExtent => height;
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     return child;
   }
 
@@ -281,7 +284,8 @@ class _TabPill extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _TabPill({required this.label, required this.active, required this.onTap});
+  const _TabPill(
+      {required this.label, required this.active, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -321,7 +325,8 @@ class _Footer extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: SizedBox(
-            width: 20, height: 20,
+            width: 20,
+            height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation(Color(0xFFFF5500)),
@@ -358,7 +363,9 @@ class _EmptyState extends StatelessWidget {
           SizedBox(height: 14),
           Text('No activity yet',
               style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white)),
           SizedBox(height: 6),
           Text('Follow artists to see their tracks here',
               style: TextStyle(fontSize: 13, color: Color(0xFF666666)),
@@ -384,7 +391,8 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 48, color: Color(0xFF444444)),
+            const Icon(Icons.wifi_off_rounded,
+                size: 48, color: Color(0xFF444444)),
             const SizedBox(height: 14),
             Text(message,
                 style: const TextStyle(color: Color(0xFF888888), fontSize: 13),
@@ -395,7 +403,8 @@ class _ErrorState extends StatelessWidget {
               style: TextButton.styleFrom(
                 backgroundColor: const Color(0xFF1C1C1C),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 11),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 11),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(22)),
               ),

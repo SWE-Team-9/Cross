@@ -13,45 +13,51 @@ import '../../../social/data/repositories/social_repo.dart';
 import '../../../social/domain/events/social_events.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
 
-
 // ══════════════════════════════════════════════════════════════════════════════
 // GENRES
 // ══════════════════════════════════════════════════════════════════════════════
 
 const _kGenres = [
-  _Genre('Electronic',   Color(0xFFDB2777), Icons.graphic_eq_rounded,      'electronic'),
-  _Genre('Hip-Hop',      Color(0xFF7C3AED), Icons.mic_none_rounded,         'hip-hop'),
-  _Genre('Pop',          Color(0xFFCA8A04), Icons.star_outline_rounded,      'pop'),
-  _Genre('Rock',         Color(0xFFEA580C), Icons.electric_bolt_rounded,     'rock'),
-  _Genre('Alternative',  Color(0xFF0891B2), Icons.album_outlined,            'alternative'),
-  _Genre('Ambient',      Color(0xFF2563EB), Icons.cloud_queue_rounded,       'ambient'),
-  _Genre('Classical',    Color(0xFF7C3AED), Icons.piano_rounded,             'classical'),
-  _Genre('Jazz',         Color(0xFFCA8A04), Icons.queue_music_rounded,       'jazz'),
-  _Genre('R&B / Soul',   Color(0xFF0891B2), Icons.favorite_border_rounded,   'r-b-soul'),
-  _Genre('Metal',        Color(0xFFEA580C), Icons.electric_bolt_rounded,     'metal'),
-  _Genre('Folk',         Color(0xFFEA580C), Icons.music_note_rounded,        'folk-singer-songwriter'),
-  _Genre('Country',      Color(0xFFCA8A04), Icons.queue_music_rounded,       'country'),
-  _Genre('Reggaeton',    Color(0xFFDB2777), Icons.nightlife_rounded,         'reggaeton'),
-  _Genre('Dancehall',    Color(0xFFDB2777), Icons.celebration_outlined,      'dancehall'),
-  _Genre('Drum & Bass',  Color(0xFF7C3AED), Icons.blur_on_rounded,           'drum-bass'),
-  _Genre('House',        Color(0xFFDB2777), Icons.speaker_rounded,           'house'),
-  _Genre('Techno',       Color(0xFFDB2777), Icons.blur_on_rounded,           'techno'),
-  _Genre('Deep House',   Color(0xFF2563EB), Icons.speaker_rounded,           'deep-house'),
-  _Genre('Trance',       Color(0xFF7C3AED), Icons.graphic_eq_rounded,        'trance'),
-  _Genre('Lo-Fi',        Color(0xFF0891B2), Icons.cloud_queue_rounded,       'lo-fi'),
-  _Genre('Indie',        Color(0xFF2563EB), Icons.album_outlined,            'indie'),
-  _Genre('Punk',         Color(0xFFEA580C), Icons.electric_bolt_rounded,     'punk'),
-  _Genre('Blues',        Color(0xFF0891B2), Icons.piano_rounded,             'blues'),
-  _Genre('Latin',        Color(0xFFDB2777), Icons.nightlife_rounded,         'latin'),
-  _Genre('Afrobeat',     Color(0xFFCA8A04), Icons.celebration_outlined,      'afrobeat'),
-  _Genre('Trap',         Color(0xFF7C3AED), Icons.mic_none_rounded,          'trap'),
-  _Genre('Experimental', Color(0xFFDB2777), Icons.science_outlined,          'experimental'),
-  _Genre('World',        Color(0xFF16A34A), Icons.public_rounded,            'world'),
-  _Genre('Gospel',       Color(0xFFCA8A04), Icons.church_outlined,           'gospel'),
-  _Genre('Spoken Word',  Color(0xFF0891B2), Icons.record_voice_over_rounded, 'spoken-word'),
-  _Genre('Quran',        Color(0xFF16A34A), Icons.menu_book_rounded,         'quran'),
-  _Genre('Sha3by',       Color(0xFFEA580C), Icons.queue_music_rounded,       'sha3by'),
-  _Genre('Islamic',      Color(0xFF16A34A), Icons.self_improvement_rounded,  'islamic'),
+  _Genre(
+      'Electronic', Color(0xFFDB2777), Icons.graphic_eq_rounded, 'electronic'),
+  _Genre('Hip-Hop', Color(0xFF7C3AED), Icons.mic_none_rounded, 'hip-hop'),
+  _Genre('Pop', Color(0xFFCA8A04), Icons.star_outline_rounded, 'pop'),
+  _Genre('Rock', Color(0xFFEA580C), Icons.electric_bolt_rounded, 'rock'),
+  _Genre('Alternative', Color(0xFF0891B2), Icons.album_outlined, 'alternative'),
+  _Genre('Ambient', Color(0xFF2563EB), Icons.cloud_queue_rounded, 'ambient'),
+  _Genre('Classical', Color(0xFF7C3AED), Icons.piano_rounded, 'classical'),
+  _Genre('Jazz', Color(0xFFCA8A04), Icons.queue_music_rounded, 'jazz'),
+  _Genre('R&B / Soul', Color(0xFF0891B2), Icons.favorite_border_rounded,
+      'r-b-soul'),
+  _Genre('Metal', Color(0xFFEA580C), Icons.electric_bolt_rounded, 'metal'),
+  _Genre('Folk', Color(0xFFEA580C), Icons.music_note_rounded,
+      'folk-singer-songwriter'),
+  _Genre('Country', Color(0xFFCA8A04), Icons.queue_music_rounded, 'country'),
+  _Genre('Reggaeton', Color(0xFFDB2777), Icons.nightlife_rounded, 'reggaeton'),
+  _Genre(
+      'Dancehall', Color(0xFFDB2777), Icons.celebration_outlined, 'dancehall'),
+  _Genre('Drum & Bass', Color(0xFF7C3AED), Icons.blur_on_rounded, 'drum-bass'),
+  _Genre('House', Color(0xFFDB2777), Icons.speaker_rounded, 'house'),
+  _Genre('Techno', Color(0xFFDB2777), Icons.blur_on_rounded, 'techno'),
+  _Genre('Deep House', Color(0xFF2563EB), Icons.speaker_rounded, 'deep-house'),
+  _Genre('Trance', Color(0xFF7C3AED), Icons.graphic_eq_rounded, 'trance'),
+  _Genre('Lo-Fi', Color(0xFF0891B2), Icons.cloud_queue_rounded, 'lo-fi'),
+  _Genre('Indie', Color(0xFF2563EB), Icons.album_outlined, 'indie'),
+  _Genre('Punk', Color(0xFFEA580C), Icons.electric_bolt_rounded, 'punk'),
+  _Genre('Blues', Color(0xFF0891B2), Icons.piano_rounded, 'blues'),
+  _Genre('Latin', Color(0xFFDB2777), Icons.nightlife_rounded, 'latin'),
+  _Genre('Afrobeat', Color(0xFFCA8A04), Icons.celebration_outlined, 'afrobeat'),
+  _Genre('Trap', Color(0xFF7C3AED), Icons.mic_none_rounded, 'trap'),
+  _Genre('Experimental', Color(0xFFDB2777), Icons.science_outlined,
+      'experimental'),
+  _Genre('World', Color(0xFF16A34A), Icons.public_rounded, 'world'),
+  _Genre('Gospel', Color(0xFFCA8A04), Icons.church_outlined, 'gospel'),
+  _Genre('Spoken Word', Color(0xFF0891B2), Icons.record_voice_over_rounded,
+      'spoken-word'),
+  _Genre('Quran', Color(0xFF16A34A), Icons.menu_book_rounded, 'quran'),
+  _Genre('Sha3by', Color(0xFFEA580C), Icons.queue_music_rounded, 'sha3by'),
+  _Genre(
+      'Islamic', Color(0xFF16A34A), Icons.self_improvement_rounded, 'islamic'),
 ];
 
 class _Genre {
@@ -99,7 +105,8 @@ class SearchPage extends StatelessWidget {
                             SizedBox(width: 8),
                             Text(
                               'Search',
-                              style: TextStyle(color: Colors.white38, fontSize: 15),
+                              style: TextStyle(
+                                  color: Colors.white38, fontSize: 15),
                             ),
                           ],
                         ),
@@ -108,7 +115,8 @@ class SearchPage extends StatelessWidget {
                   ),
                   const Padding(
                     padding: EdgeInsets.only(left: 12),
-                    child: Icon(Icons.cast_outlined, color: Colors.white54, size: 22),
+                    child: Icon(Icons.cast_outlined,
+                        color: Colors.white54, size: 22),
                   ),
                 ],
               ),
@@ -265,8 +273,8 @@ class _SearchActiveViewState extends State<_SearchActiveView>
   late final TabController _tabController;
   final _scrollController = ScrollController();
 
-  static const _tabTracks    = 1;
-  static const _tabProfiles  = 2;
+  static const _tabTracks = 1;
+  static const _tabProfiles = 2;
   static const _tabPlaylists = 3;
 
   @override
@@ -298,10 +306,10 @@ class _SearchActiveViewState extends State<_SearchActiveView>
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
     final tab = switch (_tabController.index) {
-      _tabTracks    => SearchTab.tracks,
-      _tabProfiles  => SearchTab.people,
+      _tabTracks => SearchTab.tracks,
+      _tabProfiles => SearchTab.people,
       _tabPlaylists => SearchTab.playlists,
-      _             => SearchTab.all,
+      _ => SearchTab.all,
     };
     context.read<SearchCubit>().onTabChanged(tab);
   }
@@ -316,8 +324,12 @@ class _SearchActiveViewState extends State<_SearchActiveView>
 
   @override
   void dispose() {
-    _tabController..removeListener(_onTabChanged)..dispose();
-    _scrollController..removeListener(_onScroll)..dispose();
+    _tabController
+      ..removeListener(_onTabChanged)
+      ..dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -325,8 +337,10 @@ class _SearchActiveViewState extends State<_SearchActiveView>
 
   void _goBack() {
     _focusNode.unfocus();
-    if (context.canPop()) context.pop();
-    else context.go('/search');
+    if (context.canPop())
+      context.pop();
+    else
+      context.go('/search');
   }
 
   void _pickQuery(String query) {
@@ -349,7 +363,9 @@ class _SearchActiveViewState extends State<_SearchActiveView>
 
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, _) { if (!didPop) _goBack(); },
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
       child: Scaffold(
         backgroundColor: Colors.black,
         bottomNavigationBar: keyboardOpen
@@ -358,8 +374,17 @@ class _SearchActiveViewState extends State<_SearchActiveView>
                 selected: 2,
                 onTap: (i) {
                   _focusNode.unfocus();
-                  if (i == 2) { _goBack(); return; }
-                  const routes = ['/home', '/feed', '/search', '/library', '/upgrade'];
+                  if (i == 2) {
+                    _goBack();
+                    return;
+                  }
+                  const routes = [
+                    '/home',
+                    '/feed',
+                    '/search',
+                    '/library',
+                    '/upgrade'
+                  ];
                   context.go(routes[i]);
                 },
               ),
@@ -386,7 +411,6 @@ class _SearchActiveViewState extends State<_SearchActiveView>
                   builder: (context, state) {
                     return switch (state.bodyMode) {
                       SearchBodyMode.idle => const _IdleHint(),
-
                       SearchBodyMode.recents => _RecentsPanel(
                           recents: state.recentSearches,
                           onTap: _pickQuery,
@@ -395,25 +419,20 @@ class _SearchActiveViewState extends State<_SearchActiveView>
                           onClearAll: () =>
                               context.read<SearchCubit>().clearRecents(),
                         ),
-
                       SearchBodyMode.suggestions => _SuggestionsPanel(
                           query: state.typingQuery,
                           suggestions: state.suggestions,
                           isLoading: state.isSuggestionsLoading,
                           onTap: _pickQuery,
                         ),
-
                       SearchBodyMode.loading => const _SearchShimmer(),
-
                       SearchBodyMode.failure => _ErrorView(
                           onRetry: () => context
                               .read<SearchCubit>()
                               .submitSearch(state.submittedQuery),
                         ),
-
                       SearchBodyMode.empty =>
                         _EmptyResults(query: state.submittedQuery),
-
                       SearchBodyMode.results => Column(
                           children: [
                             _SearchTabBar(
@@ -488,29 +507,30 @@ class _ActiveSearchBar extends StatelessWidget {
                     child: Icon(Icons.search, color: Colors.white54, size: 20),
                   ),
                   Expanded(
-  child: TextField(
-    controller: controller,
-    focusNode: focusNode,
-    onChanged: onChanged,
-    onSubmitted: onSubmit,
-    textInputAction: TextInputAction.search,
-    textAlign: TextAlign.start,
-    textAlignVertical: TextAlignVertical.center,
-    style: const TextStyle(
-      color: Colors.white,
-      fontSize: 15,
-      fontWeight: FontWeight.w400,
-    ),
-    decoration: const InputDecoration(
-      hintText: 'Search',
-      hintStyle: TextStyle(color: Colors.white38, fontSize: 15),
-      border: InputBorder.none,
-      contentPadding: EdgeInsets.symmetric(horizontal: 10),
-      isDense: true,
-    ),
-    cursorColor: const Color(0xFFFF5500),
-  ),
-),
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      onChanged: onChanged,
+                      onSubmitted: onSubmit,
+                      textInputAction: TextInputAction.search,
+                      textAlign: TextAlign.start,
+                      textAlignVertical: TextAlignVertical.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'Search',
+                        hintStyle:
+                            TextStyle(color: Colors.white38, fontSize: 15),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                        isDense: true,
+                      ),
+                      cursorColor: const Color(0xFFFF5500),
+                    ),
+                  ),
                   ValueListenableBuilder<TextEditingValue>(
                     valueListenable: controller,
                     builder: (_, value, __) {
@@ -519,8 +539,8 @@ class _ActiveSearchBar extends StatelessWidget {
                         onTap: onClear,
                         child: const Padding(
                           padding: EdgeInsets.only(right: 10),
-                          child:
-                              Icon(Icons.close, color: Colors.white54, size: 18),
+                          child: Icon(Icons.close,
+                              color: Colors.white54, size: 18),
                         ),
                       );
                     },
@@ -531,8 +551,7 @@ class _ActiveSearchBar extends StatelessWidget {
           ),
           const Padding(
             padding: EdgeInsets.only(left: 12),
-            child:
-                Icon(Icons.cast_outlined, color: Colors.white54, size: 22),
+            child: Icon(Icons.cast_outlined, color: Colors.white54, size: 22),
           ),
         ],
       ),
@@ -592,8 +611,8 @@ class _RecentsPanel extends StatelessWidget {
               return ListTile(
                 dense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                leading: const Icon(Icons.history,
-                    color: Colors.white38, size: 20),
+                leading:
+                    const Icon(Icons.history, color: Colors.white38, size: 20),
                 title: Text(q,
                     style: const TextStyle(
                         color: Colors.white,
@@ -601,8 +620,8 @@ class _RecentsPanel extends StatelessWidget {
                         fontWeight: FontWeight.w400)),
                 trailing: GestureDetector(
                   onTap: () => onRemove(q),
-                  child: const Icon(Icons.close,
-                      color: Colors.white38, size: 18),
+                  child:
+                      const Icon(Icons.close, color: Colors.white38, size: 18),
                 ),
                 onTap: () => onTap(q),
               );
@@ -772,7 +791,7 @@ class _AllTab extends StatelessWidget {
   Widget build(BuildContext context) {
     // Top result: أول track أو أول user
     final topTrack = state.tracks.isNotEmpty ? state.tracks.first : null;
-    final topUser  = state.users.isNotEmpty  ? state.users.first  : null;
+    final topUser = state.users.isNotEmpty ? state.users.first : null;
 
     return CustomScrollView(
       controller: scrollController,
@@ -826,7 +845,8 @@ class _AllTab extends StatelessWidget {
               padding: EdgeInsets.all(20),
               child: Center(
                 child: SizedBox(
-                  width: 20, height: 20,
+                  width: 20,
+                  height: 20,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Color(0xFFFF5500)),
                 ),
@@ -883,7 +903,8 @@ class _ListTab extends StatelessWidget {
             padding: EdgeInsets.all(20),
             child: Center(
               child: SizedBox(
-                width: 20, height: 20,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: Color(0xFFFF5500)),
               ),
@@ -958,9 +979,9 @@ class _TopResultTile extends StatelessWidget {
             onPressed: () => _openOptions(context, track),
           ),
           onTap: () {
-  final t = _toTrack(track);
-  getIt<PlayerCubit>().play(t);
-},
+            final t = _toTrack(track);
+            getIt<PlayerCubit>().play(t);
+          },
         ),
       ),
     );
@@ -988,9 +1009,8 @@ class _TopUserTile extends StatelessWidget {
           leading: CircleAvatar(
             radius: 28,
             backgroundColor: const Color(0xFF2A2A2A),
-            backgroundImage: user.avatarUrl.isNotEmpty
-                ? NetworkImage(user.avatarUrl)
-                : null,
+            backgroundImage:
+                user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
             child: user.avatarUrl.isEmpty
                 ? Text(
                     user.displayName.isNotEmpty
@@ -1019,12 +1039,11 @@ class _TopUserTile extends StatelessWidget {
             ],
           ]),
           subtitle: Text('@${user.username}',
-              style:
-                  const TextStyle(color: Colors.white54, fontSize: 12)),
-         trailing: _FollowButton(
-  userId: user.id,
-  initialIsFollowing: user.isFollowing,
-),
+              style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          trailing: _FollowButton(
+            userId: user.id,
+            initialIsFollowing: user.isFollowing,
+          ),
           onTap: () => context.push('/profile/${user.username}'),
         ),
       ),
@@ -1072,9 +1091,9 @@ class _TrackTile extends StatelessWidget {
         onPressed: () => _openOptions(context, track),
       ),
       onTap: () {
-  final t = _toTrack(track);
-  getIt<PlayerCubit>().play(t);
-},
+        final t = _toTrack(track);
+        getIt<PlayerCubit>().play(t);
+      },
     );
   }
 }
@@ -1092,9 +1111,8 @@ class _UserTile extends StatelessWidget {
       leading: CircleAvatar(
         radius: 23,
         backgroundColor: const Color(0xFF1C1C1C),
-        backgroundImage: user.avatarUrl.isNotEmpty
-            ? NetworkImage(user.avatarUrl)
-            : null,
+        backgroundImage:
+            user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
         child: user.avatarUrl.isEmpty
             ? Text(
                 user.displayName.isNotEmpty
@@ -1125,9 +1143,9 @@ class _UserTile extends StatelessWidget {
       subtitle: Text('@${user.username}',
           style: const TextStyle(color: Colors.white38, fontSize: 12)),
       trailing: _FollowButton(
-  userId: user.id,
-  initialIsFollowing: user.isFollowing,
-),
+        userId: user.id,
+        initialIsFollowing: user.isFollowing,
+      ),
       onTap: () => context.push('/profile/${user.username}'),
     );
   }
@@ -1314,8 +1332,8 @@ class _Artwork extends StatelessWidget {
               borderRadius: BorderRadius.circular(radius),
               child: Image.network(url,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Icon(fallback,
-                      color: Colors.white38, size: size * 0.46)),
+                  errorBuilder: (_, __, ___) =>
+                      Icon(fallback, color: Colors.white38, size: size * 0.46)),
             )
           : Icon(fallback, color: Colors.white38, size: size * 0.46),
     );
@@ -1341,8 +1359,7 @@ class _EmptyResults extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.search_off_rounded,
-              color: Colors.white24, size: 52),
+          const Icon(Icons.search_off_rounded, color: Colors.white24, size: 52),
           const SizedBox(height: 12),
           Text('No results for "$query"',
               style: const TextStyle(
@@ -1362,8 +1379,7 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.wifi_off_rounded,
-              color: Colors.white24, size: 52),
+          const Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 52),
           const SizedBox(height: 12),
           const Text('Something went wrong',
               style: TextStyle(

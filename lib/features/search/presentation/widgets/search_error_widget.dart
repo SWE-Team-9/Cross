@@ -34,9 +34,7 @@ class SearchErrorWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              _isNetwork
-                  ? Icons.wifi_off_rounded
-                  : Icons.error_outline_rounded,
+              _isNetwork ? Icons.wifi_off_rounded : Icons.error_outline_rounded,
               color: Colors.white24,
               size: 52,
             ),
@@ -59,8 +57,7 @@ class SearchErrorWidget extends StatelessWidget {
             TextButton(
               onPressed: () {
                 // submittedQuery بدل query القديم
-                final query =
-                    context.read<SearchCubit>().state.submittedQuery;
+                final query = context.read<SearchCubit>().state.submittedQuery;
                 if (query.isNotEmpty) {
                   context.read<SearchCubit>().submitSearch(query);
                 }

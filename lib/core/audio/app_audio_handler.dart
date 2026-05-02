@@ -182,8 +182,7 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       _seekRelative(AudioService.config.fastForwardInterval);
 
   @override
-  Future<void> rewind() =>
-      _seekRelative(-AudioService.config.rewindInterval);
+  Future<void> rewind() => _seekRelative(-AudioService.config.rewindInterval);
 
   Future<void> _seekRelative(Duration offset) =>
       seek(_player.position + offset);

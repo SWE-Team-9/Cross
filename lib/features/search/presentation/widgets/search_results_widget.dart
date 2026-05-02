@@ -151,9 +151,8 @@ class _AllTab extends StatelessWidget {
         if (state.tracks.isNotEmpty) ...[
           _SectionTitle(
             title: 'Tracks',
-            onSeeAll: state.tracks.length > 3
-                ? () => _jumpToTab(context, 1)
-                : null,
+            onSeeAll:
+                state.tracks.length > 3 ? () => _jumpToTab(context, 1) : null,
           ),
           ...state.tracks.take(3).map((t) => _TrackTile(track: t)),
         ],
@@ -162,9 +161,8 @@ class _AllTab extends StatelessWidget {
         if (state.users.isNotEmpty) ...[
           _SectionTitle(
             title: 'People',
-            onSeeAll: state.users.length > 3
-                ? () => _jumpToTab(context, 2)
-                : null,
+            onSeeAll:
+                state.users.length > 3 ? () => _jumpToTab(context, 2) : null,
           ),
           ...state.users.take(3).map((u) => _UserTile(user: u)),
         ],
@@ -269,14 +267,14 @@ class _TrackTopCard extends StatelessWidget {
                     const SizedBox(width: 2),
                     Text(
                       _fmtCount(track.playbackCount),
-                      style: const TextStyle(
-                          color: Colors.white38, fontSize: 11),
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 11),
                     ),
                     const SizedBox(width: 10),
                     Text(
                       track.formattedDuration,
-                      style: const TextStyle(
-                          color: Colors.white38, fontSize: 11),
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 11),
                     ),
                   ],
                 ),
@@ -308,9 +306,8 @@ class _UserTopCard extends StatelessWidget {
           CircleAvatar(
             radius: 32,
             backgroundColor: const Color(0xFF2A2A2A),
-            backgroundImage: user.avatarUrl.isNotEmpty
-                ? NetworkImage(user.avatarUrl)
-                : null,
+            backgroundImage:
+                user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
             child: user.avatarUrl.isEmpty
                 ? Text(
                     user.displayName.isNotEmpty
@@ -361,8 +358,7 @@ class _UserTopCard extends StatelessWidget {
                 ),
                 Text(
                   '@${user.username}',
-                  style: const TextStyle(
-                      color: Colors.white54, fontSize: 12),
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],
             ),
@@ -474,8 +470,7 @@ class _TrackTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: _Artwork(url: track.artworkUrl, size: 46, radius: 6),
       title: Text(
         track.title,
@@ -532,14 +527,12 @@ class _UserTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: CircleAvatar(
         radius: 23,
         backgroundColor: const Color(0xFF1C1C1C),
-        backgroundImage: user.avatarUrl.isNotEmpty
-            ? NetworkImage(user.avatarUrl)
-            : null,
+        backgroundImage:
+            user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
         child: user.avatarUrl.isEmpty
             ? Text(
                 user.displayName.isNotEmpty
@@ -591,8 +584,7 @@ class _PlaylistTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: _Artwork(
         url: playlist.artworkUrl,
         size: 46,
@@ -613,8 +605,7 @@ class _PlaylistTile extends StatelessWidget {
         '${playlist.ownerName} · ${playlist.trackCount} tracks',
         style: const TextStyle(color: Colors.white38, fontSize: 12),
       ),
-      trailing:
-          const Icon(Icons.more_horiz, color: Colors.white38, size: 20),
+      trailing: const Icon(Icons.more_horiz, color: Colors.white38, size: 20),
       onTap: () => context.push('/playlist/${playlist.id}'),
     );
   }
@@ -644,9 +635,7 @@ class _FollowButtonState extends State<_FollowButton> {
           color: _isFollowing ? Colors.transparent : const Color(0xFFFF5500),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: _isFollowing
-                ? Colors.white38
-                : const Color(0xFFFF5500),
+            color: _isFollowing ? Colors.white38 : const Color(0xFFFF5500),
           ),
         ),
         child: Text(

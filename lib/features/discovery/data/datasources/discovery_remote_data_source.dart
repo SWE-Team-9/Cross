@@ -38,9 +38,9 @@ class DiscoveryRemoteDataSourceImpl implements DiscoveryRemoteDataSource {
     } else if (res.data is Map) {
       final data = res.data as Map<String, dynamic>;
       if (data['items'] is List) {
-        list = data['items'] as List;         // ✅ { windowDays, items: [...] }
+        list = data['items'] as List; // ✅ { windowDays, items: [...] }
       } else if (data['data'] is List) {
-        list = data['data'] as List;          // fallback
+        list = data['data'] as List; // fallback
       } else {
         list = [];
       }

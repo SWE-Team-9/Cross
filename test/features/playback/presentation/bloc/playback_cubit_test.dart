@@ -9,12 +9,17 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cu
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_state.dart';
 
 class MockAudioPlayerService extends Mock implements AudioPlayerService {}
+
 class MockQueueRepository extends Mock implements QueueRepository {}
+
 class FakeTrack extends Fake implements Track {}
 
-const _t1 = Track(id: 't1', title: 'Track 1', artist: 'Artist 1', audioUrl: 'url1');
-const _t2 = Track(id: 't2', title: 'Track 2', artist: 'Artist 2', audioUrl: 'url2');
-const _t3 = Track(id: 't3', title: 'Track 3', artist: 'Artist 3', audioUrl: 'url3');
+const _t1 =
+    Track(id: 't1', title: 'Track 1', artist: 'Artist 1', audioUrl: 'url1');
+const _t2 =
+    Track(id: 't2', title: 'Track 2', artist: 'Artist 2', audioUrl: 'url2');
+const _t3 =
+    Track(id: 't3', title: 'Track 3', artist: 'Artist 3', audioUrl: 'url3');
 const _queue = [_t1, _t2, _t3];
 
 void main() {
@@ -318,7 +323,8 @@ void main() {
       act: (c) => c.seek(const Duration(seconds: 30)),
       expect: () => [],
       verify: (_) =>
-          verify(() => audioService.seek(const Duration(seconds: 30))).called(1),
+          verify(() => audioService.seek(const Duration(seconds: 30)))
+              .called(1),
     );
   });
 

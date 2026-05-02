@@ -162,8 +162,6 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
         _handleDestination(pending);
       }
       _subscription = deepLinkService.stream.listen(_handleDestination);
-
-      
     });
   }
 

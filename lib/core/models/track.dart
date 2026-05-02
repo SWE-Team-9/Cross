@@ -37,8 +37,10 @@ class Track {
       handle: json['handle'] as String? ?? json['artistHandle'] as String?,
       slug: json['slug'] as String?,
       artistId: json['artist_id'] as String? ?? json['artistId'] as String?,
-      likesCount: json['likes_count'] as int? ?? json['likesCount'] as int? ?? 0,
-      repostsCount: json['reposts_count'] as int? ?? json['repostsCount'] as int? ?? 0,
+      likesCount:
+          json['likes_count'] as int? ?? json['likesCount'] as int? ?? 0,
+      repostsCount:
+          json['reposts_count'] as int? ?? json['repostsCount'] as int? ?? 0,
       durationMs: json['duration_ms'] as int? ?? json['durationMs'] as int?,
     );
   }

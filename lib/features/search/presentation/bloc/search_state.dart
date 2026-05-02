@@ -7,23 +7,23 @@ enum SearchTab { all, tracks, people, playlists }
 
 /// What the body should show
 enum SearchBodyMode {
-  idle,         // no query, no recents
-  recents,      // query empty + has recents
-  suggestions,  // typing — show suggestions
-  loading,      // submitted — fetching
-  results,      // submitted — got results
-  empty,        // submitted — zero results
-  failure,      // submitted — error
+  idle, // no query, no recents
+  recents, // query empty + has recents
+  suggestions, // typing — show suggestions
+  loading, // submitted — fetching
+  results, // submitted — got results
+  empty, // submitted — zero results
+  failure, // submitted — error
 }
 
 class SearchState extends Equatable {
   // ── Typing state ────────────────────────────────────────────────────────────
-  final String typingQuery;          // live text in the field
+  final String typingQuery; // live text in the field
   final List<String> suggestions;
   final bool isSuggestionsLoading;
 
   // ── Submitted state ─────────────────────────────────────────────────────────
-  final String submittedQuery;       // what we actually searched for
+  final String submittedQuery; // what we actually searched for
   final SearchStatus status;
   final List<TrackEntity> tracks;
   final List<UserEntity> users;
@@ -108,8 +108,7 @@ class SearchState extends Equatable {
     return SearchState(
       typingQuery: typingQuery ?? this.typingQuery,
       suggestions: suggestions ?? this.suggestions,
-      isSuggestionsLoading:
-          isSuggestionsLoading ?? this.isSuggestionsLoading,
+      isSuggestionsLoading: isSuggestionsLoading ?? this.isSuggestionsLoading,
       submittedQuery: submittedQuery ?? this.submittedQuery,
       status: status ?? this.status,
       tracks: tracks ?? this.tracks,

@@ -23,7 +23,6 @@ import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubi
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/playback/presentation/widgets/add_to_playlist_sheet.dart';
 
-
 import '../../data/dto/feed_item_model.dart' show formatCount;
 import '../../domain/entities/feed_item.dart';
 
@@ -79,13 +78,11 @@ class FeedCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: _TrackCard(
-                  item: item, onPlay: onPlay, toTrack: _toTrack),
+              child: _TrackCard(item: item, onPlay: onPlay, toTrack: _toTrack),
             ),
           ),
           const SizedBox(height: 14),
-          const Divider(
-              color: Color(0xFF111111), thickness: 1, height: 1),
+          const Divider(color: Color(0xFF111111), thickness: 1, height: 1),
         ],
       ),
     );
@@ -139,8 +136,7 @@ class _ActorRow extends StatelessWidget {
                     ),
                   ),
                 TextSpan(
-                  text:
-                      '  ${_actionLabel(item.action)}  ·  ${item.timeAgo}',
+                  text: '  ${_actionLabel(item.action)}  ·  ${item.timeAgo}',
                   style: const TextStyle(color: Color(0xFF888888)),
                 ),
               ],
@@ -153,8 +149,7 @@ class _ActorRow extends StatelessWidget {
           onTap: () => TrackOptionsSheet.show(context, track: toTrack()),
           child: const Padding(
             padding: EdgeInsets.all(6),
-            child: Icon(Icons.more_vert,
-                color: Color(0xFF666666), size: 20),
+            child: Icon(Icons.more_vert, color: Color(0xFF666666), size: 20),
           ),
         ),
       ],
@@ -177,8 +172,7 @@ class _TrackCard extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider(
-          create: (_) =>
-              getIt<CommentsCubit>()..load(item.track.trackId),
+          create: (_) => getIt<CommentsCubit>()..load(item.track.trackId),
           child: TrackCommentsPage(trackId: item.track.trackId),
         ),
       ),
@@ -191,16 +185,14 @@ class _TrackCard extends StatelessWidget {
 
     return BlocBuilder<PlayerCubit, PlayerUIState>(
       builder: (context, playerState) {
-        final isThisTrack =
-            playerState.currentTrack?.id == track.trackId;
+        final isThisTrack = playerState.currentTrack?.id == track.trackId;
         final isPlaying = isThisTrack && playerState.isPlaying;
 
         final duration = playerState.duration;
         final double progress = isThisTrack &&
                 duration != null &&
                 duration.inMilliseconds > 0
-            ? (playerState.position.inMilliseconds /
-                    duration.inMilliseconds)
+            ? (playerState.position.inMilliseconds / duration.inMilliseconds)
                 .clamp(0.0, 1.0)
             : 0.0;
 
@@ -240,8 +232,8 @@ class _TrackCard extends StatelessWidget {
                 right: 6,
                 bottom: 68,
                 width: 58,
-                child: BlocBuilder<TrackInteractionCubit,
-                    TrackInteractionState>(
+                child:
+                    BlocBuilder<TrackInteractionCubit, TrackInteractionState>(
                   builder: (context, inter) {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
@@ -249,8 +241,8 @@ class _TrackCard extends StatelessWidget {
                       children: [
                         // ── Volume / Mute ─────────────────────────────────
                         GestureDetector(
-                          onTap: () => _handleVolumeTap(
-                              context, isThisTrack, isPlaying),
+                          onTap: () =>
+                              _handleVolumeTap(context, isThisTrack, isPlaying),
                           child: Icon(
                             isPlaying
                                 ? Icons.volume_up_rounded
@@ -282,11 +274,12 @@ class _TrackCard extends StatelessWidget {
                         const SizedBox(height: 20),
                         // ── Add to queue ──────────────────────────────────
                         // ✅ بعد
-_SideAction(
-  icon: Icons.playlist_add_rounded,
-  label: 'Add',
-  onTap: () => AddToPlaylistSheet.show(context, track: toTrack()),
-),
+                        _SideAction(
+                          icon: Icons.playlist_add_rounded,
+                          label: 'Add',
+                          onTap: () => AddToPlaylistSheet.show(context,
+                              track: toTrack()),
+                        ),
                       ],
                     );
                   },
@@ -310,9 +303,7 @@ _SideAction(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
-                          shadows: [
-                            Shadow(blurRadius: 6, color: Colors.black)
-                          ],
+                          shadows: [Shadow(blurRadius: 6, color: Colors.black)],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -330,8 +321,7 @@ _SideAction(
                             child: Text(
                               item.actor.displayName,
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFFCCCCCC)),
+                                  fontSize: 12, color: Color(0xFFCCCCCC)),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -339,13 +329,11 @@ _SideAction(
                           if (track.formattedDuration != '0:00') ...[
                             const Text('  ·  ',
                                 style: TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF888888))),
+                                    fontSize: 12, color: Color(0xFF888888))),
                             Text(
                               track.formattedDuration,
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF888888)),
+                                  fontSize: 12, color: Color(0xFF888888)),
                             ),
                           ],
                         ],
@@ -487,9 +475,14 @@ class _Artwork extends StatelessWidget {
 
   Color _fallbackColor() {
     const colors = [
-      Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460),
-      Color(0xFF1B1B2F), Color(0xFF2D132C), Color(0xFF1B262C),
-      Color(0xFF0D2137), Color(0xFF1C2833),
+      Color(0xFF1A1A2E),
+      Color(0xFF16213E),
+      Color(0xFF0F3460),
+      Color(0xFF1B1B2F),
+      Color(0xFF2D132C),
+      Color(0xFF1B262C),
+      Color(0xFF0D2137),
+      Color(0xFF1C2833),
     ];
     final idx =
         track.trackId.codeUnits.fold(0, (a, b) => a + b) % colors.length;
@@ -531,8 +524,7 @@ class _SideAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        active ? activeColor : Colors.white.withValues(alpha: 0.88);
+    final color = active ? activeColor : Colors.white.withValues(alpha: 0.88);
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -545,7 +537,8 @@ class _SideAction extends StatelessWidget {
               count!,
               style: TextStyle(
                 fontSize: 11,
-                color: active ? activeColor : Colors.white.withValues(alpha: 0.75),
+                color:
+                    active ? activeColor : Colors.white.withValues(alpha: 0.75),
                 fontWeight: active ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -563,8 +556,7 @@ class _SideAction extends StatelessWidget {
           if (label != null) ...[
             const SizedBox(height: 3),
             Text(label!,
-                style: const TextStyle(
-                    fontSize: 11, color: Color(0xFFBBBBBB))),
+                style: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB))),
           ],
         ],
       ),
@@ -583,11 +575,14 @@ class _Avatar extends StatelessWidget {
 
   Color _color() {
     const colors = [
-      Color(0xFFFF5500), Color(0xFF1DA0F2), Color(0xFF1DB954),
-      Color(0xFF9B59B6), Color(0xFFF39C12), Color(0xFFE74C3C),
+      Color(0xFFFF5500),
+      Color(0xFF1DA0F2),
+      Color(0xFF1DB954),
+      Color(0xFF9B59B6),
+      Color(0xFFF39C12),
+      Color(0xFFE74C3C),
     ];
-    final idx =
-        displayName.codeUnits.fold(0, (a, b) => a + b) % colors.length;
+    final idx = displayName.codeUnits.fold(0, (a, b) => a + b) % colors.length;
     return colors[idx];
   }
 

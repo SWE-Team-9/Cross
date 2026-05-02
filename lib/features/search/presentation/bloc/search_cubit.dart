@@ -74,7 +74,7 @@ class SearchCubit extends Cubit<SearchState> {
         typingQuery: '',
         suggestions: [],
         isSuggestionsLoading: false,
-        submittedQuery: '',            // clear submitted so bodyMode goes back
+        submittedQuery: '', // clear submitted so bodyMode goes back
         status: SearchStatus.idle,
         tracks: [],
         users: [],
@@ -92,7 +92,8 @@ class SearchCubit extends Cubit<SearchState> {
     ));
 
     // Debounce suggestion fetch
-    _suggestionDebounce = Timer(_suggestionDelay, () => _fetchSuggestions(query));
+    _suggestionDebounce =
+        Timer(_suggestionDelay, () => _fetchSuggestions(query));
   }
 
   Future<void> _fetchSuggestions(String query) async {
@@ -160,14 +161,16 @@ class SearchCubit extends Cubit<SearchState> {
     if (state.submittedQuery.isEmpty) return;
     if (state.isLoadingMore) return;
     if (!state.hasMore) return;
-    await _fetch(state.submittedQuery, page: state.currentPage + 1, append: true);
+    await _fetch(state.submittedQuery,
+        page: state.currentPage + 1, append: true);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
   // PRIVATE FETCH
   // ══════════════════════════════════════════════════════════════════════════
 
-  Future<void> _fetch(String query, {required int page, bool append = false}) async {
+  Future<void> _fetch(String query,
+      {required int page, bool append = false}) async {
     if (append) emit(state.copyWith(isLoadingMore: true));
 
     final result = await _searchUseCase(query, page: page);
@@ -191,7 +194,7 @@ class SearchCubit extends Cubit<SearchState> {
             totalPages: data.meta.totalPages,
             isLoadingMore: false,
           ));
-           _loadFollowingAfterSearch();
+          _loadFollowingAfterSearch();
         } else {
           emit(state.copyWith(
             status: SearchStatus.success,
@@ -214,36 +217,36 @@ class SearchCubit extends Cubit<SearchState> {
   }
 
   // أضف في SearchCubit
-Future<void> loadFollowingState(String currentUserId) async {
-  try {
-    final repo = getIt<SocialRepo>();
-    final following = await repo.getFollowing(currentUserId, 1, limit: 100);
-    final followingIds = following.map((u) => u.id).toSet();
+  Future<void> loadFollowingState(String currentUserId) async {
+    try {
+      final repo = getIt<SocialRepo>();
+      final following = await repo.getFollowing(currentUserId, 1, limit: 100);
+      final followingIds = following.map((u) => u.id).toSet();
 
-    final updatedUsers = state.users.map((u) {
-      return UserEntity(
-        id: u.id,
-        username: u.username,
-        displayName: u.displayName,
-        avatarUrl: u.avatarUrl,
-        followersCount: u.followersCount,
-        trackCount: u.trackCount,
-        verified: u.verified,
-        city: u.city,
-        country: u.country,
-        isFollowing: followingIds.contains(u.id),
-      );
-    }).toList();
+      final updatedUsers = state.users.map((u) {
+        return UserEntity(
+          id: u.id,
+          username: u.username,
+          displayName: u.displayName,
+          avatarUrl: u.avatarUrl,
+          followersCount: u.followersCount,
+          trackCount: u.trackCount,
+          verified: u.verified,
+          city: u.city,
+          country: u.country,
+          isFollowing: followingIds.contains(u.id),
+        );
+      }).toList();
 
-    emit(state.copyWith(users: updatedUsers));
-  } catch (_) {}
-}
+      emit(state.copyWith(users: updatedUsers));
+    } catch (_) {}
+  }
 
-void _loadFollowingAfterSearch() {
-  final authState = getIt<AuthCubit>().state;
-  if (authState is! AuthAuthenticated) return;
-  final currentUserId = authState.user.id;
-  if (currentUserId.isEmpty) return;
-  loadFollowingState(currentUserId);
-}
+  void _loadFollowingAfterSearch() {
+    final authState = getIt<AuthCubit>().state;
+    if (authState is! AuthAuthenticated) return;
+    final currentUserId = authState.user.id;
+    if (currentUserId.isEmpty) return;
+    loadFollowingState(currentUserId);
+  }
 }
