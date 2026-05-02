@@ -897,8 +897,13 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                       )
                     : isOwner
                         ? ReorderableListView.builder(
-                            itemCount: tracks.length,
+                            itemCount: tracks.length +
+                                (state.hasMorePlaylistTracks ? 1 : 0),
                             onReorder: (oldIndex, newIndex) {
+                              if (oldIndex >= tracks.length ||
+                                  newIndex > tracks.length) {
+                                return;
+                              }
                               final nextTracks = tracks.toList(growable: true);
 
                               if (newIndex > oldIndex) {
@@ -914,6 +919,19 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                                   );
                             },
                             itemBuilder: (context, index) {
+                              if (index >= tracks.length) {
+                                return _LoadMorePlaylistTracksTile(
+                                  key: const ValueKey(
+                                      'load-more-playlist-tracks'),
+                                  isLoading: state.isLoadingMorePlaylistTracks,
+                                  onPressed: state.isLoadingMorePlaylistTracks
+                                      ? null
+                                      : () => context
+                                          .read<PlaylistsCubit>()
+                                          .loadMorePlaylistTracks(),
+                                );
+                              }
+
                               final track = tracks[index];
                               return _PlaylistTrackTile(
                                 key: ValueKey(track.id),
@@ -937,8 +955,20 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                             },
                           )
                         : ListView.builder(
-                            itemCount: tracks.length,
+                            itemCount: tracks.length +
+                                (state.hasMorePlaylistTracks ? 1 : 0),
                             itemBuilder: (context, index) {
+                              if (index >= tracks.length) {
+                                return _LoadMorePlaylistTracksTile(
+                                  isLoading: state.isLoadingMorePlaylistTracks,
+                                  onPressed: state.isLoadingMorePlaylistTracks
+                                      ? null
+                                      : () => context
+                                          .read<PlaylistsCubit>()
+                                          .loadMorePlaylistTracks(),
+                                );
+                              }
+
                               final track = tracks[index];
                               return _PlaylistTrackTile(
                                 track: track,
@@ -1050,6 +1080,38 @@ class _PlaylistTrackTile extends StatelessWidget {
       ),
       onTap: onTap,
       trailing: trailing,
+    );
+  }
+}
+
+class _LoadMorePlaylistTracksTile extends StatelessWidget {
+  const _LoadMorePlaylistTracksTile({
+    super.key,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: isLoading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.expand_more, color: Colors.white),
+        label: Text(
+          isLoading ? 'Loading tracks...' : 'Load more tracks',
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
     );
   }
 }
