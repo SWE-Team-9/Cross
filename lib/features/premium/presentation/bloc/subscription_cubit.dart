@@ -1,3 +1,4 @@
+// Minimal stub for SubscriptionCubit to keep references valid.
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/subscription.dart';
 import '../../domain/repositories/subscription_repository.dart';
@@ -5,24 +6,18 @@ import '../../domain/repositories/subscription_repository.dart';
 class SubscriptionCubit extends Cubit<Subscription?> {
   final SubscriptionRepository repository;
 
-  SubscriptionCubit(this.repository) : super(null);
+  SubscriptionCubit(this.repository) : super(const Subscription());
 
-  // 🔹 Load current subscription (on app start)
   Future<void> loadSubscription() async {
     final sub = await repository.getMySubscription();
     emit(sub);
   }
 
-  // 🔹 Start upgrade flow (returns checkout URL)
   Future<String> upgrade(String plan) async {
-    final checkoutUrl = await repository.createCheckout(plan);
-    return checkoutUrl;
+    return await repository.createCheckout(plan);
   }
 
-  // 🔹 Call after payment success (refresh state)
-  Future<void> refreshAfterPayment() async {
-    await loadSubscription();
-  }
+  Future<void> refreshAfterPayment() async => await loadSubscription();
 
   Future<void> cancel() async {
     await repository.cancelSubscription();
@@ -39,7 +34,5 @@ class SubscriptionCubit extends Cubit<Subscription?> {
     await loadSubscription();
   }
 
-  Future<String> openBillingPortal() async {
-    return await repository.openPortal();
-  }
+  Future<String> openBillingPortal() async => await repository.openPortal();
 }
