@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
-import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/comments/presentation/bloc/comments_cubit.dart';
+import 'package:soundcloud_clone/features/comments/presentation/pages/track_comments_page.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/routes/messaging_routes.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
 import 'package:soundcloud_clone/features/notifications/domain/entities/notification_preferences_entity.dart';
-import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
-import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
-import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
+import 'package:soundcloud_clone/features/notifications/domain/entities/notification_tap_target.dart';
+import 'package:soundcloud_clone/features/notifications/domain/usecases/resolve_notification_tap_target_use_case.dart';
 
 import '../bloc/notification_preferences_bloc.dart';
 import '../bloc/notifications_bloc.dart';
@@ -221,6 +221,7 @@ class _NotificationList extends StatelessWidget {
       NotificationType.comment => preferences.commentsEnabled,
       NotificationType.follow => preferences.followsEnabled,
       NotificationType.repost => preferences.repostsEnabled,
+      NotificationType.message => true,
       NotificationType.unknown => true,
     };
   }
@@ -229,277 +230,44 @@ class _NotificationList extends StatelessWidget {
     BuildContext context,
     NotificationEntity notification,
   ) async {
-    switch (notification.type) {
-      case NotificationType.like:
-      case NotificationType.follow:
-      case NotificationType.repost:
-        await _openActorProfile(context, notification);
+    final resolver = getIt<ResolveNotificationTapTargetUseCase>();
+    final target = await resolver(notification);
+    if (!context.mounted) return;
+
+    switch (target) {
+      case NotificationCommentsTapTarget(trackId: final trackId):
+        await _openTrackComments(context, trackId);
         return;
-      case NotificationType.comment:
-        await _playTrackAndGoToOwnProfile(context, notification);
+      case NotificationConversationTapTarget(conversation: final conversation):
+        await MessagingRoutes.goToConversation(context, conversation);
         return;
-      case NotificationType.unknown:
-        break;
-    }
-
-    final entityId = notification.entityId;
-
-    if (entityId.isEmpty) return;
-
-    switch (notification.entityType.toLowerCase()) {
-      case 'track' || 'comment':
-        await _playTrackAndGoToOwnProfile(context, notification);
-      case 'user':
-        final resolvedHandle = _sanitizeHandle(entityId);
-        if (resolvedHandle.isEmpty) return;
-        ProfileRoutes.goToProfile(context, resolvedHandle);
-      default:
-        break;
+      case NotificationProfileTapTarget(handle: final handle):
+        ProfileRoutes.goToProfile(context, handle);
+        return;
+      case null:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to open this notification')),
+        );
     }
   }
 
-  Future<void> _openActorProfile(
-    BuildContext context,
-    NotificationEntity notification,
-  ) async {
-    final candidates = _buildFollowerHandleCandidates(notification);
-    final resolvedHandle = await _resolveFirstReachableHandle(candidates);
-    if (!context.mounted) return;
-
-    if (resolvedHandle.isNotEmpty) {
-      ProfileRoutes.goToProfile(context, resolvedHandle);
+  Future<void> _openTrackComments(BuildContext context, String trackId) async {
+    if (trackId.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open comments right now')),
+      );
       return;
     }
 
-    final fromSocialGraph = await _resolveHandleFromSocialGraph(
+    await Navigator.push<int>(
       context,
-      <String>{notification.actorId.trim(), notification.entityId.trim()},
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (_) => getIt<CommentsCubit>(),
+          child: TrackCommentsPage(trackId: trackId),
+        ),
+      ),
     );
-    if (!context.mounted) return;
-
-    if (fromSocialGraph.isNotEmpty) {
-      ProfileRoutes.goToProfile(context, fromSocialGraph);
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Unable to open user profile right now')),
-    );
-  }
-
-  List<String> _buildFollowerHandleCandidates(NotificationEntity notification) {
-    final candidates = <String>[];
-
-    final fromMessage = _extractHandleFromMessage(notification.message);
-    if (_isLikelyHandle(fromMessage)) {
-      candidates.add(fromMessage);
-    }
-
-    final fromEntity = _sanitizeHandle(notification.entityId);
-    if (_isLikelyHandle(fromEntity)) {
-      candidates.add(fromEntity);
-    }
-
-    final fromActor = _sanitizeHandle(notification.actorId);
-    if (_isLikelyHandle(fromActor)) {
-      candidates.add(fromActor);
-    }
-
-    final unique = <String>[];
-    final seen = <String>{};
-    for (final candidate in candidates) {
-      if (candidate.isEmpty || seen.contains(candidate)) continue;
-      seen.add(candidate);
-      unique.add(candidate);
-    }
-
-    return unique;
-  }
-
-  Future<String> _resolveHandleFromSocialGraph(
-    BuildContext context,
-    Set<String> rawIdentifiers,
-  ) async {
-    if (!context.mounted) return '';
-
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) return '';
-    if (!getIt.isRegistered<SocialRepo>()) return '';
-
-    final normalizedIdentifiers = rawIdentifiers
-        .map((raw) => raw.startsWith('@') ? raw.substring(1) : raw)
-        .map((raw) => raw.trim())
-        .where((raw) => raw.isNotEmpty)
-        .toSet();
-
-    if (normalizedIdentifiers.isEmpty) return '';
-
-    final repo = getIt<SocialRepo>();
-
-    String matchUsers(List<dynamic> users) {
-      for (final user in users) {
-        final userId = user.id.toString().trim();
-        final handle = _sanitizeHandle(user.username.toString());
-        for (final identifier in normalizedIdentifiers) {
-          if (identifier == userId || _sanitizeHandle(identifier) == handle) {
-            if (handle.isNotEmpty) return handle;
-          }
-        }
-      }
-      return '';
-    }
-
-    const limit = 100;
-
-    try {
-      for (var page = 1; page <= 5; page++) {
-        final following = await repo.getFollowing(
-          authState.user.id,
-          page,
-          limit: limit,
-        );
-        final found = matchUsers(following);
-        if (found.isNotEmpty) return found;
-        if (following.length < limit) break;
-      }
-    } catch (_) {}
-
-    try {
-      for (var page = 1; page <= 5; page++) {
-        final followers = await repo.getFollowers(
-          authState.user.id,
-          page,
-          limit: limit,
-        );
-        final found = matchUsers(followers);
-        if (found.isNotEmpty) return found;
-        if (followers.length < limit) break;
-      }
-    } catch (_) {}
-
-    try {
-      final suggested = await repo.getSuggestedUsers(page: 1, limit: limit);
-      final found = matchUsers(suggested);
-      if (found.isNotEmpty) return found;
-    } catch (_) {}
-
-    return '';
-  }
-
-  Future<String> _resolveFirstReachableHandle(List<String> candidates) async {
-    if (candidates.isEmpty) return '';
-    if (!getIt.isRegistered<GetProfileUseCase>()) return candidates.first;
-
-    final getProfile = getIt<GetProfileUseCase>();
-    for (final candidate in candidates) {
-      try {
-        final profile = await getProfile(candidate).timeout(
-          const Duration(seconds: 4),
-        );
-
-        final resolved = _sanitizeHandle(profile.handle);
-        if (resolved.isNotEmpty) return resolved;
-        return candidate;
-      } catch (_) {
-        continue;
-      }
-    }
-
-    return '';
-  }
-
-  void _goToOwnProfile(BuildContext context) {
-    if (!context.mounted) return;
-
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) return;
-
-    final ownHandle = _sanitizeHandle(authState.user.handle);
-    if (ownHandle.isEmpty) return;
-
-    ProfileRoutes.goToProfile(context, ownHandle);
-  }
-
-  String _extractHandleFromMessage(String message) {
-    final match = RegExp(r'@([A-Za-z0-9._-]+)').firstMatch(message);
-    if (match == null) return '';
-    return _sanitizeHandle(match.group(1) ?? '');
-  }
-
-  String _sanitizeHandle(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return '';
-
-    var candidate = trimmed;
-    if (candidate.startsWith('@')) {
-      candidate = candidate.substring(1);
-    }
-
-    final valid = RegExp(r'^[A-Za-z0-9._-]+').firstMatch(candidate);
-    if (valid == null) return '';
-    return valid.group(0) ?? '';
-  }
-
-  bool _isLikelyHandle(String value) {
-    final candidate = value.trim();
-    if (candidate.isEmpty) return false;
-    if (_isLikelyUuid(candidate)) return false;
-    if (candidate.length < 2 || candidate.length > 40) return false;
-    if (!RegExp(r'^[A-Za-z0-9._-]+$').hasMatch(candidate)) return false;
-    if (!RegExp(r'[A-Za-z]').hasMatch(candidate)) return false;
-    return true;
-  }
-
-  bool _isLikelyUuid(String value) {
-    return RegExp(
-      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
-    ).hasMatch(value);
-  }
-
-  Future<void> _playTrackAndGoToOwnProfile(
-    BuildContext context,
-    NotificationEntity notification,
-  ) async {
-    final trackId = _resolveTrackId(notification);
-    if (trackId.isEmpty) {
-      _goToOwnProfile(context);
-      return;
-    }
-
-    if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
-      _goToOwnProfile(context);
-      return;
-    }
-
-    try {
-      final result = await getIt<GetTrackDetailUseCase>()(trackId);
-      final detail = result.detail;
-      if (result.failure == null && detail != null && context.mounted) {
-        await context.read<PlayerCubit>().playFromContext(
-          tracks: [detail.toPlaybackTrack()],
-          startIndex: 0,
-          source: 'notifications',
-        );
-      }
-    } catch (_) {
-      // Keep navigation resilient even if playback setup fails.
-    }
-
-    _goToOwnProfile(context);
-  }
-
-  String _resolveTrackId(NotificationEntity notification) {
-    final entityId = notification.entityId.trim();
-    if (entityId.isEmpty) return '';
-
-    final entityType = notification.entityType.trim().toLowerCase();
-    if (entityType == 'track') return entityId;
-    if (notification.type == NotificationType.like ||
-        notification.type == NotificationType.repost) {
-      return entityId;
-    }
-
-    return '';
   }
 }
 

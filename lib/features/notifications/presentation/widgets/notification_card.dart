@@ -4,8 +4,6 @@ import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/features/notifications/notifications.dart';
 import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 
-import '../../domain/entities/notification_entity.dart';
-
 class NotificationCard extends StatefulWidget {
   final NotificationEntity notification;
   final VoidCallback onTap;
@@ -243,6 +241,7 @@ class _NotificationTypeIcon extends StatelessWidget {
       NotificationType.comment => (Icons.chat_bubble_rounded, Colors.teal),
       NotificationType.follow => (Icons.person_add_alt_1_rounded, Colors.blue),
       NotificationType.repost => (Icons.repeat_rounded, Colors.green),
+      NotificationType.message => (Icons.mail_rounded, Colors.purple),
       NotificationType.unknown => (Icons.notifications_rounded, Colors.orange),
     };
 
