@@ -12,10 +12,20 @@ import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 
 class MockPlayerCubit extends MockCubit<PlayerUIState> implements PlayerCubit {}
 
 class MockAudioPlayerService extends Mock implements AudioPlayerService {}
+
+class MockSubscriptionCubit extends MockCubit<Subscription?>
+    implements SubscriptionCubit {}
+
+class MockOfflineCubit extends MockCubit<OfflineState>
+    implements OfflineCubit {}
 
 void main() {
   final track = const Track(
@@ -40,11 +50,17 @@ void main() {
     registerFallbackValue(<Track>[]);
   });
 
+  late MockSubscriptionCubit mockSubscriptionCubit;
+  late MockOfflineCubit mockOfflineCubit;
+
   setUp(() async {
     await GetIt.I.reset();
 
     playerCubit = MockPlayerCubit();
     audioService = MockAudioPlayerService();
+
+    mockSubscriptionCubit = MockSubscriptionCubit();
+    mockOfflineCubit = MockOfflineCubit();
 
     GetIt.I.registerSingleton<AudioPlayerService>(audioService);
 
@@ -70,12 +86,43 @@ void main() {
           startIndex: any(named: 'startIndex'),
           source: any(named: 'source'),
         )).thenAnswer((_) async {});
+
+    // ✅ SubscriptionCubit mock
+    when(() => mockSubscriptionCubit.state).thenReturn(
+      const Subscription(
+        subscriptionType: 'PRO',
+        uploadLimit: 10,
+        uploadedTracks: 0,
+        remainingUploads: 10,
+        canDownload: true,
+        adsEnabled: false,
+      ),
+    );
+
+    when(() => mockSubscriptionCubit.stream)
+        .thenAnswer((_) => const Stream.empty());
+
+    // ✅ OfflineCubit mock
+    when(() => mockOfflineCubit.state).thenReturn(const OfflineState());
+
+    when(() => mockOfflineCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    when(() => mockOfflineCubit.isDownloaded(any())).thenReturn(false);
+
+    when(() => mockOfflineCubit.download(any())).thenAnswer((_) async {});
+    when(() => mockOfflineCubit.downloadTrack(any())).thenAnswer((_) async {});
   });
 
   Widget buildSubject({List<Track>? queue}) {
     return MultiBlocProvider(
       providers: [
         BlocProvider<PlayerCubit>.value(value: playerCubit),
+        BlocProvider<SubscriptionCubit>.value(
+          value: mockSubscriptionCubit,
+        ),
+        BlocProvider<OfflineCubit>.value(
+          value: mockOfflineCubit,
+        ),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -97,7 +144,7 @@ void main() {
   testWidgets('renders title and artist when track is not playing',
       (tester) async {
     await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('Track 1'), findsOneWidget);
     expect(find.text('Artist 1'), findsOneWidget);
@@ -118,7 +165,7 @@ void main() {
     );
 
     await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('Now Playing'), findsOneWidget);
     expect(find.text('Artist 1'), findsNothing);
@@ -128,10 +175,10 @@ void main() {
     final queue = [nextTrack, track];
 
     await tester.pumpWidget(buildSubject(queue: queue));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     await tester.tap(find.byType(InkWell).first);
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     verify(() => playerCubit.playFromContext(
           tracks: queue,

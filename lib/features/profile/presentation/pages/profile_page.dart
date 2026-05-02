@@ -9,10 +9,13 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/models/track.dart';
 import '../../../../core/utils/platform_url_utils.dart';
+import '../../../../core/widgets/track_row.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
-import '../../../playback/domain/usecases/get_track_detail_use_case.dart';
-import '../../../playback/presentation/bloc/player_cubit.dart';
+import '../../../messaging/presentation/widgets/message_user_button.dart';
+import '../../../playlists/domain/entities/playlist_entity.dart';
+import '../../../playlists/domain/repositories/playlists_repository.dart';
 import '../../../social/data/repositories/social_repo.dart';
 import '../../../social/domain/events/social_events.dart';
 import '../../../upload/domain/entities/managed_track.dart';
@@ -81,6 +84,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _repostedTracks = const <ManagedTrack>[];
+  Future<List<PlaylistEntity>>? _profilePlaylistsFuture;
+  Future<List<PlaylistEntity>>? _likedPlaylistsFuture;
 
   bool get _isOwnProfile {
     final authState = context.read<AuthCubit>().state;
@@ -90,12 +95,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return false;
   }
 
-  // ── Lifecycle Methods ───────────────────────────────────────────────────
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -118,8 +121,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     _tabController.dispose();
     super.dispose();
   }
-
-  // ── Action Methods ──────────────────────────────────────────────────────
 
   void _syncManagedTracks(ProfileState state) {
     if (!mounted) return;
@@ -260,33 +261,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           result: result,
         );
       });
-    }
-  }
-
-  Future<void> _playTrack(ManagedTrack managedTrack) async {
-    try {
-      final getTrackDetailUseCase = getIt<GetTrackDetailUseCase>();
-      final result = await getTrackDetailUseCase(managedTrack.id);
-
-      if (result.failure != null || result.detail == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to play track: ${result.failure?.message ?? 'Unknown error'}',
-            ),
-          ),
-        );
-        return;
-      }
-
-      final detail = result.detail!;
-      await getIt<PlayerCubit>().play(detail.toPlaybackTrack());
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error playing track: $e')),
-      );
     }
   }
 
@@ -552,8 +526,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return 'https://$trimmed';
   }
 
-  // ── Main Build Method ───────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
@@ -641,10 +613,11 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           body: TabBarView(
             controller: _tabController,
             children: [
-              _buildLikedTracksTab(),
-              _buildTracksTab(),
-              _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet'),
-              _buildRepostedTracksTab(),
+              _buildLikedTracksTab(profile),
+              _buildLikedPlaylistsTab(),
+              _buildTracksTab(profile),
+              _buildPlaylistsTab(),
+              _buildRepostedTracksTab(profile),
             ],
           ),
         ),
@@ -652,48 +625,133 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
-  // ── Tab Builders ────────────────────────────────────────────────────────
-
-  Widget _buildLikedTracksTab() {
+  Widget _buildLikedTracksTab(ProfileEntity profile) {
     if (!_isOwnProfile) {
       return _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet');
     }
 
     return _ProfileTracksListTab(
       tracks: _likedTracks,
+      artistName: '',
+      artistHandle: '',
+      source: 'profile_likes',
       emptyIcon: Icons.favorite_border,
       emptyMessage: 'No liked tracks yet',
-      onPlayTap: _playTrack,
+      showLikesCount: true,
     );
   }
 
-  Widget _buildTracksTab() {
+  Widget _buildLikedPlaylistsTab() {
+    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+      return _buildEmptyTab(
+        Icons.favorite_border,
+        'No liked playlists yet',
+      );
+    }
+
+    _likedPlaylistsFuture ??=
+        getIt<PlaylistsRepository>().getLikedPlaylists(limit: 100);
+
+    return FutureBuilder<List<PlaylistEntity>>(
+      future: _likedPlaylistsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final playlists = snapshot.data ?? const <PlaylistEntity>[];
+        if (playlists.isEmpty) {
+          return _buildEmptyTab(
+            Icons.favorite_border,
+            'No liked playlists yet',
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            final next = getIt<PlaylistsRepository>().getLikedPlaylists(
+              limit: 100,
+            );
+            setState(() {
+              _likedPlaylistsFuture = next;
+            });
+            await next;
+          },
+          child: _ProfilePlaylistsList(playlists: playlists),
+        );
+      },
+    );
+  }
+
+  Widget _buildTracksTab(ProfileEntity profile) {
     if (!_isOwnProfile) {
       return _ProfileTracksListTab(
         tracks: _managedTracks,
+        artistName: profile.displayName,
+        artistHandle: profile.handle,
+        source: 'profile_tracks',
         emptyIcon: Icons.music_note_outlined,
         emptyMessage: 'No tracks yet',
-        onPlayTap: _playTrack,
       );
     }
 
     return _ManagedProfileTracksTab(
       tracks: _managedTracks,
+      artistName: profile.displayName,
+      artistHandle: profile.handle,
+      source: 'profile_tracks',
       onManageTap: _openTrackManagement,
-      onPlayTap: _playTrack,
     );
   }
 
-  Widget _buildRepostedTracksTab() {
+  Widget _buildRepostedTracksTab(ProfileEntity profile) {
     if (!_isOwnProfile) {
       return _buildEmptyTab(Icons.repeat, 'No reposts yet');
     }
 
     return _ProfileTracksListTab(
       tracks: _repostedTracks,
+      artistName: '',
+      artistHandle: '',
+      source: 'profile_reposts',
       emptyIcon: Icons.repeat,
       emptyMessage: 'No reposts yet',
-      onPlayTap: _playTrack,
+    );
+  }
+
+  Widget _buildPlaylistsTab() {
+    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+      return _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet');
+    }
+
+    _profilePlaylistsFuture ??=
+        getIt<PlaylistsRepository>().getMyPlaylists(limit: 100);
+
+    return FutureBuilder<List<PlaylistEntity>>(
+      future: _profilePlaylistsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final playlists = snapshot.data ?? const <PlaylistEntity>[];
+        if (playlists.isEmpty) {
+          return _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet');
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            final next = getIt<PlaylistsRepository>().getMyPlaylists(
+              limit: 100,
+            );
+            setState(() {
+              _profilePlaylistsFuture = next;
+            });
+            await next;
+          },
+          child: _ProfilePlaylistsList(playlists: playlists),
+        );
+      },
     );
   }
 
@@ -720,8 +778,6 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       },
     );
   }
-
-  // ── UI Components ───────────────────────────────────────────────────────
 
   Widget _buildActionRow(BuildContext context, ProfileEntity profile) {
     return Padding(
@@ -752,33 +808,48 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             )
           else
             Expanded(
-              child: GestureDetector(
-                onTap: _isFollowActionInFlight
-                    ? null
-                    : () => _toggleFollow(profile),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color:
-                        _isFollowing ? Colors.black : const Color(0xFFFF5500),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: _isFollowing
-                          ? const Color(0xFF555555)
-                          : const Color(0xFFFF5500),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _isFollowActionInFlight
+                          ? null
+                          : () => _toggleFollow(profile),
+                      child: Container(
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        decoration: BoxDecoration(
+                          color: _isFollowing
+                              ? Colors.black
+                              : const Color(0xFFFF5500),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: _isFollowing
+                                ? const Color(0xFF555555)
+                                : const Color(0xFFFF5500),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _isFollowActionInFlight
+                              ? '...'
+                              : (_isFollowing ? 'Following' : 'Follow'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _isFollowActionInFlight
-                        ? '...'
-                        : (_isFollowing ? 'Following' : 'Follow'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: MessageUserButton(
+                      receiverId: profile.id,
+                      enabled: profile.id.trim().isNotEmpty,
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           const SizedBox(width: 12),
@@ -1156,11 +1227,13 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   Widget _buildTabBar() {
     return TabBar(
       controller: _tabController,
+      isScrollable: true,
       indicatorColor: const Color(0xFFFF5500),
       labelColor: Colors.white,
       unselectedLabelColor: Colors.grey,
       tabs: const [
         Tab(text: 'Likes'),
+        Tab(text: 'Liked playlists'),
         Tab(text: 'Tracks'),
         Tab(text: 'Playlists'),
         Tab(text: 'Reposts'),
@@ -1189,18 +1262,128 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 }
 
-// ── Shared Sub-Widgets ──────────────────────────────────────────────────
+class _ProfilePlaylistCover extends StatelessWidget {
+  const _ProfilePlaylistCover({required this.playlist});
+
+  final PlaylistEntity playlist;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl =
+        PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 44,
+        height: 44,
+        color: const Color(0xFF1C1C1C),
+        child: coverUrl == null
+            ? Icon(
+                playlist.visibility.isSecret
+                    ? Icons.lock_outline
+                    : Icons.queue_music,
+                color: const Color(0xFFFF5500),
+              )
+            : Image.network(
+                coverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  playlist.visibility.isSecret
+                      ? Icons.lock_outline
+                      : Icons.queue_music,
+                  color: const Color(0xFFFF5500),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _ProfilePlaylistsList extends StatelessWidget {
+  const _ProfilePlaylistsList({required this.playlists});
+
+  final List<PlaylistEntity> playlists;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: playlists.length,
+      separatorBuilder: (_, __) => const Divider(
+        color: Colors.white12,
+        height: 1,
+      ),
+      itemBuilder: (context, index) {
+        final playlist = playlists[index];
+        return ListTile(
+          leading: _ProfilePlaylistCover(playlist: playlist),
+          title: Text(
+            playlist.title,
+            style: const TextStyle(color: Colors.white),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            '${playlist.tracksCount} tracks • ${playlist.likesCount} likes',
+            style: const TextStyle(color: Colors.white60, fontSize: 12),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right,
+            color: Colors.white54,
+          ),
+          onTap: () => context.push('/playlist/${playlist.playlistId}'),
+        );
+      },
+    );
+  }
+}
 
 class _ManagedProfileTracksTab extends StatelessWidget {
   final List<ManagedTrack> tracks;
+  final String artistName;
+  final String artistHandle;
+  final String source;
   final ValueChanged<ManagedTrack> onManageTap;
-  final ValueChanged<ManagedTrack> onPlayTap;
 
   const _ManagedProfileTracksTab({
     required this.tracks,
+    required this.artistName,
+    required this.artistHandle,
+    required this.source,
     required this.onManageTap,
-    required this.onPlayTap,
   });
+
+  Track _toTrackRowData(ManagedTrack managedTrack) {
+    final String? nameFromTrack =
+        (managedTrack.artistName ?? '').trim().isNotEmpty
+            ? managedTrack.artistName!.trim()
+            : null;
+    final String? handleFromTrack =
+        (managedTrack.artistHandle ?? '').trim().isNotEmpty
+            ? managedTrack.artistHandle!.trim()
+            : null;
+
+    final resolvedArtist = nameFromTrack ??
+        handleFromTrack ??
+        (artistName.trim().isNotEmpty ? artistName : 'Unknown Artist');
+    final resolvedHandle = handleFromTrack ??
+        (artistHandle.trim().isNotEmpty ? artistHandle : null);
+
+    return Track(
+      id: managedTrack.id,
+      title: managedTrack.title,
+      artist: resolvedArtist,
+      audioUrl: '',
+      artworkUrl: managedTrack.artworkUrl,
+      handle: resolvedHandle,
+      durationMs: managedTrack.durationInSeconds != null
+          ? managedTrack.durationInSeconds! * 1000
+          : null,
+      likesCount: managedTrack.likesCount,
+      repostsCount: managedTrack.repostsCount,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1213,46 +1396,55 @@ class _ManagedProfileTracksTab extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
+    return ListView.separated(
       itemCount: tracks.length,
+      separatorBuilder: (_, __) => const Divider(
+        color: Colors.white12,
+        height: 1,
+      ),
       itemBuilder: (context, index) {
-        final track = tracks[index];
-        return GestureDetector(
-          onTap: () => onPlayTap(track),
-          child: ListTile(
-            title: Text(
-              track.title,
-              style: const TextStyle(color: Colors.white),
+        final managedTrack = tracks[index];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TrackRow(
+              track: _toTrackRowData(managedTrack),
+              source: source,
             ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  track.visibility.name,
-                  style: const TextStyle(color: Colors.grey),
+            if (managedTrack.description != null &&
+                managedTrack.description!.trim().isNotEmpty)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                child: Text(
+                  managedTrack.description!,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                if ((track.description ?? '').trim().isNotEmpty)
-                  Text(
-                    track.description!.trim(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                if (track.tags.isNotEmpty)
-                  Text(
-                    track.tags.map((tag) => '#$tag').join(' · '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white60),
-                  ),
-              ],
+              ),
+            if (managedTrack.tags.isNotEmpty)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                child: Text(
+                  '#${managedTrack.tags.join(' · #')}',
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton(
+                  onPressed: () => onManageTap(managedTrack),
+                  child: const Text('Manage'),
+                ),
+              ),
             ),
-            trailing: OutlinedButton(
-              onPressed: () => onManageTap(track),
-              child: const Text('Manage'),
-            ),
-          ),
+          ],
         );
       },
     );
@@ -1261,16 +1453,53 @@ class _ManagedProfileTracksTab extends StatelessWidget {
 
 class _ProfileTracksListTab extends StatelessWidget {
   final List<ManagedTrack> tracks;
+  final String artistName;
+  final String artistHandle;
+  final String source;
   final IconData emptyIcon;
   final String emptyMessage;
-  final ValueChanged<ManagedTrack> onPlayTap;
+  final bool showLikesCount;
 
   const _ProfileTracksListTab({
     required this.tracks,
+    required this.artistName,
+    required this.artistHandle,
+    required this.source,
     required this.emptyIcon,
     required this.emptyMessage,
-    required this.onPlayTap,
+    this.showLikesCount = false,
   });
+
+  Track _toTrackRowData(ManagedTrack managedTrack) {
+    final String? nameFromTrack =
+        (managedTrack.artistName ?? '').trim().isNotEmpty
+            ? managedTrack.artistName!.trim()
+            : null;
+    final String? handleFromTrack =
+        (managedTrack.artistHandle ?? '').trim().isNotEmpty
+            ? managedTrack.artistHandle!.trim()
+            : null;
+
+    final resolvedArtist = nameFromTrack ??
+        handleFromTrack ??
+        (artistName.trim().isNotEmpty ? artistName : 'Unknown Artist');
+    final resolvedHandle = handleFromTrack ??
+        (artistHandle.trim().isNotEmpty ? artistHandle : null);
+
+    return Track(
+      id: managedTrack.id,
+      title: managedTrack.title,
+      artist: resolvedArtist,
+      audioUrl: '',
+      artworkUrl: managedTrack.artworkUrl,
+      handle: resolvedHandle,
+      durationMs: managedTrack.durationInSeconds != null
+          ? managedTrack.durationInSeconds! * 1000
+          : null,
+      likesCount: managedTrack.likesCount,
+      repostsCount: managedTrack.repostsCount,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1297,17 +1526,18 @@ class _ProfileTracksListTab extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
+    return ListView.separated(
       itemCount: tracks.length,
+      separatorBuilder: (_, __) => const Divider(
+        color: Colors.white12,
+        height: 1,
+      ),
       itemBuilder: (context, index) {
         final track = tracks[index];
-
-        return ListTile(
-          onTap: () => onPlayTap(track),
-          title: Text(
-            track.title,
-            style: const TextStyle(color: Colors.white),
-          ),
+        return TrackRow(
+          track: _toTrackRowData(track),
+          source: source,
+          showLikesCount: showLikesCount,
         );
       },
     );

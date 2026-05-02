@@ -7,13 +7,24 @@ import 'package:mocktail/mocktail.dart';
 import 'package:bloc_test/bloc_test.dart';
 
 import 'package:soundcloud_clone/core/models/player_state.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/home/presentation/pages/mock_home_page.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_count_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
-import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
+import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 
 // ─── Fakes & Mocks ────────────────────────────────────────────────────────────
 
@@ -53,6 +64,9 @@ class FakeAudioPlayerService implements AudioPlayerService {
   @override
   Future<void> dispose() async {}
   @override
+  Future<void> playLocalFile(String path) async {}
+
+  @override
   Future<void> playFromContext({
     required List<Track> tracks,
     required int startIndex,
@@ -61,6 +75,13 @@ class FakeAudioPlayerService implements AudioPlayerService {
 }
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
+
+class MockGetUnreadCountUseCase extends Mock implements GetUnreadCountUseCase {}
+
+class MockConnectMessagingSocketUseCase extends Mock
+    implements ConnectMessagingSocketUseCase {}
+
+class MockProfileRepository extends Mock implements ProfileRepository {}
 
 // ─── Shared test user ─────────────────────────────────────────────────────────
 
@@ -74,10 +95,81 @@ const _testUser = User(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+late AudioPlayerService audioService;
+
 Future<void> _setUp() async {
   await GetIt.I.reset();
-  GetIt.I.registerSingleton<AudioPlayerService>(FakeAudioPlayerService());
-  GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
+
+  final getUnreadCountUseCase = MockGetUnreadCountUseCase();
+  final connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+  final profileRepository = MockProfileRepository();
+
+  audioService = FakeAudioPlayerService();
+
+  when(() => getUnreadCountUseCase()).thenAnswer(
+    (_) async => const UnreadCountEntity(count: 0),
+  );
+
+  when(() => connectMessagingSocketUseCase()).thenAnswer((_) async {});
+
+  when(() => connectMessagingSocketUseCase.eventsStream).thenAnswer(
+    (_) => const Stream<RealtimeMessageEventEntity>.empty(),
+  );
+  when(() => profileRepository.getMyProfile()).thenAnswer(
+    (_) async => const ProfileEntity(
+      id: 'profile_1',
+      displayName: 'Test User',
+      handle: 'testuser',
+      accountTier: AccountTier.LISTENER,
+      favoriteGenres: <String>['electronic', 'hip-hop', 'pop'],
+      externalLinks: <String, String>{},
+      visibility: ProfileVisibility.PUBLIC,
+      followersCount: 0,
+      followingCount: 0,
+    ),
+  );
+
+  when(() => profileRepository.getProfile(any())).thenAnswer(
+    (_) async => const ProfileEntity(
+      id: 'profile_1',
+      displayName: 'Test User',
+      handle: 'testuser',
+      accountTier: AccountTier.LISTENER,
+      favoriteGenres: <String>['electronic', 'hip-hop', 'pop'],
+      externalLinks: <String, String>{},
+      visibility: ProfileVisibility.PUBLIC,
+      followersCount: 0,
+      followingCount: 0,
+    ),
+  );
+
+  when(() => profileRepository.getUserTracks(any())).thenAnswer(
+    (_) async => const <ManagedTrack>[],
+  );
+
+  GetIt.I.registerSingleton<AudioPlayerService>(audioService);
+  GetIt.I.registerSingleton<ProfileRepository>(profileRepository);
+
+  GetIt.I.registerSingleton<RecentlyPlayedCubit>(
+    RecentlyPlayedCubit(),
+  );
+
+  GetIt.I.registerLazySingleton<SubscriptionCubit>(
+    () => SubscriptionCubit(MockSubscriptionRepository()),
+  );
+
+  GetIt.I.registerLazySingleton<OfflineCubit>(
+    () => OfflineCubit(
+      throw UnimplementedError(),
+    ),
+  );
+
+  GetIt.I.registerFactory<UnreadCountCubit>(
+    () => UnreadCountCubit(
+      getUnreadCountUseCase: getUnreadCountUseCase,
+      connectMessagingSocketUseCase: connectMessagingSocketUseCase,
+    ),
+  );
 }
 
 Widget _buildApp(MockAuthCubit authCubit) {
@@ -91,6 +183,9 @@ Widget _buildApp(MockAuthCubit authCubit) {
             BlocProvider<AuthCubit>.value(value: authCubit),
             BlocProvider<PlayerCubit>(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
+            ),
+            BlocProvider(
+              create: (_) => SubscriptionCubit(MockSubscriptionRepository()),
             ),
           ],
           child: const MockHomePage(),
@@ -128,6 +223,17 @@ Widget _buildApp(MockAuthCubit authCubit) {
   );
 }
 
+Future<void> _pumpHome(
+  WidgetTester tester,
+  MockAuthCubit authCubit,
+) async {
+  tester.view.physicalSize = const Size(1200, 1800);
+  tester.view.devicePixelRatio = 1.0;
+
+  await tester.pumpWidget(_buildApp(authCubit));
+  await tester.pumpAndSettle();
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 
 void main() {
@@ -139,55 +245,46 @@ void main() {
   });
 
   tearDown(() async {
+    testerViewReset();
     await GetIt.I.reset();
   });
 
   // ── Basic render ───────────────────────────────────────────────────────────
 
   group('MockHomePage basic render', () {
-    // Lines 58-59 — BlocConsumer builder runs, Scaffold shows
     testWidgets('builds without crashing when authenticated', (tester) async {
       when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
       when(() => mockAuthCubit.stream)
           .thenAnswer((_) => const Stream<AuthState>.empty());
 
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       expect(find.byType(Scaffold), findsWidgets);
     });
 
-    // Lines 64-67 — currentHandle extracted from AuthAuthenticated
     testWidgets('extracts handle from AuthAuthenticated state', (tester) async {
       when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
       when(() => mockAuthCubit.stream)
           .thenAnswer((_) => const Stream<AuthState>.empty());
 
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
-      // TopBar renders with authenticated user — logout icon visible
       expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
     });
 
-    // Lines 79, 81-82 — section headers rendered
     testWidgets('shows all section headers', (tester) async {
       when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
       when(() => mockAuthCubit.stream)
           .thenAnswer((_) => const Stream<AuthState>.empty());
 
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       expect(find.textContaining('More of what you like'), findsOneWidget);
       expect(find.textContaining('Mixed for you'), findsOneWidget);
-      expect(find.textContaining('Trending by genre'), findsOneWidget);
+      expect(find.textContaining('Your favorite genres'), findsOneWidget);
     });
   });
 
-  // ── AuthUnauthenticated listener ───────────────────────────────────────────
-
-  // Lines 120 — listener fires context.go('/welcome') on AuthUnauthenticated
   testWidgets('navigates to /welcome when unauthenticated', (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthInitial());
     whenListen(
@@ -196,16 +293,11 @@ void main() {
       initialState: AuthInitial(),
     );
 
-    await tester.pumpWidget(_buildApp(mockAuthCubit));
-    await tester.pump();
-    await tester.pumpAndSettle();
+    await _pumpHome(tester, mockAuthCubit);
 
     expect(find.text('Welcome'), findsOneWidget);
   });
 
-  // ── AuthError listener ─────────────────────────────────────────────────────
-
-  // Lines 130-136 — listener shows SnackBar on AuthError
   testWidgets('shows snackbar on AuthError', (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthInitial());
     whenListen(
@@ -214,14 +306,15 @@ void main() {
       initialState: AuthInitial(),
     );
 
+    tester.view.physicalSize = const Size(1200, 1800);
+    tester.view.devicePixelRatio = 1.0;
+
     await tester.pumpWidget(_buildApp(mockAuthCubit));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('Something went wrong'), findsOneWidget);
   });
-
-  // ── Bottom Nav ─────────────────────────────────────────────────────────────
 
   group('BottomNav navigation', () {
     setUp(() {
@@ -230,12 +323,9 @@ void main() {
           .thenAnswer((_) => const Stream<AuthState>.empty());
     });
 
-    // Lines 138-145 — bottom nav tabs render and are tappable
     testWidgets('renders all bottom nav tabs', (tester) async {
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
-      // "Home" appears twice (header + nav), use findsWidgets
       expect(find.text('Home'), findsWidgets);
       expect(find.text('Feed'), findsOneWidget);
       expect(find.text('Search'), findsOneWidget);
@@ -243,22 +333,17 @@ void main() {
       expect(find.text('Upgrade'), findsOneWidget);
     });
 
-    // Lines 138-139 — tapping Feed tab (index 1) updates selected state
     testWidgets('tapping Feed tab updates selected index', (tester) async {
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       await tester.tap(find.text('Feed'));
       await tester.pump();
 
-      // Feed icon becomes active (filled icon)
       expect(find.byIcon(Icons.grid_view), findsOneWidget);
     });
 
-    // Lines 141-142 — tapping Search tab updates selected state
     testWidgets('tapping Search tab updates selected index', (tester) async {
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       await tester.tap(find.text('Search'));
       await tester.pump();
@@ -266,10 +351,8 @@ void main() {
       expect(find.byIcon(Icons.search), findsWidgets);
     });
 
-    // Lines 144-145 — tapping Library tab updates selected state
     testWidgets('tapping Library tab updates selected index', (tester) async {
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       await tester.tap(find.text('Library'));
       await tester.pump();
@@ -277,10 +360,8 @@ void main() {
       expect(find.byIcon(Icons.library_music), findsOneWidget);
     });
 
-    // Lines 169-170 — tapping Upgrade tab updates selected state
     testWidgets('tapping Upgrade tab updates selected index', (tester) async {
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       await tester.tap(find.text('Upgrade'));
       await tester.pump();
@@ -288,8 +369,6 @@ void main() {
       expect(find.byIcon(Icons.equalizer), findsOneWidget);
     });
   });
-
-  // ── Logout sheet ───────────────────────────────────────────────────────────
 
   group('Logout bottom sheet', () {
     setUp(() {
@@ -299,10 +378,8 @@ void main() {
       when(() => mockAuthCubit.logout()).thenAnswer((_) async {});
     });
 
-    // Lines 176-181 — logout sheet opens
     testWidgets('shows logout sheet on logout icon tap', (tester) async {
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       await tester.tap(find.byIcon(Icons.logout_rounded));
       await tester.pumpAndSettle();
@@ -312,10 +389,8 @@ void main() {
       expect(find.text('Cancel'), findsOneWidget);
     });
 
-    // Lines 191-194 — tapping "Log out" calls cubit.logout()
     testWidgets('tapping Log out calls authCubit.logout()', (tester) async {
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       await tester.tap(find.byIcon(Icons.logout_rounded));
       await tester.pumpAndSettle();
@@ -326,10 +401,8 @@ void main() {
       verify(() => mockAuthCubit.logout()).called(1);
     });
 
-    // Lines 198-200 — tapping Cancel closes the sheet
     testWidgets('tapping Cancel dismisses the sheet', (tester) async {
-      await tester.pumpWidget(_buildApp(mockAuthCubit));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, mockAuthCubit);
 
       await tester.tap(find.byIcon(Icons.logout_rounded));
       await tester.pumpAndSettle();
@@ -341,17 +414,13 @@ void main() {
     });
   });
 
-  // ── Profile navigation ─────────────────────────────────────────────────────
-
-  // Lines 212-213 — tapping avatar with empty handle shows snackbar
   testWidgets('shows snackbar when navigating to profile without handle',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthInitial());
     when(() => mockAuthCubit.stream)
         .thenAnswer((_) => const Stream<AuthState>.empty());
 
-    await tester.pumpWidget(_buildApp(mockAuthCubit));
-    await tester.pumpAndSettle();
+    await _pumpHome(tester, mockAuthCubit);
 
     await tester.tap(find.byType(CircleAvatar));
     await tester.pumpAndSettle();
@@ -359,42 +428,28 @@ void main() {
     expect(find.text('Please log in to view profile'), findsOneWidget);
   });
 
-  // ── Genre chips ────────────────────────────────────────────────────────────
-
-  // Lines 226-228, 237 — tapping genre chip changes selection
   testWidgets('tapping a genre chip updates selection', (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
     when(() => mockAuthCubit.stream)
         .thenAnswer((_) => const Stream<AuthState>.empty());
 
-    await tester.pumpWidget(_buildApp(mockAuthCubit));
+    await _pumpHome(tester, mockAuthCubit);
+
+    // Tap a genre chip that's visible - 'electronic' is the default selected
+    // So let's tap 'hip-hop' which should be visible after 'electronic'
+    await tester.tap(find.text('hip-hop'));
     await tester.pumpAndSettle();
 
-    // Scroll to genre chips section
-    await tester.dragUntilVisible(
-      find.text('FOLK'),
-      find.byType(SingleChildScrollView),
-      const Offset(0, -100),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('FOLK'));
-    await tester.pumpAndSettle();
-
-    // FOLK chip is now selected — verify it's visible and tappable
-    expect(find.text('FOLK'), findsOneWidget);
+    // Verify the genre was tapped (should still find it)
+    expect(find.text('hip-hop'), findsOneWidget);
   });
 
-  // ── Managed tracks ─────────────────────────────────────────────────────────
-
-  // Lines 267, 271 — managed tracks show title + manage button
   testWidgets('renders related tracks and mix cards', (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
     when(() => mockAuthCubit.stream)
         .thenAnswer((_) => const Stream<AuthState>.empty());
 
-    await tester.pumpWidget(_buildApp(mockAuthCubit));
-    await tester.pumpAndSettle();
+    await _pumpHome(tester, mockAuthCubit);
 
     expect(find.text('Related tracks: L...'), findsOneWidget);
     expect(find.text('SoundCloud'), findsWidgets);
@@ -402,35 +457,26 @@ void main() {
     expect(find.text('Balthazar, Cage...'), findsOneWidget);
   });
 
-  // ── Upload icon ────────────────────────────────────────────────────────────
-
-  // Lines 283, 285 — upload icon is tappable without crashing
   testWidgets('tapping upload icon does not crash', (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
     when(() => mockAuthCubit.stream)
         .thenAnswer((_) => const Stream<AuthState>.empty());
 
-    await tester.pumpWidget(_buildApp(mockAuthCubit));
-    await tester.pumpAndSettle();
+    await _pumpHome(tester, mockAuthCubit);
 
-    // Just verify tap doesn't throw — go_router push needs full router setup
     await tester.tap(find.byIcon(Icons.upload_outlined));
     await tester.pump();
 
     expect(find.byType(MockHomePage), findsOneWidget);
   });
 
-  // ── Unauthenticated state render ───────────────────────────────────────────
-
-  // Lines 295, 315 — renders correctly when not authenticated
   testWidgets('renders without logout button when not authenticated',
       (tester) async {
     when(() => mockAuthCubit.state).thenReturn(AuthInitial());
     when(() => mockAuthCubit.stream)
         .thenAnswer((_) => const Stream<AuthState>.empty());
 
-    await tester.pumpWidget(_buildApp(mockAuthCubit));
-    await tester.pumpAndSettle();
+    await _pumpHome(tester, mockAuthCubit);
 
     expect(find.byIcon(Icons.logout_rounded), findsNothing);
     expect(find.byType(CircleAvatar), findsOneWidget);
@@ -441,12 +487,12 @@ void main() {
     when(() => mockAuthCubit.stream)
         .thenAnswer((_) => const Stream<AuthState>.empty());
 
-    await tester.pumpWidget(_buildApp(mockAuthCubit));
-    await tester.pumpAndSettle();
+    await _pumpHome(tester, mockAuthCubit);
 
-    expect(find.text('ELECTRONIC'), findsOneWidget);
-    expect(find.text('FOLK'), findsOneWidget);
-    expect(find.text('HOUSE'), findsOneWidget);
+    // Check that visible genre chips exist
+    expect(find.text('electronic'), findsOneWidget);
+    expect(find.text('hip-hop'), findsOneWidget);
+    expect(find.text('pop'), findsOneWidget);
   });
 
   testWidgets('keeps authenticated home content visible', (tester) async {
@@ -454,11 +500,16 @@ void main() {
     when(() => mockAuthCubit.stream)
         .thenAnswer((_) => const Stream<AuthState>.empty());
 
-    await tester.pumpWidget(_buildApp(mockAuthCubit));
-    await tester.pumpAndSettle();
+    await _pumpHome(tester, mockAuthCubit);
 
     expect(find.text('Home'), findsWidgets);
     expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
-    expect(find.text('Trending by genre'), findsOneWidget);
+    expect(find.text('Your favorite genres'), findsOneWidget);
   });
+}
+
+void testerViewReset() {
+  final binding = TestWidgetsFlutterBinding.instance;
+  binding.platformDispatcher.views.first.resetPhysicalSize();
+  binding.platformDispatcher.views.first.resetDevicePixelRatio();
 }
