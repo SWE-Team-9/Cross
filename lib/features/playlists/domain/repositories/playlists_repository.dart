@@ -35,12 +35,11 @@ abstract class PlaylistsRepository {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
-    int? genreId,
+    String? genre,
     String? playlistType,
     DateTime? releaseDate,
     List<String>? tags,
   });
-
   Future<String?> uploadPlaylistCover({
     required String playlistId,
     required String filePath,
