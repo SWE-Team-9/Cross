@@ -7,7 +7,9 @@ import '../../domain/entities/plan.dart';
 import '../../domain/entities/subscription.dart';
 import '../bloc/subscription_cubit.dart';
 import '../bloc/subscription_state.dart';
+import 'dart:async';
 
+import 'package:go_router/go_router.dart';
 class BillingPage extends StatefulWidget {
   const BillingPage({super.key});
 
@@ -16,16 +18,163 @@ class BillingPage extends StatefulWidget {
 }
 
 class _BillingPageState extends State<BillingPage> {
+  String? _handledBillingReturnSignature;
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<SubscriptionCubit>().loadBilling();
+
+      final handledReturn = _handleBillingReturnIfNeeded();
+
+      if (!handledReturn) {
+        context.read<SubscriptionCubit>().loadBilling();
+      }
     });
   }
 
+    bool _handleBillingReturnIfNeeded() {
+    final queryParameters = _billingReturnQueryParameters();
+
+    if (queryParameters.isEmpty || !_hasBillingReturnParameter(queryParameters)) {
+      return false;
+    }
+
+    final signature = _billingReturnSignature(queryParameters);
+
+    if (_handledBillingReturnSignature == signature) {
+      return true;
+    }
+
+    _handledBillingReturnSignature = signature;
+
+    final status = _readReturnParameter(
+      queryParameters,
+      const <String>[
+        'status',
+        'payment_status',
+        'paymentStatus',
+        'billing_status',
+        'billingStatus',
+      ],
+    );
+
+    final planCode = _readReturnParameter(
+      queryParameters,
+      const <String>[
+        'plan',
+        'plan_code',
+        'planCode',
+        'tier',
+        'subscription_type',
+        'subscriptionType',
+      ],
+    );
+
+    if (_isSuccessStatus(status)) {
+      final planSuffix =
+          planCode == null ? '' : ' for ${planCode.trim().toUpperCase()}';
+
+      _showSnackBar('Payment confirmed$planSuffix. Refreshing billing details.');
+    } else if (_isCancelStatus(status)) {
+      _showSnackBar('Checkout was canceled. No billing changes were made.');
+    } else if (status != null && status.trim().isNotEmpty) {
+      _showSnackBar('Billing returned with status: ${status.trim()}. Refreshing details.');
+    } else {
+      _showSnackBar('Returned from billing. Refreshing billing details.');
+    }
+
+    unawaited(context.read<SubscriptionCubit>().loadBilling());
+
+    return true;
+  }
+
+  Map<String, String> _billingReturnQueryParameters() {
+    try {
+      return Map<String, String>.from(
+        GoRouterState.of(context).uri.queryParameters,
+      );
+    } catch (_) {
+      return const <String, String>{};
+    }
+  }
+
+  bool _hasBillingReturnParameter(Map<String, String> queryParameters) {
+    return _readReturnParameter(
+          queryParameters,
+          const <String>[
+            'status',
+            'payment_status',
+            'paymentStatus',
+            'billing_status',
+            'billingStatus',
+            'plan',
+            'plan_code',
+            'planCode',
+            'tier',
+            'subscription_type',
+            'subscriptionType',
+            'session_id',
+            'sessionId',
+            'billing_session_id',
+            'billingSessionId',
+            'portal_session_id',
+            'portalSessionId',
+            'checkout_session_id',
+            'checkoutSessionId',
+            'checkout_id',
+            'checkoutId',
+            'subscription_id',
+            'subscriptionId',
+            'sub',
+            'cs',
+          ],
+        ) !=
+        null;
+  }
+
+  String _billingReturnSignature(Map<String, String> queryParameters) {
+    final entries = queryParameters.entries.toList()
+      ..sort((left, right) => left.key.compareTo(right.key));
+
+    return entries
+        .map((entry) => '${entry.key.trim()}=${entry.value.trim()}')
+        .join('&');
+  }
+
+  String? _readReturnParameter(
+    Map<String, String> queryParameters,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = queryParameters[key]?.trim();
+
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  bool _isSuccessStatus(String? status) {
+    final normalized = status?.trim().toUpperCase() ?? '';
+
+    return normalized == 'SUCCESS' ||
+        normalized == 'COMPLETED' ||
+        normalized == 'PAID' ||
+        normalized == 'ACTIVE';
+  }
+
+  bool _isCancelStatus(String? status) {
+    final normalized = status?.trim().toUpperCase() ?? '';
+
+    return normalized == 'CANCEL' ||
+        normalized == 'CANCELED' ||
+        normalized == 'CANCELLED';
+  }
   Future<void> _openBillingPortal() async {
     try {
       final portalUrl = await context.read<SubscriptionCubit>().openBillingPortal();
