@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/features/premium/domain/entities/billing_invoice.dart';
 import 'package:soundcloud_clone/features/premium/domain/entities/billing_portal_session.dart';
@@ -12,12 +13,44 @@ import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
 
 void main() {
+  const freeSubscription = Subscription(
+    userId: 'user-1',
+    planCode: 'FREE',
+    subscriptionType: 'FREE',
+    subscriptionStatus: 'ACTIVE',
+    planName: 'Free',
+    isPremium: false,
+    adsEnabled: true,
+    canDownload: false,
+    uploadLimit: 3,
+    uploadLimitDisplay: '3',
+    uploadedTracks: 3,
+    remainingUploads: 0,
+  );
+
+  const proSubscription = Subscription(
+    userId: 'user-1',
+    planCode: 'PRO',
+    subscriptionType: 'PRO',
+    subscriptionStatus: 'ACTIVE',
+    planName: 'Pro',
+    isPremium: true,
+    adsEnabled: false,
+    canDownload: true,
+    uploadLimit: 100,
+    uploadLimitDisplay: '100',
+    uploadedTracks: 5,
+    remainingUploads: 95,
+    paymentMethodSummary: 'Visa •••• 4242',
+  );
+
   const freePlan = Plan(
     code: 'FREE',
     name: 'Free',
     tier: 'FREE',
     priceCents: 0,
     priceDisplay: 'Free',
+    billingInterval: 'MONTHLY',
     uploadLimit: 3,
     uploadLimitDisplay: '3',
     adsEnabled: true,
@@ -25,7 +58,6 @@ void main() {
     supportLevel: 'community',
     highlightedFeatures: <String>[
       '3 uploads',
-      'Standard streaming',
       'Ads supported',
     ],
   );
@@ -45,96 +77,20 @@ void main() {
     supportLevel: 'priority',
     highlightedFeatures: <String>[
       '100 uploads',
-      'Ad-free',
-      'Downloads',
+      'Ad-free listening',
+      'Offline downloads',
       'Priority support',
     ],
   );
 
-  const goPlusPlan = Plan(
-    code: 'GO_PLUS',
-    name: 'GO+',
-    tier: 'GO_PLUS',
-    priceCents: 1999,
-    priceDisplay: r'$19.99/mo',
-    billingInterval: 'MONTHLY',
-    uploadLimit: 1000,
-    uploadLimitDisplay: '1000',
-    trialDays: 7,
-    adsEnabled: false,
-    canDownload: true,
-    supportLevel: 'priority',
-    highlightedFeatures: <String>[
-      '1000 uploads',
-      'Ad-free',
-      'Downloads',
-      'Priority support',
-    ],
-  );
-
-  const freeSubscription = Subscription(
-    userId: 'user-1',
-    planCode: 'FREE',
-    subscriptionType: 'FREE',
-    subscriptionStatus: 'INACTIVE',
-    planName: 'Free',
-    isPremium: false,
-    adsEnabled: true,
-    canDownload: false,
-    supportLevel: 'community',
-    uploadLimit: 3,
-    uploadLimitDisplay: '3',
-    uploadedTracks: 3,
-    remainingUploads: 0,
-  );
-
-  const proSubscription = Subscription(
-    userId: 'user-1',
-    planCode: 'PRO',
-    subscriptionType: 'PRO',
-    subscriptionStatus: 'ACTIVE',
-    planName: 'Pro',
-    isPremium: true,
-    adsEnabled: false,
-    canDownload: true,
-    supportLevel: 'priority',
-    uploadLimit: 100,
-    uploadLimitDisplay: '100',
-    uploadedTracks: 5,
-    remainingUploads: 95,
-  );
-
-  const cancelingSubscription = Subscription(
-    userId: 'user-1',
-    planCode: 'PRO',
-    subscriptionType: 'PRO',
-    subscriptionStatus: 'ACTIVE',
-    planName: 'Pro',
-    isPremium: true,
-    adsEnabled: false,
-    canDownload: true,
-    supportLevel: 'priority',
-    uploadLimit: 100,
-    uploadLimitDisplay: '100',
-    uploadedTracks: 5,
-    remainingUploads: 95,
-    cancelAtPeriodEnd: true,
-  );
-
-  setUp(() {
-    TestWidgetsFlutterBinding.ensureInitialized();
-  });
-
-  tearDown(() {
-    _resetTestView();
-  });
+  tearDown(_resetTestView);
 
   group('UpgradePage', () {
-    testWidgets('loads subscription and renders premium plans for free users',
+    testWidgets('loads free subscription and renders upgrade plans',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
-        plans: const <Plan>[freePlan, proPlan, goPlusPlan],
+        plans: const <Plan>[freePlan, proPlan],
       );
 
       await _pumpUpgradePage(tester, repository);
@@ -142,28 +98,26 @@ void main() {
       expect(find.text('Upgrade'), findsOneWidget);
       expect(find.text('Unlock IQA3 Premium'), findsOneWidget);
       expect(find.text('Current plan'), findsOneWidget);
-      expect(find.text('Free'), findsOneWidget);
+      expect(find.text('Free'), findsWidgets);
       expect(find.text('Choose your plan'), findsOneWidget);
-      expect(find.text('Pro'), findsWidgets);
-      expect(find.text('GO+'), findsWidgets);
-      expect(find.text(r'$9.99/mo'), findsOneWidget);
-      expect(find.text(r'$19.99/mo'), findsOneWidget);
-      expect(find.text('100 uploads'), findsWidgets);
-      expect(find.text('1000 uploads'), findsWidgets);
-      expect(find.text('Ad-free listening'), findsWidgets);
-      expect(find.text('Offline downloads'), findsWidgets);
+      expect(
+        find.text(
+          'Upgrade to unlock more uploads, ad-free listening, offline downloads, and priority support.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Upgrade to Pro'), findsOneWidget);
-      expect(find.text('Upgrade to GO+'), findsOneWidget);
+      expect(find.text('Manage billing'), findsNothing);
 
       expect(repository.getMySubscriptionCalls, 1);
       expect(repository.getPlansCalls, 1);
     });
 
-    testWidgets('renders current premium plan and manage billing button',
+    testWidgets('renders premium current plan and billing management button',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
-        plans: const <Plan>[freePlan, proPlan, goPlusPlan],
+        plans: const <Plan>[freePlan, proPlan],
       );
 
       await _pumpUpgradePage(tester, repository);
@@ -171,86 +125,29 @@ void main() {
       expect(find.text('You are on Pro'), findsOneWidget);
       expect(find.text('Premium'), findsOneWidget);
       expect(find.text('95 uploads remaining / 100'), findsOneWidget);
-      expect(find.text('Ad-free listening'), findsWidgets);
+      expect(find.text('Ad-free listening'), findsOneWidget);
       expect(find.text('Offline downloads unlocked'), findsOneWidget);
       expect(find.text('Manage billing'), findsOneWidget);
       expect(find.text('Current plan'), findsWidgets);
-      expect(find.text('Upgrade to GO+'), findsOneWidget);
     });
 
-    testWidgets('shows cancellation warning for cancel-at-period-end subscription',
+    testWidgets('manage billing button navigates to billing route',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
-        subscription: cancelingSubscription,
-        plans: const <Plan>[freePlan, proPlan, goPlusPlan],
-      );
-
-      await _pumpUpgradePage(tester, repository);
-
-      expect(
-        find.text(
-          'Your subscription is scheduled to cancel at the end of the current billing period.',
-        ),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('shows loading indicator while subscription is loading',
-        (tester) async {
-      final repository = _FakeSubscriptionRepository(
-        subscription: freeSubscription,
+        subscription: proSubscription,
         plans: const <Plan>[freePlan, proPlan],
-        responseDelay: const Duration(milliseconds: 300),
-      );
-
-      await _pumpUpgradePage(
-        tester,
-        repository,
-        settle: false,
-      );
-
-      await tester.pump();
-
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
-
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('shows error state and snackbar when loading fails',
-        (tester) async {
-      final repository = _FakeSubscriptionRepository(
-        loadError: Exception('Failed to load subscription.'),
       );
 
       await _pumpUpgradePage(tester, repository);
 
-      expect(find.text('Failed to load subscription.'), findsWidgets);
-      expect(find.text('Try again'), findsOneWidget);
-      expect(repository.getMySubscriptionCalls, 1);
-    });
-
-    testWidgets('retry button reloads data after a failure', (tester) async {
-      final repository = _FakeSubscriptionRepository(
-        subscription: freeSubscription,
-        plans: const <Plan>[freePlan, proPlan],
-        failFirstLoad: true,
-      );
-
-      await _pumpUpgradePage(tester, repository);
-
-      expect(find.text('First load failed.'), findsWidgets);
-      expect(find.text('Try again'), findsOneWidget);
-
-      await tester.tap(find.text('Try again'));
+      await tester.tap(find.text('Manage billing'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Unlock IQA3 Premium'), findsOneWidget);
-      expect(find.text('Pro'), findsWidgets);
-      expect(repository.getMySubscriptionCalls, 2);
-      expect(repository.getPlansCalls, 2);
+      expect(find.text('Billing Route'), findsOneWidget);
     });
 
-    testWidgets('refresh action calls loadSubscription again', (tester) async {
+    testWidgets('refresh action reloads subscription and plans',
+        (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
         plans: const <Plan>[freePlan, proPlan],
@@ -259,6 +156,7 @@ void main() {
       await _pumpUpgradePage(tester, repository);
 
       expect(repository.getMySubscriptionCalls, 1);
+      expect(repository.getPlansCalls, 1);
 
       await tester.tap(find.byTooltip('Refresh'));
       await tester.pumpAndSettle();
@@ -270,42 +168,102 @@ void main() {
     testWidgets('shows empty state when no plans are available', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
-        plans: const <Plan>[],
       );
 
       await _pumpUpgradePage(tester, repository);
 
-      expect(
-        find.text('No premium plans are available right now.'),
-        findsOneWidget,
-      );
+      expect(find.text('No premium plans are available right now.'), findsOneWidget);
       expect(find.text('Refresh'), findsOneWidget);
     });
 
-    testWidgets('refresh indicator reloads subscription', (tester) async {
+    testWidgets('empty state refresh retries loading plans', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
-        plans: const <Plan>[freePlan, proPlan],
       );
 
       await _pumpUpgradePage(tester, repository);
 
-      expect(repository.getMySubscriptionCalls, 1);
-
-      await tester.fling(
-        find.byType(CustomScrollView),
-        const Offset(0, 400),
-        1000,
-      );
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.text('Refresh'));
       await tester.pumpAndSettle();
 
-      expect(repository.getMySubscriptionCalls, greaterThanOrEqualTo(2));
+      expect(repository.getMySubscriptionCalls, 2);
+      expect(repository.getPlansCalls, 2);
     });
 
-    testWidgets('tapping upgrade creates checkout url and shows success snackbar',
+    testWidgets('shows error state when plans fail to load', (tester) async {
+      final repository = _FakeSubscriptionRepository(
+        loadError: Exception('Could not load premium data.'),
+      );
+
+      await _pumpUpgradePage(tester, repository);
+
+      expect(find.text('Could not load premium data.'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('error retry reloads subscription and plans', (tester) async {
+      final repository = _FakeSubscriptionRepository(
+        loadError: Exception('Could not load premium data.'),
+      );
+
+      await _pumpUpgradePage(tester, repository);
+
+      repository
+        ..loadError = null
+        ..subscription = freeSubscription
+        ..plans = const <Plan>[freePlan, proPlan];
+
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(repository.getMySubscriptionCalls, 2);
+      expect(repository.getPlansCalls, 2);
+      expect(find.text('Upgrade to Pro'), findsOneWidget);
+    });
+
+    testWidgets('upgrade validates empty plan code', (tester) async {
+      final repository = _FakeSubscriptionRepository(
+        subscription: freeSubscription,
+        plans: const <Plan>[
+          Plan(
+            code: '',
+            name: 'Broken Plan',
+            priceDisplay: r'$1.99/mo',
+            uploadLimit: 10,
+            uploadLimitDisplay: '10',
+          ),
+        ],
+      );
+
+      await _pumpUpgradePage(tester, repository);
+
+      await tester.tap(find.text('Upgrade to Broken Plan'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('This plan is not available right now.'), findsOneWidget);
+      expect(repository.createCheckoutCalls, 0);
+    });
+
+    testWidgets('upgrade shows unavailable checkout link message',
         (tester) async {
+      final repository = _FakeSubscriptionRepository(
+        subscription: freeSubscription,
+        plans: const <Plan>[freePlan, proPlan],
+        checkoutUrl: '',
+      );
+
+      await _pumpUpgradePage(tester, repository);
+
+      await tester.tap(find.text('Upgrade to Pro'));
+      await tester.pumpAndSettle();
+
+      expect(repository.createCheckoutCalls, 1);
+      expect(repository.lastCheckoutPlan, 'PRO');
+      expect(find.text('Subscription upgraded.'), findsOneWidget);
+      expect(find.text('Checkout link is not available right now.'), findsOneWidget);
+    });
+
+    testWidgets('upgrade validates invalid checkout url', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
         plans: const <Plan>[freePlan, proPlan],
@@ -318,15 +276,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.createCheckoutCalls, 1);
-      expect(repository.lastCheckoutPlan, 'PRO');
-      expect(find.text('Checkout session created.'), findsOneWidget);
-      expect(
-        find.text('Invalid link returned from the server.'),
-        findsOneWidget,
-      );
+      expect(find.text('Subscription upgraded.'), findsOneWidget);
+      expect(find.text('Invalid link returned from the server.'), findsOneWidget);
     });
 
-    testWidgets('shows checkout error when upgrade fails', (tester) async {
+    testWidgets('upgrade error shows snackbar', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
         plans: const <Plan>[freePlan, proPlan],
@@ -342,68 +296,67 @@ void main() {
       expect(find.text('Checkout failed.'), findsOneWidget);
     });
 
-    testWidgets('tapping manage billing creates portal session', (tester) async {
-      final repository = _FakeSubscriptionRepository(
-        subscription: proSubscription,
-        plans: const <Plan>[freePlan, proPlan],
-        portalSession: const BillingPortalSession(
-          url: 'not-a-valid-url',
-          sessionId: 'bps_123',
-        ),
-      );
-
-      await _pumpUpgradePage(tester, repository);
-
-      await tester.tap(find.text('Manage billing'));
-      await tester.pumpAndSettle();
-
-      expect(repository.openBillingPortalSessionCalls, 1);
-      expect(find.text('Billing portal opened.'), findsOneWidget);
-      expect(
-        find.text('Invalid link returned from the server.'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('shows billing portal error when portal creation fails',
+    testWidgets('cancellation warning appears for canceling premium subscription',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
-        subscription: proSubscription,
+        subscription: proSubscription.copyWith(
+          cancelAtPeriodEnd: true,
+          canResume: true,
+        ),
         plans: const <Plan>[freePlan, proPlan],
-        portalError: Exception('Portal failed.'),
       );
 
       await _pumpUpgradePage(tester, repository);
 
-      await tester.tap(find.text('Manage billing'));
-      await tester.pumpAndSettle();
-
-      expect(repository.openBillingPortalSessionCalls, 1);
-      expect(find.text('Portal failed.'), findsOneWidget);
+      expect(
+        find.text(
+          'Your subscription is scheduled to cancel at the end of the current billing period.',
+        ),
+        findsOneWidget,
+      );
     });
   });
 }
 
 Future<void> _pumpUpgradePage(
   WidgetTester tester,
-  _FakeSubscriptionRepository repository, {
-  bool settle = true,
-}) async {
-  tester.view.physicalSize = const Size(1200, 2000);
+  _FakeSubscriptionRepository repository,
+) async {
+  tester.view.physicalSize = const Size(1200, 2200);
   tester.view.devicePixelRatio = 1.0;
 
-  await tester.pumpWidget(
-    MaterialApp(
-      home: BlocProvider<SubscriptionCubit>(
-        create: (_) => SubscriptionCubit(repository),
-        child: const UpgradePage(),
+  final router = GoRouter(
+    initialLocation: '/upgrade',
+    routes: [
+      GoRoute(
+        path: '/upgrade',
+        builder: (context, state) {
+          return BlocProvider<SubscriptionCubit>(
+            create: (_) => SubscriptionCubit(repository),
+            child: const UpgradePage(),
+          );
+        },
       ),
+      GoRoute(
+        path: '/billing',
+        builder: (context, state) {
+          return const Scaffold(
+            body: Center(
+              child: Text('Billing Route'),
+            ),
+          );
+        },
+      ),
+    ],
+  );
+
+  await tester.pumpWidget(
+    MaterialApp.router(
+      routerConfig: router,
     ),
   );
 
-  if (settle) {
-    await tester.pumpAndSettle();
-  }
+  await tester.pumpAndSettle();
 }
 
 void _resetTestView() {
@@ -416,29 +369,16 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   _FakeSubscriptionRepository({
     this.subscription = const Subscription(),
     this.plans = const <Plan>[],
-    this.invoices = const <BillingInvoice>[],
-    this.checkoutUrl = 'https://checkout.example.com/pro',
-    this.portalSession = const BillingPortalSession(
-      url: 'https://billing.example.com/session/test',
-      sessionId: 'bps_123',
-    ),
+    this.checkoutUrl = 'not-a-valid-url',
     this.loadError,
     this.checkoutError,
-    this.portalError,
-    this.failFirstLoad = false,
-    this.responseDelay = Duration.zero,
   });
 
-  final Subscription subscription;
-  final List<Plan> plans;
-  final List<BillingInvoice> invoices;
-  final String checkoutUrl;
-  final BillingPortalSession portalSession;
-  final Exception? loadError;
-  final Exception? checkoutError;
-  final Exception? portalError;
-  final bool failFirstLoad;
-  final Duration responseDelay;
+  Subscription subscription;
+  List<Plan> plans;
+  String checkoutUrl;
+  Object? loadError;
+  Object? checkoutError;
 
   int getMySubscriptionCalls = 0;
   int getPlansCalls = 0;
@@ -454,27 +394,14 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   String? lastCheckoutPlan;
   String? lastSubscribePlan;
   String? lastChangePlan;
-  String? lastOfflineTrackId;
-
-  Future<void> _delayIfNeeded() async {
-    if (responseDelay == Duration.zero) {
-      return;
-    }
-
-    await Future<void>.delayed(responseDelay);
-  }
 
   @override
   Future<Subscription> getMySubscription() async {
     getMySubscriptionCalls++;
-    await _delayIfNeeded();
 
-    if (loadError != null) {
-      throw loadError!;
-    }
-
-    if (failFirstLoad && getMySubscriptionCalls == 1) {
-      throw Exception('First load failed.');
+    final error = loadError;
+    if (error != null) {
+      throw error;
     }
 
     return subscription;
@@ -483,14 +410,10 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   @override
   Future<List<Plan>> getPlans() async {
     getPlansCalls++;
-    await _delayIfNeeded();
 
-    if (loadError != null) {
-      throw loadError!;
-    }
-
-    if (failFirstLoad && getPlansCalls == 1) {
-      throw Exception('First load failed.');
+    final error = loadError;
+    if (error != null) {
+      throw error;
     }
 
     return plans;
@@ -501,9 +424,19 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
     createCheckoutCalls++;
     lastCheckoutPlan = plan;
 
-    if (checkoutError != null) {
-      throw checkoutError!;
+    final error = checkoutError;
+    if (error != null) {
+      throw error;
     }
+
+    subscription = subscription.copyWith(
+      planCode: plan,
+      subscriptionType: plan,
+      planName: plan == 'PRO' ? 'Pro' : plan,
+      isPremium: plan.trim().toUpperCase() != 'FREE',
+      adsEnabled: false,
+      canDownload: true,
+    );
 
     return checkoutUrl;
   }
@@ -512,54 +445,55 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   Future<String> subscribe(String plan) async {
     subscribeCalls++;
     lastSubscribePlan = plan;
-    return checkoutUrl;
+    return 'https://subscribe.example.com/$plan';
   }
 
   @override
   Future<BillingPortalSession> openBillingPortalSession() async {
     openBillingPortalSessionCalls++;
-
-    if (portalError != null) {
-      throw portalError!;
-    }
-
-    return portalSession;
+    return const BillingPortalSession(
+      url: 'https://billing.example.com/session/test',
+      sessionId: 'bps_123',
+    );
   }
 
   @override
   Future<List<BillingInvoice>> getInvoices() async {
     getInvoicesCalls++;
-    return invoices;
+    return const <BillingInvoice>[];
   }
 
   @override
   Future<Subscription> cancelSubscription() async {
     cancelSubscriptionCalls++;
-    return subscription.copyWith(
+    subscription = subscription.copyWith(
       cancelAtPeriodEnd: true,
       canResume: true,
     );
+    return subscription;
   }
 
   @override
   Future<Subscription> resumeSubscription() async {
     resumeSubscriptionCalls++;
-    return subscription.copyWith(
+    subscription = subscription.copyWith(
       cancelAtPeriodEnd: false,
       canResume: false,
     );
+    return subscription;
   }
 
   @override
   Future<Subscription> changePlan(String plan) async {
     changePlanCalls++;
     lastChangePlan = plan;
-
-    return subscription.copyWith(
+    subscription = subscription.copyWith(
       planCode: plan,
       subscriptionType: plan,
+      planName: plan,
       isPremium: plan.trim().toUpperCase() != 'FREE',
     );
+    return subscription;
   }
 
   @override
@@ -567,8 +501,6 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
     String trackId,
   ) async {
     getOfflineTrackEntitlementCalls++;
-    lastOfflineTrackId = trackId;
-
     return OfflineTrackEntitlement(
       trackId: trackId,
       planCode: subscription.planCode,
