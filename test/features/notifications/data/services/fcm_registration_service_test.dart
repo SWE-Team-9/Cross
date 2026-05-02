@@ -1,7 +1,6 @@
 ﻿import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:soundcloud_clone/features/messaging/domain/entities/conversation_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversation_meta_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
 import 'package:soundcloud_clone/features/notifications/data/services/fcm_registration_service.dart';

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soundcloud_clone/features/notifications/data/models/notification_model.dart';
-import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
 
 void main() {
   group('NotificationModel additional cases', () {
