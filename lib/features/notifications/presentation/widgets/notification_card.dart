@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:soundcloud_clone/core/di/injector.dart';
+import 'package:soundcloud_clone/features/notifications/notifications.dart';
 import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 
 import '../../domain/entities/notification_entity.dart';
@@ -61,7 +62,7 @@ class _NotificationCardState extends State<NotificationCard> {
         child: Container(
           color: widget.notification.isRead
               ? Colors.transparent
-              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              : SoundCloudColors.darkGrey.withAlpha(150),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -17,7 +17,7 @@ import '../widgets/notification_preferences_sheet.dart';
 
 class SoundCloudColors {
   static const orange = Color(0xFFFF5500);
-  static const deepBlack = Color(0xFF111111);
+  static const deepBlack = Color.fromARGB(255, 0, 0, 0);
   static const darkGrey = Color(0xFF222222);
   static const lightGrey = Color(0xFF999999);
 }
