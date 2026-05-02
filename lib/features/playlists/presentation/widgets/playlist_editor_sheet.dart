@@ -4,17 +4,31 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/upload/domain/entities/track_genre.dart';
+
+const int _kPlaylistTitleMaxLength = 100;
+const int _kPlaylistDescriptionMaxLength = 500;
+const int _kPlaylistCoverMaxBytes = 5 * 1024 * 1024;
+
+const Set<String> _kAllowedPlaylistCoverExtensions = <String>{
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+};
 
 class PlaylistEditorResult {
   final String title;
   final String description;
   final PlaylistVisibility visibility;
+  final String? genre;
   final String? coverImagePath;
 
   const PlaylistEditorResult({
     required this.title,
     required this.description,
     required this.visibility,
+    this.genre,
     this.coverImagePath,
   });
 }
@@ -25,6 +39,7 @@ class PlaylistEditorSheet extends StatefulWidget {
   final String initialTitle;
   final String initialDescription;
   final PlaylistVisibility initialVisibility;
+  final String? initialGenre;
   final String? initialCoverImageUrl;
 
   const PlaylistEditorSheet({
@@ -34,6 +49,7 @@ class PlaylistEditorSheet extends StatefulWidget {
     this.initialTitle = '',
     this.initialDescription = '',
     this.initialVisibility = PlaylistVisibility.publicPlaylist,
+    this.initialGenre,
     this.initialCoverImageUrl,
   });
 
@@ -44,6 +60,7 @@ class PlaylistEditorSheet extends StatefulWidget {
     String initialTitle = '',
     String initialDescription = '',
     PlaylistVisibility initialVisibility = PlaylistVisibility.publicPlaylist,
+    String? initialGenre,
     String? initialCoverImageUrl,
   }) {
     return showModalBottomSheet<PlaylistEditorResult>(
@@ -60,6 +77,7 @@ class PlaylistEditorSheet extends StatefulWidget {
           initialTitle: initialTitle,
           initialDescription: initialDescription,
           initialVisibility: initialVisibility,
+          initialGenre: initialGenre,
           initialCoverImageUrl: initialCoverImageUrl,
         );
       },
@@ -74,8 +92,9 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late PlaylistVisibility _visibility;
+  late String _genre;
   String? _coverImagePath;
-
+  String? _validationMessage;
   @override
   void initState() {
     super.initState();
@@ -83,6 +102,10 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
     _descriptionController =
         TextEditingController(text: widget.initialDescription);
     _visibility = widget.initialVisibility;
+    final normalizedGenre = normalizeTrackGenreName(widget.initialGenre);
+    _genre = kPlaylistGenreNames.contains(normalizedGenre)
+        ? normalizedGenre!
+        : kTrackGenreNone;
   }
 
   @override
@@ -94,17 +117,49 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
 
   void _submit() {
     final title = _titleController.text.trim();
-    if (title.isEmpty) return;
+    final description = _descriptionController.text.trim();
+
+    final validationMessage = _validatePlaylistFields(
+      title: title,
+      description: description,
+    );
+
+    if (validationMessage != null) {
+      setState(() {
+        _validationMessage = validationMessage;
+      });
+      return;
+    }
 
     Navigator.pop(
       context,
       PlaylistEditorResult(
         title: title,
-        description: _descriptionController.text.trim(),
+        description: description,
         visibility: _visibility,
+        genre: _genre == kTrackGenreNone ? null : _genre,
         coverImagePath: _coverImagePath,
       ),
     );
+  }
+
+  String? _validatePlaylistFields({
+    required String title,
+    required String description,
+  }) {
+    if (title.isEmpty) {
+      return 'Playlist title is required';
+    }
+
+    if (title.length > _kPlaylistTitleMaxLength) {
+      return 'Playlist title must be $_kPlaylistTitleMaxLength characters or less';
+    }
+
+    if (description.length > _kPlaylistDescriptionMaxLength) {
+      return 'Playlist description must be $_kPlaylistDescriptionMaxLength characters or less';
+    }
+
+    return null;
   }
 
   Future<void> _pickCover() async {
@@ -117,14 +172,49 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
     final path = file?.path?.trim();
     if (path == null || path.isEmpty) return;
 
+    final validationMessage = await _validateCoverFile(path);
+    if (!mounted) return;
+
+    if (validationMessage != null) {
+      setState(() {
+        _validationMessage = validationMessage;
+      });
+      return;
+    }
+
     setState(() {
       _coverImagePath = path;
+      _validationMessage = null;
     });
+  }
+
+  Future<String?> _validateCoverFile(String path) async {
+    final normalizedPath = path.trim().toLowerCase();
+    final hasValidExtension = _kAllowedPlaylistCoverExtensions.any(
+      normalizedPath.endsWith,
+    );
+
+    if (!hasValidExtension) {
+      return 'Cover image must be JPG, PNG, or WebP';
+    }
+
+    final file = File(path);
+    final exists = await file.exists();
+    if (!exists) {
+      return 'Selected cover file could not be found';
+    }
+
+    final size = await file.length();
+    if (size > _kPlaylistCoverMaxBytes) {
+      return 'Cover image must be 5 MB or smaller';
+    }
+
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
@@ -170,10 +260,12 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
           const SizedBox(height: 12),
           TextField(
             controller: _titleController,
+            maxLength: _kPlaylistTitleMaxLength,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
               labelText: 'Title',
               labelStyle: TextStyle(color: Colors.white70),
+              counterStyle: TextStyle(color: Colors.white54),
               filled: true,
               fillColor: Colors.white10,
               border: OutlineInputBorder(),
@@ -184,10 +276,12 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
             controller: _descriptionController,
             minLines: 2,
             maxLines: 4,
+            maxLength: _kPlaylistDescriptionMaxLength,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
               labelText: 'Description',
               labelStyle: TextStyle(color: Colors.white70),
+              counterStyle: TextStyle(color: Colors.white54),
               filled: true,
               fillColor: Colors.white10,
               border: OutlineInputBorder(),
@@ -220,6 +314,46 @@ class _PlaylistEditorSheetState extends State<PlaylistEditorSheet> {
                 )
                 .toList(growable: false),
           ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue:
+                kPlaylistGenreNames.contains(_genre) ? _genre : kTrackGenreNone,
+            dropdownColor: const Color(0xFF222222),
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: 'Genre',
+              labelStyle: TextStyle(color: Colors.white70),
+              filled: true,
+              fillColor: Colors.white10,
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() {
+                _genre = value;
+              });
+            },
+            items: kPlaylistGenreNames
+                .map(
+                  (genre) => DropdownMenuItem<String>(
+                    value: genre,
+                    child: Text(
+                      genre == kTrackGenreNone ? 'No genre' : genre,
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          if (_validationMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _validationMessage!,
+              style: const TextStyle(
+                color: Colors.redAccent,
+                fontSize: 13,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,

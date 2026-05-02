@@ -22,12 +22,15 @@ import 'package:soundcloud_clone/features/auth/presentation/pages/verify_email_p
 import 'package:soundcloud_clone/features/auth/presentation/routes/auth_routes.dart';
 import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
 import 'package:soundcloud_clone/features/library/presentation/pages/library_page.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_cubit.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_state.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_count_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
@@ -120,12 +123,19 @@ class FakeOfflineRepository implements OfflineRepository {
   late final DioClient dio;
 
   final Map<String, String> _storage = {};
+  final Map<String, Track> _trackDetails = {};
+  final Map<String, PlaylistEntity> _playlists = {};
 
   @override
   Future<String> downloadTrack(String trackId) async {
     final path = '/fake/$trackId.mp3';
     _storage[trackId] = path;
     return path;
+  }
+
+  @override
+  Future<Track?> fetchTrackDetails(String trackId) async {
+    return _trackDetails[trackId];
   }
 
   @override
@@ -139,9 +149,36 @@ class FakeOfflineRepository implements OfflineRepository {
       ..clear()
       ..addAll(data);
   }
+
+  @override
+  Future<Map<String, Track>> getDownloadedTrackDetails() async {
+    return _trackDetails;
+  }
+
+  @override
+  Future<void> saveDownloadedTrackDetails(Map<String, Track> data) async {
+    _trackDetails
+      ..clear()
+      ..addAll(data);
+  }
+
+  @override
+  Future<Map<String, PlaylistEntity>> getDownloadedPlaylists() async {
+    return _playlists;
+  }
+
+  @override
+  Future<void> saveDownloadedPlaylists(Map<String, PlaylistEntity> data) async {
+    _playlists
+      ..clear()
+      ..addAll(data);
+  }
 }
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
+
+class MockLibraryCubit extends MockCubit<LibraryState>
+    implements LibraryCubit {}
 
 class MockProfileCubit extends MockCubit<ProfileState>
     implements ProfileCubit {}
@@ -161,6 +198,7 @@ class MockConnectMessagingSocketUseCase extends Mock
 
 void main() {
   late MockAuthCubit authCubit;
+  late MockLibraryCubit libraryCubit;
   late MockProfileCubit profileCubit;
   late MockUploadPickerCubit uploadPickerCubit;
   late MockTrackManagementCubit trackManagementCubit;
@@ -183,6 +221,7 @@ void main() {
 
     mockSocialRepo = MockSocialRepo();
     authCubit = MockAuthCubit();
+    libraryCubit = MockLibraryCubit();
     profileCubit = MockProfileCubit();
     uploadPickerCubit = MockUploadPickerCubit();
     trackManagementCubit = MockTrackManagementCubit();
@@ -198,6 +237,14 @@ void main() {
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(
       RecentlyPlayedCubit(),
     );
+    when(() => libraryCubit.state).thenReturn(LibraryState.initial());
+    when(() => libraryCubit.stream).thenAnswer(
+      (_) => const Stream<LibraryState>.empty(),
+    );
+    when(() => libraryCubit.loadLibraryPlaylists()).thenAnswer((_) async {});
+    when(() => libraryCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<LibraryCubit>(() => libraryCubit);
     GetIt.I.registerLazySingleton<SubscriptionRepository>(
       () => MockSubscriptionRepository(),
     );

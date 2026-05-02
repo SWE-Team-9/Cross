@@ -50,6 +50,9 @@ void main() {
           id: 'covered',
           title: 'Covered',
           coverImageUrl: 'https://cdn.example/existing.jpg',
+          genre: 'Electronic',
+          releaseDate: DateTime(2026, 1, 1),
+          tags: const <String>['focus'],
         ),
         _playlistDto(id: 'fallback', title: 'Fallback'),
       ];
@@ -75,7 +78,14 @@ void main() {
       remote.searchResults = <PlaylistDto>[
         _playlistDto(id: 'search', title: 'Search'),
       ];
-      remote.details['details'] = _playlistDto(id: 'details', title: 'Details');
+      remote.details['details'] = _playlistDto(
+        id: 'details',
+        title: 'Details',
+        coverImageUrl: 'https://cdn.example/details.jpg',
+        genre: 'Electronic',
+        releaseDate: DateTime(2026, 1, 1),
+        tags: const <String>['details'],
+      );
       remote.editDetails['edit'] = _playlistDto(id: 'edit', title: 'Edit');
       remote.secretPlaylist =
           _playlistDto(id: 'secret', title: 'Secret playlist');
@@ -109,10 +119,12 @@ void main() {
         title: 'Updated',
         description: 'Updated description',
         visibility: PlaylistVisibility.publicPlaylist,
+        genre: 'electronic',
       );
       await repository.deletePlaylist('created');
       await repository.likePlaylist('created');
       await repository.unlikePlaylist('created');
+      await repository.recordPlaylistPlayback('created');
       await repository.addTrackToPlaylist(
         playlistId: 'created',
         trackId: 'track-2',
@@ -143,9 +155,11 @@ void main() {
       expect(secret.title, 'Secret playlist');
       expect(embedCode, '<iframe></iframe>');
       expect(remote.updatedPlaylistId, 'created');
+      expect(remote.updatedGenre, 'electronic');
       expect(remote.deletedPlaylistId, 'created');
       expect(remote.likedPlaylistId, 'created');
       expect(remote.unlikedPlaylistId, 'created');
+      expect(remote.recordedPlaylistPlaybackId, 'created');
       expect(remote.addedTrack, ('created', 'track-2'));
       expect(remote.removedTrack, ('created', 'track-2'));
       expect(remote.reorderedTrackIds, const <String>['track-2', 'track-1']);
@@ -159,6 +173,9 @@ PlaylistDto _playlistDto({
   String description = 'Description',
   PlaylistVisibility visibility = PlaylistVisibility.publicPlaylist,
   String? coverImageUrl,
+  String? genre,
+  DateTime? releaseDate,
+  List<String> tags = const <String>[],
   bool isLiked = false,
 }) {
   return PlaylistDto(
@@ -166,6 +183,9 @@ PlaylistDto _playlistDto({
     title: title,
     description: description,
     visibility: visibility,
+    genre: genre,
+    releaseDate: releaseDate,
+    tags: tags,
     secretToken: null,
     coverImageUrl: coverImageUrl,
     owner: const PlaylistOwner(id: 'owner-1', displayName: 'Owner One'),
@@ -178,6 +198,7 @@ PlaylistDto _playlistDto({
 class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   List<PlaylistDto> myPlaylists = const <PlaylistDto>[];
   List<PlaylistDto> recentPlaylists = const <PlaylistDto>[];
+  List<PlaylistDto> topPlaylists = const <PlaylistDto>[];
   List<PlaylistDto> likedPlaylists = const <PlaylistDto>[];
   List<PlaylistDto> searchResults = const <PlaylistDto>[];
   final Map<String, PlaylistDto> details = <String, PlaylistDto>{};
@@ -191,6 +212,7 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   int? lastPage;
   int? lastLimit;
   int? recentLimit;
+  int? topLimit;
   int? lastLikedPage;
   int? lastLikedLimit;
   String? lastSearchQuery;
@@ -198,9 +220,11 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   int? lastSearchLimit;
   List<String> createdTrackIds = const <String>[];
   String? updatedPlaylistId;
+  String? updatedGenre;
   String? deletedPlaylistId;
   String? likedPlaylistId;
   String? unlikedPlaylistId;
+  String? recordedPlaylistPlaybackId;
   (String, String)? addedTrack;
   (String, String)? removedTrack;
   List<String> reorderedTrackIds = const <String>[];
@@ -222,11 +246,18 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   }
 
   @override
+  Future<List<PlaylistDto>> getTopPlaylists({int limit = 10}) async {
+    topLimit = limit;
+    return topPlaylists;
+  }
+
+  @override
   Future<PlaylistDto> createPlaylist({
     required String title,
     required String description,
     required PlaylistVisibility visibility,
     List<String> initialTrackIds = const <String>[],
+    String? genre,
   }) async {
     createdTrackIds = initialTrackIds;
     return _playlistDto(
@@ -238,7 +269,11 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   }
 
   @override
-  Future<PlaylistDto> getPlaylistDetails(String playlistId) async {
+  Future<PlaylistDto> getPlaylistDetails(
+    String playlistId, {
+    int? limit,
+    int? offset,
+  }) async {
     return details[playlistId] ??
         _playlistDto(id: playlistId, title: 'Details');
   }
@@ -258,8 +293,13 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
     String? title,
     String? description,
     PlaylistVisibility? visibility,
+    String? genre,
+    String? playlistType,
+    DateTime? releaseDate,
+    List<String>? tags,
   }) async {
     updatedPlaylistId = playlistId;
+    updatedGenre = genre;
   }
 
   @override
@@ -308,6 +348,11 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   }
 
   @override
+  Future<void> recordPlaylistPlayback(String playlistId) async {
+    recordedPlaylistPlaybackId = playlistId;
+  }
+
+  @override
   Future<void> addTrackToPlaylist({
     required String playlistId,
     required String trackId,
@@ -337,7 +382,15 @@ class _FakePlaylistsRemoteDataSource implements PlaylistsRemoteDataSource {
   }
 
   @override
-  Future<String> getPlaylistEmbedCode(String playlistId) async {
+  Future<String> getPlaylistEmbedCode(
+    String playlistId, {
+    String? theme,
+    bool? autoplay,
+    int? start,
+    bool? hideArtwork,
+    int? width,
+    int? height,
+  }) async {
     return embedCode;
   }
 }

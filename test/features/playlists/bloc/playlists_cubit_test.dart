@@ -9,9 +9,12 @@ import 'package:soundcloud_clone/features/playlists/domain/usecases/delete_playl
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_my_playlists_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_details_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/like_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/record_playlist_playback_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
+import 'package:soundcloud_clone/features/playlists/domain/usecases/unlike_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/update_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
@@ -42,11 +45,20 @@ class MockResolveSecretPlaylistUseCase extends Mock
 class MockGetPlaylistEmbedCodeUseCase extends Mock
     implements GetPlaylistEmbedCodeUseCase {}
 
+class MockLikePlaylistUseCase extends Mock implements LikePlaylistUseCase {}
+
+class MockUnlikePlaylistUseCase extends Mock implements UnlikePlaylistUseCase {}
+
+class MockRecordPlaylistPlaybackUseCase extends Mock
+    implements RecordPlaylistPlaybackUseCase {}
+
 PlaylistEntity _playlist({
   String id = 'pl_1',
   String? title,
   List<Track> tracks = const <Track>[],
   int? count,
+  int likesCount = 0,
+  bool isLiked = false,
 }) {
   return PlaylistEntity(
     playlistId: id,
@@ -58,6 +70,8 @@ PlaylistEntity _playlist({
     owner: null,
     tracks: tracks,
     tracksCount: count ?? tracks.length,
+    likesCount: likesCount,
+    isLiked: isLiked,
   );
 }
 
@@ -81,7 +95,9 @@ void main() {
   late MockReorderPlaylistTracksUseCase reorder;
   late MockResolveSecretPlaylistUseCase resolveSecret;
   late MockGetPlaylistEmbedCodeUseCase embed;
-
+  late MockLikePlaylistUseCase like;
+  late MockUnlikePlaylistUseCase unlike;
+  late MockRecordPlaylistPlaybackUseCase recordPlayback;
   setUp(() {
     getMy = MockGetMyPlaylistsUseCase();
     create = MockCreatePlaylistUseCase();
@@ -93,6 +109,9 @@ void main() {
     reorder = MockReorderPlaylistTracksUseCase();
     resolveSecret = MockResolveSecretPlaylistUseCase();
     embed = MockGetPlaylistEmbedCodeUseCase();
+    like = MockLikePlaylistUseCase();
+    unlike = MockUnlikePlaylistUseCase();
+    recordPlayback = MockRecordPlaylistPlaybackUseCase();
   });
 
   PlaylistsCubit buildCubit() => PlaylistsCubit(
@@ -106,8 +125,10 @@ void main() {
         reorderPlaylistTracksUseCase: reorder,
         resolveSecretPlaylistUseCase: resolveSecret,
         getPlaylistEmbedCodeUseCase: embed,
+        likePlaylistUseCase: like,
+        unlikePlaylistUseCase: unlike,
+        recordPlaylistPlaybackUseCase: recordPlayback,
       );
-
   group('PlaylistsCubit', () {
     test('initial state is defaults', () {
       final cubit = buildCubit();
@@ -118,9 +139,34 @@ void main() {
     });
 
     blocTest<PlaylistsCubit, PlaylistsState>(
-      'loadMyPlaylists emits loaded list',
+      'loadMyPlaylists emits first paginated list',
       build: () {
-        when(() => getMy()).thenAnswer((_) async => [_playlist()]);
+        when(
+          () => getMy(page: 1, limit: 20),
+        ).thenAnswer((_) async => [_playlist()]);
+        return buildCubit();
+      },
+      act: (cubit) => cubit.loadMyPlaylists(),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMyPlaylists, 'loading', isTrue)
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isFalse),
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMyPlaylists, 'loading', isFalse)
+            .having((s) => s.playlists.length, 'length', 1)
+            .having((s) => s.myPlaylistsPage, 'page', 1)
+            .having((s) => s.hasMoreMyPlaylists, 'has more', isFalse),
+      ],
+      verify: (_) {
+        verify(() => getMy(page: 1, limit: 20)).called(1);
+      },
+    );
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMyPlaylists emits login message on unauthorized failure',
+      build: () {
+        when(
+          () => getMy(page: 1, limit: 20),
+        ).thenThrow(Exception('401 unauthorized'));
         return buildCubit();
       },
       act: (cubit) => cubit.loadMyPlaylists(),
@@ -129,23 +175,116 @@ void main() {
             .having((s) => s.isLoadingMyPlaylists, 'loading', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isLoadingMyPlaylists, 'loading', isFalse)
-            .having((s) => s.playlists.length, 'length', 1),
+            .having((s) => s.errorMessage, 'error', 'Please log in again'),
       ],
     );
 
     blocTest<PlaylistsCubit, PlaylistsState>(
-      'loadMyPlaylists emits error on failure',
+      'loadMoreMyPlaylists appends next unique page',
       build: () {
-        when(() => getMy()).thenThrow(Exception('load failed'));
+        when(
+          () => getMy(page: 2, limit: 20),
+        ).thenAnswer(
+          (_) async => [
+            _playlist(id: 'pl_2'),
+            _playlist(id: 'pl_3'),
+          ],
+        );
         return buildCubit();
       },
-      act: (cubit) => cubit.loadMyPlaylists(),
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1')],
+        myPlaylistsPage: 1,
+        hasMoreMyPlaylists: true,
+      ),
+      act: (cubit) => cubit.loadMoreMyPlaylists(),
       expect: () => [
         isA<PlaylistsState>()
-            .having((s) => s.isLoadingMyPlaylists, 'loading', isTrue),
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isTrue),
         isA<PlaylistsState>()
-            .having((s) => s.isLoadingMyPlaylists, 'loading', isFalse)
-            .having((s) => s.errorMessage, 'error', contains('load failed')),
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isFalse)
+            .having((s) => s.playlists.length, 'length', 3)
+            .having((s) => s.playlists.last.playlistId, 'last id', 'pl_3')
+            .having((s) => s.myPlaylistsPage, 'page', 2)
+            .having((s) => s.hasMoreMyPlaylists, 'has more', isFalse),
+      ],
+      verify: (_) {
+        verify(() => getMy(page: 2, limit: 20)).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMoreMyPlaylists skips duplicate playlist ids',
+      build: () {
+        when(
+          () => getMy(page: 2, limit: 20),
+        ).thenAnswer(
+          (_) async => [
+            _playlist(id: 'pl_1'),
+            _playlist(id: 'pl_2'),
+          ],
+        );
+        return buildCubit();
+      },
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1')],
+        myPlaylistsPage: 1,
+        hasMoreMyPlaylists: true,
+      ),
+      act: (cubit) => cubit.loadMoreMyPlaylists(),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isFalse)
+            .having((s) => s.playlists.length, 'length', 2)
+            .having((s) => s.playlists.first.playlistId, 'first id', 'pl_1')
+            .having((s) => s.playlists.last.playlistId, 'last id', 'pl_2'),
+      ],
+      verify: (_) {
+        verify(() => getMy(page: 2, limit: 20)).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMoreMyPlaylists does nothing when no more pages exist',
+      build: buildCubit,
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1')],
+        myPlaylistsPage: 1,
+        hasMoreMyPlaylists: false,
+      ),
+      act: (cubit) => cubit.loadMoreMyPlaylists(),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verifyZeroInteractions(getMy);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMoreMyPlaylists emits friendly error on failure',
+      build: () {
+        when(
+          () => getMy(page: 2, limit: 20),
+        ).thenThrow(Exception('network timeout'));
+        return buildCubit();
+      },
+      seed: () => PlaylistsState.initial().copyWith(
+        playlists: [_playlist(id: 'pl_1')],
+        myPlaylistsPage: 1,
+        hasMoreMyPlaylists: true,
+      ),
+      act: (cubit) => cubit.loadMoreMyPlaylists(),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isTrue),
+        isA<PlaylistsState>()
+            .having((s) => s.isLoadingMoreMyPlaylists, 'loading more', isFalse)
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Network error. Please check your connection',
+            ),
       ],
     );
 
@@ -200,7 +339,10 @@ void main() {
       );
 
       expect(created, isNull);
-      expect(cubit.state.errorMessage, contains('create failed'));
+      expect(
+        cubit.state.errorMessage,
+        'Something went wrong. Please try again',
+      );
     });
 
     blocTest<PlaylistsCubit, PlaylistsState>(
@@ -222,6 +364,86 @@ void main() {
         verifyZeroInteractions(create);
       },
     );
+
+    test('createPlaylist rejects empty title before usecase call', () async {
+      final cubit = buildCubit();
+
+      final created = await cubit.createPlaylist(
+        title: '   ',
+        description: 'Coding',
+        visibility: PlaylistVisibility.publicPlaylist,
+      );
+
+      expect(created, isNull);
+      expect(cubit.state.errorMessage, 'Playlist title is required');
+      verifyZeroInteractions(create);
+    });
+
+    test('createPlaylist rejects too long title before usecase call', () async {
+      final cubit = buildCubit();
+
+      final created = await cubit.createPlaylist(
+        title: 'a' * 101,
+        description: 'Coding',
+        visibility: PlaylistVisibility.publicPlaylist,
+      );
+
+      expect(created, isNull);
+      expect(
+        cubit.state.errorMessage,
+        'Playlist title must be 100 characters or less',
+      );
+      verifyZeroInteractions(create);
+    });
+
+    test('createPlaylist rejects duplicate initial track ids', () async {
+      final cubit = buildCubit();
+
+      final created = await cubit.createPlaylist(
+        title: 'Focus',
+        description: 'Coding',
+        visibility: PlaylistVisibility.publicPlaylist,
+        initialTrackIds: const <String>['trk_1', 'trk_1'],
+      );
+
+      expect(created, isNull);
+      expect(
+        cubit.state.errorMessage,
+        'Playlist tracks contain invalid or duplicate IDs',
+      );
+      verifyZeroInteractions(create);
+    });
+
+    test('createPlaylist trims title and description before usecase call',
+        () async {
+      when(
+        () => create(
+          title: 'Focus',
+          description: 'Coding',
+          visibility: PlaylistVisibility.publicPlaylist,
+          initialTrackIds: const <String>['trk_1'],
+        ),
+      ).thenAnswer((_) async => _playlist(id: 'pl_new'));
+
+      final cubit = buildCubit();
+
+      final created = await cubit.createPlaylist(
+        title: '  Focus  ',
+        description: '  Coding  ',
+        visibility: PlaylistVisibility.publicPlaylist,
+        initialTrackIds: const <String>[' trk_1 '],
+      );
+
+      expect(created, isNotNull);
+      verify(
+        () => create(
+          title: 'Focus',
+          description: 'Coding',
+          visibility: PlaylistVisibility.publicPlaylist,
+          initialTrackIds: const <String>['trk_1'],
+        ),
+      ).called(1);
+    });
 
     blocTest<PlaylistsCubit, PlaylistsState>(
       'addTrackToPlaylist updates list count and tracks',
@@ -259,7 +481,7 @@ void main() {
             trackId: 'trk_99',
           ),
         ).thenAnswer((_) async {});
-        when(() => details('pl_1'))
+        when(() => details('pl_1', limit: 50, offset: 0))
             .thenAnswer((_) async => _playlist(id: 'pl_1', count: 4));
         return buildCubit();
       },
@@ -292,7 +514,7 @@ void main() {
           playlistId: 'pl_1',
           trackId: 'trk_fail',
         ),
-      ).thenThrow(Exception('add failed'));
+      ).thenThrow(Exception('403 forbidden'));
 
       final cubit = buildCubit();
       final added = await cubit.addTrackToPlaylist(
@@ -301,14 +523,61 @@ void main() {
       );
 
       expect(added, isFalse);
-      expect(cubit.state.errorMessage, contains('add failed'));
+      expect(
+        cubit.state.errorMessage,
+        'You do not have permission to do this',
+      );
     });
 
+    test('addTrackToPlaylist rejects empty track id before usecase call',
+        () async {
+      final cubit = buildCubit();
+
+      final added = await cubit.addTrackToPlaylist(
+        playlistId: 'pl_1',
+        track: _track(id: '   '),
+      );
+
+      expect(added, isFalse);
+      expect(cubit.state.errorMessage, 'Track ID is required');
+      verifyZeroInteractions(addTrack);
+    });
+
+    test(
+        'addTrackToPlaylist ignores duplicate selected track before usecase call',
+        () async {
+      final existingTrack = _track(id: 'trk_1');
+      final cubit = buildCubit();
+
+      cubit.emit(
+        PlaylistsState.initial().copyWith(
+          selectedPlaylist: _playlist(
+            id: 'pl_1',
+            tracks: [existingTrack],
+            count: 1,
+          ),
+        ),
+      );
+
+      final added = await cubit.addTrackToPlaylist(
+        playlistId: 'pl_1',
+        track: _track(id: ' trk_1 '),
+      );
+
+      expect(added, isFalse);
+      expect(cubit.state.infoMessage, 'Track is already in this playlist');
+      verifyZeroInteractions(addTrack);
+    });
     blocTest<PlaylistsCubit, PlaylistsState>(
-      'loadPlaylistDetails upserts selected playlist',
+      'loadPlaylistDetails loads first track page and stores pagination metadata',
       build: () {
-        when(() => details('pl_1'))
-            .thenAnswer((_) async => _playlist(id: 'pl_1', count: 3));
+        when(() => details('pl_1', limit: 50, offset: 0)).thenAnswer(
+          (_) async => _playlist(
+            id: 'pl_1',
+            tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+            count: 5,
+          ),
+        );
         return buildCubit();
       },
       seed: () => PlaylistsState.initial().copyWith(
@@ -317,15 +586,190 @@ void main() {
       act: (cubit) => cubit.loadPlaylistDetails('pl_1'),
       expect: () => [
         isA<PlaylistsState>()
-            .having((s) => s.isLoadingDetails, 'loading details', isTrue),
+            .having((s) => s.isLoadingDetails, 'loading details', isTrue)
+            .having((s) => s.playlistTracksOffset, 'offset', 0)
+            .having((s) => s.hasMorePlaylistTracks, 'has more', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isLoadingDetails, 'loading details', isFalse)
             .having((s) => s.selectedPlaylist?.playlistId, 'selected', 'pl_1')
+            .having((s) => s.selectedPlaylist?.tracks.length, 'tracks', 2)
+            .having((s) => s.playlistTracksOffset, 'offset', 2)
+            .having((s) => s.hasMorePlaylistTracks, 'has more', isTrue)
             .having(
-                (s) => s.playlists.first.playlistId, 'first list id', 'pl_1'),
+              (s) => s.playlists.first.playlistId,
+              'first list id',
+              'pl_1',
+            ),
+      ],
+      verify: (_) {
+        verify(() => details('pl_1', limit: 50, offset: 0)).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMorePlaylistTracks appends next track page',
+      build: () {
+        when(() => details('pl_1', limit: 50, offset: 2)).thenAnswer(
+          (_) async => _playlist(
+            id: 'pl_1',
+            tracks: [_track(id: 'trk_3'), _track(id: 'trk_4')],
+            count: 4,
+            likesCount: 7,
+            isLiked: true,
+          ),
+        );
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+          count: 4,
+          likesCount: 6,
+          isLiked: false,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+          playlistTracksOffset: 2,
+          hasMorePlaylistTracks: true,
+        );
+      },
+      act: (cubit) => cubit.loadMorePlaylistTracks(),
+      expect: () => [
+        isA<PlaylistsState>().having(
+          (s) => s.isLoadingMorePlaylistTracks,
+          'loading more tracks',
+          isTrue,
+        ),
+        isA<PlaylistsState>()
+            .having(
+              (s) => s.isLoadingMorePlaylistTracks,
+              'loading more tracks',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.tracks.length, 'tracks', 4)
+            .having(
+              (s) => s.selectedPlaylist?.tracks.last.id,
+              'last track',
+              'trk_4',
+            )
+            .having((s) => s.selectedPlaylist?.tracksCount, 'count', 4)
+            .having((s) => s.selectedPlaylist?.likesCount, 'likes', 7)
+            .having((s) => s.selectedPlaylist?.isLiked, 'liked', isTrue)
+            .having((s) => s.playlistTracksOffset, 'offset', 4)
+            .having((s) => s.hasMorePlaylistTracks, 'has more', isFalse),
+      ],
+      verify: (_) {
+        verify(() => details('pl_1', limit: 50, offset: 2)).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMorePlaylistTracks skips duplicate track ids',
+      build: () {
+        when(() => details('pl_1', limit: 50, offset: 2)).thenAnswer(
+          (_) async => _playlist(
+            id: 'pl_1',
+            tracks: [_track(id: 'trk_2'), _track(id: 'trk_3')],
+            count: 3,
+          ),
+        );
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+          count: 3,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+          playlistTracksOffset: 2,
+          hasMorePlaylistTracks: true,
+        );
+      },
+      act: (cubit) => cubit.loadMorePlaylistTracks(),
+      expect: () => [
+        isA<PlaylistsState>().having(
+          (s) => s.isLoadingMorePlaylistTracks,
+          'loading more tracks',
+          isTrue,
+        ),
+        isA<PlaylistsState>()
+            .having(
+              (s) => s.isLoadingMorePlaylistTracks,
+              'loading more tracks',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.tracks.length, 'tracks', 3)
+            .having(
+          (s) => s.selectedPlaylist?.tracks.map((track) => track.id),
+          'track ids',
+          ['trk_1', 'trk_2', 'trk_3'],
+        ).having((s) => s.hasMorePlaylistTracks, 'has more', isFalse),
       ],
     );
 
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMorePlaylistTracks does nothing when all tracks are loaded',
+      build: buildCubit,
+      seed: () => PlaylistsState.initial().copyWith(
+        selectedPlaylist: _playlist(
+          id: 'pl_1',
+          tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+          count: 2,
+        ),
+        playlistTracksOffset: 2,
+        hasMorePlaylistTracks: false,
+      ),
+      act: (cubit) => cubit.loadMorePlaylistTracks(),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verifyZeroInteractions(details);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'loadMorePlaylistTracks emits friendly error on failure',
+      build: () {
+        when(() => details('pl_1', limit: 50, offset: 2))
+            .thenThrow(Exception('network timeout'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+          count: 4,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlistTracksOffset: 2,
+          hasMorePlaylistTracks: true,
+        );
+      },
+      act: (cubit) => cubit.loadMorePlaylistTracks(),
+      expect: () => [
+        isA<PlaylistsState>().having(
+          (s) => s.isLoadingMorePlaylistTracks,
+          'loading more tracks',
+          isTrue,
+        ),
+        isA<PlaylistsState>()
+            .having(
+              (s) => s.isLoadingMorePlaylistTracks,
+              'loading more tracks',
+              isFalse,
+            )
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Network error. Please check your connection',
+            ),
+      ],
+    );
     blocTest<PlaylistsCubit, PlaylistsState>(
       'updatePlaylist refreshes selected playlist details',
       build: () {
@@ -335,9 +779,10 @@ void main() {
             title: 'Renamed',
             description: null,
             visibility: null,
+            genre: null,
           ),
         ).thenAnswer((_) async {});
-        when(() => details('pl_1'))
+        when(() => details('pl_1', limit: 50, offset: 0))
             .thenAnswer((_) async => _playlist(id: 'pl_1', count: 5));
         return buildCubit();
       },
@@ -371,13 +816,13 @@ void main() {
           title: 'New',
           description: null,
           visibility: null,
+          genre: null,
         ),
-      ).thenThrow(Exception('update failed'));
-
+      ).thenThrow(Exception('400 validation failed'));
       final cubit = buildCubit();
       await cubit.updatePlaylist(playlistId: 'pl_1', title: 'New');
 
-      expect(cubit.state.errorMessage, contains('update failed'));
+      expect(cubit.state.errorMessage, 'Invalid playlist data');
       expect(cubit.state.isSubmitting, isFalse);
     });
 
@@ -403,6 +848,74 @@ void main() {
       },
     );
 
+    test('updatePlaylist rejects empty title before usecase call', () async {
+      final cubit = buildCubit();
+
+      await cubit.updatePlaylist(
+        playlistId: 'pl_1',
+        title: '   ',
+      );
+
+      expect(cubit.state.errorMessage, 'Playlist title is required');
+      verifyZeroInteractions(update);
+    });
+
+    test('updatePlaylist rejects too long description before usecase call',
+        () async {
+      final cubit = buildCubit();
+
+      await cubit.updatePlaylist(
+        playlistId: 'pl_1',
+        description: 'a' * 501,
+      );
+
+      expect(
+        cubit.state.errorMessage,
+        'Playlist description must be 500 characters or less',
+      );
+      verifyZeroInteractions(update);
+    });
+
+    test('updatePlaylist trims title and description before usecase call',
+        () async {
+      when(
+        () => update(
+          playlistId: 'pl_1',
+          title: 'Renamed',
+          description: 'Updated description',
+          visibility: null,
+          genre: 'electronic',
+          playlistType: null,
+          releaseDate: null,
+          tags: null,
+        ),
+      ).thenAnswer((_) async {});
+      when(() => details('pl_1', limit: 50, offset: 0)).thenAnswer(
+        (_) async => _playlist(id: 'pl_1', title: 'Renamed'),
+      );
+
+      final cubit = buildCubit();
+      await cubit.updatePlaylist(
+        playlistId: 'pl_1',
+        title: '  Renamed  ',
+        description: '  Updated description  ',
+        genre: ' electronic ',
+      );
+
+      verify(
+        () => update(
+          playlistId: 'pl_1',
+          title: 'Renamed',
+          description: 'Updated description',
+          visibility: null,
+          genre: 'electronic',
+          playlistType: null,
+          releaseDate: null,
+          tags: null,
+        ),
+      ).called(1);
+    });
+
     blocTest<PlaylistsCubit, PlaylistsState>(
       'deletePlaylist removes entry and clears selected playlist',
       build: () {
@@ -426,15 +939,288 @@ void main() {
     );
 
     test('deletePlaylist emits error on failure', () async {
-      when(() => del('pl_1')).thenThrow(Exception('delete failed'));
-
+      when(() => del('pl_1')).thenThrow(Exception('404 not found'));
       final cubit = buildCubit();
       await cubit.deletePlaylist('pl_1');
 
-      expect(cubit.state.errorMessage, contains('delete failed'));
+      expect(cubit.state.errorMessage, 'Playlist not found');
       expect(cubit.state.isSubmitting, isFalse);
     });
 
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'likePlaylist optimistically likes selected playlist and list item',
+      build: () {
+        when(() => like('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(id: 'pl_1', likesCount: 3);
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.likePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isTrue)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 4),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having((s) => s.infoMessage, 'info', 'Playlist liked')
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4),
+      ],
+      verify: (_) {
+        verify(() => like('pl_1')).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'likePlaylist rolls back selected playlist and list item on failure',
+      build: () {
+        when(() => like('pl_1')).thenThrow(Exception('network failed'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(id: 'pl_1', likesCount: 3);
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.likePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isFalse)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 3)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isFalse)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 3)
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Network error. Please check your connection',
+            ),
+      ],
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'likePlaylist keeps liked state when backend says already liked',
+      build: () {
+        when(() => like('pl_1')).thenThrow(Exception('409 already liked'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(id: 'pl_1', likesCount: 3);
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.likePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 4)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isTrue)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 4)
+            .having((s) => s.infoMessage, 'info', 'Playlist liked'),
+      ],
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'unlikePlaylist optimistically unlikes selected playlist and list item',
+      build: () {
+        when(() => unlike('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          likesCount: 3,
+          isLiked: true,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.unlikePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isFalse)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 2),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having((s) => s.infoMessage, 'info', 'Playlist unliked')
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2),
+      ],
+      verify: (_) {
+        verify(() => unlike('pl_1')).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'unlikePlaylist rolls back selected playlist and list item on failure',
+      build: () {
+        when(() => unlike('pl_1')).thenThrow(Exception('network failed'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          likesCount: 3,
+          isLiked: true,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.unlikePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having(
+                (s) => s.selectedPlaylist?.isLiked, 'selected liked', isTrue)
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 3)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isTrue)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 3)
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Network error. Please check your connection',
+            ),
+      ],
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'unlikePlaylist keeps unliked state when backend says not liked',
+      build: () {
+        when(() => unlike('pl_1')).thenThrow(Exception('409 not liked'));
+        return buildCubit();
+      },
+      seed: () {
+        final playlist = _playlist(
+          id: 'pl_1',
+          likesCount: 3,
+          isLiked: true,
+        );
+        return PlaylistsState.initial().copyWith(
+          selectedPlaylist: playlist,
+          playlists: [playlist],
+        );
+      },
+      act: (cubit) => cubit.unlikePlaylist('pl_1'),
+      expect: () => [
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isTrue)
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2),
+        isA<PlaylistsState>()
+            .having((s) => s.isSubmitting, 'submitting', isFalse)
+            .having(
+              (s) => s.selectedPlaylist?.isLiked,
+              'selected liked',
+              isFalse,
+            )
+            .having((s) => s.selectedPlaylist?.likesCount, 'selected likes', 2)
+            .having((s) => s.playlists.single.isLiked, 'list liked', isFalse)
+            .having((s) => s.playlists.single.likesCount, 'list likes', 2)
+            .having((s) => s.infoMessage, 'info', 'Playlist unliked'),
+      ],
+    );
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'recordPlaylistPlayback calls usecase without emitting state',
+      build: () {
+        when(() => recordPlayback('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      act: (cubit) => cubit.recordPlaylistPlayback('pl_1'),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verify(() => recordPlayback('pl_1')).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'recordPlaylistPlayback trims playlist id before usecase call',
+      build: () {
+        when(() => recordPlayback('pl_1')).thenAnswer((_) async {});
+        return buildCubit();
+      },
+      act: (cubit) => cubit.recordPlaylistPlayback('  pl_1  '),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verify(() => recordPlayback('pl_1')).called(1);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'recordPlaylistPlayback ignores empty playlist id',
+      build: buildCubit,
+      act: (cubit) => cubit.recordPlaylistPlayback('   '),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verifyZeroInteractions(recordPlayback);
+      },
+    );
+
+    blocTest<PlaylistsCubit, PlaylistsState>(
+      'recordPlaylistPlayback swallows usecase failure',
+      build: () {
+        when(() => recordPlayback('pl_1')).thenThrow(Exception('network'));
+        return buildCubit();
+      },
+      act: (cubit) => cubit.recordPlaylistPlayback('pl_1'),
+      expect: () => const <PlaylistsState>[],
+      verify: (_) {
+        verify(() => recordPlayback('pl_1')).called(1);
+      },
+    );
     blocTest<PlaylistsCubit, PlaylistsState>(
       'removeTrackFromPlaylist applies optimistic update then confirms',
       build: () {
@@ -505,7 +1291,11 @@ void main() {
             .having((s) => s.isSubmitting, 'submitting', isFalse)
             .having(
                 (s) => s.selectedPlaylist?.tracks.length, 'rolled back len', 2)
-            .having((s) => s.errorMessage, 'error', contains('remove failed')),
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'Something went wrong. Please try again',
+            ),
       ],
     );
 
@@ -585,7 +1375,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'error',
-              contains('reorder failed'),
+              'Something went wrong. Please try again',
             ),
       ],
     );
@@ -652,7 +1442,10 @@ void main() {
       final cubit = buildCubit();
       await cubit.resolveSecretPlaylist('bad_token');
 
-      expect(cubit.state.errorMessage, contains('secret failed'));
+      expect(
+        cubit.state.errorMessage,
+        'Something went wrong. Please try again',
+      );
       expect(cubit.state.isLoadingDetails, isFalse);
     });
 
@@ -674,9 +1467,9 @@ void main() {
     );
 
     blocTest<PlaylistsCubit, PlaylistsState>(
-      'loadEmbedCode emits error on failure',
+      'loadEmbedCode emits permission message on forbidden failure',
       build: () {
-        when(() => embed('pl_1')).thenThrow(Exception('embed failed'));
+        when(() => embed('pl_1')).thenThrow(Exception('403 permission denied'));
         return buildCubit();
       },
       act: (cubit) => cubit.loadEmbedCode('pl_1'),
@@ -685,7 +1478,11 @@ void main() {
             .having((s) => s.isSubmitting, 'submitting', isTrue),
         isA<PlaylistsState>()
             .having((s) => s.isSubmitting, 'submitting', isFalse)
-            .having((s) => s.errorMessage, 'error', contains('embed failed')),
+            .having(
+              (s) => s.errorMessage,
+              'error',
+              'You do not have permission to do this',
+            ),
       ],
     );
 
