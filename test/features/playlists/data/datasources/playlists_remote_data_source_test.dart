@@ -521,18 +521,42 @@ void main() {
   });
 
   group('resolveSecretPlaylist', () {
-    test('parses playlist from secret endpoint', () async {
+    test('parses full documented secret playlist payload', () async {
       when(() => dioClient.get('/api/v1/playlists/secret/token_99')).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions:
               RequestOptions(path: '/api/v1/playlists/secret/token_99'),
-          data: {
-            'data': {
-              'playlistId': 'pl_secret',
-              'title': 'Private Set',
-              'visibility': 'PRIVATE',
-              'secretToken': 'token_99',
+          data: <String, dynamic>{
+            'playlistId': 'pl_secret',
+            'title': 'Private Set',
+            'description': 'Shared privately',
+            'visibility': 'SECRET',
+            'secretToken': 'token_99',
+            'coverImageUrl': 'https://cdn.example/secret.jpg',
+            'likesCount': 48,
+            'isLiked': false,
+            'genre': 'electronic',
+            'releaseDate': '2026-03-01T00:00:00.000Z',
+            'tracksCount': 12,
+            'owner': <String, dynamic>{
+              'id': 'usr_1',
+              'displayName': 'Ahmed Hassan',
             },
+            'tracks': <dynamic>[
+              <String, dynamic>{
+                'trackId': 'trk_123',
+                'title': 'Layali',
+                'coverArtUrl': 'https://cdn.example/tracks/trk_123.jpg',
+                'durationMs': 240000,
+                'likesCount': 156,
+                'repostsCount': 42,
+                'artist': <String, dynamic>{
+                  'id': 'usr_456',
+                  'name': 'DJ Ahmed',
+                  'handle': 'dj_ahmed',
+                },
+              },
+            ],
           },
         ),
       );
@@ -540,10 +564,30 @@ void main() {
       final result = await dataSource.resolveSecretPlaylist('token_99');
 
       expect(result.playlistId, 'pl_secret');
+      expect(result.title, 'Private Set');
+      expect(result.description, 'Shared privately');
       expect(result.visibility, PlaylistVisibility.privatePlaylist);
       expect(result.secretToken, 'token_99');
+      expect(result.coverImageUrl, 'https://cdn.example/secret.jpg');
+      expect(result.likesCount, 48);
+      expect(result.isLiked, isFalse);
+      expect(result.genre, 'electronic');
+      expect(result.releaseDate, DateTime.parse('2026-03-01T00:00:00.000Z'));
+      expect(result.tracksCount, 12);
+      expect(result.owner?.id, 'usr_1');
+      expect(result.owner?.displayName, 'Ahmed Hassan');
+      expect(result.tracks, hasLength(1));
+      expect(result.tracks.single.id, 'trk_123');
+      expect(result.tracks.single.title, 'Layali');
+      expect(result.tracks.single.artworkUrl,
+          'https://cdn.example/tracks/trk_123.jpg');
+      expect(result.tracks.single.durationMs, 240000);
+      expect(result.tracks.single.likesCount, 156);
+      expect(result.tracks.single.repostsCount, 42);
+      expect(result.tracks.single.artist, 'DJ Ahmed');
+      expect(result.tracks.single.artistId, 'usr_456');
+      expect(result.tracks.single.handle, 'dj_ahmed');
     });
-
     test('parses full playlist details from secret endpoint', () async {
       when(() => dioClient.get('/api/v1/playlists/secret/full_token'))
           .thenAnswer(
