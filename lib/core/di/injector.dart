@@ -601,6 +601,7 @@ Future<void> setupDependencies() async {
     getIt.registerLazySingleton<MessagingSocketDataSource>(
       () => MessagingSocketDataSourceImpl(
         cookieJar: getIt<PersistCookieJar>(),
+        secureStorage: getIt<SecureStorage>(),
       ),
     );
   }
