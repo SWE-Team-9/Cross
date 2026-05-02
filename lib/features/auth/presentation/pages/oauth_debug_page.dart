@@ -31,12 +31,7 @@ class _OAuthDebugPageState extends State<OAuthDebugPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      print('🟢 OAuthDebugPage mounted');
-      print('🟢 destination.code = ${widget.destination.code}');
-      print('🟢 destination.state = ${widget.destination.state}');
-      print('🟢 calling AuthCubit.handleOAuthCallbackDeepLink...');
       context.read<AuthCubit>().handleOAuthCallbackDeepLink(widget.destination);
-      print('🟢 handleOAuthCallbackDeepLink invoked');
     });
   }
 

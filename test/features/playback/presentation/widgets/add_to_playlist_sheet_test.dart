@@ -1,11 +1,46 @@
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/playback/presentation/widgets/add_to_playlist_sheet.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
+import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
+
+class MockPlaylistsCubit extends MockCubit<PlaylistsState>
+    implements PlaylistsCubit {}
+
+PlaylistEntity _playlist({
+  required String id,
+  required String title,
+  List<Track> tracks = const <Track>[],
+}) {
+  return PlaylistEntity(
+    playlistId: id,
+    title: title,
+    description: 'desc',
+    visibility: PlaylistVisibility.publicPlaylist,
+    secretToken: null,
+    coverImageUrl: null,
+    owner: null,
+    tracks: tracks,
+    tracksCount: tracks.length,
+  );
+}
 
 void main() {
+  late MockPlaylistsCubit playlistsCubit;
+
+  const track = Track(
+    id: 'coverage-track-1',
+    title: 'Song 1',
+    artist: 'Ali',
+    audioUrl: 'https://example.com/audio.mp3',
+  );
+
   Widget buildHost({
-    required Track track,
     required String buttonLabel,
   }) {
     return MaterialApp(
@@ -24,17 +59,70 @@ void main() {
     );
   }
 
+  setUpAll(() {
+    registerFallbackValue(track);
+    registerFallbackValue(PlaylistVisibility.publicPlaylist);
+  });
+
+  setUp(() async {
+    await getIt.reset();
+
+    playlistsCubit = MockPlaylistsCubit();
+
+    final seeded = PlaylistsState.initial().copyWith(
+      playlists: [
+        _playlist(
+          id: 'pl_1',
+          title: 'My Favourites',
+          tracks: const <Track>[],
+        ),
+        _playlist(
+          id: 'pl_2',
+          title: 'Chill Vibes',
+          tracks: const <Track>[
+            track,
+          ],
+        ),
+      ],
+    );
+
+    when(() => playlistsCubit.state).thenReturn(seeded);
+    when(() => playlistsCubit.stream)
+        .thenAnswer((_) => const Stream<PlaylistsState>.empty());
+    when(() => playlistsCubit.loadMyPlaylists()).thenAnswer((_) async {});
+    when(() => playlistsCubit.clearFeedback()).thenReturn(null);
+    when(
+      () => playlistsCubit.addTrackToPlaylist(
+        playlistId: any(named: 'playlistId'),
+        track: any(named: 'track'),
+      ),
+    ).thenAnswer((_) async => true);
+    when(
+      () => playlistsCubit.createPlaylist(
+        title: 'Coverage Playlist',
+        description: '',
+        visibility: PlaylistVisibility.publicPlaylist,
+        initialTrackIds: const <String>['coverage-track-1'],
+      ),
+    ).thenAnswer(
+      (_) async => _playlist(
+        id: 'pl_new',
+        title: 'Coverage Playlist',
+        tracks: const <Track>[track],
+      ),
+    );
+
+    getIt.registerFactory<PlaylistsCubit>(() => playlistsCubit);
+  });
+
+  tearDown(() async {
+    await getIt.reset();
+  });
+
   group('AddToPlaylistSheet', () {
     testWidgets('renders default playlists', (tester) async {
-      const track = Track(
-        id: 'coverage-track-1',
-        title: 'Song 1',
-        artist: 'Ali',
-        audioUrl: 'https://example.com/audio.mp3',
-      );
-
       await tester.pumpWidget(
-        buildHost(track: track, buttonLabel: 'open sheet'),
+        buildHost(buttonLabel: 'open sheet'),
       );
 
       await tester.tap(find.text('open sheet'));
@@ -43,20 +131,14 @@ void main() {
       expect(find.text('Add to playlist'), findsOneWidget);
       expect(find.text('My Favourites'), findsOneWidget);
       expect(find.text('Chill Vibes'), findsOneWidget);
-      expect(find.text('Workout Mix'), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsOneWidget);
+      verify(() => playlistsCubit.loadMyPlaylists()).called(1);
     });
 
     testWidgets('adds track to existing playlist and shows snackbar',
         (tester) async {
-      const track = Track(
-        id: 'coverage-track-2',
-        title: 'Song 2',
-        artist: 'Ali',
-        audioUrl: 'https://example.com/audio.mp3',
-      );
-
       await tester.pumpWidget(
-        buildHost(track: track, buttonLabel: 'open existing'),
+        buildHost(buttonLabel: 'open existing'),
       );
 
       await tester.tap(find.text('open existing'));
@@ -65,22 +147,22 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Added to My Favourites'), findsOneWidget);
+      verify(
+        () => playlistsCubit.addTrackToPlaylist(
+          playlistId: 'pl_1',
+          track: track,
+        ),
+      ).called(1);
 
       await tester.tap(find.text('open existing'));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.check), findsWidgets);
+      expect(find.byIcon(Icons.check), findsOneWidget);
     });
 
-    testWidgets('creates a new playlist and adds the track', (tester) async {
-      const track = Track(
-        id: 'coverage-track-3',
-        title: 'Song 3',
-        artist: 'Ali',
-        audioUrl: 'https://example.com/audio.mp3',
-      );
-
+    testWidgets('creates a new playlist with the selected track',
+        (tester) async {
       await tester.pumpWidget(
-        buildHost(track: track, buttonLabel: 'open create'),
+        buildHost(buttonLabel: 'open create'),
       );
 
       await tester.tap(find.text('open create'));
@@ -88,16 +170,34 @@ void main() {
       await tester.tap(find.text('New playlist'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Coverage Playlist');
+      final titleField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.labelText == 'Title',
+      );
+      await tester.enterText(titleField, 'Coverage Playlist');
       await tester.tap(find.text('Create'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Created "Coverage Playlist" and added track'),
+      expect(find.text('Created "Coverage Playlist" with "Song 1"'),
           findsOneWidget);
+      verify(
+        () => playlistsCubit.createPlaylist(
+          title: 'Coverage Playlist',
+          description: '',
+          visibility: PlaylistVisibility.publicPlaylist,
+          initialTrackIds: const <String>['coverage-track-1'],
+        ),
+      ).called(1);
+      verifyNever(
+        () => playlistsCubit.addTrackToPlaylist(
+          playlistId: any(named: 'playlistId'),
+          track: any(named: 'track'),
+        ),
+      );
 
       await tester.tap(find.text('open create'));
       await tester.pumpAndSettle();
-      expect(find.text('Coverage Playlist'), findsOneWidget);
+      expect(find.text('Add to playlist'), findsOneWidget);
     });
   });
 }

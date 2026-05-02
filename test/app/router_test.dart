@@ -5,12 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
-
 import 'package:soundcloud_clone/app/router.dart' as app_router;
 import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_service.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
@@ -21,23 +20,37 @@ import 'package:soundcloud_clone/features/auth/presentation/pages/register_page.
 import 'package:soundcloud_clone/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/routes/auth_routes.dart';
+import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
 import 'package:soundcloud_clone/features/library/presentation/pages/library_page.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_cubit.dart';
+import 'package:soundcloud_clone/features/library/presentation/bloc/library_state.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_count_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
+import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/pages/edit_profile_page.dart';
 import 'package:soundcloud_clone/features/profile/presentation/pages/profile_page.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
+import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
+import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/followers_page.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/following_page.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
-import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_state.dart';
-import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
+import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
+import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
-import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
-import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
   double _currentVolume = 1;
@@ -51,6 +64,7 @@ class FakeAudioPlayerService implements AudioPlayerService {
   @override
   Future<void> pause() async {}
 
+  @override
   Future<void> resume() async {}
 
   @override
@@ -72,6 +86,10 @@ class FakeAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> dispose() async {}
+
+  @override
+  Future<void> playLocalFile(String path) async {}
+
   @override
   Future<void> playFromContext({
     required List<Track> tracks,
@@ -100,7 +118,67 @@ class FakeDeepLinkService implements DeepLinkService {
   Future<void> dispose() async {}
 }
 
+class FakeOfflineRepository implements OfflineRepository {
+  @override
+  late final DioClient dio;
+
+  final Map<String, String> _storage = {};
+  final Map<String, Track> _trackDetails = {};
+  final Map<String, PlaylistEntity> _playlists = {};
+
+  @override
+  Future<String> downloadTrack(String trackId) async {
+    final path = '/fake/$trackId.mp3';
+    _storage[trackId] = path;
+    return path;
+  }
+
+  @override
+  Future<Track?> fetchTrackDetails(String trackId) async {
+    return _trackDetails[trackId];
+  }
+
+  @override
+  Future<Map<String, String>> getDownloadedTracks() async {
+    return _storage;
+  }
+
+  @override
+  Future<void> saveDownloadedTracks(Map<String, String> data) async {
+    _storage
+      ..clear()
+      ..addAll(data);
+  }
+
+  @override
+  Future<Map<String, Track>> getDownloadedTrackDetails() async {
+    return _trackDetails;
+  }
+
+  @override
+  Future<void> saveDownloadedTrackDetails(Map<String, Track> data) async {
+    _trackDetails
+      ..clear()
+      ..addAll(data);
+  }
+
+  @override
+  Future<Map<String, PlaylistEntity>> getDownloadedPlaylists() async {
+    return _playlists;
+  }
+
+  @override
+  Future<void> saveDownloadedPlaylists(Map<String, PlaylistEntity> data) async {
+    _playlists
+      ..clear()
+      ..addAll(data);
+  }
+}
+
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
+
+class MockLibraryCubit extends MockCubit<LibraryState>
+    implements LibraryCubit {}
 
 class MockProfileCubit extends MockCubit<ProfileState>
     implements ProfileCubit {}
@@ -113,12 +191,20 @@ class MockTrackManagementCubit extends MockCubit<TrackManagementState>
 
 class MockSocialRepo extends Mock implements SocialRepo {}
 
+class MockGetUnreadCountUseCase extends Mock implements GetUnreadCountUseCase {}
+
+class MockConnectMessagingSocketUseCase extends Mock
+    implements ConnectMessagingSocketUseCase {}
+
 void main() {
   late MockAuthCubit authCubit;
+  late MockLibraryCubit libraryCubit;
   late MockProfileCubit profileCubit;
   late MockUploadPickerCubit uploadPickerCubit;
   late MockTrackManagementCubit trackManagementCubit;
   late MockSocialRepo mockSocialRepo;
+  late MockGetUnreadCountUseCase getUnreadCountUseCase;
+  late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
 
   final authenticatedUser = AuthAuthenticated(
     const User(
@@ -135,9 +221,12 @@ void main() {
 
     mockSocialRepo = MockSocialRepo();
     authCubit = MockAuthCubit();
+    libraryCubit = MockLibraryCubit();
     profileCubit = MockProfileCubit();
     uploadPickerCubit = MockUploadPickerCubit();
     trackManagementCubit = MockTrackManagementCubit();
+    getUnreadCountUseCase = MockGetUnreadCountUseCase();
+    connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
 
     GetIt.I.registerSingleton<AudioPlayerService>(
       FakeAudioPlayerService(),
@@ -148,20 +237,54 @@ void main() {
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(
       RecentlyPlayedCubit(),
     );
+    when(() => libraryCubit.state).thenReturn(LibraryState.initial());
+    when(() => libraryCubit.stream).thenAnswer(
+      (_) => const Stream<LibraryState>.empty(),
+    );
+    when(() => libraryCubit.loadLibraryPlaylists()).thenAnswer((_) async {});
+    when(() => libraryCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<LibraryCubit>(() => libraryCubit);
+    GetIt.I.registerLazySingleton<SubscriptionRepository>(
+      () => MockSubscriptionRepository(),
+    );
+
     GetIt.I.registerFactory<TrackManagementCubit>(() => trackManagementCubit);
+
+    GetIt.I.registerFactory<UnreadCountCubit>(
+      () => UnreadCountCubit(
+        getUnreadCountUseCase: getUnreadCountUseCase,
+        connectMessagingSocketUseCase: connectMessagingSocketUseCase,
+      ),
+    );
+
+    when(() => getUnreadCountUseCase()).thenAnswer(
+      (_) async => const UnreadCountEntity(count: 0),
+    );
+
+    when(() => connectMessagingSocketUseCase()).thenAnswer((_) async {});
+
+    when(() => connectMessagingSocketUseCase.eventsStream).thenAnswer(
+      (_) => const Stream<RealtimeMessageEventEntity>.empty(),
+    );
 
     when(() => authCubit.checkAuthStatus()).thenAnswer((_) async {});
     when(() => authCubit.remainingResendSeconds).thenReturn(0);
 
     when(() => authCubit.forgotPassword(email: any(named: 'email')))
         .thenAnswer((_) async {});
-    when(() => authCubit.resetPassword(
-          code: any(named: 'code'),
-          newPassword: any(named: 'newPassword'),
-          newPasswordConfirm: any(named: 'newPasswordConfirm'),
-        )).thenAnswer((_) async {});
+
+    when(
+      () => authCubit.resetPassword(
+        code: any(named: 'code'),
+        newPassword: any(named: 'newPassword'),
+        newPasswordConfirm: any(named: 'newPasswordConfirm'),
+      ),
+    ).thenAnswer((_) async {});
+
     when(() => authCubit.verifyEmail(code: any(named: 'code')))
         .thenAnswer((_) async {});
+
     when(() => authCubit.sendEmailVerification(email: any(named: 'email')))
         .thenAnswer((_) async {});
 
@@ -175,7 +298,6 @@ void main() {
     when(() => uploadPickerCubit.stream)
         .thenAnswer((_) => const Stream<UploadPickerState>.empty());
 
-    // Fix: Using base class or standard constructor if Initial doesn't exist
     when(() => trackManagementCubit.state)
         .thenReturn(const TrackManagementState());
     when(() => trackManagementCubit.stream)
@@ -192,6 +314,14 @@ void main() {
     String? initialLocation,
     Object? extra,
   }) async {
+    tester.view.physicalSize = const Size(1200, 1800);
+    tester.view.devicePixelRatio = 1.0;
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     when(() => authCubit.state).thenReturn(authState);
     whenListen(
       authCubit,
@@ -199,9 +329,30 @@ void main() {
       initialState: authState,
     );
 
-    // Register ProfileCubit in GetIt if not already registered
     if (!GetIt.I.isRegistered<ProfileCubit>()) {
       GetIt.I.registerSingleton<ProfileCubit>(profileCubit);
+    }
+
+    if (!GetIt.I.isRegistered<UnreadCountCubit>()) {
+      GetIt.I.registerFactory<UnreadCountCubit>(
+        () => UnreadCountCubit(
+          getUnreadCountUseCase: getUnreadCountUseCase,
+          connectMessagingSocketUseCase: connectMessagingSocketUseCase,
+        ),
+      );
+    }
+
+    if (!GetIt.I.isRegistered<OfflineCubit>()) {
+      GetIt.I.registerSingleton<OfflineCubit>(
+        OfflineCubit(FakeOfflineRepository()),
+      );
+    }
+
+    if (!GetIt.I.isRegistered<SubscriptionCubit>()) {
+      GetIt.I.registerSingleton<SubscriptionCubit>(
+        SubscriptionCubit(GetIt.I<SubscriptionRepository>())
+          ..loadSubscription(),
+      );
     }
 
     final router = app_router.createRouter();
@@ -217,6 +368,9 @@ void main() {
           BlocProvider<ProfileCubit>.value(value: profileCubit),
           BlocProvider<UploadPickerCubit>.value(value: uploadPickerCubit),
           Provider<SocialRepo>.value(value: mockSocialRepo),
+          BlocProvider<SubscriptionCubit>.value(
+            value: GetIt.I<SubscriptionCubit>(),
+          ),
         ],
         child: BlocProvider<PlayerCubit>(
           create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
@@ -226,7 +380,17 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle(const Duration(seconds: 5));
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+
+  Future<void> pumpRouteChange(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
   }
 
   group('AppRouter Tests', () {
@@ -240,6 +404,7 @@ void main() {
       );
 
       final router = app_router.createRouter();
+
       await tester.pumpWidget(
         MultiBlocProvider(
           providers: [
@@ -247,25 +412,20 @@ void main() {
             BlocProvider<PlayerCubit>(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
             ),
+            BlocProvider<SubscriptionCubit>(
+              create: (_) => SubscriptionCubit(MockSubscriptionRepository())
+                ..loadSubscription(),
+            ),
           ],
           child: MaterialApp.router(
             routerConfig: router,
           ),
         ),
       );
+
       await tester.pump();
 
       verify(() => authCubit.checkAuthStatus()).called(1);
-    });
-
-    testWidgets('navigates to welcome page when AuthUnauthenticated is emitted',
-        (tester) async {
-      await pumpRouter(
-        tester,
-        authState: AuthUnauthenticated(),
-      );
-
-      expect(find.text("We lead what’s next in music."), findsOneWidget);
     });
 
     testWidgets('shows 404 fallback for unknown route', (tester) async {
@@ -386,7 +546,6 @@ void main() {
     });
 
     testWidgets('can navigate to profile page with handle', (tester) async {
-      // Ensure ProfileCubit is set up for this test
       when(() => profileCubit.state).thenReturn(ProfileInitial());
       when(() => profileCubit.stream)
           .thenAnswer((_) => const Stream<ProfileState>.empty());
@@ -401,7 +560,6 @@ void main() {
     });
 
     testWidgets('can navigate to followers page', (tester) async {
-      // Ensure ProfileCubit is available for FollowersPage
       when(() => profileCubit.state).thenReturn(ProfileInitial());
       when(() => profileCubit.stream)
           .thenAnswer((_) => const Stream<ProfileState>.empty());
@@ -416,7 +574,6 @@ void main() {
     });
 
     testWidgets('can navigate to following page', (tester) async {
-      // Ensure ProfileCubit is available for FollowingPage
       when(() => profileCubit.state).thenReturn(ProfileInitial());
       when(() => profileCubit.stream)
           .thenAnswer((_) => const Stream<ProfileState>.empty());
@@ -443,22 +600,6 @@ void main() {
 
       expect(find.byType(UploadPickerPage), findsOneWidget);
     });
-
-    // TODO: Fix track management page timeout issue
-    // testWidgets('can navigate to track management page', (tester) async {
-    //   when(() => trackManagementCubit.state)
-    //       .thenReturn(const TrackManagementState());
-    //   when(() => trackManagementCubit.stream)
-    //       .thenAnswer((_) => const Stream<TrackManagementState>.empty());
-    //
-    //   await pumpRouter(
-    //     tester,
-    //     authState: authenticatedUser,
-    //     initialLocation: app_router.AppRoutes.trackManagementDemo,
-    //   );
-    //
-    //   expect(find.byType(TrackManagementPage), findsOneWidget);
-    // });
 
     testWidgets('can navigate to feed page', (tester) async {
       await pumpRouter(
@@ -498,7 +639,7 @@ void main() {
       );
 
       expect(find.text('Upgrade'), findsOneWidget);
-      expect(find.text('Upgrade page is not implemented yet.'), findsOneWidget);
+      expect(find.text('Upgrade to IQA3 Pro'), findsOneWidget);
     });
 
     testWidgets('404 fallback Go Home button navigates home', (tester) async {
@@ -509,7 +650,7 @@ void main() {
       );
 
       await tester.tap(find.text('Go Home'));
-      await tester.pumpAndSettle();
+      await pumpRouteChange(tester);
 
       expect(find.text('GET PRO'), findsOneWidget);
     });

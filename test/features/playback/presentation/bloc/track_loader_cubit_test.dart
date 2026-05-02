@@ -11,8 +11,12 @@ import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_det
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/track_loader_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/track_loader_state.dart';
+import 'package:get_it/get_it.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 
 class MockGetTrackDetailUseCase extends Mock implements GetTrackDetailUseCase {}
+
+class MockOfflineCubit extends Mock implements OfflineCubit {}
 
 class MockGetTrackBySecretUseCase extends Mock
     implements GetTrackBySecretUseCase {}
@@ -43,13 +47,27 @@ void main() {
     registerFallbackValue(<Track>[]);
   });
 
+  late MockOfflineCubit mockOfflineCubit;
+
   setUp(() {
     getByTrackId = MockGetTrackDetailUseCase();
     getBySecret = MockGetTrackBySecretUseCase();
     audioService = MockAudioPlayerService();
+    mockOfflineCubit = MockOfflineCubit();
+
+    // ✅ Register OfflineCubit
+    if (GetIt.I.isRegistered<OfflineCubit>()) {
+      GetIt.I.unregister<OfflineCubit>();
+    }
+    GetIt.I.registerSingleton<OfflineCubit>(mockOfflineCubit);
+
+    // default offline behavior
+    when(() => mockOfflineCubit.isDownloaded(any())).thenReturn(false);
+    when(() => mockOfflineCubit.getPath(any())).thenReturn(null);
 
     when(() => audioService.playerStateStream)
         .thenAnswer((_) => const Stream<PlayerState>.empty());
+
     when(() => audioService.playFromContext(
           tracks: any(named: 'tracks'),
           startIndex: any(named: 'startIndex'),
@@ -57,6 +75,10 @@ void main() {
         )).thenAnswer((_) async {});
 
     playerCubit = PlayerCubit(audioService);
+  });
+
+  tearDown(() {
+    GetIt.I.reset();
   });
 
   TrackLoaderCubit buildCubit() => TrackLoaderCubit(
