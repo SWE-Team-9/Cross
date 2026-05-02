@@ -5,18 +5,8 @@
   "release": {
     "title": "Version 1.1.0",
     "subtitle": "What's new:",
-    "new_features": [
-      "Messaging: inbox and chat threads with websocket integration",
-      "Playlists: list view, detail page, and secret playlist deep links",
-      "Offline downloads: downloaded tracks/playlists and local file playback"
-    ],
-    "improvements": [
-      "Home screen: added 'Top playlists' shelf and favorite‑genre trending feed",
-      "Library: added playlist sections (liked + recently played) and download entries",
-      "CI: updated GitHub Actions and forced Node.js 24 compatibility",
-      "Reduced noisy logging in auth, network, and deep link services",
-      "Updated reCAPTCHA test page and .env.example Windows URL"
-    ],
+    "new_features": [],
+    "improvements": [],
     "bug_fixes": []
   }
 }
