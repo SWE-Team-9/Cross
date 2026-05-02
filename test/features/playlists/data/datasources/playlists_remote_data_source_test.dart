@@ -400,6 +400,7 @@ void main() {
             data: {
               'title': 'Updated',
               'visibility': 'SECRET',
+              'genre': 'electronic',
             },
           )).thenAnswer(
         (_) async => Response<dynamic>(
@@ -412,6 +413,7 @@ void main() {
         playlistId: 'pl_10',
         title: 'Updated',
         visibility: PlaylistVisibility.privatePlaylist,
+        genre: ' electronic ',
       );
 
       verify(() => dioClient.patch(
@@ -419,10 +421,10 @@ void main() {
             data: {
               'title': 'Updated',
               'visibility': 'SECRET',
+              'genre': 'electronic',
             },
           )).called(1);
     });
-
     test('deletePlaylist uses expected endpoint', () async {
       when(() => dioClient.delete('/api/v1/playlists/pl_12')).thenAnswer(
         (_) async => Response<dynamic>(
