@@ -192,10 +192,14 @@ Track? _trackFromJson(Map<String, dynamic> json) {
 
   final handle = _normalizeNullable(
     _asString(
-      json['artistHandle'] ?? uploaderMap['handle'] ?? uploaderMap['username'],
+      json['artistHandle'] ??
+          json['artist_handle'] ??
+          artistMap['handle'] ??
+          artistMap['username'] ??
+          uploaderMap['handle'] ??
+          uploaderMap['username'],
     ),
   );
-
   final artistId = _normalizeNullable(
     _asString(
       json['artistId'] ??
