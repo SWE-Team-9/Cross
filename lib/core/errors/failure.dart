@@ -1,4 +1,4 @@
-abstract class Failure {
+abstract class Failure implements Exception {
   final String message;
 
   const Failure(this.message);
@@ -17,4 +17,16 @@ class NetworkFailure extends Failure {
 
 class AuthFailure extends Failure {
   const AuthFailure(super.message);
+}
+
+class ValidationFailure extends Failure {
+  const ValidationFailure(super.message);
+}
+
+class NotFoundFailure extends Failure {
+  const NotFoundFailure(super.message);
+}
+
+class ForbiddenFailure extends Failure {
+  const ForbiddenFailure(super.message);
 }

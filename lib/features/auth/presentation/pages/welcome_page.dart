@@ -1,0 +1,199 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+
+import '../bloc/auth_cubit.dart';
+import '../routes/auth_routes.dart';
+import '../widgets/auth_button.dart';
+import '../widgets/social_auth_button.dart';
+
+class WelcomePage extends StatelessWidget {
+  const WelcomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF111111),
+      body: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthAuthenticated) {
+            context.go('/home');
+          }
+
+          if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          final bool isGoogleLoading =
+              state is AuthLoading || state is AuthOAuthInProgress;
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  color: const Color(0xFF111111),
+                ),
+              ),
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _WelcomeBackgroundPainter(),
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(28, 36, 28, 36),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF5D8EF2),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(34),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.cloud,
+                        color: Colors.black,
+                        size: 44,
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "We lead what’s next in music.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      AuthButton(
+                        text: 'Create an account',
+                        onPressed: () {
+                          context.push(AuthRoutes.register);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      SocialAuthButton(
+                        text: 'Continue with Google',
+                        isLoading: isGoogleLoading,
+                        backgroundColor: Colors.white,
+                        textColor: Colors.black,
+                        onPressed: () {
+                          context.read<AuthCubit>().continueWithGoogle();
+                        },
+                        leading: Container(
+                          width: 22,
+                          height: 22,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: Colors.black,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Text(
+                            'G',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      AuthButton(
+                        text: 'Log in',
+                        backgroundColor: const Color(0xFFDCE4F7),
+                        textColor: Colors.black,
+                        onPressed: () {
+                          context.push(AuthRoutes.login);
+                        },
+                      ),
+                      if (state is AuthOAuthInProgress) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Waiting for Google sign-in to complete...',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _WelcomeBackgroundPainter extends CustomPainter {
+  final _cyan = Paint()
+    ..color = const Color(0xFF25D0E3)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3;
+
+  final _purple = Paint()
+    ..color = const Color(0xFFA868F7)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3;
+
+  final _orange = Paint()
+    ..color = const Color(0xFFFF8459)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (int i = 0; i < 6; i++) {
+      final rect = Rect.fromCircle(
+        center: Offset(size.width * 0.85, -80),
+        radius: 120 + (i * 42),
+      );
+      canvas.drawArc(rect, 0.9, 2.2, false, _cyan);
+    }
+
+    for (int i = 0; i < 4; i++) {
+      final rect = Rect.fromLTWH(
+        -80 - (i * 30),
+        size.height * 0.23 + (i * 18),
+        260,
+        320,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(60)),
+        _purple,
+      );
+    }
+
+    for (int i = 0; i < 6; i++) {
+      final path = Path()
+        ..moveTo(size.width * 0.30 + (i * 24), size.height * 0.62 - (i * 38))
+        ..lineTo(size.width * 0.46 + (i * 24), size.height * 0.74 - (i * 38))
+        ..lineTo(size.width * 0.88 + (i * 24), size.height * 0.60 - (i * 38))
+        ..lineTo(size.width * 1.02 + (i * 24), size.height * 0.72 - (i * 38));
+      canvas.drawPath(path, _orange);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
