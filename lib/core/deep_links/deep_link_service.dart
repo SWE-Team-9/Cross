@@ -43,7 +43,7 @@ class DeepLinkService {
 
     _appLinks.uriLinkStream.listen(
       (uri) {
-        debugPrint('[DeepLinkService] Received URI: $uri');
+
 
         _lastDestinationConsumed = false;
         _emitIfNotDuplicate(uri, source: 'stream');
@@ -80,4 +80,3 @@ class DeepLinkService {
   }
 
 }
-
