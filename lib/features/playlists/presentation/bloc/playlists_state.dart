@@ -8,6 +8,9 @@ class PlaylistsState {
   final int myPlaylistsPage;
   final bool hasMoreMyPlaylists;
   final bool isLoadingDetails;
+  final bool isLoadingMorePlaylistTracks;
+  final int playlistTracksOffset;
+  final bool hasMorePlaylistTracks;
   final bool isLoadingEditDetails;
   final bool isSubmitting;
   final bool isReordering;
@@ -23,6 +26,9 @@ class PlaylistsState {
     required this.myPlaylistsPage,
     required this.hasMoreMyPlaylists,
     required this.isLoadingDetails,
+    required this.isLoadingMorePlaylistTracks,
+    required this.playlistTracksOffset,
+    required this.hasMorePlaylistTracks,
     required this.isLoadingEditDetails,
     required this.isSubmitting,
     required this.isReordering,
@@ -40,6 +46,9 @@ class PlaylistsState {
       myPlaylistsPage: 0,
       hasMoreMyPlaylists: true,
       isLoadingDetails: false,
+      isLoadingMorePlaylistTracks: false,
+      playlistTracksOffset: 0,
+      hasMorePlaylistTracks: true,
       isLoadingEditDetails: false,
       isSubmitting: false,
       isReordering: false,
@@ -58,6 +67,9 @@ class PlaylistsState {
     int? myPlaylistsPage,
     bool? hasMoreMyPlaylists,
     bool? isLoadingDetails,
+    bool? isLoadingMorePlaylistTracks,
+    int? playlistTracksOffset,
+    bool? hasMorePlaylistTracks,
     bool? isLoadingEditDetails,
     bool? isSubmitting,
     bool? isReordering,
@@ -79,6 +91,11 @@ class PlaylistsState {
       myPlaylistsPage: myPlaylistsPage ?? this.myPlaylistsPage,
       hasMoreMyPlaylists: hasMoreMyPlaylists ?? this.hasMoreMyPlaylists,
       isLoadingDetails: isLoadingDetails ?? this.isLoadingDetails,
+      isLoadingMorePlaylistTracks:
+          isLoadingMorePlaylistTracks ?? this.isLoadingMorePlaylistTracks,
+      playlistTracksOffset: playlistTracksOffset ?? this.playlistTracksOffset,
+      hasMorePlaylistTracks:
+          hasMorePlaylistTracks ?? this.hasMorePlaylistTracks,
       isLoadingEditDetails: isLoadingEditDetails ?? this.isLoadingEditDetails,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isReordering: isReordering ?? this.isReordering,
