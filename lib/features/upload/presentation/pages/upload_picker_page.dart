@@ -16,6 +16,7 @@ import '../bloc/upload_picker_state.dart';
 import '../constants/track_genres.dart';
 import '../widgets/selected_audio_file_card.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:go_router/go_router.dart';
 
 class UploadPickerPage extends StatefulWidget {
   const UploadPickerPage({super.key});
@@ -165,7 +166,14 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
         ),
       );
   }
+  bool _isUploadLimitFailure(String message) {
+    final normalized = message.toLowerCase();
 
+    return normalized.contains('upload limit reached') ||
+        normalized.contains('upgrade to pro') ||
+        normalized.contains('subscription is not active') ||
+        normalized.contains('billing status');
+  }
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthCubit>().state;
@@ -253,23 +261,31 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                   return;
                 }
 
+                final errorMessage = state.errorMessage!;
+                final isUploadLimitFailure = _isUploadLimitFailure(errorMessage);
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     backgroundColor: const Color(0xFF2A0000),
                     content: Text(
-                      state.errorMessage!,
+                      errorMessage,
                       style: const TextStyle(color: Colors.white),
                     ),
                     behavior: SnackBarBehavior.floating,
+                    action: isUploadLimitFailure
+                        ? SnackBarAction(
+                            label: 'Upgrade',
+                            textColor: orangeColor,
+                            onPressed: () => context.go('/upgrade'),
+                          )
+                        : null,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                       side: const BorderSide(color: Colors.redAccent, width: 1),
                     ),
                   ),
                 );
-              }
-
-              if (state.status == UploadPickerStatus.success) {
+              }              if (state.status == UploadPickerStatus.success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     backgroundColor: const Color(0xFF002A0A),
@@ -964,7 +980,14 @@ class _UploadStatusCard extends StatelessWidget {
 
   final UploadPickerState state;
   final VoidCallback? onCopyPrivateLink;
+  bool _isUploadLimitMessage(String message) {
+    final normalized = message.toLowerCase();
 
+    return normalized.contains('upload limit reached') ||
+        normalized.contains('upgrade to pro') ||
+        normalized.contains('subscription is not active') ||
+        normalized.contains('billing status');
+  }
   @override
   Widget build(BuildContext context) {
     if (state.status == UploadPickerStatus.initial ||
@@ -1033,20 +1056,31 @@ class _UploadStatusCard extends StatelessWidget {
         trailing = const Icon(Icons.check_circle, color: Colors.greenAccent);
         break;
       case UploadPickerStatus.failure:
+        final errorMessage = state.errorMessage ?? 'Something went wrong.';
+        final isLimitFailure = _isUploadLimitMessage(errorMessage);
+
         title = state.uploadedTrackId != null
             ? 'Upload completed with warning'
-            : 'Upload failed';
+            : isLimitFailure
+                ? 'Upload limit reached'
+                : 'Upload failed';
 
-        subtitle = state.errorMessage ?? 'Something went wrong.';
+        subtitle = errorMessage;
 
         if (state.uploadedTrackId != null) {
           subtitle =
               '$subtitle\n\nTrack ID: ${state.uploadedTrackId}\nStatus: ${state.processingStatus ?? '-'}';
         }
 
-        trailing = const Icon(Icons.error_outline, color: Colors.redAccent);
-        break;
-      case UploadPickerStatus.initial:
+        trailing = Icon(
+          isLimitFailure
+              ? Icons.workspace_premium_outlined
+              : Icons.error_outline,
+          color: isLimitFailure
+              ? Theme.of(context).colorScheme.primary
+              : Colors.redAccent,
+        );
+        break;      case UploadPickerStatus.initial:
       case UploadPickerStatus.cancelled:
         return const SizedBox.shrink();
     }
