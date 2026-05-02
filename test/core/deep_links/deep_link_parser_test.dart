@@ -1,114 +1,317 @@
-// test/core/deep_links/deep_link_parser_test.dart
-
 import 'package:flutter_test/flutter_test.dart';
+
 import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_parser.dart';
 
 void main() {
   group('DeepLinkParser', () {
-    group('track links', () {
-      test('parses valid track link', () {
-        final uri = Uri.parse('soundclone://track/abc-123-uuid');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<TrackDeepLink>());
-        expect((result as TrackDeepLink).trackId, 'abc-123-uuid');
-      });
+    test('rejects unknown scheme', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('https://track/track-1'),
+      );
 
-      test('returns invalid for track link with no ID', () {
-        final uri = Uri.parse('soundclone://track/');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<InvalidDeepLink>());
-      });
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'Unknown scheme: expected soundclone://',
+      );
     });
 
-    group('secret track links', () {
-      test('parses valid secret track link', () {
-        final uri =
-            Uri.parse('soundclone://track/secret/V1StGXR8_Z5jdHi6B-myT-RQ');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<SecretTrackDeepLink>());
-        expect(
-          (result as SecretTrackDeepLink).secretToken,
-          'V1StGXR8_Z5jdHi6B-myT-RQ',
-        );
-      });
+    test('rejects unknown host', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://unknown/path'),
+      );
 
-      test('returns invalid for secret link with no token', () {
-        final uri = Uri.parse('soundclone://track/secret/');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<InvalidDeepLink>());
-      });
+      expect(destination, isA<InvalidDeepLink>());
+      expect((destination as InvalidDeepLink).reason, 'Unknown host: unknown');
     });
 
-    group('profile links', () {
-      test('parses valid profile link', () {
-        final uri = Uri.parse('soundclone://user/amrdiab');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<ProfileDeepLink>());
-        expect((result as ProfileDeepLink).handle, 'amrdiab');
-      });
+    test('parses track deep link', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://track/track-1'),
+      );
 
-      test('returns invalid for user link with no handle', () {
-        final uri = Uri.parse('soundclone://user/');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<InvalidDeepLink>());
-      });
+      expect(destination, isA<TrackDeepLink>());
+      expect((destination as TrackDeepLink).trackId, 'track-1');
     });
 
-    group('playlist links', () {
-      test('parses valid playlist link', () {
-        final uri = Uri.parse('soundclone://playlist/pl-uuid-001');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<PlaylistDeepLink>());
-        expect((result as PlaylistDeepLink).playlistId, 'pl-uuid-001');
-      });
+    test('rejects track link without id', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://track'),
+      );
 
-      test('parses valid secret playlist link', () {
-        final uri = Uri.parse(
-          'soundclone://playlist/secret/2e8b35f8-98d2-4f78-8899-b5fb688d809a',
-        );
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<SecretPlaylistDeepLink>());
-        expect(
-          (result as SecretPlaylistDeepLink).secretToken,
-          '2e8b35f8-98d2-4f78-8899-b5fb688d809a',
-        );
-      });
-
-      test('returns invalid for secret playlist link with no token', () {
-        final uri = Uri.parse('soundclone://playlist/secret/');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<InvalidDeepLink>());
-      });
+      expect(destination, isA<InvalidDeepLink>());
+      expect((destination as InvalidDeepLink).reason, 'Track link missing ID');
     });
 
-    group('search links', () {
-      test('parses valid search link', () {
-        final uri = Uri.parse('soundclone://search?q=amr+diab');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<SearchDeepLink>());
-        expect((result as SearchDeepLink).query, 'amr diab');
-      });
+    test('parses secret track deep link', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://track/secret/secret-token'),
+      );
 
-      test('returns invalid for search with no query', () {
-        final uri = Uri.parse('soundclone://search?q=');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<InvalidDeepLink>());
-      });
+      expect(destination, isA<SecretTrackDeepLink>());
+      expect(
+        (destination as SecretTrackDeepLink).secretToken,
+        'secret-token',
+      );
     });
 
-    group('invalid links', () {
-      test('rejects wrong scheme', () {
-        final uri = Uri.parse('https://soundclone.app/track/abc');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<InvalidDeepLink>());
-      });
+    test('rejects secret track link without token', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://track/secret'),
+      );
 
-      test('rejects unknown host', () {
-        final uri = Uri.parse('soundclone://unknown/abc');
-        final result = DeepLinkParser.parse(uri);
-        expect(result, isA<InvalidDeepLink>());
-      });
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'Secret track link missing token',
+      );
+    });
+
+    test('parses profile deep link', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://user/ali'),
+      );
+
+      expect(destination, isA<ProfileDeepLink>());
+      expect((destination as ProfileDeepLink).handle, 'ali');
+    });
+
+    test('rejects user link without handle', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://user'),
+      );
+
+      expect(destination, isA<InvalidDeepLink>());
+      expect((destination as InvalidDeepLink).reason, 'User link missing handle');
+    });
+
+    test('parses playlist deep link', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://playlist/playlist-1'),
+      );
+
+      expect(destination, isA<PlaylistDeepLink>());
+      expect((destination as PlaylistDeepLink).playlistId, 'playlist-1');
+    });
+
+    test('parses secret playlist deep link', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://playlist/secret/secret-playlist'),
+      );
+
+      expect(destination, isA<SecretPlaylistDeepLink>());
+      expect(
+        (destination as SecretPlaylistDeepLink).secretToken,
+        'secret-playlist',
+      );
+    });
+
+    test('rejects playlist link without id', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://playlist'),
+      );
+
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'Playlist link missing ID',
+      );
+    });
+
+    test('rejects secret playlist link without token', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://playlist/secret'),
+      );
+
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'Secret playlist link missing token',
+      );
+    });
+
+    test('parses search deep link', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://search?q=lofi%20beats'),
+      );
+
+      expect(destination, isA<SearchDeepLink>());
+      expect((destination as SearchDeepLink).query, 'lofi beats');
+    });
+
+    test('rejects search link without query', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://search?q=%20%20'),
+      );
+
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'Search link missing query',
+      );
+    });
+
+    test('parses oauth success callback', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://oauth/callback?code=code-123&state=abc'),
+      );
+
+      expect(destination, isA<OAuthCallbackDeepLink>());
+
+      final oauthDestination = destination as OAuthCallbackDeepLink;
+
+      expect(oauthDestination.code, 'code-123');
+      expect(oauthDestination.state, 'abc');
+      expect(oauthDestination.hasError, isFalse);
+    });
+
+    test('parses oauth error callback', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse(
+          'soundclone://oauth/callback?error=access_denied&error_description=Denied',
+        ),
+      );
+
+      expect(destination, isA<OAuthCallbackDeepLink>());
+
+      final oauthDestination = destination as OAuthCallbackDeepLink;
+
+      expect(oauthDestination.error, 'access_denied');
+      expect(oauthDestination.errorDescription, 'Denied');
+      expect(oauthDestination.hasError, isTrue);
+    });
+
+    test('rejects oauth callback without code', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://oauth/callback'),
+      );
+
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'OAuth callback missing authorization code',
+      );
+    });
+
+    test('rejects oauth link with invalid path', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://oauth/authorize'),
+      );
+
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'OAuth link must be soundclone://oauth/callback',
+      );
+    });
+
+    test('parses billing return deep link with snake case params', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse(
+          'soundclone://billing/return'
+          '?session_id=bps_123'
+          '&customer_id=cus_123'
+          '&status=success'
+          '&plan_code=PRO'
+          '&checkout_session_id=cs_123'
+          '&subscription_id=sub_123',
+        ),
+      );
+
+      expect(destination, isA<BillingReturnDeepLink>());
+
+      final billingDestination = destination as BillingReturnDeepLink;
+
+      expect(billingDestination.sessionId, 'bps_123');
+      expect(billingDestination.customerId, 'cus_123');
+      expect(billingDestination.status, 'success');
+      expect(billingDestination.planCode, 'PRO');
+      expect(billingDestination.checkoutSessionId, 'cs_123');
+      expect(billingDestination.subscriptionId, 'sub_123');
+      expect(billingDestination.hasSuccessStatus, isTrue);
+      expect(billingDestination.hasSessionReference, isTrue);
+    });
+
+    test('parses billing return deep link with camel case params', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse(
+          'soundclone://billing/return'
+          '?billingSessionId=bps_456'
+          '&customerId=cus_456'
+          '&paymentStatus=completed'
+          '&planCode=GO_PLUS'
+          '&checkoutSessionId=cs_456'
+          '&subscriptionId=sub_456',
+        ),
+      );
+
+      expect(destination, isA<BillingReturnDeepLink>());
+
+      final billingDestination = destination as BillingReturnDeepLink;
+
+      expect(billingDestination.sessionId, 'bps_456');
+      expect(billingDestination.customerId, 'cus_456');
+      expect(billingDestination.status, 'completed');
+      expect(billingDestination.planCode, 'GO_PLUS');
+      expect(billingDestination.checkoutSessionId, 'cs_456');
+      expect(billingDestination.subscriptionId, 'sub_456');
+      expect(billingDestination.hasSuccessStatus, isTrue);
+    });
+
+    test('parses billing return cancellation status', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://billing/return?status=cancelled'),
+      );
+
+      expect(destination, isA<BillingReturnDeepLink>());
+      expect((destination as BillingReturnDeepLink).hasCancelStatus, isTrue);
+    });
+
+    test('rejects billing link with invalid path', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://billing/session'),
+      );
+
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'Billing link must be soundclone://billing/return',
+      );
+    });
+
+    test('parses checkout return deep link', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse(
+          'soundclone://checkout/return'
+          '?cs=cs_789'
+          '&sub=sub_789'
+          '&tier=PRO'
+          '&billingStatus=active',
+        ),
+      );
+
+      expect(destination, isA<BillingReturnDeepLink>());
+
+      final billingDestination = destination as BillingReturnDeepLink;
+
+      expect(billingDestination.checkoutSessionId, 'cs_789');
+      expect(billingDestination.subscriptionId, 'sub_789');
+      expect(billingDestination.planCode, 'PRO');
+      expect(billingDestination.status, 'active');
+      expect(billingDestination.hasSuccessStatus, isTrue);
+    });
+
+    test('rejects checkout link with invalid path', () {
+      final destination = DeepLinkParser.parse(
+        Uri.parse('soundclone://checkout/session'),
+      );
+
+      expect(destination, isA<InvalidDeepLink>());
+      expect(
+        (destination as InvalidDeepLink).reason,
+        'Checkout link must be soundclone://checkout/return',
+      );
     });
   });
 }
