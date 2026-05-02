@@ -1,15 +1,33 @@
-import '../entities/subscription.dart';
+import '../entities/billing_invoice.dart';
+import '../entities/billing_portal_session.dart';
+import '../entities/offline_track_entitlement.dart';
 import '../entities/plan.dart';
+import '../entities/subscription.dart';
 
-/// Minimal abstract repository kept to preserve the public API.
 abstract class SubscriptionRepository {
   Future<Subscription> getMySubscription();
 
+  Future<List<Plan>> getPlans();
+
   Future<String> createCheckout(String plan);
 
-  Future<List<Plan>> getPlans();
-  Future<void> cancelSubscription();
-  Future<void> resumeSubscription();
-  Future<void> changePlan(String plan);
-  Future<String> openPortal();
+  Future<String> subscribe(String plan);
+
+  Future<BillingPortalSession> openBillingPortalSession();
+
+  Future<List<BillingInvoice>> getInvoices();
+
+  Future<Subscription> cancelSubscription();
+
+  Future<Subscription> resumeSubscription();
+
+  Future<Subscription> changePlan(String plan);
+
+  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(String trackId);
+
+  /// Legacy compatibility for existing callers.
+  Future<String> openPortal() async {
+    final session = await openBillingPortalSession();
+    return session.launchUrl;
+  }
 }
