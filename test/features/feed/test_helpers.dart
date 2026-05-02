@@ -8,29 +8,25 @@ import 'package:soundcloud_clone/features/feed/domain/repositories/feed_reposito
 // ─── Fake Repository ─────────────────────────────────────────────────────────
 
 class FakeFeedRepository implements FeedRepository {
-  // Control what each method returns
   FeedPage? feedPageToReturn;
 
-  // Separate error per method — set only the one you want to fail
   Exception? getFeedError;
   Exception? toggleLikeError;
   Exception? toggleRepostError;
   Exception? streamUrlError;
 
-  // Track calls
   List<String> getCalls = [];
   List<String> likeCalls = [];
   List<String> repostCalls = [];
   List<String> playCalls = [];
 
-  // Return values
   String? streamUrlResult = 'https://cdn.mock.com/track.mp3';
 
   @override
-  Future<FeedPage> getFeed({required String tab, required int page}) async {
-    getCalls.add('$tab:$page');
+  Future<FeedPage> getFeed({ required int page}) async {
+    getCalls.add('$page:$page');
     if (getFeedError != null) throw getFeedError!;
-    return feedPageToReturn ?? makeFeedPage(tab: tab, page: page);
+    return feedPageToReturn ?? makeFeedPage( page: page);
   }
 
   @override
@@ -52,7 +48,7 @@ class FakeFeedRepository implements FeedRepository {
     repostCalls.add(trackId);
     return (
       repostsCount: currentlyReposted ? 9 : 11,
-      reposted: !currentlyReposted
+      reposted: !currentlyReposted,
     );
   }
 
@@ -75,6 +71,27 @@ class FakeFeedRepository implements FeedRepository {
   Future<void> recordPlay(String trackId) async {
     playCalls.add(trackId);
   }
+
+  @override
+  Future<List<TrendingTrack>> getTrending() async => [];
+
+  @override
+  Future<SearchResults> search({required String query, int page = 1}) async =>
+      SearchResults(
+        users: [],
+        tracks: [],
+        playlists: [],
+        currentPage: page,
+        totalResults: 0,
+        totalPages: 1,
+      );
+
+  @override
+  Future<ResolveResult> resolve(String permalink) async =>
+      ResolveResult(
+        type: 'TRACK',
+        resourceId: permalink,
+      );
 }
 
 // ─── Factory helpers ──────────────────────────────────────────────────────────
@@ -167,13 +184,14 @@ FeedPage makeFeedPage({
       items: List.generate(
         count,
         (i) => makeItem(
-          activityId: 'act_\${tab}_\${page}_\$i',
-          trackId: 'trk_\${tab}_\${page}_\$i',
+          activityId: 'act_${tab}_${page}_$i',
+          trackId: 'trk_${tab}_${page}_$i',
         ),
       ),
       page: page,
       hasMore: hasMore,
       totalItems: count * 4,
+      totalPages: (count * 4 / count).ceil(),
     );
 
 FeedPage makeEmptyPage() => const FeedPage(
@@ -181,7 +199,7 @@ FeedPage makeEmptyPage() => const FeedPage(
       page: 1,
       hasMore: false,
       totalItems: 0,
+      totalPages: 1,
     );
 
-// ─── Entry point (required to run this file directly) ────────────────────────
 void main() {}
