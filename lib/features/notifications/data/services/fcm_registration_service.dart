@@ -7,6 +7,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../models/notification_model.dart';
+import '../../domain/entities/notification_entity.dart';
 import '../../../messaging/domain/entities/conversation_entity.dart';
 import '../../../messaging/domain/usecases/get_conversation_meta_usecase.dart';
 import '../../../messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
@@ -15,10 +17,10 @@ import '../../domain/usecases/device_use_cases.dart';
 
 const AndroidNotificationChannel _fcmHighImportanceChannel =
     AndroidNotificationChannel(
-  'high_importance_channel',
+  'high_importance_channel_v2',
   'High Importance Notifications',
   description: 'Used for important notification alerts.',
-  importance: Importance.high,
+  importance: Importance.max,
 );
 
 final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
@@ -75,21 +77,40 @@ Future<void> _showLocalNotification(RemoteMessage message) async {
     return;
   }
 
+  final notificationId = _notificationIdFor(message);
+
   await _localNotificationsPlugin.show(
-    message.hashCode,
+    notificationId,
     title,
     body,
     const NotificationDetails(
       android: AndroidNotificationDetails(
-        'high_importance_channel',
+        'high_importance_channel_v2',
         'High Importance Notifications',
         channelDescription: 'Used for important notification alerts.',
-        importance: Importance.high,
-        priority: Priority.high,
+        importance: Importance.max,
+        priority: Priority.max,
+        playSound: true,
+        enableVibration: true,
+        category: AndroidNotificationCategory.message,
+        visibility: NotificationVisibility.public,
+        fullScreenIntent: true,
       ),
     ),
     payload: message.data.isEmpty ? null : jsonEncode(message.data),
   );
+}
+
+int _notificationIdFor(RemoteMessage message) {
+  final source = <String?>[
+    message.messageId,
+    message.sentTime?.microsecondsSinceEpoch.toString(),
+    message.data['id']?.toString(),
+    message.data['notificationId']?.toString(),
+  ].firstWhere((value) => value != null && value.trim().isNotEmpty,
+      orElse: () => DateTime.now().microsecondsSinceEpoch.toString());
+
+  return source.hashCode & 0x7fffffff;
 }
 
 String? _extractTitle(RemoteMessage message, List<String> dataKeys) {
@@ -166,10 +187,13 @@ class FcmRegistrationService {
 
   final StreamController<void> _notificationRefreshController =
       StreamController<void>.broadcast();
+  final StreamController<NotificationEntity> _notificationTapController =
+      StreamController<NotificationEntity>.broadcast();
   final StreamController<ConversationEntity> _conversationOpenController =
       StreamController<ConversationEntity>.broadcast();
 
   ConversationEntity? _lastOpenedConversation;
+  NotificationEntity? _lastOpenedNotification;
 
   Stream<void> get notificationRefreshStream =>
       _notificationRefreshController.stream;
@@ -177,10 +201,19 @@ class FcmRegistrationService {
   Stream<ConversationEntity> get conversationOpenStream =>
       _conversationOpenController.stream;
 
+  Stream<NotificationEntity> get notificationTapStream =>
+      _notificationTapController.stream;
+
   ConversationEntity? consumeLastOpenedConversation() {
     final conversation = _lastOpenedConversation;
     _lastOpenedConversation = null;
     return conversation;
+  }
+
+  NotificationEntity? consumeLastOpenedNotification() {
+    final notification = _lastOpenedNotification;
+    _lastOpenedNotification = null;
+    return notification;
   }
 
   Future<void> initialize() async {
@@ -282,33 +315,27 @@ class FcmRegistrationService {
     await _openedMessageSubscription?.cancel();
     _openedMessageSubscription = null;
     await _notificationRefreshController.close();
+    await _notificationTapController.close();
     _localNotificationTapHandler = null;
     await _conversationOpenController.close();
   }
 
   Future<void> _handleLocalNotificationTap(String? payload) async {
-    if (payload == null || payload.trim().isEmpty) {
+    final notification = await _parseNotificationPayload(payload);
+    if (notification == null) return;
+
+    _lastOpenedNotification = notification;
+    _notificationTapController.add(notification);
+
+    final conversation = await _resolveConversationForDataFromNotification(
+      notification,
+    );
+    if (conversation == null) {
       return;
     }
 
-    try {
-      final parsed = jsonDecode(payload);
-      if (parsed is! Map) {
-        return;
-      }
-
-      final conversation = await _resolveConversationForData(
-        Map<String, dynamic>.from(parsed),
-      );
-      if (conversation == null) {
-        return;
-      }
-
-      _lastOpenedConversation = conversation;
-      _conversationOpenController.add(conversation);
-    } catch (_) {
-      return;
-    }
+    _lastOpenedConversation = conversation;
+    _conversationOpenController.add(conversation);
   }
 
   Future<ConversationEntity?> _resolveConversationForMessage(
@@ -368,6 +395,12 @@ class FcmRegistrationService {
   }
 
   Future<void> _handleOpenedMessage(RemoteMessage message) async {
+    final notification = await _parseNotificationData(message.data);
+    if (notification != null) {
+      _lastOpenedNotification = notification;
+      _notificationTapController.add(notification);
+    }
+
     final conversation = await _resolveConversationForMessage(message);
     if (conversation == null) {
       return;
@@ -377,7 +410,51 @@ class FcmRegistrationService {
     _conversationOpenController.add(conversation);
   }
 
+  Future<NotificationEntity?> _parseNotificationPayload(String? payload) async {
+    if (payload == null || payload.trim().isEmpty) {
+      return null;
+    }
 
+    try {
+      final parsed = jsonDecode(payload);
+      if (parsed is! Map) {
+        return null;
+      }
+
+      return NotificationModel.fromJson(Map<String, dynamic>.from(parsed));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<NotificationEntity?> _parseNotificationData(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      return NotificationModel.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ConversationEntity?> _resolveConversationForDataFromNotification(
+    NotificationEntity notification,
+  ) async {
+    final data = <String, dynamic>{
+      'type': notification.type.name,
+      'eventType': notification.type.name,
+      'notificationType': notification.type.name,
+      'conversationId': notification.entityType == 'conversation'
+          ? notification.entityId
+          : '',
+      'receiverId': notification.actorId,
+      'senderId': notification.actorId,
+      'actorId': notification.actorId,
+      'userId': notification.actorId,
+    };
+
+    return _resolveConversationForData(data);
+  }
 
   static String _normalizeKind(dynamic raw) {
     return raw?.toString().trim().toLowerCase() ?? '';

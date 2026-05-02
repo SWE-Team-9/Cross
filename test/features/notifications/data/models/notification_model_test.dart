@@ -64,11 +64,49 @@ void main() {
       expect(model.entityId, 'artist_1');
       expect(model.message, 'Ali followed you');
     });
+
+    test('uses nested actor fields when top-level actor name is missing', () {
+      final model = NotificationModel.fromJson({
+        'id': 'not_4',
+        'type': 'like',
+        'message': 'liked your track',
+        'actor': {
+          'id': 'usr_55',
+          'display_name': 'Nadia',
+          'handle': 'nadia',
+        },
+        'entityType': 'track',
+        'entityId': 'trk_55',
+        'target': {'title': 'Night Drive'},
+        'createdAt': '2026-03-07T10:20:00Z',
+      });
+
+      expect(model.actorId, 'usr_55');
+      expect(model.actorDisplayName, 'Nadia');
+      expect(model.actorHandle, 'nadia');
+      expect(model.message, 'Nadia liked your track Night Drive');
+    });
+
+    test('falls back to handle when actor display name is absent', () {
+      final model = NotificationModel.fromJson({
+        'id': 'not_5',
+        'type': 'comment',
+        'message': 'commented on your track "City Lights"',
+        'actorHandle': 'sammy',
+        'entityType': 'track',
+        'entityId': 'trk_77',
+        'createdAt': '2026-03-07T10:20:00Z',
+      });
+
+      expect(model.actorDisplayName, '');
+      expect(model.actorHandle, 'sammy');
+      expect(model.message, 'sammy commented on your track City Lights');
+    });
   });
 
   test('toJson serializes notification fields', () {
     final model = NotificationModel(
-      id: 'not_4',
+      id: 'not_6',
       type: NotificationType.repost,
       message: 'Sam reposted your track Song4',
       actorId: 'usr_4',
@@ -84,7 +122,7 @@ void main() {
 
     final json = model.toJson();
 
-    expect(json['id'], 'not_4');
+    expect(json['id'], 'not_6');
     expect(json['type'], 'repost');
     expect(json['actorDisplayName'], 'Sam');
     expect(json['actorHandle'], 'sam');
