@@ -61,7 +61,8 @@ import '../features/messaging/presentation/pages/chat_thread_page.dart';
 import '../features/messaging/presentation/pages/inbox_page.dart';
 import '../features/messaging/presentation/routes/messaging_routes.dart';
 
-// Project - premium
+// Project — premium
+import 'package:soundcloud_clone/features/premium/presentation/pages/billing_page.dart';
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
 
 class AppRoutes {
@@ -70,6 +71,7 @@ class AppRoutes {
   static const String search = '/search';
   static const String library = '/library';
   static const String upgrade = '/upgrade';
+  static const String billing = '/billing';
   static const String uploadPicker = '/upload-picker';
   static const String editProfile = '/profile/edit';
   static const String profile = '/profile/:handle';
@@ -208,12 +210,20 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Upgrade ─────────────────────────────────────────────────────────────
+      // ── Premium ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.upgrade,
         name: 'upgrade',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: const UpgradePage(),
+          child: UpgradePage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.billing,
+        name: 'billing',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: BillingPage(),
         ),
       ),
 
@@ -241,7 +251,6 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Upload picker ───────────────────────────────────────────────────────
       // ── Playlists list ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlists,
@@ -460,7 +469,6 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Playlist ───────────────────────────────────────────────────────────
       // ── Secret playlist ───────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.secretPlaylist,
@@ -550,57 +558,3 @@ GoRouter _createRouter() {
 
 final router = _createRouter();
 GoRouter createRouter() => _createRouter();
-
-// class _PlaceholderPage extends StatelessWidget {
-//   const _PlaceholderPage({required this.title});
-
-//   final String title;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.black,
-//       appBar: AppBar(
-//         backgroundColor: Colors.black,
-//         elevation: 0,
-//         title: Text(title, style: const TextStyle(color: Colors.white)),
-//         iconTheme: const IconThemeData(color: Colors.white),
-//       ),
-//       body: Center(
-//         child: Padding(
-//           padding: const EdgeInsets.symmetric(horizontal: 24),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               const Icon(
-//                 Icons.construction_outlined,
-//                 size: 56,
-//                 color: Colors.white54,
-//               ),
-//               const SizedBox(height: 16),
-//               Text(
-//                 '$title page is not implemented yet.',
-//                 textAlign: TextAlign.center,
-//                 style: const TextStyle(color: Colors.white, fontSize: 18),
-//               ),
-//               const SizedBox(height: 8),
-//               const Text(
-//                 'Temporary placeholder to keep navigation working on dev.',
-//                 textAlign: TextAlign.center,
-//                 style: TextStyle(color: Colors.white54),
-//               ),
-//               const SizedBox(height: 20),
-//               TextButton(
-//                 onPressed: () => context.go(AppRoutes.home),
-//                 child: const Text(
-//                   'Go Home',
-//                   style: TextStyle(color: Color(0xFFFF5500)),
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
