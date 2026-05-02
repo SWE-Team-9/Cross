@@ -3,142 +3,157 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
-import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/core/models/player_state.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_ui_state.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/add_track_to_playlist_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/create_playlist_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/delete_playlist_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/get_my_playlists_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_details_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/get_playlist_embed_code_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/remove_track_from_playlist_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/reorder_playlist_tracks_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/resolve_secret_playlist_usecase.dart';
-import 'package:soundcloud_clone/features/playlists/domain/usecases/update_playlist_usecase.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
+import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/pages/playlist_detail_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
+class MockPlaylistsCubit extends MockCubit<PlaylistsState>
+    implements PlaylistsCubit {}
 
-class MockGetMyPlaylistsUseCase extends Mock implements GetMyPlaylistsUseCase {}
-
-class MockCreatePlaylistUseCase extends Mock implements CreatePlaylistUseCase {}
-
-class MockGetPlaylistDetailsUseCase extends Mock
-    implements GetPlaylistDetailsUseCase {}
-
-class MockUpdatePlaylistUseCase extends Mock implements UpdatePlaylistUseCase {}
-
-class MockDeletePlaylistUseCase extends Mock implements DeletePlaylistUseCase {}
-
-class MockAddTrackToPlaylistUseCase extends Mock
-    implements AddTrackToPlaylistUseCase {}
-
-class MockRemoveTrackFromPlaylistUseCase extends Mock
-    implements RemoveTrackFromPlaylistUseCase {}
-
-class MockReorderPlaylistTracksUseCase extends Mock
-    implements ReorderPlaylistTracksUseCase {}
-
-class MockResolveSecretPlaylistUseCase extends Mock
-    implements ResolveSecretPlaylistUseCase {}
-
-class MockGetPlaylistEmbedCodeUseCase extends Mock
-    implements GetPlaylistEmbedCodeUseCase {}
+class MockPlayerCubit extends Mock implements PlayerCubit {}
 
 void main() {
-  group('PlaylistDetailPage owner actions', () {
-    testWidgets('shows embed action for playlist owner', (tester) async {
-      await tester.pumpWidget(
-        _buildSubject(
-          authUserId: 'owner-1',
-          playlistOwnerId: 'owner-1',
+  late MockPlaylistsCubit playlistsCubit;
+  late MockPlayerCubit playerCubit;
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    playlistsCubit = MockPlaylistsCubit();
+    playerCubit = MockPlayerCubit();
+
+    when(() => playerCubit.state).thenReturn(
+      const PlayerUIState(
+        playerState: PlayerState(
+          status: PlayerStatus.idle,
+          position: Duration.zero,
         ),
+      ),
+    );
+  });
+
+  group('PlaylistDetailPage playback recording', () {
+    testWidgets('records playlist playback when play playlist is tapped',
+        (tester) async {
+      final playlist = _playlist(
+        tracks: [_track(id: 'trk_1')],
+      );
+      final state = PlaylistsState.initial().copyWith(
+        selectedPlaylist: playlist,
       );
 
-      expect(find.byTooltip('Get embed code'), findsOneWidget);
-      expect(find.byTooltip('Share playlist'), findsOneWidget);
+      whenListen(
+        playlistsCubit,
+        const Stream<PlaylistsState>.empty(),
+        initialState: state,
+      );
+      when(() => playlistsCubit.state).thenReturn(state);
+      when(() => playlistsCubit.recordPlaylistPlayback('pl_1')).thenAnswer(
+        (_) async {},
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(
+          playlist: playlist,
+          playlistsCubit: playlistsCubit,
+          playerCubit: playerCubit,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final playButton = find.widgetWithText(OutlinedButton, 'Play playlist');
+      expect(playButton, findsOneWidget);
+
+      await tester.ensureVisible(playButton);
+      await tester.tap(playButton);
+      await tester.pumpAndSettle();
+      verify(() => playlistsCubit.recordPlaylistPlayback('pl_1')).called(1);
     });
 
-    testWidgets('hides embed action for non-owner', (tester) async {
-      await tester.pumpWidget(
-        _buildSubject(
-          authUserId: 'viewer-1',
-          playlistOwnerId: 'owner-1',
-        ),
+    testWidgets('does not record playback when playlist has no tracks',
+        (tester) async {
+      final playlist = _playlist();
+      final state = PlaylistsState.initial().copyWith(
+        selectedPlaylist: playlist,
       );
 
-      expect(find.byTooltip('Get embed code'), findsNothing);
-      expect(find.byTooltip('Share playlist'), findsOneWidget);
+      whenListen(
+        playlistsCubit,
+        const Stream<PlaylistsState>.empty(),
+        initialState: state,
+      );
+      when(() => playlistsCubit.state).thenReturn(state);
+
+      await tester.pumpWidget(
+        _buildSubject(
+          playlist: playlist,
+          playlistsCubit: playlistsCubit,
+          playerCubit: playerCubit,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No tracks in this playlist yet'), findsOneWidget);
+
+      final playButton = find.widgetWithText(OutlinedButton, 'Play playlist');
+      expect(playButton, findsOneWidget);
+
+      await tester.ensureVisible(playButton);
+      await tester.tap(playButton);
+      await tester.pumpAndSettle();
+
+      verifyNever(() => playlistsCubit.recordPlaylistPlayback(any()));
+      verifyNever(() => playlistsCubit.recordPlaylistPlayback(any()));
     });
   });
 }
 
 Widget _buildSubject({
-  required String authUserId,
-  required String playlistOwnerId,
+  required PlaylistEntity playlist,
+  required PlaylistsCubit playlistsCubit,
+  required PlayerCubit playerCubit,
 }) {
-  final authCubit = MockAuthCubit();
-  when(() => authCubit.state).thenReturn(
-    AuthAuthenticated(_user(id: authUserId)),
-  );
-
-  final playlistsCubit = _buildPlaylistsCubit();
-
   return MultiBlocProvider(
     providers: [
-      BlocProvider<AuthCubit>.value(value: authCubit),
       BlocProvider<PlaylistsCubit>.value(value: playlistsCubit),
+      BlocProvider<PlayerCubit>.value(value: playerCubit),
     ],
     child: MaterialApp(
       home: PlaylistDetailPage(
-        playlistId: 'playlist-1',
-        initialPlaylist: _playlist(ownerId: playlistOwnerId),
+        playlistId: playlist.playlistId,
+        initialPlaylist: playlist,
       ),
     ),
   );
 }
 
-PlaylistsCubit _buildPlaylistsCubit() {
-  return PlaylistsCubit(
-    getMyPlaylistsUseCase: MockGetMyPlaylistsUseCase(),
-    createPlaylistUseCase: MockCreatePlaylistUseCase(),
-    getPlaylistDetailsUseCase: MockGetPlaylistDetailsUseCase(),
-    updatePlaylistUseCase: MockUpdatePlaylistUseCase(),
-    deletePlaylistUseCase: MockDeletePlaylistUseCase(),
-    addTrackToPlaylistUseCase: MockAddTrackToPlaylistUseCase(),
-    removeTrackFromPlaylistUseCase: MockRemoveTrackFromPlaylistUseCase(),
-    reorderPlaylistTracksUseCase: MockReorderPlaylistTracksUseCase(),
-    resolveSecretPlaylistUseCase: MockResolveSecretPlaylistUseCase(),
-    getPlaylistEmbedCodeUseCase: MockGetPlaylistEmbedCodeUseCase(),
-  );
-}
-
-User _user({required String id}) {
-  return User(
-    id: id,
-    email: '$id@example.com',
-    displayName: 'User $id',
-    handle: id,
-    isVerified: true,
-  );
-}
-
-PlaylistEntity _playlist({required String ownerId}) {
+PlaylistEntity _playlist({
+  List<Track> tracks = const <Track>[],
+}) {
   return PlaylistEntity(
-    playlistId: 'playlist-1',
-    title: 'Late Night Drive',
-    description: 'Chill tracks',
+    playlistId: 'pl_1',
+    title: 'Focus Playlist',
+    description: 'Coding tracks',
     visibility: PlaylistVisibility.publicPlaylist,
     secretToken: null,
     coverImageUrl: null,
-    owner: PlaylistOwner(
-      id: ownerId,
-      displayName: 'Owner One',
-    ),
-    tracks: const [],
-    tracksCount: 0,
-    likesCount: 7,
+    owner: null,
+    tracks: tracks,
+    tracksCount: tracks.length,
+    likesCount: 0,
+  );
+}
+
+Track _track({required String id}) {
+  return Track(
+    id: id,
+    title: 'Track $id',
+    artist: 'Artist',
+    audioUrl: 'https://cdn.example/$id.mp3',
   );
 }
