@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/features/messaging/data/datasources/messaging_socket_data_source.dart';
 
 void main() {
@@ -45,6 +46,21 @@ void main() {
     });
 
     test('disconnect is safe before connect', () async {
+      await dataSource.disconnect();
+
+      expect(dataSource.isConnected, isFalse);
+    });
+
+    test('connect configures socket with persisted cookies', () async {
+      await cookieJar.saveFromResponse(
+        Uri.parse(ApiConstants.baseUrl),
+        <Cookie>[Cookie('accessToken', 'token-1')],
+      );
+
+      await dataSource.connect();
+
+      expect(dataSource.eventsStream.isBroadcast, isTrue);
+
       await dataSource.disconnect();
 
       expect(dataSource.isConnected, isFalse);

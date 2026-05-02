@@ -22,4 +22,20 @@ void main() {
     final plans = await repo.getPlans();
     expect(plans.isNotEmpty, true);
   });
+
+  test('cancel, resume, changePlan, and portal update mock state', () async {
+    await repo.createCheckout('PRO');
+    await repo.cancelSubscription();
+    expect((await repo.getMySubscription()).cancelAtPeriodEnd, isTrue);
+
+    await repo.resumeSubscription();
+    expect((await repo.getMySubscription()).cancelAtPeriodEnd, isFalse);
+
+    await repo.changePlan('FREE');
+    final free = await repo.getMySubscription();
+    expect(free.subscriptionType, 'FREE');
+    expect(free.remainingUploads, 3);
+
+    expect(await repo.openPortal(), contains('mock-portal'));
+  });
 }

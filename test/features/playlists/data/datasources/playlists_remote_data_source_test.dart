@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -65,6 +67,33 @@ void main() {
 
       final result = await dataSource.getMyPlaylists();
       expect(result, isEmpty);
+    });
+
+    test('parses playlists from top-level json string list', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/me',
+            queryParameters: {'page': 3, 'limit': 2},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/me'),
+          data: '''
+          {
+            "items": [
+              {
+                "playlistId": "pl_string",
+                "title": "String Payload",
+                "visibility": "PUBLIC"
+              }
+            ]
+          }
+          ''',
+        ),
+      );
+
+      final result = await dataSource.getMyPlaylists(page: 3, limit: 2);
+
+      expect(result.single.playlistId, 'pl_string');
+      expect(result.single.title, 'String Payload');
     });
   });
 
@@ -286,6 +315,49 @@ void main() {
       expect(result.visibility, PlaylistVisibility.privatePlaylist);
       expect(result.secretToken, 'sec_abc');
     });
+
+    test('trims non-empty genre before sending body', () async {
+      when(() => dioClient.post(
+            '/api/v1/playlists',
+            data: {
+              'title': 'Genre Playlist',
+              'description': '',
+              'visibility': 'SECRET',
+              'trackIds': const <String>[],
+              'genre': 'Ambient',
+            },
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists'),
+          data: <String, dynamic>{
+            'data': <String, dynamic>{
+              'playlistId': 'pl_genre',
+              'title': 'Genre Playlist',
+              'visibility': 'SECRET',
+            },
+          },
+        ),
+      );
+
+      final result = await dataSource.createPlaylist(
+        title: 'Genre Playlist',
+        description: '',
+        visibility: PlaylistVisibility.privatePlaylist,
+        genre: '  Ambient  ',
+      );
+
+      expect(result.playlistId, 'pl_genre');
+      verify(() => dioClient.post(
+            '/api/v1/playlists',
+            data: {
+              'title': 'Genre Playlist',
+              'description': '',
+              'visibility': 'SECRET',
+              'trackIds': const <String>[],
+              'genre': 'Ambient',
+            },
+          )).called(1);
+    });
   });
 
   group('getPlaylistDetails', () {
@@ -390,6 +462,119 @@ void main() {
         expect(result.tracks, isEmpty);
       },
     );
+
+    test('sends pagination and enriches tracks with missing artists', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/pl_42',
+            queryParameters: {'limit': 2, 'offset': 4},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/pl_42'),
+          data: <String, dynamic>{
+            'playlist': <String, dynamic>{
+              'playlistId': 'pl_42',
+              'title': 'Needs Details',
+              'visibility': 'PUBLIC',
+              'tracks': <dynamic>[
+                <String, dynamic>{
+                  'id': 'trk_needs_artist',
+                  'title': 'Before',
+                  'artist': 'Unknown artist',
+                },
+              ],
+            },
+          },
+        ),
+      );
+      when(() => dioClient.get('/api/v1/tracks/trk_needs_artist')).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions:
+              RequestOptions(path: '/api/v1/tracks/trk_needs_artist'),
+          data: <String, dynamic>{
+            'data': <String, dynamic>{
+              'title': 'After',
+              'artist': <String, dynamic>{
+                'displayName': 'Enriched Artist',
+                'handle': 'enriched',
+                'userId': 'artist_42',
+              },
+              'streamUrl': 'https://cdn.example/enriched.mp3',
+              'artwork_url': 'https://cdn.example/enriched.jpg',
+              'likes_count': 13,
+              'reposts_count': 4,
+              'duration_ms': 211000,
+            },
+          },
+        ),
+      );
+
+      final result = await dataSource.getPlaylistDetails(
+        'pl_42',
+        limit: 2,
+        offset: 4,
+      );
+
+      expect(result.tracks.single.title, 'After');
+      expect(result.tracks.single.artist, 'Enriched Artist');
+      expect(result.tracks.single.audioUrl, 'https://cdn.example/enriched.mp3');
+      expect(
+        result.tracks.single.artworkUrl,
+        'https://cdn.example/enriched.jpg',
+      );
+      expect(result.tracks.single.handle, 'enriched');
+      expect(result.tracks.single.artistId, 'artist_42');
+      expect(result.tracks.single.likesCount, 13);
+      expect(result.tracks.single.repostsCount, 4);
+      expect(result.tracks.single.durationMs, 211000);
+    });
+
+    test('keeps original track when detail enrichment fails', () async {
+      when(() => dioClient.get('/api/v1/playlists/pl_failed')).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/pl_failed'),
+          data: <String, dynamic>{
+            'playlistId': 'pl_failed',
+            'title': 'Fallback',
+            'visibility': 'PUBLIC',
+            'tracks': <dynamic>[
+              <String, dynamic>{
+                'id': 'trk_failed',
+                'title': 'Original',
+                'artist': 'Unkown artist',
+              },
+            ],
+          },
+        ),
+      );
+      when(() => dioClient.get('/api/v1/tracks/trk_failed'))
+          .thenThrow(Exception('not found'));
+
+      final result = await dataSource.getPlaylistDetails('pl_failed');
+
+      expect(result.tracks.single.title, 'Original');
+      expect(result.tracks.single.artist, 'Unkown artist');
+    });
+
+    test('getPlaylistEditDetails parses edit payload', () async {
+      when(() => dioClient.get('/api/v1/playlists/pl_42/edit')).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/pl_42/edit'),
+          data: <String, dynamic>{
+            'data': <String, dynamic>{
+              'playlistId': 'pl_42',
+              'title': 'Editable',
+              'visibility': 'SECRET',
+            },
+          },
+        ),
+      );
+
+      final result = await dataSource.getPlaylistEditDetails('pl_42');
+
+      expect(result.playlistId, 'pl_42');
+      expect(result.title, 'Editable');
+      expect(result.visibility, PlaylistVisibility.privatePlaylist);
+    });
   });
 
   group('update/delete and track actions', () {
@@ -425,6 +610,133 @@ void main() {
             },
           )).called(1);
     });
+
+    test('updatePlaylist sends all optional fields with formatted release date',
+        () async {
+      when(() => dioClient.patch(
+            '/api/v1/playlists/pl_12',
+            data: {
+              'title': 'Updated',
+              'description': 'Fresh description',
+              'visibility': 'PUBLIC',
+              'genre': 'Jazz',
+              'type': 'ALBUM',
+              'releaseDate': '2026-05-02',
+              'tags': ['late', 'night'],
+            },
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/pl_12'),
+          data: const <String, dynamic>{},
+        ),
+      );
+
+      await dataSource.updatePlaylist(
+        playlistId: 'pl_12',
+        title: 'Updated',
+        description: 'Fresh description',
+        visibility: PlaylistVisibility.publicPlaylist,
+        genre: '  Jazz  ',
+        playlistType: 'ALBUM',
+        releaseDate: DateTime.utc(2026, 5, 2, 12),
+        tags: ['late', 'night'],
+      );
+
+      verify(() => dioClient.patch(
+            '/api/v1/playlists/pl_12',
+            data: {
+              'title': 'Updated',
+              'description': 'Fresh description',
+              'visibility': 'PUBLIC',
+              'genre': 'Jazz',
+              'type': 'ALBUM',
+              'releaseDate': '2026-05-02',
+              'tags': ['late', 'night'],
+            },
+          )).called(1);
+    });
+
+    test('uploadPlaylistCover returns urls from cover payload variants',
+        () async {
+      final tempFile = File(
+        '${Directory.systemTemp.path}/playlist-cover-test-${DateTime.now().microsecondsSinceEpoch}.jpg',
+      );
+      await tempFile.writeAsBytes(<int>[1, 2, 3]);
+      addTearDown(() {
+        if (tempFile.existsSync()) tempFile.deleteSync();
+      });
+
+      var responseIndex = 0;
+      final dio = Dio();
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            responseIndex++;
+            handler.resolve(
+              Response<dynamic>(
+                requestOptions: options,
+                data: responseIndex == 1
+                    ? <String, dynamic>{
+                        'data': <String, dynamic>{
+                          'cover_image_url':
+                              'https://cdn.example/nested-cover.jpg',
+                        },
+                      }
+                    : <String, dynamic>{
+                        'coverUrl': 'https://cdn.example/top-cover.jpg',
+                      },
+              ),
+            );
+          },
+        ),
+      );
+      when(() => dioClient.dio).thenReturn(dio);
+
+      final nestedUrl = await dataSource.uploadPlaylistCover(
+        playlistId: 'pl_12',
+        filePath: tempFile.path,
+      );
+      final topLevelUrl = await dataSource.uploadPlaylistCover(
+        playlistId: 'pl_12',
+        filePath: tempFile.path,
+      );
+
+      expect(nestedUrl, 'https://cdn.example/nested-cover.jpg');
+      expect(topLevelUrl, 'https://cdn.example/top-cover.jpg');
+    });
+
+    test('uploadPlaylistCover returns null when response has no url', () async {
+      final tempFile = File(
+        '${Directory.systemTemp.path}/playlist-cover-empty-${DateTime.now().microsecondsSinceEpoch}.jpg',
+      );
+      await tempFile.writeAsBytes(<int>[1]);
+      addTearDown(() {
+        if (tempFile.existsSync()) tempFile.deleteSync();
+      });
+
+      final dio = Dio();
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            handler.resolve(
+              Response<dynamic>(
+                requestOptions: options,
+                data: const <String, dynamic>{'data': <String, dynamic>{}},
+              ),
+            );
+          },
+        ),
+      );
+      when(() => dioClient.dio).thenReturn(dio);
+
+      final result = await dataSource.uploadPlaylistCover(
+        playlistId: 'pl_empty',
+        filePath: tempFile.path,
+      );
+
+      expect(result, isNull);
+    });
+
     test('deletePlaylist uses expected endpoint', () async {
       when(() => dioClient.delete('/api/v1/playlists/pl_12')).thenAnswer(
         (_) async => Response<dynamic>(
@@ -517,6 +829,78 @@ void main() {
               'orderedTrackIds': ['trk_2', 'trk_1'],
             },
           )).called(1);
+    });
+  });
+
+  group('searchPublicPlaylists', () {
+    test('returns empty list for blank query without network call', () async {
+      final result = await dataSource.searchPublicPlaylists('   ');
+
+      expect(result, isEmpty);
+      verifyNever(
+        () => dioClient.get(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      );
+    });
+
+    test('parses playlists from discovery search results', () async {
+      when(() => dioClient.get(
+            '/api/v1/discovery/search',
+            queryParameters: {
+              'q': 'lofi',
+              'type': 'playlists',
+              'page': 2,
+              'limit': 3,
+            },
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/discovery/search'),
+          data: <String, dynamic>{
+            'data': <String, dynamic>{
+              'results': <dynamic>[
+                <String, dynamic>{
+                  'playlistId': 'pl_search',
+                  'title': 'Lofi Search',
+                  'visibility': 'PUBLIC',
+                },
+              ],
+            },
+          },
+        ),
+      );
+
+      final result = await dataSource.searchPublicPlaylists(
+        ' lofi ',
+        page: 2,
+        limit: 3,
+      );
+
+      expect(result.single.playlistId, 'pl_search');
+      expect(result.single.title, 'Lofi Search');
+    });
+
+    test('returns empty list when discovery payload has no playlists',
+        () async {
+      when(() => dioClient.get(
+            '/api/v1/discovery/search',
+            queryParameters: {
+              'q': 'empty',
+              'type': 'playlists',
+              'page': 1,
+              'limit': 20,
+            },
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/discovery/search'),
+          data: const <String, dynamic>{'results': <dynamic>[]},
+        ),
+      );
+
+      final result = await dataSource.searchPublicPlaylists('empty');
+
+      expect(result, isEmpty);
     });
   });
 
@@ -668,6 +1052,40 @@ void main() {
       final result = await dataSource.getPlaylistEmbedCode('pl_500');
 
       expect(result, contains('pl_500'));
+    });
+
+    test('sends embed customization query parameters', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/pl_custom/embed',
+            queryParameters: {
+              'theme': 'dark',
+              'autoplay': true,
+              'start': 30,
+              'hideArtwork': false,
+              'width': 640,
+              'height': 480,
+            },
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions:
+              RequestOptions(path: '/api/v1/playlists/pl_custom/embed'),
+          data: <String, dynamic>{
+            'data': <String, dynamic>{'embedCode': '<iframe></iframe>'},
+          },
+        ),
+      );
+
+      final result = await dataSource.getPlaylistEmbedCode(
+        'pl_custom',
+        theme: 'dark',
+        autoplay: true,
+        start: 30,
+        hideArtwork: false,
+        width: 640,
+        height: 480,
+      );
+
+      expect(result, '<iframe></iframe>');
     });
 
     test('returns empty string when embed payload is invalid', () async {

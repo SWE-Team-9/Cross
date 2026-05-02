@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -5,6 +7,9 @@ import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
+import 'package:soundcloud_clone/features/playback/domain/entities/track_details.dart';
+import 'package:soundcloud_clone/features/playback/domain/entities/waveform_data.dart';
+import 'package:soundcloud_clone/features/playback/domain/usecases/get_track_detail_use_case.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:get_it/get_it.dart';
@@ -12,6 +17,8 @@ import 'package:get_it/get_it.dart';
 class MockAudioPlayerService extends Mock implements AudioPlayerService {}
 
 class MockOfflineCubit extends Mock implements OfflineCubit {}
+
+class MockGetTrackDetailUseCase extends Mock implements GetTrackDetailUseCase {}
 
 class FakeTrack extends Fake implements Track {}
 
@@ -300,6 +307,19 @@ void main() {
       verify(() => mockService.setRepeatMode(AppRepeatMode.one)).called(1);
     });
 
+    test('cycleRepeatMode steps through each repeat mode', () async {
+      await cubit.cycleRepeatMode();
+      await cubit.cycleRepeatMode();
+      await cubit.cycleRepeatMode();
+
+      expect(cubit.state.repeatMode, AppRepeatMode.off);
+      verifyInOrder([
+        () => mockService.setRepeatMode(AppRepeatMode.one),
+        () => mockService.setRepeatMode(AppRepeatMode.all),
+        () => mockService.setRepeatMode(AppRepeatMode.off),
+      ]);
+    });
+
     test('playNext wraps to first track when repeat queue is enabled',
         () async {
       await cubit.playFromContext(
@@ -413,6 +433,143 @@ void main() {
             startIndex: any(named: 'startIndex'),
             source: any(named: 'source'),
           ));
+    });
+
+    test('addPlayLast starts playback when queue is empty', () async {
+      await cubit.addPlayLast(testTrack);
+
+      expect(cubit.state.currentTrack, testTrack);
+      expect(cubit.state.queue, [testTrack]);
+      verify(() => mockService.playFromContext(
+            tracks: [testTrack],
+            startIndex: 0,
+            source: 'queue',
+          )).called(1);
+    });
+
+    test('playFromContext clamps out-of-range start index', () async {
+      await cubit.playFromContext(
+        tracks: [testTrack, nextTrack],
+        startIndex: 99,
+        source: 'queue',
+      );
+
+      expect(cubit.state.currentTrack, nextTrack);
+      expect(cubit.state.currentIndex, 1);
+      verify(() => mockService.playFromContext(
+            tracks: [testTrack, nextTrack],
+            startIndex: 1,
+            source: 'queue',
+          )).called(1);
+    });
+
+    test('playFromContext passes downloaded local path to audio service',
+        () async {
+      when(() => mockOfflineCubit.isDownloaded('1')).thenReturn(true);
+      when(() => mockOfflineCubit.getPath('1')).thenReturn('/offline/1.mp3');
+
+      await cubit.play(testTrack);
+
+      final captured = verify(() => mockService.playFromContext(
+            tracks: captureAny(named: 'tracks'),
+            startIndex: 0,
+            source: 'single',
+          )).captured.single as List<Track>;
+
+      expect(captured.single.localPath, '/offline/1.mp3');
+      expect(cubit.state.currentTrack?.localPath, '/offline/1.mp3');
+    });
+
+    test('playFromContext works when offline cubit is not registered',
+        () async {
+      await GetIt.I.unregister<OfflineCubit>();
+      final localCubit = PlayerCubit(mockService);
+      addTearDown(localCubit.close);
+
+      await localCubit.play(testTrack);
+
+      expect(localCubit.state.currentTrack, testTrack);
+      verify(() => mockService.playFromContext(
+            tracks: [testTrack],
+            startIndex: 0,
+            source: 'single',
+          )).called(1);
+    });
+
+    test('playFromContext resolves missing audio url from track details',
+        () async {
+      final getTrackDetail = MockGetTrackDetailUseCase();
+      final trackWithoutAudio = Track(
+        id: testTrack.id,
+        title: testTrack.title,
+        artist: testTrack.artist,
+        audioUrl: '',
+      );
+      final detail = TrackDetail(
+        trackId: testTrack.id,
+        title: 'Resolved',
+        artist: 'Resolved Artist',
+        artistId: 'artist-1',
+        artistHandle: 'resolved',
+        streamUrl: 'https://cdn/resolved.mp3',
+        waveformData: WaveformData.fromRaw(const [0.2, 0.4, 0.8]),
+      );
+
+      when(() => getTrackDetail(testTrack.id)).thenAnswer(
+        (_) async => (detail: detail, failure: null),
+      );
+
+      final localCubit = PlayerCubit(
+        mockService,
+        getTrackDetail: getTrackDetail,
+      );
+      addTearDown(localCubit.close);
+
+      await localCubit.play(trackWithoutAudio);
+
+      final captured = verify(() => mockService.playFromContext(
+            tracks: captureAny(named: 'tracks'),
+            startIndex: 0,
+            source: 'single',
+          )).captured.single as List<Track>;
+
+      expect(localCubit.state.waveform?.normalizedPeaks, isNotEmpty);
+      expect(captured.single.audioUrl, 'https://cdn/resolved.mp3');
+      expect(captured.single.title, 'Resolved');
+    });
+
+    test('player stream keeps local queue during a pending track switch',
+        () async {
+      final controller = StreamController<PlayerState>();
+      when(() => mockService.playerStateStream).thenAnswer(
+        (_) => controller.stream,
+      );
+
+      final localCubit = PlayerCubit(mockService);
+      addTearDown(() async {
+        await localCubit.close();
+        await controller.close();
+      });
+
+      await localCubit.playFromContext(
+        tracks: [testTrack, nextTrack],
+        startIndex: 1,
+        source: 'queue',
+      );
+
+      controller.add(
+        PlayerState(
+          status: PlayerStatus.playing,
+          position: Duration.zero,
+          currentTrackId: testTrack.id,
+          queue: <Track>[testTrack],
+          currentIndex: 0,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(localCubit.state.queue, [testTrack, nextTrack]);
+      expect(localCubit.state.currentIndex, 1);
     });
 
     test('hideMiniPlayer and showMiniPlayer toggle mini-player visibility', () {
