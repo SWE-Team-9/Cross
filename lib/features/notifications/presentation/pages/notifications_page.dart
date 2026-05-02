@@ -43,9 +43,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   void _onScroll() {
+    final currentState = context.read<NotificationsBloc>().state;
+
+    // Don't dispatch load more if we're already loading more
+    if (currentState is NotificationsLoadingMore) return;
+
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      context.read<NotificationsBloc>().add(const LoadMoreNotifications());
+      if (currentState is NotificationsLoaded && currentState.hasMore) {
+        context.read<NotificationsBloc>().add(const LoadMoreNotifications());
+      }
     }
   }
 
