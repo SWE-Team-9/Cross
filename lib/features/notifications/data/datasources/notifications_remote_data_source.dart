@@ -101,16 +101,23 @@ class NotificationsRemoteDataSourceImpl
 
   @override
   Future<NotificationPreferencesModel> getPreferences() async {
-    final response = await _client.get('$_base/preferences');
-    final payload = _extractPayload(response.data);
+    try {
+      final response = await _client.get('$_base/preferences');
+      final payload = _extractPayload(response.data);
 
-    if (payload is Map<String, dynamic>) {
-      return NotificationPreferencesModel.fromJson(payload);
+      if (payload is Map<String, dynamic>) {
+        return NotificationPreferencesModel.fromJson(payload);
+      }
+      // Fallback to defaults if parsing fails
+      return NotificationPreferencesModel.fromEntity(
+        NotificationPreferencesEntity.defaults(),
+      );
+    } catch (e) {
+      // Return defaults on any error
+      return NotificationPreferencesModel.fromEntity(
+        NotificationPreferencesEntity.defaults(),
+      );
     }
-
-    return NotificationPreferencesModel.fromEntity(
-      NotificationPreferencesEntity.defaults(),
-    );
   }
 
   @override

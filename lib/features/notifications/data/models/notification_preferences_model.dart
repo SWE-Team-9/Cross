@@ -9,14 +9,20 @@ class NotificationPreferencesModel extends NotificationPreferencesEntity {
   });
 
   factory NotificationPreferencesModel.fromJson(Map<String, dynamic> json) {
+    /// Parse preferences with fallback to defaults (true)
+    /// API may return either camelCase (likesEnabled) or snake_case (likes)
+    bool _parsePreference(String camelKey, String snakeKey) {
+      final value = json[camelKey] ?? json[snakeKey];
+      if (value is bool) return value;
+      if (value is int) return value > 0;
+      return true; // Default to enabled
+    }
+
     return NotificationPreferencesModel(
-      likesEnabled: (json['likesEnabled'] ?? json['likes'] ?? true) == true,
-      commentsEnabled:
-          (json['commentsEnabled'] ?? json['comments'] ?? true) == true,
-      followsEnabled:
-          (json['followsEnabled'] ?? json['follows'] ?? true) == true,
-      repostsEnabled:
-          (json['repostsEnabled'] ?? json['reposts'] ?? true) == true,
+      likesEnabled: _parsePreference('likesEnabled', 'likes'),
+      commentsEnabled: _parsePreference('commentsEnabled', 'comments'),
+      followsEnabled: _parsePreference('followsEnabled', 'follows'),
+      repostsEnabled: _parsePreference('repostsEnabled', 'reposts'),
     );
   }
 

@@ -18,6 +18,7 @@ import 'package:soundcloud_clone/features/auth/domain/repositories/auth_reposito
 import 'package:soundcloud_clone/core/oauth/oauth_pending_request_store.dart';
 import 'package:soundcloud_clone/core/oauth/windows_oauth_callback_server.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
+import 'package:soundcloud_clone/features/notifications/data/services/fcm_registration_service.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 
 class MockLoginUseCase extends Mock implements LoginUseCase {}
@@ -53,6 +54,9 @@ class MockWindowsOAuthCallbackServer extends Mock
 class MockOAuthPendingRequestStore extends Mock
     implements OAuthPendingRequestStore {}
 
+class MockFcmRegistrationService extends Mock
+  implements FcmRegistrationService {}
+
 void main() {
   late MockLoginUseCase mockLoginUseCase;
   late MockRegisterUseCase mockRegisterUseCase;
@@ -68,6 +72,7 @@ void main() {
   late MockAuthRepository mockAuthRepository;
   late MockWindowsOAuthCallbackServer mockWindowsOAuthCallbackServer;
   late MockOAuthPendingRequestStore mockOAuthPendingRequestStore;
+  late MockFcmRegistrationService mockFcmRegistrationService;
   late AuthCubit cubit;
 
   const user = User(
@@ -96,6 +101,7 @@ void main() {
       authRepository: mockAuthRepository,
       windowsOAuthCallbackServer: mockWindowsOAuthCallbackServer,
       oauthPendingRequestStore: mockOAuthPendingRequestStore,
+      fcmRegistrationService: mockFcmRegistrationService,
     );
   }
 
@@ -114,6 +120,7 @@ void main() {
     mockAuthRepository = MockAuthRepository();
     mockWindowsOAuthCallbackServer = MockWindowsOAuthCallbackServer();
     mockOAuthPendingRequestStore = MockOAuthPendingRequestStore();
+    mockFcmRegistrationService = MockFcmRegistrationService();
     cubit = buildCubit();
   });
 

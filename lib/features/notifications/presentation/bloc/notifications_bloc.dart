@@ -216,6 +216,14 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     final current = state;
     if (current is! NotificationsLoaded) return;
 
+    final alreadyPresent = current.notifications.any(
+      (notification) => notification.id == event.notification.id,
+    );
+
+    if (alreadyPresent) {
+      return;
+    }
+
     emit(
       current.copyWith(
         notifications: [event.notification, ...current.notifications],
