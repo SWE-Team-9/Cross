@@ -101,6 +101,30 @@ String _playlistPath(String id) => '/playlist/$id';
 String _secretPlaylistPath(String token) => '/playlist/secret/$token';
 String _searchPath(String query) => '/search?q=$query';
 
+String _billingReturnPath(BillingReturnDeepLink destination) {
+  final queryParameters = <String, String>{
+    if (destination.status != null && destination.status!.trim().isNotEmpty)
+      'status': destination.status!.trim(),
+    if (destination.planCode != null && destination.planCode!.trim().isNotEmpty)
+      'plan': destination.planCode!.trim(),
+    if (destination.sessionId != null && destination.sessionId!.trim().isNotEmpty)
+      'session_id': destination.sessionId!.trim(),
+    if (destination.checkoutSessionId != null &&
+        destination.checkoutSessionId!.trim().isNotEmpty)
+      'checkout_session_id': destination.checkoutSessionId!.trim(),
+    if (destination.subscriptionId != null &&
+        destination.subscriptionId!.trim().isNotEmpty)
+      'subscription_id': destination.subscriptionId!.trim(),
+  };
+
+  final uri = Uri(
+    path: AppRoutes.billing,
+    queryParameters: queryParameters.isEmpty ? null : queryParameters,
+  );
+
+  return uri.toString();
+}
+
 void _handleDeepLinkDestination(
   DeepLinkDestination destination,
   GoRouter router,
@@ -126,8 +150,10 @@ void _handleDeepLinkDestination(
     case SearchDeepLink(:final query):
       path = _searchPath(query);
 
-    case OAuthCallbackDeepLink():
-      router.go('/oauth-debug', extra: destination);
+    case BillingReturnDeepLink():
+      path = _billingReturnPath(destination);
+
+    case OAuthCallbackDeepLink():      router.go('/oauth-debug', extra: destination);
       return;
 
     case InvalidDeepLink():
