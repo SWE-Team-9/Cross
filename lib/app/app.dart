@@ -11,12 +11,17 @@ import '../core/notifiers/overlay_notifiers.dart';
 import '../core/widgets/bottom_nav_bar.dart';
 import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/auth/presentation/routes/auth_routes.dart';
+import '../features/comments/presentation/bloc/comments_cubit.dart';
+import '../features/comments/presentation/pages/track_comments_page.dart';
 import '../features/notifications/data/services/fcm_registration_service.dart';
 import '../features/notifications/data/services/notifications_realtime_refresh_service.dart';
+import '../features/notifications/domain/entities/notification_entity.dart';
+import '../features/notifications/domain/entities/notification_tap_target.dart';
+import '../features/notifications/domain/usecases/resolve_notification_tap_target_use_case.dart';
 import '../features/messaging/presentation/routes/messaging_routes.dart';
-import '../features/messaging/domain/entities/conversation_entity.dart';
 import '../features/notifications/presentation/bloc/notification_preferences_bloc.dart';
 import '../features/notifications/presentation/bloc/notifications_bloc.dart';
+import '../features/profile/presentation/routes/profile_routes.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/player_ui_state.dart';
 import '../features/playback/presentation/bloc/playback_cubit.dart';
@@ -199,7 +204,7 @@ class _NotificationRefreshBridgeState
     extends State<_NotificationRefreshBridge> {
   StreamSubscription<void>? _fcmSubscription;
   StreamSubscription<void>? _realtimeSubscription;
-  StreamSubscription<ConversationEntity>? _conversationSubscription;
+  StreamSubscription<NotificationEntity>? _notificationTapSubscription;
   Timer? _debounceTimer;
 
   @override
@@ -209,34 +214,79 @@ class _NotificationRefreshBridgeState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      final service = getIt<FcmRegistrationService>();
-      final realtimeService = getIt<NotificationsRealtimeRefreshService>();
+      if (!getIt.isRegistered<NotificationsRealtimeRefreshService>()) {
+        return;
+      }
 
-      _fcmSubscription = service.notificationRefreshStream.listen((_) {
-        _scheduleRefresh();
-      });
+      final realtimeService = getIt<NotificationsRealtimeRefreshService>();
+      FcmRegistrationService? service;
+
+      try {
+        if (getIt.isRegistered<FcmRegistrationService>()) {
+          service = getIt<FcmRegistrationService>();
+        }
+      } catch (_) {
+        service = null;
+      }
+
+      if (service != null) {
+        _fcmSubscription = service.notificationRefreshStream.listen((_) {
+          _scheduleRefresh();
+        });
+
+        _notificationTapSubscription =
+            service.notificationTapStream.listen(_handleNotificationTap);
+
+        final pendingNotification = service.consumeLastOpenedNotification();
+        if (pendingNotification != null) {
+          _handleNotificationTap(pendingNotification);
+        }
+      }
 
       _realtimeSubscription = realtimeService.refreshStream.listen((_) {
         _scheduleRefresh();
       });
-
-      _conversationSubscription = service.conversationOpenStream.listen(
-        _openConversation,
-      );
-
-      final pendingConversation = service.consumeLastOpenedConversation();
-      if (pendingConversation != null) {
-        _openConversation(pendingConversation);
-      }
     });
   }
 
-  Future<void> _openConversation(ConversationEntity conversation) async {
-    if (!mounted) {
-      return;
+  Future<void> _handleNotificationTap(NotificationEntity notification) async {
+    if (!mounted) return;
+
+    final resolver = getIt<ResolveNotificationTapTargetUseCase>();
+    final target = await resolver(notification);
+    if (!mounted) return;
+
+    switch (target) {
+      case NotificationCommentsTapTarget(trackId: final trackId):
+        await _openTrackComments(trackId);
+        break;
+      case NotificationConversationTapTarget(conversation: final conversation):
+        await MessagingRoutes.goToConversation(context, conversation);
+        break;
+      case NotificationProfileTapTarget(handle: final handle):
+        ProfileRoutes.goToProfile(context, handle);
+        break;
+      case null:
+        return;
     }
 
-    await MessagingRoutes.goToConversation(context, conversation);
+    if (mounted && notification.id.isNotEmpty) {
+      context.read<NotificationsBloc>().add(MarkNotificationRead(notification.id));
+    }
+  }
+
+  Future<void> _openTrackComments(String trackId) async {
+    if (trackId.trim().isEmpty || !mounted) return;
+
+    await Navigator.push<int>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (_) => getIt<CommentsCubit>(),
+          child: TrackCommentsPage(trackId: trackId),
+        ),
+      ),
+    );
   }
 
   void _scheduleRefresh() {
@@ -254,7 +304,7 @@ class _NotificationRefreshBridgeState
     _debounceTimer?.cancel();
     _fcmSubscription?.cancel();
     _realtimeSubscription?.cancel();
-    _conversationSubscription?.cancel();
+    _notificationTapSubscription?.cancel();
     super.dispose();
   }
 

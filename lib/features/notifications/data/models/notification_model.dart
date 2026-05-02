@@ -39,17 +39,25 @@ class NotificationModel extends NotificationEntity {
     ]);
     final actorDisplayName = _firstNonEmpty([
       actorMap['displayName'],
+      actorMap['display_name'],
       actorMap['name'],
+      actorMap['full_name'],
       actorMap['fullName'],
       json['actorDisplayName'],
       json['actorName'],
+      json['senderName'],
+      json['senderDisplayName'],
+      json['authorName'],
     ]);
     final actorHandle = _firstNonEmpty([
       actorMap['handle'],
       actorMap['username'],
       actorMap['userName'],
+      actorMap['user_handle'],
       json['actorHandle'],
       json['actorUsername'],
+      json['senderHandle'],
+      json['authorHandle'],
     ]);
     final actorAvatarUrl = _firstNonEmpty([
       actorMap['avatarUrl'],
