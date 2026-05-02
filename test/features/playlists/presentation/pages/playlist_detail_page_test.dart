@@ -108,7 +108,48 @@ void main() {
       await tester.pumpAndSettle();
 
       verifyNever(() => playlistsCubit.recordPlaylistPlayback(any()));
-      verifyNever(() => playlistsCubit.recordPlaylistPlayback(any()));
+    });
+
+    testWidgets('shows load more tracks and requests next page on tap',
+        (tester) async {
+      final playlist = _playlist(
+        tracks: [_track(id: 'trk_1'), _track(id: 'trk_2')],
+        tracksCount: 5,
+      );
+      final state = PlaylistsState.initial().copyWith(
+        selectedPlaylist: playlist,
+        playlistTracksOffset: 2,
+        hasMorePlaylistTracks: true,
+      );
+
+      whenListen(
+        playlistsCubit,
+        const Stream<PlaylistsState>.empty(),
+        initialState: state,
+      );
+      when(() => playlistsCubit.state).thenReturn(state);
+      when(() => playlistsCubit.loadMorePlaylistTracks()).thenAnswer(
+        (_) async {},
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(
+          playlist: playlist,
+          playlistsCubit: playlistsCubit,
+          playerCubit: playerCubit,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final loadMoreButton =
+          find.widgetWithText(OutlinedButton, 'Load more tracks');
+      expect(loadMoreButton, findsOneWidget);
+
+      await tester.ensureVisible(loadMoreButton);
+      await tester.tap(loadMoreButton);
+      await tester.pumpAndSettle();
+
+      verify(() => playlistsCubit.loadMorePlaylistTracks()).called(1);
     });
   });
 }
@@ -134,6 +175,7 @@ Widget _buildSubject({
 
 PlaylistEntity _playlist({
   List<Track> tracks = const <Track>[],
+  int? tracksCount,
 }) {
   return PlaylistEntity(
     playlistId: 'pl_1',
@@ -144,7 +186,7 @@ PlaylistEntity _playlist({
     coverImageUrl: null,
     owner: null,
     tracks: tracks,
-    tracksCount: tracks.length,
+    tracksCount: tracksCount ?? tracks.length,
     likesCount: 0,
   );
 }
