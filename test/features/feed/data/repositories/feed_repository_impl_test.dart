@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/features/feed/data/datasources/feed_remote_data_sources.dart';
-import 'package:soundcloud_clone/features/feed/data/dto/feed_item_model.dart';
+import 'package:soundcloud_clone/features/feed/domain/entities/feed_item.dart';
 import 'package:soundcloud_clone/features/feed/data/repositories/feed_repository_impl.dart';
 
 class MockFeedRemoteDataSource extends Mock implements FeedRemoteDataSource {}
@@ -16,21 +16,30 @@ void main() {
       repository = FeedRepositoryImpl(dataSource: dataSource);
     });
 
-    test('getFeed returns data source page', () async {
-      const page = FeedPageModel(
-        items: [],
-        page: 1,
-        hasMore: false,
-        totalItems: 0,
-      );
-      when(() => dataSource.getFeed(tab: 'for-you', page: 1)).thenAnswer(
-        (_) async => page,
-      );
+test('getFeed returns data source page', () async {
+  final page = ActivityFeedPageModel(
+    items: const [],
+    pagination: const FeedPaginationModel(
+      page: 1,
+      limit: 20,
+      offset: 0,
+      total: 0,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    ),
+  );
+  when(() => dataSource.getFeed(page: 1)).thenAnswer(
+    (_) async => page,
+  );
 
-      final result = await repository.getFeed(tab: 'for-you', page: 1);
+  final result = await repository.getFeed(page: 1);
 
-      expect(result, same(page));
-    });
+  // الـ repository بيحول ActivityFeedPageModel → FeedPage
+  expect(result, isA<FeedPage>());
+  expect(result.page, 1);
+  expect(result.items, isEmpty);
+});
 
     test('toggleLike maps explicit and fallback values', () async {
       when(
