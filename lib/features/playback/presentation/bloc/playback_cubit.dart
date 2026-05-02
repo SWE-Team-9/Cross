@@ -3,13 +3,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
+import 'package:soundcloud_clone/features/playback/data/repositories/queue_repository.dart';
 
 import 'playback_state.dart';
 
 class PlaybackCubit extends Cubit<PlaybackState> {
   final AudioPlayerService audioPlayerService;
+  final QueueRepository queueRepository;
 
-  PlaybackCubit(this.audioPlayerService)
+  PlaybackCubit(this.audioPlayerService, this.queueRepository)
       : super(const PlaybackState(isAvailable: true));
 
   int _currentIndex = -1;
@@ -28,7 +30,17 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       isPlaying: true,
     ));
 
-    await audioPlayerService.play(queue[_currentIndex]);
+    // ✅ أبلغ الـ backend بالـ queue الجديدة
+    await queueRepository.loadQueue(
+      trackIds: queue.map((t) => t.id).toList(),
+      startIndex: _currentIndex,
+    );
+
+    await audioPlayerService.playFromContext(
+      tracks: queue,
+      startIndex: _currentIndex,
+      source: 'playback_cubit',
+    );
   }
 
   Future<void> pause() async {
@@ -38,9 +50,8 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   }
 
   Future<void> resume() async {
-    final track = state.currentTrack;
-    if (track == null) return;
-    await audioPlayerService.play(track);
+    if (state.currentTrack == null) return;
+    await audioPlayerService.resume();
     emit(state.copyWith(isPlaying: true));
   }
 
@@ -62,23 +73,44 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     ));
   }
 
+  // ── Next / Previous — backend-aware ──────────────────────────────────────
+
   Future<void> playNext() async {
     if (state.queue.isEmpty || _currentIndex < 0) return;
     if (_currentIndex >= state.queue.length - 1) return;
 
+    // أبلغ الـ backend أولاً
+    final nextTrack = await queueRepository.next();
+
     _currentIndex++;
-    final nextTrack = state.queue[_currentIndex];
-    emit(state.copyWith(currentTrack: nextTrack, isPlaying: true));
-    await audioPlayerService.play(nextTrack);
+    final localNext = nextTrack ?? state.queue[_currentIndex];
+
+    emit(state.copyWith(currentTrack: localNext, isPlaying: true));
+    await audioPlayerService.play(localNext);
   }
 
   Future<void> playPrevious() async {
     if (state.queue.isEmpty || _currentIndex <= 0) return;
 
+    final prevTrack = await queueRepository.previous();
+
     _currentIndex--;
-    final prevTrack = state.queue[_currentIndex];
-    emit(state.copyWith(currentTrack: prevTrack, isPlaying: true));
-    await audioPlayerService.play(prevTrack);
+    final localPrev = prevTrack ?? state.queue[_currentIndex];
+
+    emit(state.copyWith(currentTrack: localPrev, isPlaying: true));
+    await audioPlayerService.play(localPrev);
+  }
+
+  /// القفز لأغنية محددة بالـ index في الـ queue
+  Future<void> jumpToIndex(int index) async {
+    if (index < 0 || index >= state.queue.length) return;
+
+    final jumped = await queueRepository.jumpTo(index);
+    _currentIndex = index;
+
+    final track = jumped ?? state.queue[index];
+    emit(state.copyWith(currentTrack: track, isPlaying: true));
+    await audioPlayerService.play(track);
   }
 
   Future<void> seek(Duration position) async {
@@ -87,49 +119,46 @@ class PlaybackCubit extends Cubit<PlaybackState> {
 
   List<Track> getQueue() => state.queue;
 
-  // ── Queue manipulation (3-dot menu actions) ──────────────────────────────
+  // ── Queue manipulation (local + reload backend) ──────────────────────────
 
-  /// Inserts [track] immediately after the currently playing track.
-  /// If nothing is playing, adds it to the front.
-  /// Matches SoundCloud "Play Next" behaviour.
   void addPlayNext(Track track) {
     final queue = List<Track>.from(state.queue);
-
-    // Remove if already in queue (avoid duplicates)
     queue.removeWhere((t) => t.id == track.id);
 
     if (queue.isEmpty || _currentIndex < 0) {
-      // Nothing playing — put it first
       queue.insert(0, track);
       _currentIndex = 0;
     } else {
-      // Insert right after current
       final insertAt = (_currentIndex + 1).clamp(0, queue.length);
       queue.insert(insertAt, track);
-      // _currentIndex stays the same — current track didn't move
     }
 
     emit(state.copyWith(queue: queue));
+
+    // sync مع الـ backend
+    _syncQueueToBackend(queue);
   }
 
-  /// Appends [track] to the very end of the queue.
-  /// Matches SoundCloud "Play Last" behaviour.
   void addPlayLast(Track track) {
     final queue = List<Track>.from(state.queue);
-
-    // Remove if already in queue (avoid duplicates)
     queue.removeWhere((t) => t.id == track.id);
 
-    // If removing shifted our current index, fix it
-    // (only matters if the removed track was before current)
-    // We re-find current track by id to be safe
     if (state.currentTrack != null) {
       final newIndex = queue.indexWhere((t) => t.id == state.currentTrack!.id);
       if (newIndex >= 0) _currentIndex = newIndex;
     }
 
     queue.add(track);
-
     emit(state.copyWith(queue: queue));
+
+    _syncQueueToBackend(queue);
+  }
+
+  void _syncQueueToBackend(List<Track> queue) {
+    // fire-and-forget — مش محتاجين ننتظر الـ response
+    queueRepository.loadQueue(
+      trackIds: queue.map((t) => t.id).toList(),
+      startIndex: _currentIndex.clamp(0, queue.length - 1),
+    );
   }
 }

@@ -16,7 +16,6 @@ class AddToPlaylistSheet extends StatefulWidget {
   static Future<void> show(BuildContext context, {required Track track}) {
     return showModalBottomSheet(
       context: context,
-      useRootNavigator: true, // ← fixes mini player showing on top
       backgroundColor: const Color(0xFF1A1A1A),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -239,7 +238,6 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
     );
   }
 }
-
 class _PlaylistCoverThumb extends StatelessWidget {
   const _PlaylistCoverThumb({required this.playlist});
 

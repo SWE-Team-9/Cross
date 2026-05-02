@@ -5,25 +5,19 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/feed_item.dart';
 
-enum FeedTab { following, discover }
-
-extension FeedTabX on FeedTab {
-  String get key => name; // 'following' | 'discover'
-  String get label => this == FeedTab.following ? 'Following' : 'Discover';
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
+//  Feed States  (Activity feed — single tab, chronological)
 // ─────────────────────────────────────────────────────────────────────────────
 
 abstract class FeedState extends Equatable {
-  final FeedTab tab;
-  const FeedState(this.tab);
+  const FeedState();
 }
 
 /// Initial load in progress (full-screen skeleton)
 class FeedLoading extends FeedState {
-  const FeedLoading(super.tab);
+  const FeedLoading();
   @override
-  List<Object?> get props => [tab];
+  List<Object?> get props => [];
 }
 
 /// Items loaded — normal feed
@@ -31,20 +25,18 @@ class FeedLoaded extends FeedState {
   final List<FeedItem> items;
   final int nextPage;
   final bool hasMore;
-  final bool isLoadingMore; // footer spinner
-  final bool isRefreshing; // pull-to-refresh
+  final bool isLoadingMore;  // footer spinner
+  final bool isRefreshing;   // pull-to-refresh
 
   const FeedLoaded({
-    required FeedTab tab,
     required this.items,
     required this.nextPage,
     required this.hasMore,
     this.isLoadingMore = false,
     this.isRefreshing = false,
-  }) : super(tab);
+  });
 
   FeedLoaded copyWith({
-    FeedTab? tab,
     List<FeedItem>? items,
     int? nextPage,
     bool? hasMore,
@@ -52,7 +44,6 @@ class FeedLoaded extends FeedState {
     bool? isRefreshing,
   }) {
     return FeedLoaded(
-      tab: tab ?? this.tab,
       items: items ?? this.items,
       nextPage: nextPage ?? this.nextPage,
       hasMore: hasMore ?? this.hasMore,
@@ -63,20 +54,92 @@ class FeedLoaded extends FeedState {
 
   @override
   List<Object?> get props =>
-      [tab, items, nextPage, hasMore, isLoadingMore, isRefreshing];
+      [items, nextPage, hasMore, isLoadingMore, isRefreshing];
 }
 
 /// No items returned
 class FeedEmpty extends FeedState {
-  const FeedEmpty(super.tab);
+  const FeedEmpty();
   @override
-  List<Object?> get props => [tab];
+  List<Object?> get props => [];
 }
 
 /// Error occurred
 class FeedError extends FeedState {
   final String message;
-  const FeedError(super.tab, this.message);
+  const FeedError(this.message);
   @override
-  List<Object?> get props => [tab, message];
+  List<Object?> get props => [message];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Search States
+// ─────────────────────────────────────────────────────────────────────────────
+
+abstract class SearchState extends Equatable {
+  const SearchState();
+}
+
+class SearchIdle extends SearchState {
+  const SearchIdle();
+  @override
+  List<Object?> get props => [];
+}
+
+class SearchLoading extends SearchState {
+  const SearchLoading();
+  @override
+  List<Object?> get props => [];
+}
+
+class SearchLoaded extends SearchState {
+  final SearchResults results;
+  final String query;
+
+  const SearchLoaded({required this.results, required this.query});
+
+  @override
+  List<Object?> get props => [results, query];
+}
+
+class SearchEmpty extends SearchState {
+  final String query;
+  const SearchEmpty(this.query);
+  @override
+  List<Object?> get props => [query];
+}
+
+class SearchError extends SearchState {
+  final String message;
+  const SearchError(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Trending States
+// ─────────────────────────────────────────────────────────────────────────────
+
+abstract class TrendingState extends Equatable {
+  const TrendingState();
+}
+
+class TrendingLoading extends TrendingState {
+  const TrendingLoading();
+  @override
+  List<Object?> get props => [];
+}
+
+class TrendingLoaded extends TrendingState {
+  final List<TrendingTrack> tracks;
+  const TrendingLoaded(this.tracks);
+  @override
+  List<Object?> get props => [tracks];
+}
+
+class TrendingError extends TrendingState {
+  final String message;
+  const TrendingError(this.message);
+  @override
+  List<Object?> get props => [message];
 }

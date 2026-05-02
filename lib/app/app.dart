@@ -18,7 +18,6 @@ import '../features/social/data/repositories/social_repo.dart';
 import 'package:go_router/go_router.dart';
 import 'router.dart';
 
-// Routes where the mini-player must stay hidden (auth/onboarding/full player).
 const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.splash,
   AuthRoutes.welcome,
@@ -32,6 +31,7 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AppRoutes.player,
   AppRoutes.trackManagementDemo,
   AppRoutes.uploadPicker,
+  AppRoutes.discover,
 };
 
 bool _shouldHideMiniPlayerForPath(String path) {
@@ -58,15 +58,9 @@ class App extends StatelessWidget {
       ],
       child: MultiBlocProvider(
         providers: [
-          BlocProvider(
-            create: (_) => getIt<AuthCubit>(),
-          ),
-          BlocProvider(
-            create: (_) => getIt<PlayerCubit>(),
-          ),
-          BlocProvider(
-            create: (_) => getIt<PlaybackCubit>(),
-          ),
+          BlocProvider(create: (_) => getIt<AuthCubit>()),
+          BlocProvider(create: (_) => getIt<PlayerCubit>()),
+          BlocProvider(create: (_) => getIt<PlaybackCubit>()),
         ],
         child: MaterialApp.router(
           title: 'Iqa3',
@@ -147,7 +141,6 @@ class App extends StatelessWidget {
 
 class _DeepLinkBridge extends StatefulWidget {
   const _DeepLinkBridge({required this.child});
-
   final Widget child;
 
   @override
@@ -160,19 +153,17 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-
       final deepLinkService = getIt<DeepLinkService>();
-
       final pending = deepLinkService.peekLastDestination();
       if (pending is OAuthCallbackDeepLink) {
         deepLinkService.markLastDestinationConsumed();
         _handleDestination(pending);
       }
-
       _subscription = deepLinkService.stream.listen(_handleDestination);
+
+      
     });
   }
 
@@ -181,6 +172,14 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
 
     if (destination is OAuthCallbackDeepLink) {
       router.go(AuthRoutes.oauthDebug, extra: destination);
+    } else if (destination is TrackDeepLink) {
+      router.go('/track/${destination.trackId}');
+    } else if (destination is PlaylistDeepLink) {
+      router.go('/playlist/${destination.playlistId}');
+    } else if (destination is ProfileDeepLink) {
+      router.go('/profile/${destination.handle}');
+    } else if (destination is SearchDeepLink) {
+      router.go('/search?q=${destination.query}');
     }
   }
 
@@ -191,7 +190,5 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
+  Widget build(BuildContext context) => widget.child;
 }

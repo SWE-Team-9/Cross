@@ -47,12 +47,11 @@ import '../features/playlists/presentation/pages/playlists_page.dart';
 
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
-
-// Project — feed
 import '../features/feed/presentation/pages/feed_page.dart';
 
 // Project — search
-import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
+import 'package:soundcloud_clone/features/search/presentation/pages/search_page.dart';
+import 'package:soundcloud_clone/features/search/presentation/bloc/search_cubit.dart';
 
 // Project — messaging
 import '../features/messaging/domain/entities/conversation_entity.dart';
@@ -63,11 +62,15 @@ import '../features/messaging/presentation/routes/messaging_routes.dart';
 
 // Project - premium
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
+import '../features/discovery/presentation/page/discover_page.dart';
+
 
 class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
   static const String search = '/search';
+  static const String discover = '/discover';
+  static const String searchActive = '/search/active';
   static const String library = '/library';
   static const String upgrade = '/upgrade';
   static const String uploadPicker = '/upload-picker';
@@ -175,6 +178,16 @@ GoRouter _createRouter() {
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AuthRoutes.splash,
+
+    // 🔥 redirect — deep link tracks pass through freely
+    redirect: (context, state) {
+      final location = state.uri.toString();
+      if (location.startsWith('/track/')) {
+        return null;
+      }
+      return null;
+    },
+
     routes: [
       // ── Auth ────────────────────────────────────────────────────────────────
       ...AuthRoutes.routes,
@@ -197,15 +210,40 @@ GoRouter _createRouter() {
         ),
       ),
 
+      // ── Discover ────────────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.discover,
+        name: 'discover',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: DiscoverPage(),
+        ),
+      ),
+
       // ── Search ──────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.search,
         name: 'search',
-        pageBuilder: (context, state) {
-          return const NoTransitionPage(
-            child: MockSearchPage(),
-          );
-        },
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: SearchPage(),
+        ),
+        routes: [
+          GoRoute(
+            path: 'active',
+            name: 'search-active',
+            pageBuilder: (context, state) {
+              final initialQuery = state.extra is String
+                  ? state.extra as String
+                  : state.uri.queryParameters['q'];
+
+              return MaterialPage(
+                child: BlocProvider<SearchCubit>(
+                  create: (_) => getIt<SearchCubit>(),
+                  child: SearchActivePage(initialQuery: initialQuery),
+                ),
+              );
+            },
+          ),
+        ],
       ),
 
       // ── Upgrade ─────────────────────────────────────────────────────────────
@@ -213,7 +251,7 @@ GoRouter _createRouter() {
         path: AppRoutes.upgrade,
         name: 'upgrade',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: const UpgradePage(),
+          child: UpgradePage(),
         ),
       ),
 
@@ -241,8 +279,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Upload picker ───────────────────────────────────────────────────────
-      // ── Playlists list ─────────────────────────────────────────────────────
+      // ── Playlists list ──────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlists,
         name: 'playlists',
@@ -376,7 +413,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Secret track — MUST be before trackDetail ──────────────────────────
+      // ── Secret track — MUST be before trackDetail ───────────────────────────
       GoRoute(
         path: AppRoutes.secretTrack,
         name: 'secret-track',
@@ -395,9 +432,9 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track detail ───────────────────────────────────────────────────────
+      // ── Track detail ────────────────────────────────────────────────────────
       GoRoute(
-        path: AppRoutes.trackDetail,
+        path: AppRoutes.trackDetail,  // '/track/:trackId'
         name: 'track-detail',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
@@ -414,7 +451,29 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Messaging ─────────────────────────────────────────────────────────
+
+      // ── resolve ───────────────────────────────────────────────────────────
+      
+     
+//      GoRoute(
+//   path: AppRoutes.playlist,
+//   name: 'playlist',
+//   parentNavigatorKey: rootNavigatorKey,
+//   pageBuilder: (context, state) {
+//     final playlistId = state.pathParameters['playlistId'] ?? '';
+
+//     return MaterialPage(
+//       child: BlocProvider<PlaylistsCubit>(
+//         create: (_) => getIt<PlaylistsCubit>(),
+//         child: PlaylistDetailPage(playlistId: playlistId),
+//       ),
+//     );
+//   },
+// ),
+
+
+
+      // ── Messaging ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.inbox,
         name: 'messages-inbox',
@@ -460,8 +519,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Playlist ───────────────────────────────────────────────────────────
-      // ── Secret playlist ───────────────────────────────────────────────────
+      // ── Secret playlist — MUST be before playlist ───────────────────────────
       GoRoute(
         path: AppRoutes.secretPlaylist,
         name: 'secret-playlist',
@@ -503,31 +561,44 @@ GoRouter _createRouter() {
       ),
     ],
 
-    // ── 404 fallback ────────────────────────────────────────────────────────
-    errorBuilder: (context, state) => Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.link_off, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
-              'Page not found',
-              style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => context.go(AppRoutes.home),
-              child: const Text(
-                'Go Home',
-                style: TextStyle(color: Color(0xFFFF5500)),
+    // ── 404 fallback ─────────────────────────────────────────────────────────
+    errorBuilder: (context, state) {
+      final uri = state.uri.toString();
+
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.link_off, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'Page not found',
+                style: TextStyle(color: Colors.white, fontSize: 20),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                uri,
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => context.go(AppRoutes.home),
+                child: const Text(
+                  'Go Home',
+                  style: TextStyle(color: Color(0xFFFF5500)),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    ),
+      );
+    },
   );
 
   final DeepLinkService deepLinkService = getIt<DeepLinkService>();
@@ -550,57 +621,3 @@ GoRouter _createRouter() {
 
 final router = _createRouter();
 GoRouter createRouter() => _createRouter();
-
-// class _PlaceholderPage extends StatelessWidget {
-//   const _PlaceholderPage({required this.title});
-
-//   final String title;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.black,
-//       appBar: AppBar(
-//         backgroundColor: Colors.black,
-//         elevation: 0,
-//         title: Text(title, style: const TextStyle(color: Colors.white)),
-//         iconTheme: const IconThemeData(color: Colors.white),
-//       ),
-//       body: Center(
-//         child: Padding(
-//           padding: const EdgeInsets.symmetric(horizontal: 24),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               const Icon(
-//                 Icons.construction_outlined,
-//                 size: 56,
-//                 color: Colors.white54,
-//               ),
-//               const SizedBox(height: 16),
-//               Text(
-//                 '$title page is not implemented yet.',
-//                 textAlign: TextAlign.center,
-//                 style: const TextStyle(color: Colors.white, fontSize: 18),
-//               ),
-//               const SizedBox(height: 8),
-//               const Text(
-//                 'Temporary placeholder to keep navigation working on dev.',
-//                 textAlign: TextAlign.center,
-//                 style: TextStyle(color: Colors.white54),
-//               ),
-//               const SizedBox(height: 20),
-//               TextButton(
-//                 onPressed: () => context.go(AppRoutes.home),
-//                 child: const Text(
-//                   'Go Home',
-//                   style: TextStyle(color: Color(0xFFFF5500)),
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }

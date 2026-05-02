@@ -90,6 +90,7 @@ abstract class ApiConstants {
 
   static String trackRepostersPath(String trackId) =>
       '$interactionsBase/tracks/$trackId/reposters';
+
   static const String myLikedTracks = '/api/v1/interactions/me/likes';
   static const String myRepostedTracks = '/api/v1/interactions/me/reposts';
 
@@ -160,4 +161,28 @@ abstract class ApiConstants {
       '${playlistByIdPath(playlistId)}/play';
   static String playlistEmbedPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/embed';
+
+  // ── Feed ────────────────────────────────────────────────────────────────
+  static const String feedBase = '/api/v1/feed';
+
+  static const String activityFeed = feedBase;
+
+  // ── Player Queue ─────────────────────────────────────────────────────────
+static const String playerBase = '/api/v1/player';
+
+static String trackPreviewPath(String trackId) =>
+    '$playerBase/tracks/$trackId/preview';
+
+static const String queueLoad     = '$playerBase/queue/load';
+static const String queueNext     = '$playerBase/queue/next';
+static const String queuePrevious = '$playerBase/queue/previous';
+static const String queueCurrent  = '$playerBase/queue';
+static const String queueJump     = '$playerBase/queue/jump';
+
+  // ── Discovery ───────────────────────────────────────────────────────────
+  static const String discoveryBase = '/api/v1/discovery';
+
+  static const String globalSearch = '$discoveryBase/search';
+  static const String trending = '$discoveryBase/trending';
+  static const String resolve = '$discoveryBase/resolve';
 }
