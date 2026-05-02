@@ -39,9 +39,9 @@ void main() {
       final comments = NotificationCommentsTapTarget(trackId: 'trk-1');
       final profile = NotificationProfileTapTarget(handle: 'user');
       
-      expect(comments is NotificationCommentsTapTarget, true);
-      expect(profile is NotificationProfileTapTarget, true);
-      expect(comments is NotificationProfileTapTarget, false);
+      expect(comments, isA<NotificationCommentsTapTarget>());
+      expect(profile, isA<NotificationProfileTapTarget>());
+      expect(comments, isNot(isA<NotificationProfileTapTarget>()));
     });
   });
 }
