@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/core/models/track.dart';
-
 import 'package:soundcloud_clone/core/widgets/track_row.dart';
+import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
 
 class MockSearchPage extends StatefulWidget {
   const MockSearchPage({super.key});
@@ -20,14 +19,24 @@ class _MockSearchPageState extends State<MockSearchPage> {
   final List<Track> _allTracks = _mockTracks;
 
   void _onSearch(String query) {
-    final filtered = _allTracks.where((track) {
-      return track.title.toLowerCase().contains(query.toLowerCase()) ||
-          track.artist.toLowerCase().contains(query.toLowerCase());
-    }).toList();
+    final normalizedQuery = query.trim().toLowerCase();
+
+    final filtered = normalizedQuery.isEmpty
+        ? <Track>[]
+        : _allTracks.where((track) {
+            return track.title.toLowerCase().contains(normalizedQuery) ||
+                track.artist.toLowerCase().contains(normalizedQuery);
+          }).toList();
 
     setState(() {
       _results = filtered;
     });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -40,32 +49,44 @@ class _MockSearchPageState extends State<MockSearchPage> {
           controller: _controller,
           style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
-            hintText: "Search tracks...",
+            hintText: 'Search tracks...',
             hintStyle: TextStyle(color: Colors.white54),
             border: InputBorder.none,
           ),
           onChanged: _onSearch,
         ),
       ),
-      body: _results.isEmpty
-          ? const Center(
-              child: Text(
-                "Start typing to search",
-                style: TextStyle(color: Colors.white70),
-              ),
-            )
-          : ListView.builder(
-              itemCount: _results.length,
-              itemBuilder: (context, index) {
-                final track = _results[index];
+      body: Column(
+        children: [
+          const PremiumAwareAdBanner(
+            title: 'Search and listen without ads',
+            subtitle:
+                'Upgrade to remove sponsored cards, save music offline, and unlock more uploads.',
+            actionLabel: 'Upgrade',
+          ),
+          Expanded(
+            child: _results.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Start typing to search',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _results.length,
+                    itemBuilder: (context, index) {
+                      final track = _results[index];
 
-                return TrackRow(
-                  track: track,
-                  queue: _results,
-                  source: "search", // ✅ CRITICAL FIX
-                );
-              },
-            ),
+                      return TrackRow(
+                        track: track,
+                        queue: _results,
+                        source: 'search',
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
       bottomNavigationBar: _BottomNav(
         selected: 2,
         onTap: (i) {
@@ -90,9 +111,6 @@ class _MockSearchPageState extends State<MockSearchPage> {
     );
   }
 }
-
-// ─────────────────────────────
-// 🔥 NAV BAR (reuse same)
 
 class _BottomNav extends StatelessWidget {
   final int selected;
@@ -158,14 +176,12 @@ class _BottomNav extends StatelessWidget {
 }
 
 class _NavItem {
-  final IconData icon, activeIcon;
+  final IconData icon;
+  final IconData activeIcon;
   final String label;
 
   const _NavItem(this.icon, this.activeIcon, this.label);
 }
-
-// ─────────────────────────────
-// 🔥 MOCK DATA (reuse same)
 
 final List<Track> _mockTracks = [
   Track(
