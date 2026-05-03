@@ -528,41 +528,39 @@ class FcmRegistrationService {
     );
   }
 
-  Future<bool> _registerToken(String token) async {
-    final platform = _platformLabel();
-    if (platform == null) {
-      debugPrint('FCM _registerToken: platform label is null');
-      return false;
-    }
-
-    debugPrint('=== FCM TOKEN REGISTRATION START ===');
-    debugPrint('Platform: $platform');
-    debugPrint('Token: $token');
-    debugPrint('====================================');
-
-    final result = await _registerDeviceUseCase(
-      deviceToken: token,
-      platform: platform,
-    );
-
-    switch (result) {
-      case NotificationsSuccess<void>():
-        debugPrint('=== FCM TOKEN REGISTRATION SUCCESS ===');
-        debugPrint('Platform: $platform');
-        debugPrint('Token: $token');
-        debugPrint('=======================================');
-        return true;
-      case NotificationsFailure<void>(failure: final failure):
-        debugPrint('=== FCM TOKEN REGISTRATION FAILED ===');
-        debugPrint('Platform: $platform');
-        debugPrint('Error: ${failure.message}');
-        debugPrint('=====================================');
-        return false;
-    }
-
+Future<bool> _registerToken(String token) async {
+  final platform = _platformLabel();
+  if (platform == null) {
+    debugPrint('FCM _registerToken: platform label is null');
     return false;
   }
 
+  debugPrint('=== FCM TOKEN REGISTRATION START ===');
+  debugPrint('Platform: $platform');
+  debugPrint('Token: $token');
+  debugPrint('====================================');
+
+  final result = await _registerDeviceUseCase(
+    deviceToken: token,
+    platform: platform,
+  );
+
+  switch (result) {
+    case NotificationsSuccess<void>():
+      debugPrint('=== FCM TOKEN REGISTRATION SUCCESS ===');
+      debugPrint('Platform: $platform');
+      debugPrint('Token: $token');
+      debugPrint('=======================================');
+      return true;
+
+    case NotificationsFailure<void>(failure: final failure):
+      debugPrint('=== FCM TOKEN REGISTRATION FAILED ===');
+      debugPrint('Platform: $platform');
+      debugPrint('Error: ${failure.message}');
+      debugPrint('=====================================');
+      return false;
+  }
+}
   bool _isSupportedPlatform() {
     return !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.android ||
