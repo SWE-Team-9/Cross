@@ -203,8 +203,8 @@ class TrackOptionsSheet extends StatelessWidget {
                       Navigator.pop(context);
                       AddToPlaylistSheet.show(context, track: track);
                     },
-                  ),              
-                      _OptionTile(
+                  ),
+                  _OptionTile(
                     icon: interactionState.isReposted
                         ? Icons.repeat
                         : Icons.repeat_outlined,
@@ -306,6 +306,7 @@ class TrackOptionsSheet extends StatelessWidget {
     );
   }
 }
+
 class _DownloadOptionTile extends StatelessWidget {
   const _DownloadOptionTile({
     required this.track,

@@ -129,7 +129,8 @@ void main() {
       expect(
         source,
         isNot(contains('Icons.workspace_premium_rounded')),
-      );    });
+      );
+    });
 
     test('shows loading indicator while subscription state is loading', () {
       expect(
@@ -167,7 +168,8 @@ void main() {
       );
     });
 
-    test('falls back to available downloads when subscription cubit is absent', () {
+    test('falls back to available downloads when subscription cubit is absent',
+        () {
       expect(
         source,
         contains('if (subscriptionCubit == null)'),

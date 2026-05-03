@@ -22,6 +22,7 @@ import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_a
 import '/features/profile/presentation/routes/profile_routes.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
+
 class MockHomePage extends StatefulWidget {
   const MockHomePage({super.key});
 
@@ -436,7 +437,8 @@ class _MockHomePageState extends State<MockHomePage> {
                           ),
                           const _SectionHeader(title: 'More of what you like'),
                           const _RelatedTracksRow(),
-                          _PlaylistShelf(                            title: 'Top playlists',
+                          _PlaylistShelf(
+                            title: 'Top playlists',
                             loading: _isLoadingTopPlaylists,
                             playlists: _topPlaylists,
                             showLikesCount: true,
@@ -919,6 +921,7 @@ class _SubscriptionBadge extends StatelessWidget {
     );
   }
 }
+
 class _IconBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;

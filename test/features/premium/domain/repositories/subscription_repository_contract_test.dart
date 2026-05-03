@@ -8,7 +8,8 @@ import 'package:soundcloud_clone/features/premium/domain/repositories/subscripti
 
 void main() {
   group('SubscriptionRepository contract', () {
-    test('openPortal returns launchUrl from openBillingPortalSession', () async {
+    test('openPortal returns launchUrl from openBillingPortalSession',
+        () async {
       final repository = _FakeSubscriptionRepository(
         portalSession: const BillingPortalSession(
           url: 'https://billing.stripe.com/session/test',

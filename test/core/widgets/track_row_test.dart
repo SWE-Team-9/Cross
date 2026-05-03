@@ -16,8 +16,7 @@ import 'package:soundcloud_clone/features/premium/domain/entities/subscription.d
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
 
-class MockPlayerCubit extends MockCubit<PlayerUIState>
-    implements PlayerCubit {}
+class MockPlayerCubit extends MockCubit<PlayerUIState> implements PlayerCubit {}
 
 class MockSubscriptionCubit extends MockCubit<SubscriptionState>
     implements SubscriptionCubit {}
@@ -105,7 +104,8 @@ void main() {
     ).thenAnswer((_) async {});
 
     when(() => subscriptionCubit.state).thenReturn(premiumSubscriptionState);
-    when(() => subscriptionCubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => subscriptionCubit.stream)
+        .thenAnswer((_) => const Stream.empty());
 
     when(() => offlineCubit.state).thenReturn(const OfflineState());
     when(() => offlineCubit.stream).thenAnswer((_) => const Stream.empty());
@@ -128,7 +128,8 @@ void main() {
       BlocProvider<PlayerCubit>.value(value: playerCubit),
       if (includeSubscriptionCubit)
         BlocProvider<SubscriptionCubit>.value(value: subscriptionCubit),
-      if (includeOfflineCubit) BlocProvider<OfflineCubit>.value(value: offlineCubit),
+      if (includeOfflineCubit)
+        BlocProvider<OfflineCubit>.value(value: offlineCubit),
     ];
 
     return MultiBlocProvider(
@@ -220,7 +221,8 @@ void main() {
       expect(capturedTracks.single.localPath, '/offline/t1.mp3');
     });
 
-    testWidgets('hides download action when subscription does not allow downloads',
+    testWidgets(
+        'hides download action when subscription does not allow downloads',
         (tester) async {
       when(() => subscriptionCubit.state).thenReturn(freeSubscriptionState);
 
@@ -296,7 +298,8 @@ void main() {
       expect(find.text('Download failed'), findsOneWidget);
     });
 
-    testWidgets('shows upgrade message when offline repository requires premium',
+    testWidgets(
+        'shows upgrade message when offline repository requires premium',
         (tester) async {
       when(() => offlineCubit.downloadTrack(any())).thenThrow(
         Exception('UPGRADE_REQUIRED'),

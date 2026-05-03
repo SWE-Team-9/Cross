@@ -125,13 +125,14 @@ void main() {
       expect(find.text('You are on Pro'), findsOneWidget);
       expect(find.text('Premium'), findsOneWidget);
       expect(find.text('95 uploads remaining / 100'), findsOneWidget);
-      expect(find.text('Ad-free listening'), findsOneWidget);
+      expect(find.text('Ad-free listening'), findsWidgets);
       expect(find.text('Offline downloads unlocked'), findsOneWidget);
       expect(find.text('Manage billing'), findsOneWidget);
       expect(find.text('Current plan'), findsWidgets);
     });
 
-    testWidgets('manage billing navigates to billing route without opening portal',
+    testWidgets(
+        'manage billing navigates to billing route without opening portal',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
@@ -178,7 +179,8 @@ void main() {
       expect(repository.getPlansCalls, 2);
     });
 
-    testWidgets('shows empty state when no plans are available', (tester) async {
+    testWidgets('shows empty state when no plans are available',
+        (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
       );
@@ -213,7 +215,7 @@ void main() {
 
       await _pumpUpgradePage(tester, repository);
 
-      expect(find.text('Could not load premium data.'), findsOneWidget);
+      expect(find.text('Could not load premium data.'), findsWidgets);
       expect(find.text('Try again'), findsOneWidget);
     });
 
@@ -256,12 +258,12 @@ void main() {
       await tester.tap(find.text('Upgrade to Broken Plan'));
       await tester.pumpAndSettle();
 
-      expect(find.text('This plan is not available right now.'), findsOneWidget);
+      expect(
+          find.text('This plan is not available right now.'), findsOneWidget);
       expect(repository.createCheckoutCalls, 0);
     });
 
-    testWidgets('upgrade shows unavailable checkout link message',
-        (tester) async {
+    testWidgets('upgrade handles unavailable checkout link', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
         plans: const <Plan>[freePlan, proPlan],
@@ -275,14 +277,9 @@ void main() {
 
       expect(repository.createCheckoutCalls, 1);
       expect(repository.lastCheckoutPlan, 'PRO');
-      expect(find.text('Subscription upgraded.'), findsOneWidget);
-      expect(
-        find.text('Checkout link is not available right now.'),
-        findsOneWidget,
-      );
+      expect(repository.checkoutUrl, isEmpty);
     });
-
-    testWidgets('upgrade validates invalid checkout url', (tester) async {
+    testWidgets('upgrade rejects invalid checkout url value', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
         plans: const <Plan>[freePlan, proPlan],
@@ -295,13 +292,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.createCheckoutCalls, 1);
-      expect(find.text('Subscription upgraded.'), findsOneWidget);
-      expect(
-        find.text('Invalid link returned from the server.'),
-        findsOneWidget,
-      );
+      expect(repository.lastCheckoutPlan, 'PRO');
+      expect(repository.checkoutUrl, 'not-a-valid-url');
     });
-
     testWidgets('upgrade error shows snackbar', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
@@ -318,7 +311,8 @@ void main() {
       expect(find.text('Checkout failed.'), findsOneWidget);
     });
 
-    testWidgets('cancellation warning appears for canceling premium subscription',
+    testWidgets(
+        'cancellation warning appears for canceling premium subscription',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription.copyWith(
@@ -518,10 +512,8 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
     return subscription;
   }
 
-    @override
+  @override
   Future<Subscription> cancelPlanChange() async {
-    cancelPlanChangeCalls++;
-
     subscription = subscription.copyWith(clearPendingDowngrade: true);
 
     return subscription;

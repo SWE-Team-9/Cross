@@ -129,7 +129,8 @@ void main() {
   }
 
   group('getMySubscription', () {
-    test('calls current subscription endpoint and parses direct payload', () async {
+    test('calls current subscription endpoint and parses direct payload',
+        () async {
       when(
         () => dioClient.get(ApiConstants.mySubscription),
       ).thenAnswer((_) async => response(subscriptionJson()));

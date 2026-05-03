@@ -140,7 +140,8 @@ void main() {
       expect(plan.displayUploadLimit, '1000');
     });
 
-    test('fromJson accepts snake case keys from alternate backend serializers', () {
+    test('fromJson accepts snake case keys from alternate backend serializers',
+        () {
       final plan = Plan.fromJson(
         const <String, dynamic>{
           'price_cents': 1200,

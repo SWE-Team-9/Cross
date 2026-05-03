@@ -36,8 +36,10 @@ void main() {
       await _flushAsync();
 
       expect(cubit.state.downloadedTracks, repository.downloadedTracks);
-      expect(cubit.state.downloadedTrackDetails['track-1']!.title, 'Midnight Drive');
-      expect(cubit.state.downloadedPlaylists['playlist-1']!.title, 'Offline Mix');
+      expect(cubit.state.downloadedTrackDetails['track-1']!.title,
+          'Midnight Drive');
+      expect(
+          cubit.state.downloadedPlaylists['playlist-1']!.title, 'Offline Mix');
 
       expect(repository.getDownloadedTracksCalls, 1);
       expect(repository.getDownloadedTrackDetailsCalls, 1);
@@ -59,8 +61,10 @@ void main() {
       final cubit = OfflineCubit(repository);
       await _flushAsync();
 
-      expect(cubit.state.downloadedTrackDetails['track-1']!.title, 'Fetched Track');
-      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath, '/offline/track-1.mp3');
+      expect(cubit.state.downloadedTrackDetails['track-1']!.title,
+          'Fetched Track');
+      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath,
+          '/offline/track-1.mp3');
       expect(repository.fetchTrackDetailsCalls, 1);
       expect(repository.saveDownloadedTrackDetailsCalls, 1);
 
@@ -83,7 +87,8 @@ void main() {
       final cubit = OfflineCubit(repository);
       await _flushAsync();
 
-      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath, '/new/track-1.mp3');
+      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath,
+          '/new/track-1.mp3');
       expect(repository.saveDownloadedTrackDetailsCalls, 1);
 
       await cubit.close();
@@ -120,7 +125,8 @@ void main() {
       expect(cubit.state.downloadedTracks, <String, String>{
         'track-1': '/offline/track-1.mp3',
       });
-      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath, '/offline/track-1.mp3');
+      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath,
+          '/offline/track-1.mp3');
 
       expect(repository.downloadTrackCalls, 1);
       expect(repository.lastDownloadTrackId, 'track-1');
@@ -243,11 +249,14 @@ void main() {
       );
 
       expect(cubit.state.downloadedTracks['track-1'], '/offline/track-1.mp3');
-      expect(cubit.state.downloadedTrackDetails['track-1']!.title, 'Input Track');
-      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath, '/offline/track-1.mp3');
+      expect(
+          cubit.state.downloadedTrackDetails['track-1']!.title, 'Input Track');
+      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath,
+          '/offline/track-1.mp3');
 
       expect(repository.downloadTrackCalls, 1);
-      expect(repository.saveDownloadedTrackDetailsCalls, greaterThanOrEqualTo(1));
+      expect(
+          repository.saveDownloadedTrackDetailsCalls, greaterThanOrEqualTo(1));
 
       await cubit.close();
     });
@@ -269,8 +278,10 @@ void main() {
       );
 
       expect(repository.downloadTrackCalls, 0);
-      expect(cubit.state.downloadedTrackDetails['track-1']!.title, 'Already Saved');
-      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath, '/offline/track-1.mp3');
+      expect(cubit.state.downloadedTrackDetails['track-1']!.title,
+          'Already Saved');
+      expect(cubit.state.downloadedTrackDetails['track-1']!.localPath,
+          '/offline/track-1.mp3');
 
       await cubit.close();
     });
@@ -340,8 +351,14 @@ void main() {
       };
 
       repository.downloadedTrackDetails = <String, Track>{
-        'track-1': _track(id: 'track-1'),
-        'track-2': _track(id: 'track-2'),
+        'track-1': _track(
+          id: 'track-1',
+          localPath: '/offline/track-1.mp3',
+        ),
+        'track-2': _track(
+          id: 'track-2',
+          localPath: '/offline/track-2.mp3',
+        ),
       };
 
       final cubit = OfflineCubit(repository);
@@ -351,7 +368,8 @@ void main() {
 
       expect(cubit.state.downloadedTracks.containsKey('track-1'), isFalse);
       expect(cubit.state.downloadedTracks.containsKey('track-2'), isTrue);
-      expect(cubit.state.downloadedTrackDetails.containsKey('track-1'), isFalse);
+      expect(
+          cubit.state.downloadedTrackDetails.containsKey('track-1'), isFalse);
       expect(cubit.state.downloadedTrackDetails.containsKey('track-2'), isTrue);
       expect(repository.saveDownloadedTracksCalls, 1);
       expect(repository.saveDownloadedTrackDetailsCalls, 1);
@@ -382,7 +400,8 @@ void main() {
 
       await cubit.removeDownloadedPlaylist(' playlist-1 ');
 
-      expect(cubit.state.downloadedPlaylists.containsKey('playlist-1'), isFalse);
+      expect(
+          cubit.state.downloadedPlaylists.containsKey('playlist-1'), isFalse);
       expect(cubit.state.downloadedPlaylists.containsKey('playlist-2'), isTrue);
       expect(repository.saveDownloadedPlaylistsCalls, 1);
 
@@ -438,7 +457,8 @@ void main() {
       expect(cubit.getPath(' track-1 '), '/offline/track-1.mp3');
       expect(cubit.getDownloadedTrack(' track-1 ')!.id, 'track-1');
       expect(cubit.isPlaylistDownloaded(' playlist-1 '), isTrue);
-      expect(cubit.getDownloadedPlaylist(' playlist-1 ')!.playlistId, 'playlist-1');
+      expect(cubit.getDownloadedPlaylist(' playlist-1 ')!.playlistId,
+          'playlist-1');
 
       await cubit.close();
     });
@@ -487,7 +507,8 @@ PlaylistEntity _playlist({
     playlistId: playlistId,
     title: 'Offline Mix',
     description: 'Saved playlist',
-visibility: PlaylistVisibility.publicPlaylist,    genre: 'Electronic',
+    visibility: PlaylistVisibility.publicPlaylist,
+    genre: 'Electronic',
     genreId: 7,
     slug: 'offline-mix',
     playlistType: 'PLAYLIST',

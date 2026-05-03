@@ -15,8 +15,10 @@ import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picke
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
+
 class MockSubscriptionCubit extends MockCubit<SubscriptionState>
     implements SubscriptionCubit {}
+
 class MockUploadPickerCubit extends MockCubit<UploadPickerState>
     implements UploadPickerCubit {}
 

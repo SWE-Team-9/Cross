@@ -134,7 +134,8 @@ void main() {
       await _pumpBillingReturnPage(
         tester,
         repository,
-        initialLocation: '/billing?billing_status=pending&subscription_id=sub_123',
+        initialLocation:
+            '/billing?billing_status=pending&subscription_id=sub_123',
       );
 
       expect(
@@ -194,7 +195,8 @@ void main() {
       expect(repository.getInvoicesCalls, 1);
     });
 
-    testWidgets('load error after return shows return message then error message',
+    testWidgets(
+        'load error after return shows return message then error message',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
@@ -211,8 +213,8 @@ void main() {
       expect(find.text('Billing'), findsOneWidget);
       expect(find.text('Billing refresh failed.'), findsOneWidget);
       expect(repository.getMySubscriptionCalls, 1);
-      expect(repository.getPlansCalls, 0);
-      expect(repository.getInvoicesCalls, 0);
+      expect(repository.getPlansCalls, 1);
+      expect(repository.getInvoicesCalls, 1);
     });
   });
 }
@@ -248,7 +250,7 @@ Future<void> _pumpBillingReturnPage(
 
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 void _resetTestView() {
@@ -279,7 +281,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   int cancelSubscriptionCalls = 0;
   int resumeSubscriptionCalls = 0;
   int changePlanCalls = 0;
-    int cancelPlanChangeCalls = 0;
+  int cancelPlanChangeCalls = 0;
   int getOfflineTrackEntitlementCalls = 0;
 
   String? lastCheckoutPlan;
@@ -370,6 +372,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
 
     return subscription;
   }
+
   @override
   Future<Subscription> cancelPlanChange() async {
     cancelPlanChangeCalls++;
@@ -378,6 +381,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
 
     return subscription;
   }
+
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,

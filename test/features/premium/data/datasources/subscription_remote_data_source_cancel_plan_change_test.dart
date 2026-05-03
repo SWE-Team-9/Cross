@@ -28,7 +28,9 @@ void main() {
       );
     });
 
-    test('keeps cancel plan change endpoint near premium subscription endpoints', () {
+    test(
+        'keeps cancel plan change endpoint near premium subscription endpoints',
+        () {
       final changePlanIndex = apiConstantsSource.indexOf(
         'subscriptionChangePlan',
       );
@@ -98,7 +100,8 @@ void main() {
 
       final methodBody = dataSourceSource.substring(methodStart, nextOverride);
 
-      expect(methodBody, contains('final payload = _extractPayloadMap(response.data);'));
+      expect(methodBody,
+          contains('final payload = _extractPayloadMap(response.data);'));
       expect(methodBody, contains('return Subscription.fromJson(payload);'));
     });
 

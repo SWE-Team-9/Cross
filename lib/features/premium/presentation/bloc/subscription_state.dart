@@ -52,20 +52,18 @@ class SubscriptionState extends Equatable {
 
   bool get isFailure => status == SubscriptionStatus.failure;
 
-  bool get isActionLoading =>
-      actionStatus == SubscriptionActionStatus.loading;
+  bool get isActionLoading => actionStatus == SubscriptionActionStatus.loading;
 
-  bool get isActionSuccess =>
-      actionStatus == SubscriptionActionStatus.success;
+  bool get isActionSuccess => actionStatus == SubscriptionActionStatus.success;
 
-  bool get isActionFailure =>
-      actionStatus == SubscriptionActionStatus.failure;
+  bool get isActionFailure => actionStatus == SubscriptionActionStatus.failure;
 
   bool get hasPlans => plans.isNotEmpty;
 
   bool get hasInvoices => invoices.isNotEmpty;
 
-  bool get hasCheckoutUrl => checkoutUrl != null && checkoutUrl!.trim().isNotEmpty;
+  bool get hasCheckoutUrl =>
+      checkoutUrl != null && checkoutUrl!.trim().isNotEmpty;
 
   bool get hasBillingPortalSession => billingPortalSession != null;
 

@@ -39,7 +39,8 @@ void main() {
     test('shows locked premium download button for free users', () {
       expect(
         source,
-        contains('final canDownload = subscriptionState.subscription.canDownload;'),
+        contains(
+            'final canDownload = subscriptionState.subscription.canDownload;'),
       );
       expect(
         source,
@@ -51,7 +52,8 @@ void main() {
       );
       expect(
         source,
-        contains('_showDownloadSnackbar(context, _DownloadSnack.upgradeRequired)'),
+        contains(
+            '_showDownloadSnackbar(context, _DownloadSnack.upgradeRequired)'),
       );
       expect(
         source,
@@ -85,7 +87,8 @@ void main() {
       );
       expect(
         source,
-        contains('_showDownloadSnackbar(context, _DownloadSnack.alreadySaved);'),
+        contains(
+            '_showDownloadSnackbar(context, _DownloadSnack.alreadySaved);'),
       );
     });
 
@@ -145,7 +148,8 @@ void main() {
       );
     });
 
-    test('download button icons cover locked downloaded and available states', () {
+    test('download button icons cover locked downloaded and available states',
+        () {
       expect(
         source,
         contains('Icons.workspace_premium_rounded'),

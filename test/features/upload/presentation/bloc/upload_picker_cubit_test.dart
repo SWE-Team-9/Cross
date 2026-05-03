@@ -123,7 +123,8 @@ void main() {
     blocTest<UploadPickerCubit, UploadPickerState>(
       'pickAudioFile emits readable failure when picker throws',
       build: () {
-        uploadRepository.pickAudioFileError = Exception('Failed to pick audio file');
+        uploadRepository.pickAudioFileError =
+            Exception('Failed to pick audio file');
         return buildCubit();
       },
       act: (cubit) => cubit.pickAudioFile(),
@@ -233,7 +234,8 @@ void main() {
     blocTest<UploadPickerCubit, UploadPickerState>(
       'uploadSelectedFile emits subscription check failure when subscription request fails',
       build: () {
-        subscriptionRepository.getMySubscriptionError = Exception('Network down');
+        subscriptionRepository.getMySubscriptionError =
+            Exception('Network down');
         return buildCubit();
       },
       seed: () => const UploadPickerState(
@@ -278,7 +280,8 @@ void main() {
         UploadPickerState(
           status: UploadPickerStatus.failure,
           pickedAudioFile: pickedAudioFile,
-          errorMessage: 'Upload limit reached. Upgrade to Pro to upload more tracks.',
+          errorMessage:
+              'Upload limit reached. Upgrade to Pro to upload more tracks.',
         ),
       ],
       verify: (_) {
@@ -348,7 +351,8 @@ void main() {
         UploadPickerState(
           status: UploadPickerStatus.failure,
           pickedAudioFile: pickedAudioFile,
-          errorMessage: 'Upload limit reached for Pro. You have used 100/100 uploads.',
+          errorMessage:
+              'Upload limit reached for Pro. You have used 100/100 uploads.',
         ),
       ],
       verify: (_) {
@@ -809,8 +813,6 @@ class _FakeUploadRepository implements UploadRepository {
       throw error;
     }
 
-    onProgress?.call(1);
-
     return uploadResult;
   }
 
@@ -908,12 +910,14 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
 
     return subscription;
   }
+
   @override
   Future<Subscription> cancelPlanChange() async {
     subscription = subscription.copyWith(clearPendingDowngrade: true);
 
     return subscription;
   }
+
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,

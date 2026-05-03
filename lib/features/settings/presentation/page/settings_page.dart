@@ -9,6 +9,7 @@ import 'package:soundcloud_clone/features/social/presentation/pages/blocked_user
 import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -55,7 +56,7 @@ class SettingsPage extends StatelessWidget {
                 onTap: () => _showChangePasswordDialog(context),
               ),
               const _Divider(),
-                            // ── Premium ───────────────────────────────────────────────────
+              // ── Premium ───────────────────────────────────────────────────
               _SectionHeader(title: 'Premium'),
               const _SubscriptionSettingsTile(),
               const _Divider(),
@@ -374,6 +375,7 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
+
 class _SubscriptionSettingsTile extends StatelessWidget {
   const _SubscriptionSettingsTile();
 

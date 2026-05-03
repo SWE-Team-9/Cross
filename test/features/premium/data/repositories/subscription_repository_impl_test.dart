@@ -101,7 +101,8 @@ void main() {
       verifyNoMoreInteractions(remoteDataSource);
     });
 
-    test('subscribe delegates subscription type to remote data source', () async {
+    test('subscribe delegates subscription type to remote data source',
+        () async {
       when(
         () => remoteDataSource.subscribe(subscriptionType: 'PRO'),
       ).thenAnswer((_) async => 'https://subscribe.example.com/pro');
@@ -184,7 +185,8 @@ void main() {
       verifyNoMoreInteractions(remoteDataSource);
     });
 
-    test('cancelSubscription posts cancel then refreshes subscription', () async {
+    test('cancelSubscription posts cancel then refreshes subscription',
+        () async {
       const refreshedSubscription = Subscription(
         planCode: 'PRO',
         subscriptionType: 'PRO',

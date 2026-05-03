@@ -122,7 +122,8 @@ void main() {
       expect(find.text('Downloaded tracks'), findsOneWidget);
       expect(find.text('Offline downloads are premium'), findsOneWidget);
       expect(
-        find.text('Upgrade to save tracks and playlists for offline listening.'),
+        find.text(
+            'Upgrade to save tracks and playlists for offline listening.'),
         findsOneWidget,
       );
       expect(find.text('Upgrade'), findsOneWidget);
@@ -207,7 +208,8 @@ void main() {
       expect(find.text('Downloaded track'), findsOneWidget);
     });
 
-    testWidgets('falls back to downloaded tracks content without subscription cubit',
+    testWidgets(
+        'falls back to downloaded tracks content without subscription cubit',
         (tester) async {
       when(() => offlineCubit.state).thenReturn(
         const OfflineState(
@@ -243,7 +245,8 @@ void main() {
       expect(find.text('No downloaded playlists yet'), findsNothing);
     });
 
-    testWidgets('upgrade button navigates to upgrade route for locked playlists',
+    testWidgets(
+        'upgrade button navigates to upgrade route for locked playlists',
         (tester) async {
       when(() => subscriptionCubit.state).thenReturn(freeState);
 
@@ -272,7 +275,8 @@ void main() {
       expect(find.text('Offline downloads are premium'), findsNothing);
     });
 
-    testWidgets('renders downloaded playlists for premium users', (tester) async {
+    testWidgets('renders downloaded playlists for premium users',
+        (tester) async {
       when(() => offlineCubit.state).thenReturn(
         OfflineState(
           downloadedPlaylists: <String, PlaylistEntity>{
@@ -378,7 +382,8 @@ Future<void> _pumpDownloadedPage(
     ),
   );
 
-  await tester.pumpAndSettle();
+  await tester.pump();
+  await tester.pump();
 }
 
 PlaylistEntity _playlist({
@@ -389,7 +394,8 @@ PlaylistEntity _playlist({
     playlistId: playlistId,
     title: 'Offline Mix',
     description: 'Saved playlist',
-visibility: PlaylistVisibility.publicPlaylist,    genre: 'Electronic',
+    visibility: PlaylistVisibility.publicPlaylist,
+    genre: 'Electronic',
     genreId: 7,
     slug: 'offline-mix',
     playlistType: 'PLAYLIST',

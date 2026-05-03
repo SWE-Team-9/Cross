@@ -28,7 +28,8 @@ class OfflineRepository {
     final normalizedTrackId = trackId.trim();
 
     if (normalizedTrackId.isEmpty) {
-      throw ArgumentError.value(trackId, 'trackId', 'Track id cannot be empty.');
+      throw ArgumentError.value(
+          trackId, 'trackId', 'Track id cannot be empty.');
     }
 
     final entitlementResponse = await dio.get(
@@ -320,9 +321,8 @@ PlaylistEntity _playlistFromJson(Map<String, dynamic> json) {
             displayName: _asString(ownerMap['displayName']),
           ),
     tracks: tracks,
-    tracksCount:
-        _asNullableInt(json['tracksCount'] ?? json['tracks_count']) ??
-            tracks.length,
+    tracksCount: _asNullableInt(json['tracksCount'] ?? json['tracks_count']) ??
+        tracks.length,
     likesCount: _asInt(json['likesCount'] ?? json['likes_count']),
     isLiked: json['isLiked'] == true || json['is_liked'] == true,
   );

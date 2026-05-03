@@ -34,7 +34,8 @@ void main() {
     test('adds premium section after account section', () {
       expect(
         source,
-        contains("// ── Premium ───────────────────────────────────────────────────"),
+        contains(
+            "// ── Premium ───────────────────────────────────────────────────"),
       );
       expect(
         source,
@@ -86,7 +87,8 @@ void main() {
       );
     });
 
-    test('falls back to upgrade entry when subscription cubit is unavailable', () {
+    test('falls back to upgrade entry when subscription cubit is unavailable',
+        () {
       expect(
         source,
         contains('if (cubit == null)'),
@@ -127,7 +129,8 @@ void main() {
     test('shows premium plan title and billing route for premium users', () {
       expect(
         source,
-contains(r"'${subscription.displayPlanName} plan'"),      );
+        contains(r"'${subscription.displayPlanName} plan'"),
+      );
       expect(
         source,
         contains("'Manage billing, invoices, and premium features'"),

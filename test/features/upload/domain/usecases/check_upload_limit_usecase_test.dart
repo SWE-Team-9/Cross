@@ -149,7 +149,9 @@ void main() {
       expect(canUpload, isTrue);
     });
 
-    test('blocks canceled subscription status even when remaining uploads exist', () {
+    test(
+        'blocks canceled subscription status even when remaining uploads exist',
+        () {
       final canUpload = useCase(
         remainingUploads: 10,
         isPro: true,
@@ -160,7 +162,9 @@ void main() {
       expect(canUpload, isFalse);
     });
 
-    test('blocks inactive subscription status even when remaining uploads exist', () {
+    test(
+        'blocks inactive subscription status even when remaining uploads exist',
+        () {
       final canUpload = useCase(
         remainingUploads: 10,
         isPro: true,
@@ -171,7 +175,8 @@ void main() {
       expect(canUpload, isFalse);
     });
 
-    test('canUploadSubscription allows active free user with remaining uploads', () {
+    test('canUploadSubscription allows active free user with remaining uploads',
+        () {
       const subscription = Subscription(
         planCode: 'FREE',
         subscriptionType: 'FREE',
@@ -203,7 +208,8 @@ void main() {
       expect(canUpload, isFalse);
     });
 
-    test('canUploadSubscription allows premium user with remaining uploads', () {
+    test('canUploadSubscription allows premium user with remaining uploads',
+        () {
       const subscription = Subscription(
         planCode: 'PRO',
         subscriptionType: 'PRO',
@@ -219,7 +225,9 @@ void main() {
       expect(canUpload, isTrue);
     });
 
-    test('canUploadSubscription blocks premium user with exhausted finite limit', () {
+    test(
+        'canUploadSubscription blocks premium user with exhausted finite limit',
+        () {
       const subscription = Subscription(
         planCode: 'PRO',
         subscriptionType: 'PRO',

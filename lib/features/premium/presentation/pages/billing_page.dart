@@ -11,7 +11,8 @@ import '../../domain/entities/subscription.dart';
 import '../bloc/subscription_cubit.dart';
 import '../bloc/subscription_state.dart';
 
-class BillingPage extends StatefulWidget {  const BillingPage({super.key});
+class BillingPage extends StatefulWidget {
+  const BillingPage({super.key});
 
   @override
   State<BillingPage> createState() => _BillingPageState();
@@ -35,9 +36,11 @@ class _BillingPageState extends State<BillingPage> {
     });
   }
 
-  bool _handleBillingReturnIfNeeded() {    final queryParameters = _billingReturnQueryParameters();
+  bool _handleBillingReturnIfNeeded() {
+    final queryParameters = _billingReturnQueryParameters();
 
-    if (queryParameters.isEmpty || !_hasBillingReturnParameter(queryParameters)) {
+    if (queryParameters.isEmpty ||
+        !_hasBillingReturnParameter(queryParameters)) {
       return false;
     }
 
@@ -76,11 +79,13 @@ class _BillingPageState extends State<BillingPage> {
       final planSuffix =
           planCode == null ? '' : ' for ${planCode.trim().toUpperCase()}';
 
-      _showSnackBar('Payment confirmed$planSuffix. Refreshing billing details.');
+      _showSnackBar(
+          'Payment confirmed$planSuffix. Refreshing billing details.');
     } else if (_isCancelStatus(status)) {
       _showSnackBar('Checkout was canceled. No billing changes were made.');
     } else if (status != null && status.trim().isNotEmpty) {
-      _showSnackBar('Billing returned with status: ${status.trim()}. Refreshing details.');
+      _showSnackBar(
+          'Billing returned with status: ${status.trim()}. Refreshing details.');
     } else {
       _showSnackBar('Returned from billing. Refreshing billing details.');
     }
@@ -174,9 +179,11 @@ class _BillingPageState extends State<BillingPage> {
         normalized == 'CANCELED' ||
         normalized == 'CANCELLED';
   }
+
   Future<void> _openBillingPortal() async {
     try {
-      final portalUrl = await context.read<SubscriptionCubit>().openBillingPortal();
+      final portalUrl =
+          await context.read<SubscriptionCubit>().openBillingPortal();
 
       if (!mounted) return;
 
@@ -289,7 +296,6 @@ class _BillingPageState extends State<BillingPage> {
     await context.read<SubscriptionCubit>().resume();
   }
 
-
   Future<void> _confirmCancelPlanChange() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -328,6 +334,7 @@ class _BillingPageState extends State<BillingPage> {
 
     await context.read<SubscriptionCubit>().cancelPlanChange();
   }
+
   Future<void> _changePlan(Plan plan) async {
     if (plan.code.trim().isEmpty) {
       _showSnackBar('This plan is not available right now.');
@@ -361,6 +368,13 @@ class _BillingPageState extends State<BillingPage> {
             state.actionMessage;
 
         if (message == null || message.trim().isEmpty) {
+          return;
+        }
+
+        if (_handledBillingReturnSignature != null &&
+            state.actionErrorMessage == null &&
+            state.errorMessage == null &&
+            state.actionMessage == 'Billing details loaded.') {
           return;
         }
 
@@ -435,7 +449,8 @@ class _BillingPageState extends State<BillingPage> {
                             onChangePlan: _changePlan,
                           ),
                           const SizedBox(height: 22),
-                          _InvoicesSection(                            invoices: state.invoices,
+                          _InvoicesSection(
+                            invoices: state.invoices,
                             onRefresh: () =>
                                 context.read<SubscriptionCubit>().loadBilling(),
                           ),
@@ -776,9 +791,8 @@ class _InvoiceTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
-        backgroundColor: invoice.isPaid
-            ? const Color(0x3334C759)
-            : const Color(0x33FF5500),
+        backgroundColor:
+            invoice.isPaid ? const Color(0x3334C759) : const Color(0x33FF5500),
         child: Icon(
           invoice.isPaid ? Icons.check_rounded : Icons.receipt_long_outlined,
           color: invoice.isPaid ? Colors.greenAccent : const Color(0xFFFF5500),

@@ -48,7 +48,9 @@ void main() {
       );
     });
 
-    test('keeps upload picker wired to subscription repository and upload limit use case', () {
+    test(
+        'keeps upload picker wired to subscription repository and upload limit use case',
+        () {
       expect(
         injectorSource,
         contains('getIt<SubscriptionRepository>()'),
@@ -59,7 +61,9 @@ void main() {
       );
     });
 
-    test('keeps premium-related imports required by existing injector registrations', () {
+    test(
+        'keeps premium-related imports required by existing injector registrations',
+        () {
       expect(
         injectorSource,
         contains(
@@ -86,7 +90,8 @@ void main() {
       );
     });
 
-    test('does not register premium dependencies before core network setup', () {
+    test('does not register premium dependencies before core network setup',
+        () {
       final secureStorageRegistrationIndex = injectorSource.indexOf(
         'getIt.registerLazySingleton<SecureStorage>',
       );
@@ -101,7 +106,8 @@ void main() {
       expect(dioClientRegistrationIndex, isNonNegative);
       expect(premiumRegistrationIndex, isNonNegative);
 
-      expect(dioClientRegistrationIndex, greaterThan(secureStorageRegistrationIndex));
+      expect(dioClientRegistrationIndex,
+          greaterThan(secureStorageRegistrationIndex));
       expect(premiumRegistrationIndex, greaterThan(dioClientRegistrationIndex));
     });
   });

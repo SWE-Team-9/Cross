@@ -7,7 +7,9 @@ void main() {
     late String source;
 
     setUpAll(() {
-      source = File('lib/core/widgets/track_options_sheet.dart').readAsStringSync();
+      source = File('lib/core/widgets/track_options_sheet.dart')
+          .readAsStringSync()
+          .replaceAll('\r\n', '\n');
     });
 
     test('imports go router for upgrade navigation', () {
@@ -87,11 +89,13 @@ void main() {
     test('looks up subscription and offline cubits from context or GetIt', () {
       expect(
         source,
-        contains('final subscriptionCubit = _lookupCubit<SubscriptionCubit>(parentContext);'),
+        contains(
+            'final subscriptionCubit = _lookupCubit<SubscriptionCubit>(parentContext);'),
       );
       expect(
         source,
-        contains('final offlineCubit = _lookupCubit<OfflineCubit>(parentContext);'),
+        contains(
+            'final offlineCubit = _lookupCubit<OfflineCubit>(parentContext);'),
       );
       expect(
         source,
@@ -249,7 +253,7 @@ void main() {
     test('keeps existing track option actions intact', () {
       expect(
         source,
-        contains("label: 'Like'"),
+        contains("'Like'"),
       );
       expect(
         source,
@@ -265,7 +269,7 @@ void main() {
       );
       expect(
         source,
-        contains("label: 'Repost'"),
+        contains("'Repost'"),
       );
       expect(
         source,

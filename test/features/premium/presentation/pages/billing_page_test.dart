@@ -123,7 +123,8 @@ void main() {
   tearDown(_resetTestView);
 
   group('BillingPage', () {
-    testWidgets('loads billing details and renders premium subscription summary',
+    testWidgets(
+        'loads billing details and renders premium subscription summary',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
@@ -241,10 +242,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.openBillingPortalSessionCalls, 1);
-      expect(find.text('Invalid link returned from the server.'), findsOneWidget);
+      expect(
+          find.text('Invalid link returned from the server.'), findsOneWidget);
     });
 
-    testWidgets('open portal shows unavailable message when portal link is empty',
+    testWidgets(
+        'open portal shows unavailable message when portal link is empty',
         (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
@@ -258,7 +261,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.openBillingPortalSessionCalls, 1);
-      expect(find.text('Billing portal is not available right now.'), findsOneWidget);
+      expect(find.text('Billing portal is not available right now.'),
+          findsOneWidget);
     });
 
     testWidgets('open portal error shows snackbar', (tester) async {
@@ -404,7 +408,8 @@ void main() {
 
       await _pumpBillingPage(tester, repository);
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Cancel plan change'));
+      await tester
+          .tap(find.widgetWithText(OutlinedButton, 'Cancel plan change'));
       await tester.pumpAndSettle();
 
       expect(find.text('Cancel scheduled plan change?'), findsOneWidget);
@@ -589,7 +594,6 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   Future<Subscription> cancelSubscription() async {
     cancelSubscriptionCalls++;
 
-
     subscription = subscription.copyWith(
       cancelAtPeriodEnd: true,
       canResume: true,
@@ -601,7 +605,6 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   @override
   Future<Subscription> resumeSubscription() async {
     resumeSubscriptionCalls++;
-
 
     subscription = subscription.copyWith(
       cancelAtPeriodEnd: false,
@@ -666,6 +669,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
 
     return subscription;
   }
+
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,

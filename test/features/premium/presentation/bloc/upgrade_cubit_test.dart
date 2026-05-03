@@ -195,7 +195,9 @@ void main() {
         when(
           () => repository.getMySubscription(),
         ).thenAnswer((_) async => proSubscription);
-
+        when(
+          () => repository.getPlans(),
+        ).thenAnswer((_) async => const <Plan>[freePlan, proPlan]);
         when(
           () => repository.getInvoices(),
         ).thenAnswer((_) async => const <BillingInvoice>[invoice]);
@@ -231,7 +233,9 @@ void main() {
         verify(
           () => repository.getMySubscription(),
         ).called(1);
-
+        verify(
+          () => repository.getPlans(),
+        ).called(1);
         verify(
           () => repository.getInvoices(),
         ).called(1);

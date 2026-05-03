@@ -195,7 +195,8 @@ class _LibraryPageState extends State<LibraryPage> {
                         'Upgrade to remove sponsored cards, download music, and unlock more uploads.',
                     actionLabel: 'Upgrade',
                   ),
-                  BlocBuilder<AuthCubit, AuthState>(                    builder: (context, state) => _LibraryItem(
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) => _LibraryItem(
                       title: 'Your likes',
                       onTap: () => _goToOwnProfile(state),
                     ),
@@ -238,7 +239,8 @@ class _LibraryPageState extends State<LibraryPage> {
                     title: 'Downloaded playlists',
                     downloadsPath: '/library/downloads/playlists',
                     icon: Icons.queue_music,
-                  ),                  const SizedBox(height: 20),
+                  ),
+                  const SizedBox(height: 20),
                   _PlaylistSection(
                     title: 'Liked playlists',
                     loading: libraryState.isLoadingLikedPlaylists,
