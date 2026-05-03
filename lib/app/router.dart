@@ -111,8 +111,7 @@ String _billingReturnPath(BillingReturnDeepLink destination) {
       'status': destination.status!.trim(),
     if (destination.planCode != null && destination.planCode!.trim().isNotEmpty)
       'plan': destination.planCode!.trim(),
-    if (destination.sessionId != null &&
-        destination.sessionId!.trim().isNotEmpty)
+    if (destination.sessionId != null && destination.sessionId!.trim().isNotEmpty)
       'session_id': destination.sessionId!.trim(),
     if (destination.checkoutSessionId != null &&
         destination.checkoutSessionId!.trim().isNotEmpty)
