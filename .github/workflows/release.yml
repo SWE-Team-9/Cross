@@ -73,15 +73,15 @@ jobs:
           echo "Fetching release metadata from $API"
           curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$API" -o /tmp/release.json || true
           python3 - <<'PY'
-import json,sys
-from pathlib import Path
-try:
-    data = json.load(open('/tmp/release.json'))
-    body = str(data.get('body') or '')
-except Exception:
-    body = ''
-Path('/tmp/release_body.txt').write_text(body, encoding='utf-8')
-PY
+          import json,sys
+          from pathlib import Path
+          try:
+            data = json.load(open('/tmp/release.json'))
+            body = str(data.get('body') or '')
+          except Exception:
+            body = ''
+          Path('/tmp/release_body.txt').write_text(body, encoding='utf-8')
+          PY
 
       - name: Preserve source version.json
         run: |
