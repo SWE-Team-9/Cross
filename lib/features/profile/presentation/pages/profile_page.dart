@@ -84,6 +84,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _repostedTracks = const <ManagedTrack>[];
+  List<PlaylistEntity> _profilePlaylists = const <PlaylistEntity>[];
+  List<PlaylistEntity> _likedPlaylists = const <PlaylistEntity>[];
   Future<List<PlaylistEntity>>? _profilePlaylistsFuture;
   Future<List<PlaylistEntity>>? _likedPlaylistsFuture;
 
@@ -111,6 +113,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       _managedTracks = profileState.tracks;
       _likedTracks = profileState.likedTracks;
       _repostedTracks = profileState.repostedTracks;
+      _profilePlaylists = profileState.playlists;
+      _likedPlaylists = profileState.likedPlaylists;
     }
 
     _syncFollowState(profileState);
@@ -130,6 +134,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         _managedTracks = state.tracks;
         _likedTracks = state.likedTracks;
         _repostedTracks = state.repostedTracks;
+        _profilePlaylists = state.playlists;
+        _likedPlaylists = state.likedPlaylists;
       });
     }
   }
@@ -638,7 +644,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildLikedPlaylistsTab() {
-    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+    if (!_isOwnProfile) {
+      return _buildPlaylistListTab(
+        playlists: _likedPlaylists,
+        emptyIcon: Icons.favorite_border,
+        emptyMessage: 'No liked playlists yet',
+      );
+    }
+
+    if (!getIt.isRegistered<PlaylistsRepository>()) {
       return _buildEmptyTab(
         Icons.favorite_border,
         'No liked playlists yet',
@@ -712,7 +726,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildPlaylistsTab() {
-    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+    if (!_isOwnProfile) {
+      return _buildPlaylistListTab(
+        playlists: _profilePlaylists,
+        emptyIcon: Icons.queue_music_outlined,
+        emptyMessage: 'No playlists yet',
+      );
+    }
+
+    if (!getIt.isRegistered<PlaylistsRepository>()) {
       return _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet');
     }
 
@@ -769,6 +791,18 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         );
       },
     );
+  }
+
+  Widget _buildPlaylistListTab({
+    required List<PlaylistEntity> playlists,
+    required IconData emptyIcon,
+    required String emptyMessage,
+  }) {
+    if (playlists.isEmpty) {
+      return _buildEmptyTab(emptyIcon, emptyMessage);
+    }
+
+    return _ProfilePlaylistsList(playlists: playlists);
   }
 
   Widget _buildActionRow(BuildContext context, ProfileEntity profile) {

@@ -187,4 +187,10 @@ abstract class ApiConstants {
       '${playlistByIdPath(playlistId)}/play';
   static String playlistEmbedPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/embed';
+
+  static String userPlaylistsPath(String userId) =>
+      '/api/v1/users/$userId/playlists';
+
+  static String userLikedPlaylistsPath(String userId) =>
+      '/api/v1/users/$userId/liked-playlists';
 }
