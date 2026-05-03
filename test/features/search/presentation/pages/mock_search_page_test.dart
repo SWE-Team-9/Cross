@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:get_it/get_it.dart';
 
@@ -143,8 +144,45 @@ void main() {
           )..loadSubscription(),
         ),
       ],
-      child: const MaterialApp(
-        home: MockSearchPage(),
+      child: MaterialApp.router(
+        routerConfig: GoRouter(
+          initialLocation: '/search',
+          routes: [
+            GoRoute(
+              path: '/search',
+              name: 'search',
+              builder: (context, state) => const MockSearchPage(),
+            ),
+            GoRoute(
+              path: '/home',
+              name: 'home',
+              builder: (context, state) => const Scaffold(
+                body: Text('Home Route'),
+              ),
+            ),
+            GoRoute(
+              path: '/feed',
+              name: 'feed',
+              builder: (context, state) => const Scaffold(
+                body: Text('Feed Route'),
+              ),
+            ),
+            GoRoute(
+              path: '/library',
+              name: 'library',
+              builder: (context, state) => const Scaffold(
+                body: Text('Library Route'),
+              ),
+            ),
+            GoRoute(
+              path: '/upgrade',
+              name: 'upgrade',
+              builder: (context, state) => const Scaffold(
+                body: Text('Upgrade Route'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -163,7 +201,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'track');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(InkWell).first);
+    await tester.tap(find.widgetWithText(InkWell, 'Feed Track 1'));
     await tester.pumpAndSettle();
 
     verify(() => playerCubit.playFromContext(

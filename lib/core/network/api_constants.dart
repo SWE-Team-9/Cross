@@ -63,6 +63,25 @@ abstract class ApiConstants {
       '/api/v1/player/tracks/$trackId/play';
   static const String listeningHistoryPath = '/api/v1/player/me/history';
 
+  // ── Subscriptions / Premium ─────────────────────────────────────────────
+  static const String subscriptionsBase = '/api/v1/subscriptions';
+  static const String mySubscription = '$subscriptionsBase/me';
+  static const String subscriptionPlans = '$subscriptionsBase/plans';
+  static const String subscriptionInvoices = '$subscriptionsBase/invoices';
+  static const String subscriptionCheckout = '$subscriptionsBase/checkout';
+  static const String subscriptionSubscribe = '$subscriptionsBase/subscribe';
+  static const String subscriptionPortal = '$subscriptionsBase/portal';
+  static const String subscriptionResume = '$subscriptionsBase/resume';
+  static const String subscriptionChangePlan = '$subscriptionsBase/change-plan';
+  static const String subscriptionCancelPlanChange =
+      '$subscriptionsBase/cancel-plan-change';
+  static const String subscriptionCancel = '$subscriptionsBase/cancel';
+  static String subscriptionOfflineTrackPath(String trackId) =>
+      '$subscriptionsBase/offline/$trackId';
+
+  static String subscriptionOfflineTrackStreamPath(String trackId) =>
+      '${subscriptionOfflineTrackPath(trackId)}/stream';
+
   // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';
   static const String commentsBase = '$interactionsBase/comments';

@@ -1,14 +1,16 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+
 import 'app/app.dart';
-import 'core/di/injector.dart';
-import 'package:audio_service/audio_service.dart';
 import 'core/audio/app_audio_handler.dart';
 import 'core/deep_links/deep_link_service.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'core/di/injector.dart';
 import 'features/notifications/data/services/fcm_registration_service.dart';
 
 late AudioHandler audioHandler;
@@ -22,7 +24,6 @@ void main() async {
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  // Debug: Get and log FCM token immediately
   FirebaseMessaging.instance.getToken().then((token) {
     debugPrint('=== FCM TOKEN ACQUIRED ===');
     debugPrint('Token: $token');
@@ -33,7 +34,6 @@ void main() async {
     debugPrint('=======================');
   });
 
-  // ━━━ DEBUG: Listen to foreground messages ━━━
   if (kDebugMode) {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('╔═══════════════════════════════════════════════');
@@ -69,15 +69,18 @@ void main() async {
   );
 
   await setupDependencies();
+
   await getIt<FcmRegistrationService>().initialize();
-  await getIt<DeepLinkService>()
-      .init(); // ADD — boots cold + warm link listener
+  await getIt<DeepLinkService>().init();
 
   runApp(
     MultiBlocProvider(
       providers: [
-        BlocProvider(
+        BlocProvider<SubscriptionCubit>(
           create: (_) => getIt<SubscriptionCubit>()..loadSubscription(),
+        ),
+        BlocProvider<OfflineCubit>.value(
+          value: getIt<OfflineCubit>(),
         ),
       ],
       child: App(),

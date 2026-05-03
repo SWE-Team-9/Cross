@@ -72,6 +72,7 @@ import '../features/messaging/presentation/pages/inbox_page.dart';
 import '../features/messaging/presentation/routes/messaging_routes.dart';
 
 // Project — premium
+import 'package:soundcloud_clone/features/premium/presentation/pages/billing_page.dart';
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
 
 class AppRoutes {
@@ -93,6 +94,7 @@ class AppRoutes {
 
   static const String library = '/library';
   static const String upgrade = '/upgrade';
+  static const String billing = '/billing';
   static const String uploadPicker = '/upload-picker';
   static const String editProfile = '/profile/edit';
   static const String profile = '/profile/:handle';
@@ -160,6 +162,31 @@ Future<String?> _resolveResourcePath(String url) async {
   }
 }
 
+String _billingReturnPath(BillingReturnDeepLink destination) {
+  final queryParameters = <String, String>{
+    if (destination.status != null && destination.status!.trim().isNotEmpty)
+      'status': destination.status!.trim(),
+    if (destination.planCode != null && destination.planCode!.trim().isNotEmpty)
+      'plan': destination.planCode!.trim(),
+    if (destination.sessionId != null &&
+        destination.sessionId!.trim().isNotEmpty)
+      'session_id': destination.sessionId!.trim(),
+    if (destination.checkoutSessionId != null &&
+        destination.checkoutSessionId!.trim().isNotEmpty)
+      'checkout_session_id': destination.checkoutSessionId!.trim(),
+    if (destination.subscriptionId != null &&
+        destination.subscriptionId!.trim().isNotEmpty)
+      'subscription_id': destination.subscriptionId!.trim(),
+  };
+
+  final uri = Uri(
+    path: AppRoutes.billing,
+    queryParameters: queryParameters.isEmpty ? null : queryParameters,
+  );
+
+  return uri.toString();
+}
+
 Future<void> _handleDeepLinkDestination(
   DeepLinkDestination destination,
   GoRouter router,
@@ -187,6 +214,9 @@ Future<void> _handleDeepLinkDestination(
 
     case ResolvableResourceDeepLink(:final url):
       path = await _resolveResourcePath(url);
+
+    case BillingReturnDeepLink():
+      path = _billingReturnPath(destination);
 
     case OAuthCallbackDeepLink():
       router.go(AuthRoutes.oauthDebug, extra: destination);
@@ -333,6 +363,14 @@ GoRouter _createRouter() {
         name: 'upgrade',
         pageBuilder: (context, state) => const NoTransitionPage(
           child: UpgradePage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.billing,
+        name: 'billing',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: BillingPage(),
         ),
       ),
 

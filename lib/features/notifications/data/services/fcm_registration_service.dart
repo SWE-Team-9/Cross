@@ -12,8 +12,8 @@ import '../../domain/entities/notification_entity.dart';
 import '../../../messaging/domain/entities/conversation_entity.dart';
 import '../../../messaging/domain/usecases/get_conversation_meta_usecase.dart';
 import '../../../messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
-import '../../domain/entities/notifications_result.dart';
 import '../../domain/usecases/device_use_cases.dart';
+import '../../domain/entities/notifications_result.dart';
 
 const AndroidNotificationChannel _fcmHighImportanceChannel =
     AndroidNotificationChannel(
@@ -528,39 +528,40 @@ class FcmRegistrationService {
     );
   }
 
-Future<bool> _registerToken(String token) async {
-  final platform = _platformLabel();
-  if (platform == null) {
-    debugPrint('FCM _registerToken: platform label is null');
-    return false;
-  }
-
-  debugPrint('=== FCM TOKEN REGISTRATION START ===');
-  debugPrint('Platform: $platform');
-  debugPrint('Token: $token');
-  debugPrint('====================================');
-
-  final result = await _registerDeviceUseCase(
-    deviceToken: token,
-    platform: platform,
-  );
-
-  switch (result) {
-    case NotificationsSuccess<void>():
-      debugPrint('=== FCM TOKEN REGISTRATION SUCCESS ===');
-      debugPrint('Platform: $platform');
-      debugPrint('Token: $token');
-      debugPrint('=======================================');
-      return true;
-
-    case NotificationsFailure<void>(failure: final failure):
-      debugPrint('=== FCM TOKEN REGISTRATION FAILED ===');
-      debugPrint('Platform: $platform');
-      debugPrint('Error: ${failure.message}');
-      debugPrint('=====================================');
+  Future<bool> _registerToken(String token) async {
+    final platform = _platformLabel();
+    if (platform == null) {
+      debugPrint('FCM _registerToken: platform label is null');
       return false;
+    }
+
+    debugPrint('=== FCM TOKEN REGISTRATION START ===');
+    debugPrint('Platform: $platform');
+    debugPrint('Token: $token');
+    debugPrint('====================================');
+
+    final result = await _registerDeviceUseCase(
+      deviceToken: token,
+      platform: platform,
+    );
+
+    switch (result) {
+      case NotificationsSuccess<void>():
+        debugPrint('=== FCM TOKEN REGISTRATION SUCCESS ===');
+        debugPrint('Platform: $platform');
+        debugPrint('Token: $token');
+        debugPrint('=======================================');
+        return true;
+
+      case NotificationsFailure<void>(failure: final failure):
+        debugPrint('=== FCM TOKEN REGISTRATION FAILED ===');
+        debugPrint('Platform: $platform');
+        debugPrint('Error: ${failure.message}');
+        debugPrint('=====================================');
+        return false;
+    }
   }
-}
+
   bool _isSupportedPlatform() {
     return !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.android ||

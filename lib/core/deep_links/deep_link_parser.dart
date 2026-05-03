@@ -2,6 +2,7 @@ import 'deep_link_destination.dart';
 
 abstract final class DeepLinkParser {
   static const String _customScheme = 'iqa3';
+  static const String _legacyScheme = 'soundclone';
   static const String _httpsHost = 'dev.iqa3.tech';
 
   static DeepLinkDestination parse(Uri uri) {
@@ -9,7 +10,7 @@ abstract final class DeepLinkParser {
       return _parseHttpsPath(uri);
     }
 
-    if (uri.scheme == _customScheme) {
+    if (uri.scheme == _customScheme || uri.scheme == _legacyScheme) {
       return _parseCustomScheme(uri);
     }
 
@@ -70,6 +71,12 @@ abstract final class DeepLinkParser {
       case 'resolve':
         return _parseResolvableUri(uri);
 
+      case 'billing':
+        return _parseBilling(segments, uri.queryParameters);
+
+      case 'checkout':
+        return _parseCheckout(segments, uri.queryParameters);
+
       case 'oauth':
         return _parseOAuth(segments, uri.queryParameters);
 
@@ -126,7 +133,7 @@ abstract final class DeepLinkParser {
   }
 
   static DeepLinkDestination _parseSearch(Map<String, String> params) {
-    final query = params['q'];
+    final String? query = params['q'];
 
     if (query == null || query.trim().isEmpty) {
       return const InvalidDeepLink(reason: 'Search link missing query');
@@ -143,6 +150,100 @@ abstract final class DeepLinkParser {
     }
 
     return ResolvableResourceDeepLink(url: rawUrl.trim());
+  }
+
+  static DeepLinkDestination _parseBilling(
+    List<String> segments,
+    Map<String, String> params,
+  ) {
+    if (segments.isEmpty || segments.first != 'return') {
+      return const InvalidDeepLink(
+        reason: 'Billing link must be soundclone://billing/return',
+      );
+    }
+
+    return _parseBillingReturn(params);
+  }
+
+  static DeepLinkDestination _parseCheckout(
+    List<String> segments,
+    Map<String, String> params,
+  ) {
+    if (segments.isEmpty || segments.first != 'return') {
+      return const InvalidDeepLink(
+        reason: 'Checkout link must be soundclone://checkout/return',
+      );
+    }
+
+    return _parseBillingReturn(params);
+  }
+
+  static BillingReturnDeepLink _parseBillingReturn(
+    Map<String, String> params,
+  ) {
+    return BillingReturnDeepLink(
+      sessionId: _readParam(
+        params,
+        const <String>[
+          'session_id',
+          'sessionId',
+          'billing_session_id',
+          'billingSessionId',
+          'portal_session_id',
+          'portalSessionId',
+        ],
+      ),
+      customerId: _readParam(
+        params,
+        const <String>[
+          'customer_id',
+          'customerId',
+          'stripe_customer_id',
+          'stripeCustomerId',
+        ],
+      ),
+      status: _readParam(
+        params,
+        const <String>[
+          'status',
+          'payment_status',
+          'paymentStatus',
+          'billing_status',
+          'billingStatus',
+        ],
+      ),
+      planCode: _readParam(
+        params,
+        const <String>[
+          'plan',
+          'plan_code',
+          'planCode',
+          'tier',
+          'subscription_type',
+          'subscriptionType',
+        ],
+      ),
+      checkoutSessionId: _readParam(
+        params,
+        const <String>[
+          'checkout_session_id',
+          'checkoutSessionId',
+          'checkout_id',
+          'checkoutId',
+          'cs',
+        ],
+      ),
+      subscriptionId: _readParam(
+        params,
+        const <String>[
+          'subscription_id',
+          'subscriptionId',
+          'stripe_subscription_id',
+          'stripeSubscriptionId',
+          'sub',
+        ],
+      ),
+    );
   }
 
   static DeepLinkDestination _parseOAuth(
@@ -178,5 +279,20 @@ abstract final class DeepLinkParser {
       code: code.trim(),
       state: state?.trim(),
     );
+  }
+
+  static String? _readParam(
+    Map<String, String> params,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = params[key]?.trim();
+
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return null;
   }
 }
