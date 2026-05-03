@@ -62,7 +62,7 @@ import '../features/discovery/presentation/page/discover_page.dart';
 // Project — search
 import 'package:soundcloud_clone/features/search/presentation/bloc/search_cubit.dart';
 import 'package:soundcloud_clone/features/search/presentation/pages/search_page.dart';
-
+import 'package:soundcloud_clone/features/search/presentation/pages/genre_page.dart';
 // Project — messaging
 import '../features/messaging/domain/entities/conversation_entity.dart';
 import '../features/messaging/presentation/pages/chat_thread_loader_page.dart';
@@ -79,6 +79,17 @@ class AppRoutes {
   static const String search = '/search';
   static const String discover = '/discover';
   static const String searchActive = '/search/active';
+  static const String genre = '/genre/:genreSlug';
+
+  static String genrePath(String genreSlug, {String? label}) {
+    return Uri(
+      path: '/genre/$genreSlug',
+      queryParameters: {
+        if (label != null && label.trim().isNotEmpty) 'label': label.trim(),
+      },
+    ).toString();
+  }
+
   static const String library = '/library';
   static const String upgrade = '/upgrade';
   static const String uploadPicker = '/upload-picker';
@@ -123,8 +134,6 @@ String _searchPath(String query) {
     queryParameters: {'q': query},
   ).toString();
 }
-
-
 
 void _handleDeepLinkDestination(
   DeepLinkDestination destination,
@@ -198,6 +207,16 @@ ManagedTrack _fallbackTrackManagementSeed() {
   );
 }
 
+String _labelFromGenreSlug(String slug) {
+  return slug
+      .split(RegExp(r'[-_\\s]+'))
+      .where((part) => part.trim().isNotEmpty)
+      .map((part) {
+    final lower = part.toLowerCase();
+    return lower[0].toUpperCase() + lower.substring(1);
+  }).join(' ');
+}
+
 GoRouter _createRouter() {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -261,7 +280,24 @@ GoRouter _createRouter() {
           ),
         ],
       ),
+      // ── Genre discovery ────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.genre,
+        name: 'genre',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final genreSlug = state.pathParameters['genreSlug'] ?? '';
+          final label = state.uri.queryParameters['label'] ??
+              _labelFromGenreSlug(genreSlug);
 
+          return MaterialPage(
+            child: GenrePage(
+              genreSlug: genreSlug,
+              genreLabel: label,
+            ),
+          );
+        },
+      ),
       // ── Premium ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.upgrade,
