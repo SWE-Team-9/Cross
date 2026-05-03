@@ -13,7 +13,7 @@ void main() {
       expect(destination, isA<InvalidDeepLink>());
       expect(
         (destination as InvalidDeepLink).reason,
-        'Unknown scheme: expected soundclone://',
+        'Unknown scheme: https',
       );
     });
 

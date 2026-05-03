@@ -786,6 +786,8 @@ void main() {
 
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
 
       verify(() => loaderCubit.loadByTrackId('t1')).called(1);
       expect(find.byType(FullPlayerPage), findsOneWidget);
