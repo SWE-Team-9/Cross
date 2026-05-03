@@ -8,30 +8,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
 import '../../../../core/models/track.dart';
 import '../../../../core/di/injector.dart';
-import '../../../../core/network/dio_client.dart';
 import '../bloc/feed_cubit.dart';
 import '../bloc/feed_state.dart';
 import '../widgets/feed_card.dart';
 import '../widgets/feed_skeleton.dart';
-import '../../data/datasources/feed_remote_data_sources.dart';
-import '../../data/repositories/feed_repository_impl.dart';
 import '../../domain/entities/feed_item.dart';
-import '../../domain/usecases/get_feed.dart';
-import '../../domain/usecases/toggle_like.dart';
-import '../../domain/usecases/toggle_repost.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../../social/domain/events/social_events.dart';
-
-FeedCubit _buildCubit() {
-  final dataSource = FeedRemoteDataSourceImpl(client: getIt<DioClient>());
-  final repo = FeedRepositoryImpl(dataSource: dataSource);
-  return FeedCubit(
-    getFeed: GetFeedUseCase(repo),
-    toggleLike: ToggleLikeUseCase(repo),
-    toggleRepost: ToggleRepostUseCase(repo),
-    repository: repo,
-  );
-}
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
@@ -39,7 +22,7 @@ class FeedPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => _buildCubit()..initialize(),
+      create: (_) => getIt<FeedCubit>()..initialize(),
       child: const _FeedView(),
     );
   }
