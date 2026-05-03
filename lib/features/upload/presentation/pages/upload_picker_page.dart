@@ -264,7 +264,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                 }
 
                 final errorMessage = state.errorMessage!;
-                final isUploadLimitFailure = _isUploadLimitFailure(errorMessage);
+                final isUploadLimitFailure =
+                    _isUploadLimitFailure(errorMessage);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     backgroundColor: const Color(0xFF2A0000),
