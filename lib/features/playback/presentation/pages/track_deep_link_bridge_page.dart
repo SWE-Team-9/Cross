@@ -13,13 +13,19 @@ class TrackDeepLinkBridgePage extends StatefulWidget {
     super.key,
     this.trackId,
     this.secretToken,
+    this.handle,
+    this.slug,
   }) : assert(
-          trackId != null || secretToken != null,
-          'Either trackId or secretToken must be provided.',
+          trackId != null ||
+              secretToken != null ||
+              (handle != null && slug != null),
+          'Either trackId, secretToken, or handle+slug must be provided.',
         );
 
   final String? trackId;
   final String? secretToken;
+  final String? handle;
+  final String? slug;
 
   @override
   State<TrackDeepLinkBridgePage> createState() =>
@@ -40,6 +46,9 @@ class _TrackDeepLinkBridgePageState extends State<TrackDeepLinkBridgePage> {
 
     if (widget.secretToken != null) {
       cubit.loadBySecretToken(widget.secretToken!);
+    } else if (widget.handle != null && widget.slug != null) {
+      // ✅ يبني الـ slug URL ويبعته للـ cubit
+      cubit.loadBySlug(widget.handle!, widget.slug!);
     } else {
       cubit.loadByTrackId(widget.trackId!);
     }
@@ -92,7 +101,6 @@ class _TrackDeepLinkBridgePageState extends State<TrackDeepLinkBridgePage> {
       listener: (context, state) {
         switch (state) {
           case TrackLoaderReady():
-            // مهم جدًا: navigate بعد ما الـ PlayerCubit يكون بدأ فعليًا
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _openPlayer();
             });

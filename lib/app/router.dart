@@ -215,6 +215,9 @@ Future<void> _handleDeepLinkDestination(
     case ResolvableResourceDeepLink(:final url):
       path = await _resolveResourcePath(url);
 
+    case HandleSlugDeepLink(:final handle, :final slug):
+      path = '/resolve/$handle/$slug';  
+
     case BillingReturnDeepLink():
       path = _billingReturnPath(destination);
 
@@ -282,6 +285,15 @@ GoRouter _createRouter() {
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AuthRoutes.splash,
+
+    redirect: (context, state) {
+      final location = state.uri.toString();
+      if (location.startsWith('/track/')) {
+        return null;
+      }
+      return null;
+    },
+
     routes: [
       // ── Auth ────────────────────────────────────────────────────────────────
       ...AuthRoutes.routes,
@@ -351,8 +363,10 @@ GoRouter _createRouter() {
 
           return MaterialPage(
             child: GenrePage(
-              genreSlug: genreSlug,
               genreLabel: label,
+        genreQuery: genreSlug,
+         genreColor: const Color(0xFFFF5500),
+        
             ),
           );
         },
@@ -574,6 +588,30 @@ GoRouter _createRouter() {
                 BlocProvider(create: (_) => getIt<TrackLoaderCubit>()),
               ],
               child: TrackDeepLinkBridgePage(trackId: trackId),
+            ),
+          );
+        },
+      ),
+
+
+      // ── Handle/Slug resolver ─────────────────────────────────────────────────────
+      GoRoute(
+        path: '/resolve/:handle/:slug',
+        name: 'resolve-handle-slug',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final handle = state.pathParameters['handle'] ?? '';
+          final slug = state.pathParameters['slug'] ?? '';
+          return MaterialPage(
+            child: MultiBlocProvider(
+              providers: [
+                BlocProvider.value(value: getIt<PlayerCubit>()),
+                BlocProvider(create: (_) => getIt<TrackLoaderCubit>()),
+              ],
+              child: TrackDeepLinkBridgePage(
+                handle: handle,
+                slug: slug,
+              ),
             ),
           );
         },

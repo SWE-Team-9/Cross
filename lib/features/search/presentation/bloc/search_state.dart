@@ -69,7 +69,6 @@ class SearchState extends Equatable {
       return switch (status) {
         SearchStatus.loading => SearchBodyMode.loading,
         SearchStatus.failure => SearchBodyMode.failure,
-        SearchStatus.success when !hasResults => SearchBodyMode.empty,
         SearchStatus.success => SearchBodyMode.results,
         SearchStatus.idle => SearchBodyMode.loading,
       };

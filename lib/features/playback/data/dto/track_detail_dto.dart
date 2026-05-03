@@ -1,8 +1,3 @@
-// playback/data/dto/track_detail_dto.dart
-//
-// ✅ Fix: API returns "id" at root level, not "trackId".
-//         Falls back to "trackId" for safety.
-
 import '../../domain/entities/track_details.dart';
 import '../../domain/entities/waveform_data.dart';
 
@@ -13,6 +8,7 @@ class TrackDetailDto {
     required this.artist,
     required this.artistId,
     required this.artistHandle,
+    this.slug,
     this.artworkUrl,
     this.durationMs,
     this.likesCount = 0,
@@ -25,6 +21,7 @@ class TrackDetailDto {
   final String artist;
   final String artistId;
   final String artistHandle;
+  final String? slug;
   final String? artworkUrl;
   final int? durationMs;
   final int likesCount;
@@ -32,12 +29,15 @@ class TrackDetailDto {
   final List<dynamic>? waveformRaw;
 
   factory TrackDetailDto.fromJson(Map<String, dynamic> json) {
-    // ✅ API returns "id" — fallback to "trackId" just in case
-    final trackId = (json['id'] as String?)?.trim().isNotEmpty == true
-        ? (json['id'] as String).trim()
-        : (json['trackId'] as String?)?.trim() ?? '';
+    // ✅ الحل — بنجرب كل الأسماء المحتملة للـ ID
+    final trackId = _firstNonEmpty([
+      json['trackId'],
+      json['trackid'],
+      json['id'],
+      json['Id'],
+      json['track_id'],
+    ]);
 
-    // Artist: flat field OR nested uploader.profile
     final uploader = json['uploader'] as Map<String, dynamic>?;
     final profile = uploader?['profile'] as Map<String, dynamic>?;
 
@@ -47,16 +47,21 @@ class TrackDetailDto {
             (profile?['handle'] as String?)?.trim() ??
             '';
 
-    // artistId: flat OR uploaderId
-    final artistId = (json['artistId'] as String?)?.trim().isNotEmpty == true
-        ? (json['artistId'] as String).trim()
-        : (json['uploaderId'] as String?)?.trim() ?? '';
+    final artistId = _firstNonEmpty([
+      json['artistId'],
+      json['artist_id'],
+      json['uploaderId'],
+    ]);
 
-    // artistHandle: flat OR profile.handle
-    final artistHandle =
-        (json['artistHandle'] as String?)?.trim().isNotEmpty == true
-            ? (json['artistHandle'] as String).trim()
-            : (profile?['handle'] as String?)?.trim() ?? '';
+    final artistHandle = _firstNonEmpty([
+      json['artistHandle'],
+      json['artist_handle'],
+      profile?['handle'],
+    ]);
+
+    final slug = (json['slug'] as String?)?.trim().isNotEmpty == true
+        ? (json['slug'] as String).trim()
+        : null;
 
     return TrackDetailDto(
       trackId: trackId,
@@ -64,6 +69,7 @@ class TrackDetailDto {
       artist: artist,
       artistId: artistId,
       artistHandle: artistHandle,
+      slug: slug,
       artworkUrl:
           json['coverArtUrl'] as String? ?? json['cover_art_url'] as String?,
       durationMs: json['durationMs'] as int?,
@@ -80,6 +86,7 @@ class TrackDetailDto {
       artist: artist,
       artistId: artistId,
       artistHandle: artistHandle,
+      slug: slug,
       streamUrl: streamUrl,
       artworkUrl: artworkUrl,
       durationMs: durationMs,
@@ -89,5 +96,14 @@ class TrackDetailDto {
       likesCount: likesCount,
       repostsCount: repostsCount,
     );
+  }
+
+  // ✅ helper — بياخد أول قيمة غير فاضية من اللستة
+  static String _firstNonEmpty(List<dynamic> values) {
+    for (final value in values) {
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    return '';
   }
 }

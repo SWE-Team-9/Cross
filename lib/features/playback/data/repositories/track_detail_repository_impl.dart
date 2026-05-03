@@ -1,8 +1,3 @@
-// playback/data/repositories/track_detail_repository_impl.dart
-
-// Third-party
-
-// Project
 import '../../../../core/errors/failure.dart';
 import '../../domain/entities/track_details.dart';
 import '../../domain/repositories/i_track_detail_repository.dart';
@@ -18,17 +13,12 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
     String trackId,
   ) async {
     try {
-      // Step 1 — fetch track detail
       final trackDto = await _dataSource.fetchByTrackId(trackId);
 
       if (trackDto.trackId.isEmpty) {
-        return (
-          detail: null,
-          failure: NotFoundFailure('Track not found.'),
-        );
+        return (detail: null, failure: NotFoundFailure('Track not found.'));
       }
 
-      // Step 2 — fetch stream URL
       final sourceDto = await _dataSource.fetchStreamSource(trackDto.trackId);
 
       if (sourceDto.isBlocked) {
@@ -39,14 +29,11 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
         );
       }
 
-      // Step 3 — combine into entity
       return (
         detail: trackDto.toEntity(streamUrl: sourceDto.streamUrl),
         failure: null,
       );
     } on Failure catch (f) {
-      // DioClient already mapped DioException → Failure via ErrorMapper.
-      // We just catch and forward it here.
       return (detail: null, failure: f);
     } catch (_) {
       return (
@@ -61,7 +48,6 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
     String secretToken,
   ) async {
     try {
-      // Step 1 — fetch private track detail via token
       final trackDto = await _dataSource.fetchBySecretToken(secretToken);
 
       if (trackDto.trackId.isEmpty) {
@@ -71,7 +57,6 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
         );
       }
 
-      // Step 2 — fetch stream URL using resolved trackId
       final sourceDto = await _dataSource.fetchStreamSource(trackDto.trackId);
 
       if (sourceDto.isBlocked) {
@@ -82,7 +67,43 @@ class TrackDetailRepositoryImpl implements ITrackDetailRepository {
         );
       }
 
-      // Step 3 — combine into entity
+      return (
+        detail: trackDto.toEntity(streamUrl: sourceDto.streamUrl),
+        failure: null,
+      );
+    } on Failure catch (f) {
+      return (detail: null, failure: f);
+    } catch (_) {
+      return (
+        detail: null,
+        failure: ServerFailure('Something went wrong. Please try again.'),
+      );
+    }
+  }
+
+  // ✅ الجديد
+  @override
+  Future<({TrackDetail? detail, Failure? failure})> getBySlug(
+    String handle,
+    String slug,
+  ) async {
+    try {
+      final trackDto = await _dataSource.fetchBySlug(handle, slug);
+
+      if (trackDto.trackId.isEmpty) {
+        return (detail: null, failure: NotFoundFailure('Track not found.'));
+      }
+
+      final sourceDto = await _dataSource.fetchStreamSource(trackDto.trackId);
+
+      if (sourceDto.isBlocked) {
+        return (
+          detail: null,
+          failure:
+              ForbiddenFailure('This track is not available for playback.'),
+        );
+      }
+
       return (
         detail: trackDto.toEntity(streamUrl: sourceDto.streamUrl),
         failure: null,

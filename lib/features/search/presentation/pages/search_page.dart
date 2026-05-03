@@ -1,5 +1,5 @@
 // lib/features/search/presentation/pages/search_page.dart
-import '../../../../app/router.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +12,7 @@ import '../../../../core/di/injector.dart';
 import '../../../social/data/repositories/social_repo.dart';
 import '../../../social/domain/events/social_events.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
+import 'genre_page.dart'; // ← import GenrePage
 
 // ══════════════════════════════════════════════════════════════════════════════
 // GENRES
@@ -123,14 +124,16 @@ class SearchPage extends StatelessWidget {
             ),
             Expanded(
               child: _GenreGrid(
-                onGenreTap: (genre) {
-                  context.push(
-                    AppRoutes.genrePath(
-                      genre.queryValue,
-                      label: genre.label,
+                // ↓ الآن يفتح GenrePage مباشرة بدل /search/active
+                onGenreTap: (genre) => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => GenrePage(
+                      genreLabel: genre.label,
+                      genreQuery: genre.queryValue,
+                      genreColor: genre.color,
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
             ),
           ],
@@ -298,7 +301,6 @@ class _SearchActiveViewState extends State<_SearchActiveView>
       });
     }
 
-    // لما الـ focus يرجع للـ search bar وإحنا في results → ارجع لـ recents/suggestions
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         final cubit = context.read<SearchCubit>();
@@ -397,7 +399,6 @@ class _SearchActiveViewState extends State<_SearchActiveView>
         body: SafeArea(
           child: Column(
             children: [
-              // ── Search bar ──────────────────────────────────────────────
               _ActiveSearchBar(
                 controller: _controller,
                 focusNode: _focusNode,
@@ -410,8 +411,6 @@ class _SearchActiveViewState extends State<_SearchActiveView>
                 },
                 onBack: _goBack,
               ),
-
-              // ── Body ────────────────────────────────────────────────────
               Expanded(
                 child: BlocBuilder<SearchCubit, SearchState>(
                   builder: (context, state) {
@@ -467,7 +466,7 @@ class _SearchActiveViewState extends State<_SearchActiveView>
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SEARCH BAR  ← textAlign start + icon يسار
+// SEARCH BAR
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _ActiveSearchBar extends StatelessWidget {
@@ -795,14 +794,12 @@ class _AllTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Top result: أول track أو أول user
     final topTrack = state.tracks.isNotEmpty ? state.tracks.first : null;
     final topUser = state.users.isNotEmpty ? state.users.first : null;
 
     return CustomScrollView(
       controller: scrollController,
       slivers: [
-        // ── Top Result ─────────────────────────────────────────────────
         if (topTrack != null || topUser != null) ...[
           const _SliverHeader(title: 'Top Result'),
           SliverToBoxAdapter(
@@ -811,8 +808,6 @@ class _AllTab extends StatelessWidget {
                 : _TopUserTile(user: topUser!),
           ),
         ],
-
-        // ── Tracks ─────────────────────────────────────────────────────
         if (state.tracks.isNotEmpty) ...[
           const _SliverHeader(title: 'Tracks'),
           SliverList(
@@ -822,8 +817,6 @@ class _AllTab extends StatelessWidget {
             ),
           ),
         ],
-
-        // ── Profiles ───────────────────────────────────────────────────
         if (state.users.isNotEmpty) ...[
           const _SliverHeader(title: 'Profiles'),
           SliverList(
@@ -833,8 +826,6 @@ class _AllTab extends StatelessWidget {
             ),
           ),
         ],
-
-        // ── Playlists ──────────────────────────────────────────────────
         if (state.playlists.isNotEmpty) ...[
           const _SliverHeader(title: 'Playlists'),
           SliverList(
@@ -844,7 +835,6 @@ class _AllTab extends StatelessWidget {
             ),
           ),
         ],
-
         if (state.isLoadingMore)
           const SliverToBoxAdapter(
             child: Padding(
@@ -984,10 +974,7 @@ class _TopResultTile extends StatelessWidget {
             icon: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
             onPressed: () => _openOptions(context, track),
           ),
-          onTap: () {
-            final t = _toTrack(track);
-            getIt<PlayerCubit>().play(t);
-          },
+          onTap: () => getIt<PlayerCubit>().play(_toTrack(track)),
         ),
       ),
     );
@@ -1096,15 +1083,12 @@ class _TrackTile extends StatelessWidget {
         icon: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
         onPressed: () => _openOptions(context, track),
       ),
-      onTap: () {
-        final t = _toTrack(track);
-        getIt<PlayerCubit>().play(t);
-      },
+      onTap: () => getIt<PlayerCubit>().play(_toTrack(track)),
     );
   }
 }
 
-// ── User tile  ← أضفنا Follow button ─────────────────────────────────────────
+// ── User tile ─────────────────────────────────────────────────────────────────
 
 class _UserTile extends StatelessWidget {
   final UserEntity user;
@@ -1239,7 +1223,7 @@ class _FollowButtonState extends State<_FollowButton> {
     if (_loading) return;
     setState(() {
       _loading = true;
-      _isFollowing = !_isFollowing; // optimistic
+      _isFollowing = !_isFollowing;
     });
 
     try {
@@ -1251,7 +1235,7 @@ class _FollowButtonState extends State<_FollowButton> {
       }
       SocialEvents.emitFollowChanged();
     } catch (_) {
-      if (mounted) setState(() => _isFollowing = !_isFollowing); // rollback
+      if (mounted) setState(() => _isFollowing = !_isFollowing);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1275,9 +1259,7 @@ class _FollowButtonState extends State<_FollowButton> {
                 width: 12,
                 height: 12,
                 child: CircularProgressIndicator(
-                  strokeWidth: 1.5,
-                  color: Colors.white38,
-                ),
+                    strokeWidth: 1.5, color: Colors.white38),
               )
             : Text(
                 _isFollowing ? 'Following' : 'Follow',
@@ -1292,9 +1274,8 @@ class _FollowButtonState extends State<_FollowButton> {
   }
 }
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-// تحويل TrackEntity لـ Track عشان TrackOptionsSheet
 Track _toTrack(TrackEntity e) => Track(
       id: e.id,
       title: e.title,

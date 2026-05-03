@@ -14,6 +14,8 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_i
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 import 'package:go_router/go_router.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
+
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
@@ -32,13 +34,13 @@ class TrackOptionsSheet extends StatelessWidget {
   });
 
   // ── URL builder ────────────────────────────────────────────────────────────
-  static String _trackUrl(Track t) {
-    debugPrint('handle: ${t.handle}, slug: ${t.slug}');
-    if (t.handle != null && t.slug != null) {
-      return 'https://dev.iqa3.tech/${t.handle}/${t.slug}';
-    }
-    return 'https://dev.iqa3.tech/track/${t.id}';
-  }
+  // static String _trackUrl(Track t) {
+  //   debugPrint('handle: ${t.handle}, slug: ${t.slug}');
+  //   if (t.handle != null && t.slug != null) {
+  //     return 'https://dev.iqa3.tech/${t.handle}/${t.slug}';
+  //   }
+  //   return 'https://dev.iqa3.tech/track/${t.id}';
+  // }
 
   static Future<void> show(BuildContext context, {required Track track}) {
     isTrackSheetOpen.value = true;
@@ -81,9 +83,55 @@ class TrackOptionsSheet extends StatelessWidget {
     });
   }
 
+   // ── Resolve track URL — يجيب الـ slug من الـ API لو مش موجود ──────────────
+  Future<String> _resolveTrackUrl(BuildContext context) async {
+    // لو عندنا handle و slug — ارجع اللينك مباشرة
+    if (track.handle != null &&
+        track.handle!.isNotEmpty &&
+        track.slug != null &&
+        track.slug!.isNotEmpty) {
+      return 'https://dev.iqa3.tech/${track.handle}/${track.slug}';
+    }
+
+    // لو slug فاضي — اجيبه من الـ API
+    try {
+      final response = await getIt<DioClient>().get<Map<String, dynamic>>(
+        '/api/v1/tracks/${track.id}',
+      );
+      final data = response.data ?? {};
+      final slug = (data['slug'] as String?)?.trim() ?? '';
+      final handle =
+          (data['artistHandle'] as String?)?.trim().isNotEmpty == true
+              ? (data['artistHandle'] as String).trim()
+              : track.handle ?? '';
+
+      if (slug.isNotEmpty && handle.isNotEmpty) {
+        return 'https://dev.iqa3.tech/$handle/$slug';
+      }
+    } catch (_) {}
+
+    return '';
+  }
+
   // ── Copy link to clipboard ─────────────────────────────────────────────────
   Future<void> _copyLink(BuildContext context) async {
-    final url = _trackUrl(track);
+    final url = await _resolveTrackUrl(context);
+    if (url.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Link not available for this track'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
     await Clipboard.setData(ClipboardData(text: url));
     if (context.mounted) {
       Navigator.pop(context);
@@ -102,18 +150,28 @@ class TrackOptionsSheet extends StatelessWidget {
 
   // ── Native share sheet ─────────────────────────────────────────────────────
   Future<void> _shareTrack(BuildContext context) async {
+    final url = await _resolveTrackUrl(context);
+    if (url.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Link not available for this track'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
     Navigator.pop(context);
-    final url = _trackUrl(track);
     final artistHandle = track.handle ?? track.artist;
-
     final text = 'Check out "${track.title}" by @$artistHandle\n$url';
-
-    await SharePlus.instance.share(
-      ShareParams(
-        text: text,
-        subject: track.title,
-      ),
-    );
+    await SharePlus.instance
+        .share(ShareParams(text: text, subject: track.title));
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/foundation.dart';
 
 class UpdateService {
   static const String _versionUrl =
@@ -9,6 +10,7 @@ class UpdateService {
   static final Dio _dio = Dio();
 
   static Future<Map<String, dynamic>?> checkForUpdate() async {
+     if (kDebugMode) return null;
     try {
       print('>>> [UpdateService] fetching version.json...');
 

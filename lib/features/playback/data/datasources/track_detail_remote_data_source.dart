@@ -1,24 +1,13 @@
-// playback/data/datasources/track_detail_remote_data_source.dart
-
-// Project
-import '../../../../core/errors/failure.dart';
+import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../dto/track_detail_dto.dart';
 import '../dto/track_source_dto.dart';
 
-/// Remote data source for track detail and stream URL.
-///
-/// Uses [DioClient] — all interceptors (auth, refresh, logging) run
-/// automatically. Never use raw Dio directly.
 class TrackDetailRemoteDataSource {
   const TrackDetailRemoteDataSource(this._client);
 
   final DioClient _client;
 
-  /// Fetches full track detail for a public track.
-  /// GET /api/v1/tracks/{trackId}
-  ///
-  /// Throws [Failure] (via ErrorMapper) on any network or API error.
   Future<TrackDetailDto> fetchByTrackId(String trackId) async {
     final response = await _client.get<Map<String, dynamic>>(
       '/api/v1/tracks/$trackId',
@@ -26,11 +15,6 @@ class TrackDetailRemoteDataSource {
     return TrackDetailDto.fromJson(response.data ?? {});
   }
 
-  /// Fetches full track detail for a private track via secret token.
-  /// GET /api/v1/tracks/secret/{secretToken}
-  ///
-  /// Throws [Failure] (via ErrorMapper) on any network or API error.
-  /// 404 means the token is invalid or the track switched visibility.
   Future<TrackDetailDto> fetchBySecretToken(String secretToken) async {
     final response = await _client.get<Map<String, dynamic>>(
       '/api/v1/tracks/secret/$secretToken',
@@ -38,10 +22,38 @@ class TrackDetailRemoteDataSource {
     return TrackDetailDto.fromJson(response.data ?? {});
   }
 
-  /// Fetches the CDN stream URL for a track.
-  /// GET /api/v1/player/tracks/{trackId}/source
-  ///
-  /// Throws [Failure] (via ErrorMapper) on any network or API error.
+  // ✅ يعمل resolve بالـ handle/slug الأول، بعدين يجيب الـ track بالـ id
+  Future<TrackDetailDto> fetchBySlug(String handle, String slug) async {
+    // Step 1 — بنبني الـ URL من الـ baseUrl الموجود في الـ client
+    final baseUrl = _client.dio.options.baseUrl.replaceAll(RegExp(r'/$'), '');
+    final trackUrl = '$baseUrl/$handle/$slug';
+
+    final resolveResponse = await _client.get<Map<String, dynamic>>(
+      ApiConstants.resolve,
+      queryParameters: {'url': trackUrl},
+    );
+
+    final data = resolveResponse.data ?? {};
+    final bool matched = data['matched'] as bool? ?? false;
+
+    if (!matched) {
+      throw Exception('Track not found');
+    }
+
+    final String resourceType = data['resourceType'] as String? ?? '';
+    if (resourceType != 'TRACK') {
+      throw Exception('URL does not resolve to a track');
+    }
+
+    final String trackId = data['id'] as String? ?? '';
+    if (trackId.isEmpty) {
+      throw Exception('Track ID missing in resolve response');
+    }
+
+    // Step 2 — نجيب الـ track بالـ id
+    return fetchByTrackId(trackId);
+  }
+
   Future<TrackSourceDto> fetchStreamSource(String trackId) async {
     final response = await _client.get<Map<String, dynamic>>(
       '/api/v1/player/tracks/$trackId/source',

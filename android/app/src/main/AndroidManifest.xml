@@ -51,14 +51,14 @@
             </intent-filter>
 
             <!-- HTTPS Track deep link — بدون autoVerify عشان مفيش assetlinks.json -->
-            <intent-filter>
-    <action android:name="android.intent.action.VIEW"/>
-    <category android:name="android.intent.category.DEFAULT"/>
-    <category android:name="android.intent.category.BROWSABLE"/>
-    <data
-        android:scheme="iqa3"
-        android:host="track" />
-</intent-filter>
+             <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="dev.iqa3.tech" />
+            </intent-filter>
 
             <!-- soundclone://track/... — custom scheme fallback -->
             <intent-filter>
@@ -68,6 +68,25 @@
                 <data
                     android:scheme="iqa3"
                     android:host="track" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="iqa3"
+                    android:host="user" />
+            </intent-filter>
+
+            <!-- ✅ Custom scheme — iqa3://playlist/... -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="iqa3"
+                    android:host="playlist" />
             </intent-filter>
 
             <!-- OAuth callback -->
