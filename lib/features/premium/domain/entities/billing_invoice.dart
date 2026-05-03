@@ -59,7 +59,8 @@ class BillingInvoice {
     }
   }
 
-  String get displayAmountDue => _formatMoney(amountDueCents, normalizedCurrency);
+  String get displayAmountDue =>
+      _formatMoney(amountDueCents, normalizedCurrency);
 
   String get displayAmountPaid =>
       _formatMoney(amountPaidCents, normalizedCurrency);

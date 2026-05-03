@@ -88,7 +88,9 @@ void main() {
   }
 
   group('downloadTrack', () {
-    test('checks premium entitlement, downloads stream, writes file, and persists metadata', () async {
+    test(
+        'checks premium entitlement, downloads stream, writes file, and persists metadata',
+        () async {
       when(
         () => dio.get(ApiConstants.subscriptionOfflineTrackPath('track-1')),
       ).thenAnswer((_) async => response(entitlementJson()));
@@ -206,7 +208,8 @@ void main() {
       expect(File(path).readAsBytesSync(), <int>[10, 11]);
     });
 
-    test('uses entitlement metadata when track details cannot be fetched', () async {
+    test('uses entitlement metadata when track details cannot be fetched',
+        () async {
       when(
         () => dio.get(ApiConstants.subscriptionOfflineTrackPath('track-1')),
       ).thenAnswer((_) async => response(entitlementJson()));
@@ -278,7 +281,8 @@ void main() {
       verifyNever(() => dio.get(any()));
     });
 
-    test('throws StateError and does not stream when entitlement is free plan', () async {
+    test('throws StateError and does not stream when entitlement is free plan',
+        () async {
       when(
         () => dio.get(ApiConstants.subscriptionOfflineTrackPath('track-1')),
       ).thenAnswer(
@@ -415,7 +419,8 @@ void main() {
   });
 
   group('downloaded tracks persistence', () {
-    test('saveDownloadedTracks and getDownloadedTracks round trip values', () async {
+    test('saveDownloadedTracks and getDownloadedTracks round trip values',
+        () async {
       await repository.saveDownloadedTracks(
         const <String, String>{
           'track-1': '/offline/track-1.mp3',
@@ -434,7 +439,8 @@ void main() {
       );
     });
 
-    test('getDownloadedTracks returns empty map for missing or corrupted json', () async {
+    test('getDownloadedTracks returns empty map for missing or corrupted json',
+        () async {
       expect(await repository.getDownloadedTracks(), isEmpty);
 
       final prefs = await SharedPreferences.getInstance();
@@ -443,7 +449,9 @@ void main() {
       expect(await repository.getDownloadedTracks(), isEmpty);
     });
 
-    test('saveDownloadedTrackDetails and getDownloadedTrackDetails round trip values', () async {
+    test(
+        'saveDownloadedTrackDetails and getDownloadedTrackDetails round trip values',
+        () async {
       await repository.saveDownloadedTrackDetails(
         const <String, Track>{
           'track-1': Track(
@@ -478,7 +486,8 @@ void main() {
       expect(track.localPath, '/offline/track-1.mp3');
     });
 
-    test('getDownloadedTrackDetails returns empty map for corrupted json', () async {
+    test('getDownloadedTrackDetails returns empty map for corrupted json',
+        () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('offline_track_details', '{bad json');
 
@@ -487,12 +496,14 @@ void main() {
   });
 
   group('downloaded playlists persistence', () {
-    test('saveDownloadedPlaylists and getDownloadedPlaylists round trip values', () async {
+    test('saveDownloadedPlaylists and getDownloadedPlaylists round trip values',
+        () async {
       final playlist = PlaylistEntity(
         playlistId: 'playlist-1',
         title: 'Offline Mix',
         description: 'Saved playlist',
-visibility: PlaylistVisibility.publicPlaylist,        genre: 'Electronic',
+        visibility: PlaylistVisibility.publicPlaylist,
+        genre: 'Electronic',
         genreId: 7,
         slug: 'offline-mix',
         playlistType: 'PLAYLIST',
@@ -529,11 +540,13 @@ visibility: PlaylistVisibility.publicPlaylist,        genre: 'Electronic',
       expect(savedPlaylist.playlistId, 'playlist-1');
       expect(savedPlaylist.title, 'Offline Mix');
       expect(savedPlaylist.description, 'Saved playlist');
-expect(savedPlaylist.visibility, PlaylistVisibility.publicPlaylist);      expect(savedPlaylist.genre, 'Electronic');
+      expect(savedPlaylist.visibility, PlaylistVisibility.publicPlaylist);
+      expect(savedPlaylist.genre, 'Electronic');
       expect(savedPlaylist.genreId, 7);
       expect(savedPlaylist.slug, 'offline-mix');
       expect(savedPlaylist.playlistType, 'PLAYLIST');
-      expect(savedPlaylist.releaseDate, DateTime.parse('2026-04-01T00:00:00.000Z'));
+      expect(savedPlaylist.releaseDate,
+          DateTime.parse('2026-04-01T00:00:00.000Z'));
       expect(savedPlaylist.tags, <String>['electronic', 'mix']);
       expect(savedPlaylist.secretToken, 'secret-token');
       expect(savedPlaylist.coverImageUrl, 'https://example.com/playlist.jpg');
@@ -546,7 +559,9 @@ expect(savedPlaylist.visibility, PlaylistVisibility.publicPlaylist);      expect
       expect(savedPlaylist.isLiked, isTrue);
     });
 
-    test('getDownloadedPlaylists returns empty map for missing or corrupted json', () async {
+    test(
+        'getDownloadedPlaylists returns empty map for missing or corrupted json',
+        () async {
       expect(await repository.getDownloadedPlaylists(), isEmpty);
 
       final prefs = await SharedPreferences.getInstance();

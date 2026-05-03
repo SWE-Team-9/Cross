@@ -16,7 +16,8 @@ class UpgradeCubit extends Cubit<UpgradeState> {
       final url = await repository.createCheckout(state.selectedPlan);
       emit(state.copyWith(status: UpgradeStatus.success, checkoutUrl: url));
     } catch (e) {
-      emit(state.copyWith(status: UpgradeStatus.error, errorMessage: e.toString()));
+      emit(state.copyWith(
+          status: UpgradeStatus.error, errorMessage: e.toString()));
     }
   }
 }

@@ -123,8 +123,7 @@ void main() {
       expect(destination.hasSessionReference, isTrue);
     });
 
-    test('hasSessionReference returns false when all references are empty',
-        () {
+    test('hasSessionReference returns false when all references are empty', () {
       const destination = BillingReturnDeepLink(
         sessionId: '   ',
         checkoutSessionId: '',

@@ -267,7 +267,8 @@ class TrackRow extends StatelessWidget {
           );
         }
 
-        return BlocBuilder<OfflineCubit, OfflineState>(          bloc: offlineCubit,
+        return BlocBuilder<OfflineCubit, OfflineState>(
+          bloc: offlineCubit,
           builder: (context, offlineState) {
             final isDownloaded = offlineCubit.isDownloaded(track.id);
 

@@ -157,9 +157,11 @@ class Subscription {
   factory Subscription.fromJson(Map<String, dynamic> json) {
     final String parsedPlanCode = _asString(
       json['planCode'] ?? json['plan_code'],
-      fallback: _asString(json['subscriptionType'] ?? json['subscription_type']),
+      fallback: _asString(
+        json['subscriptionType'] ?? json['subscription_type'],
+        fallback: 'FREE',
+      ),
     );
-
     final String parsedSubscriptionType = _asString(
       json['subscriptionType'] ?? json['subscription_type'],
       fallback: parsedPlanCode.isEmpty ? 'FREE' : parsedPlanCode,
@@ -217,7 +219,8 @@ class Subscription {
       uploadLimit: parsedUploadLimit,
       uploadLimitDisplay: _asString(
         json['uploadLimitDisplay'] ?? json['upload_limit_display'],
-        fallback: parsedIsUnlimited ? 'Unlimited' : parsedUploadLimit.toString(),
+        fallback:
+            parsedIsUnlimited ? 'Unlimited' : parsedUploadLimit.toString(),
       ),
       isUnlimited: parsedIsUnlimited,
       uploadedTracks: parsedUploadedTracks,
@@ -341,8 +344,9 @@ class Subscription {
       isUnlimited: isUnlimited ?? this.isUnlimited,
       uploadedTracks: uploadedTracks ?? this.uploadedTracks,
       remainingUploads: remainingUploads ?? this.remainingUploads,
-      currentPeriodEnd:
-          clearCurrentPeriodEnd ? null : currentPeriodEnd ?? this.currentPeriodEnd,
+      currentPeriodEnd: clearCurrentPeriodEnd
+          ? null
+          : currentPeriodEnd ?? this.currentPeriodEnd,
       renewalDate: clearRenewalDate ? null : renewalDate ?? this.renewalDate,
       expiresAt: clearExpiresAt ? null : expiresAt ?? this.expiresAt,
       cancelAtPeriodEnd: cancelAtPeriodEnd ?? this.cancelAtPeriodEnd,
@@ -358,15 +362,13 @@ class Subscription {
       paymentMethodSummary: clearPaymentMethodSummary
           ? null
           : paymentMethodSummary ?? this.paymentMethodSummary,
-      paymentMethod: clearPaymentMethod
-          ? null
-          : paymentMethod ?? this.paymentMethod,
+      paymentMethod:
+          clearPaymentMethod ? null : paymentMethod ?? this.paymentMethod,
       pendingDowngrade: clearPendingDowngrade
           ? null
           : pendingDowngrade ?? this.pendingDowngrade,
-      latestInvoice: clearLatestInvoice
-          ? null
-          : latestInvoice ?? this.latestInvoice,
+      latestInvoice:
+          clearLatestInvoice ? null : latestInvoice ?? this.latestInvoice,
     );
   }
 

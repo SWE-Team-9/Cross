@@ -66,7 +66,8 @@ void main() {
     });
 
     test('billing return filters are browsable and default', () {
-      final billingFilterStart = manifest.indexOf('<!-- Billing portal return -->');
+      final billingFilterStart =
+          manifest.indexOf('<!-- Billing portal return -->');
       final checkoutFilterStart = manifest.indexOf('<!-- Checkout return -->');
 
       expect(billingFilterStart, isNonNegative);
@@ -96,9 +97,11 @@ void main() {
     });
 
     test('billing filters are placed inside MainActivity', () {
-      final mainActivityStart = manifest.indexOf('android:name=".MainActivity"');
+      final mainActivityStart =
+          manifest.indexOf('android:name=".MainActivity"');
       final activityEnd = manifest.indexOf('</activity>', mainActivityStart);
-      final billingFilterStart = manifest.indexOf('<!-- Billing portal return -->');
+      final billingFilterStart =
+          manifest.indexOf('<!-- Billing portal return -->');
       final checkoutFilterStart = manifest.indexOf('<!-- Checkout return -->');
 
       expect(mainActivityStart, isNonNegative);
@@ -113,7 +116,8 @@ void main() {
     });
 
     test('deep links are available on exported single task main activity', () {
-      final mainActivityStart = manifest.indexOf('android:name=".MainActivity"');
+      final mainActivityStart =
+          manifest.indexOf('android:name=".MainActivity"');
       final activityEnd = manifest.indexOf('</activity>', mainActivityStart);
       final mainActivity = manifest.substring(mainActivityStart, activityEnd);
 

@@ -53,7 +53,8 @@ void main() {
       );
     });
 
-    test('emits success state and message after canceling scheduled plan change',
+    test(
+        'emits success state and message after canceling scheduled plan change',
         () {
       final methodBody = _methodBody(
         source,

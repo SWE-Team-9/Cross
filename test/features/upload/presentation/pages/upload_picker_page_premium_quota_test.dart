@@ -112,11 +112,13 @@ void main() {
     test('detects reached upload limit', () {
       expect(
         source,
-        contains('final hasReachedLimit = !isUnlimited && remainingUploads <= 0;'),
+        contains(
+            'final hasReachedLimit = !isUnlimited && remainingUploads <= 0;'),
       );
       expect(
         source,
-        contains("'You reached your current upload limit. Upgrade to continue uploading tracks.'"),
+        contains(
+            "'You reached your current upload limit. Upgrade to continue uploading tracks.'"),
       );
     });
 

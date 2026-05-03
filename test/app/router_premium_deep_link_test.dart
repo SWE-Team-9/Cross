@@ -7,13 +7,16 @@ void main() {
     late String source;
 
     setUpAll(() {
-      source = File('lib/app/router.dart').readAsStringSync();
+      source = File('lib/app/router.dart')
+          .readAsStringSync()
+          .replaceAll('\r\n', '\n');
     });
 
     test('defines billing return path builder', () {
       expect(
         source,
-        contains('String _billingReturnPath(BillingReturnDeepLink destination)'),
+        contains(
+            'String _billingReturnPath(BillingReturnDeepLink destination)'),
       );
       expect(
         source,
@@ -57,15 +60,18 @@ void main() {
     test('omits empty billing return query parameters', () {
       expect(
         source,
-        contains('destination.status != null && destination.status!.trim().isNotEmpty'),
+        contains(
+            'destination.status != null && destination.status!.trim().isNotEmpty'),
       );
       expect(
         source,
-        contains('destination.planCode != null && destination.planCode!.trim().isNotEmpty'),
+        contains(
+            'destination.planCode != null && destination.planCode!.trim().isNotEmpty'),
       );
       expect(
         source,
-        contains('destination.sessionId != null && destination.sessionId!.trim().isNotEmpty'),
+        contains(
+            'destination.sessionId != null && destination.sessionId!.trim().isNotEmpty'),
       );
       expect(
         source,
@@ -81,7 +87,8 @@ void main() {
       );
       expect(
         source,
-        contains('queryParameters: queryParameters.isEmpty ? null : queryParameters'),
+        contains(
+            'queryParameters: queryParameters.isEmpty ? null : queryParameters'),
       );
     });
 
@@ -95,7 +102,8 @@ void main() {
         contains('path = _billingReturnPath(destination);'),
       );
 
-      final searchCaseIndex = source.indexOf('case SearchDeepLink(:final query):');
+      final searchCaseIndex =
+          source.indexOf('case SearchDeepLink(:final query):');
       final billingCaseIndex = source.indexOf('case BillingReturnDeepLink():');
       final oauthCaseIndex = source.indexOf('case OAuthCallbackDeepLink():');
 
@@ -106,7 +114,9 @@ void main() {
       expect(billingCaseIndex, lessThan(oauthCaseIndex));
     });
 
-    test('routes billing return deep links through normal pending deep link flow', () {
+    test(
+        'routes billing return deep links through normal pending deep link flow',
+        () {
       expect(
         source,
         contains('if (isOnAuthScreen) {'),

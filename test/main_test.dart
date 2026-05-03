@@ -7,33 +7,31 @@ void main() {
     late String mainSource;
 
     setUpAll(() {
-      mainSource = File('lib/main.dart').readAsStringSync();
+      mainSource =
+          File('lib/main.dart').readAsStringSync().replaceAll('\r\n', '\n');
     });
 
-    test('registers premium dependencies after app dependencies are ready', () {
+    test('relies on setupDependencies for premium registration', () {
       final setupDependenciesIndex = mainSource.indexOf(
         'await setupDependencies();',
       );
-      final registerPremiumDependenciesIndex = mainSource.indexOf(
-        'registerPremiumDependencies(getIt);',
-      );
 
       expect(setupDependenciesIndex, isNonNegative);
-      expect(registerPremiumDependenciesIndex, isNonNegative);
-      expect(registerPremiumDependenciesIndex, greaterThan(setupDependenciesIndex));
+      expect(
+          mainSource, isNot(contains('registerPremiumDependencies(getIt);')));
     });
 
-    test('initializes deep links after premium dependencies are registered', () {
-      final registerPremiumDependenciesIndex = mainSource.indexOf(
-        'registerPremiumDependencies(getIt);',
+    test('initializes deep links after app dependencies are registered', () {
+      final setupDependenciesIndex = mainSource.indexOf(
+        'await setupDependencies();',
       );
       final deepLinkInitIndex = mainSource.indexOf(
         'await getIt<DeepLinkService>().init();',
       );
 
-      expect(registerPremiumDependenciesIndex, isNonNegative);
+      expect(setupDependenciesIndex, isNonNegative);
       expect(deepLinkInitIndex, isNonNegative);
-      expect(deepLinkInitIndex, greaterThan(registerPremiumDependenciesIndex));
+      expect(deepLinkInitIndex, greaterThan(setupDependenciesIndex));
     });
 
     test('provides subscription cubit at app root and loads subscription', () {
@@ -41,7 +39,8 @@ void main() {
       expect(mainSource, contains('BlocProvider<SubscriptionCubit>'));
       expect(
         mainSource,
-        contains('create: (_) => getIt<SubscriptionCubit>()..loadSubscription()'),
+        contains(
+            'create: (_) => getIt<SubscriptionCubit>()..loadSubscription()'),
       );
     });
 
@@ -50,13 +49,7 @@ void main() {
       expect(mainSource, contains('value: getIt<OfflineCubit>()'));
     });
 
-    test('imports premium dependency module and cubits', () {
-      expect(
-        mainSource,
-        contains(
-          "import 'package:soundcloud_clone/features/premium/premium_di.dart';",
-        ),
-      );
+    test('imports root cubits', () {
       expect(
         mainSource,
         contains(

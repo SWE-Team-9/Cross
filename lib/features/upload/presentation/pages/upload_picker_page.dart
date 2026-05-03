@@ -166,6 +166,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
         ),
       );
   }
+
   bool _isUploadLimitFailure(String message) {
     final normalized = message.toLowerCase();
 
@@ -174,6 +175,7 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
         normalized.contains('subscription is not active') ||
         normalized.contains('billing status');
   }
+
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthCubit>().state;
@@ -262,7 +264,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                 }
 
                 final errorMessage = state.errorMessage!;
-                final isUploadLimitFailure = _isUploadLimitFailure(errorMessage);
+                final isUploadLimitFailure =
+                    _isUploadLimitFailure(errorMessage);
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -285,7 +288,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                     ),
                   ),
                 );
-              }              if (state.status == UploadPickerStatus.success) {
+              }
+              if (state.status == UploadPickerStatus.success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     backgroundColor: const Color(0xFF002A0A),
@@ -323,7 +327,8 @@ class _UploadPickerPageState extends State<UploadPickerPage> {
                     const SizedBox(height: 16),
                     const _UploadQuotaCard(),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(                      style: ElevatedButton.styleFrom(
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -730,6 +735,7 @@ class _UploadQuotaCard extends StatelessWidget {
     );
   }
 }
+
 class _UploadMetadataCard extends StatelessWidget {
   const _UploadMetadataCard({
     required this.titleController,
@@ -1113,6 +1119,7 @@ class _UploadStatusCard extends StatelessWidget {
         normalized.contains('subscription is not active') ||
         normalized.contains('billing status');
   }
+
   @override
   Widget build(BuildContext context) {
     if (state.status == UploadPickerStatus.initial ||
@@ -1205,7 +1212,8 @@ class _UploadStatusCard extends StatelessWidget {
               ? Theme.of(context).colorScheme.primary
               : Colors.redAccent,
         );
-        break;      case UploadPickerStatus.initial:
+        break;
+      case UploadPickerStatus.initial:
       case UploadPickerStatus.cancelled:
         return const SizedBox.shrink();
     }

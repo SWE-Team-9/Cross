@@ -26,6 +26,7 @@ abstract class SubscriptionRepository {
   Future<Subscription> cancelPlanChange();
 
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(String trackId);
+
   /// Legacy compatibility for existing callers.
   Future<String> openPortal() async {
     final session = await openBillingPortalSession();

@@ -53,6 +53,7 @@ import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
 import 'package:soundcloud_clone/features/premium/presentation/pages/billing_page.dart';
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
+
 class FakeAudioPlayerService implements AudioPlayerService {
   double _currentVolume = 1;
 

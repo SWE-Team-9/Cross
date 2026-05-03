@@ -35,7 +35,8 @@ void main() {
       expect(subscription.uploadUsageRatio, 0);
     });
 
-    test('fromJson parses active Pro subscription from swagger response shape', () {
+    test('fromJson parses active Pro subscription from swagger response shape',
+        () {
       final subscription = Subscription.fromJson(
         const <String, dynamic>{
           'userId': 'user-uuid-1',
@@ -86,8 +87,10 @@ void main() {
       expect(subscription.uploadLimitDisplay, '100');
       expect(subscription.uploadedTracks, 5);
       expect(subscription.remainingUploads, 95);
-      expect(subscription.currentPeriodEnd, DateTime.parse('2026-05-01T00:00:00.000Z'));
-      expect(subscription.renewalDate, DateTime.parse('2026-05-01T00:00:00.000Z'));
+      expect(subscription.currentPeriodEnd,
+          DateTime.parse('2026-05-01T00:00:00.000Z'));
+      expect(
+          subscription.renewalDate, DateTime.parse('2026-05-01T00:00:00.000Z'));
       expect(subscription.expiresAt, isNull);
       expect(subscription.cancelAtPeriodEnd, isFalse);
       expect(subscription.canResume, isFalse);
@@ -119,13 +122,15 @@ void main() {
       expect(subscription.displayUploadLimit, '100');
       expect(subscription.displayRemainingUploads, '95');
       expect(subscription.uploadUsageRatio, 0.05);
-      expect(subscription.nextBillingDate, DateTime.parse('2026-05-01T00:00:00.000Z'));
+      expect(subscription.nextBillingDate,
+          DateTime.parse('2026-05-01T00:00:00.000Z'));
       expect(subscription.hasPaymentMethod, isTrue);
       expect(subscription.hasLatestInvoice, isTrue);
       expect(subscription.hasPendingDowngrade, isFalse);
     });
 
-    test('fromJson accepts snake case keys from alternate backend serializers', () {
+    test('fromJson accepts snake case keys from alternate backend serializers',
+        () {
       final subscription = Subscription.fromJson(
         const <String, dynamic>{
           'user_id': 'user-uuid-2',

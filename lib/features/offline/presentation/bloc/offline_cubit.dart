@@ -72,15 +72,15 @@ class OfflineCubit extends Cubit<OfflineState> {
 
     updatedDetails[normalizedTrackId] = (savedDetails ?? track).copyWith(
       id: normalizedTrackId,
-      title: savedDetails?.title ?? track.title,
-      artist: savedDetails?.artist ?? track.artist,
-      audioUrl: savedDetails?.audioUrl ?? track.audioUrl,
-      artworkUrl: savedDetails?.artworkUrl ?? track.artworkUrl,
-      handle: savedDetails?.handle ?? track.handle,
-      artistId: savedDetails?.artistId ?? track.artistId,
-      likesCount: savedDetails?.likesCount ?? track.likesCount,
-      repostsCount: savedDetails?.repostsCount ?? track.repostsCount,
-      durationMs: savedDetails?.durationMs ?? track.durationMs,
+      title: track.title,
+      artist: track.artist,
+      audioUrl: track.audioUrl,
+      artworkUrl: track.artworkUrl,
+      handle: track.handle,
+      artistId: track.artistId,
+      likesCount: track.likesCount,
+      repostsCount: track.repostsCount,
+      durationMs: track.durationMs,
       localPath: path ?? savedDetails?.localPath ?? track.localPath,
     );
 
@@ -223,6 +223,8 @@ class OfflineCubit extends Cubit<OfflineState> {
 
       final playlists = await repo.getDownloadedPlaylists();
 
+      if (isClosed) return;
+
       emit(
         state.copyWith(
           downloadedTracks: savedTracks,
@@ -231,6 +233,8 @@ class OfflineCubit extends Cubit<OfflineState> {
         ),
       );
     } catch (_) {
+      if (isClosed) return;
+
       emit(const OfflineState());
     }
   }

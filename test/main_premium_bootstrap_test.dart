@@ -35,7 +35,8 @@ void main() {
       );
 
       final setupIndex = source.indexOf('await setupDependencies();');
-      final deepLinkIndex = source.indexOf("await getIt<DeepLinkService>().init();");
+      final deepLinkIndex =
+          source.indexOf("await getIt<DeepLinkService>().init();");
 
       expect(setupIndex, isNonNegative);
       expect(deepLinkIndex, isNonNegative);
@@ -56,7 +57,8 @@ void main() {
     test('provides subscription cubit at app root and loads subscription', () {
       expect(
         source,
-        contains("import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';"),
+        contains(
+            "import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';"),
       );
       expect(
         source,
@@ -64,14 +66,16 @@ void main() {
       );
       expect(
         source,
-        contains('create: (_) => getIt<SubscriptionCubit>()..loadSubscription(),'),
+        contains(
+            'create: (_) => getIt<SubscriptionCubit>()..loadSubscription(),'),
       );
     });
 
     test('provides offline cubit at app root', () {
       expect(
         source,
-        contains("import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';"),
+        contains(
+            "import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';"),
       );
       expect(
         source,
@@ -99,7 +103,8 @@ void main() {
     });
 
     test('keeps audio service initialization before dependency setup', () {
-      final audioServiceIndex = source.indexOf('audioHandler = await AudioService.init(');
+      final audioServiceIndex =
+          source.indexOf('audioHandler = await AudioService.init(');
       final setupIndex = source.indexOf('await setupDependencies();');
 
       expect(audioServiceIndex, isNonNegative);

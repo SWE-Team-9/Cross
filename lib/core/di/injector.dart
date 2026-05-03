@@ -220,7 +220,7 @@ Future<void> setupDependencies() async {
       ),
     );
   }
-    registerPremiumDependencies(getIt);
+  registerPremiumDependencies(getIt);
 
   if (!getIt.isRegistered<SocialRepo>()) {
     getIt.registerLazySingleton<SocialRepo>(

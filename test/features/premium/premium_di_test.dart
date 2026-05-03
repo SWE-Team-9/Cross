@@ -76,7 +76,8 @@ void main() {
       expect(getIt.isRegistered<ChangeSubscriptionPlanUseCase>(), isTrue);
       expect(getIt.isRegistered<GetOfflineTrackEntitlementUseCase>(), isTrue);
 
-      expect(getIt<GetMySubscriptionUseCase>(), isA<GetMySubscriptionUseCase>());
+      expect(
+          getIt<GetMySubscriptionUseCase>(), isA<GetMySubscriptionUseCase>());
       expect(
         getIt<GetSubscriptionPlansUseCase>(),
         isA<GetSubscriptionPlansUseCase>(),
@@ -169,7 +170,8 @@ void main() {
       registerPremiumDependencies(getIt);
 
       expect(getIt<SubscriptionRepository>(), same(fakeRepository));
-      expect(getIt<GetMySubscriptionUseCase>(), isA<GetMySubscriptionUseCase>());
+      expect(
+          getIt<GetMySubscriptionUseCase>(), isA<GetMySubscriptionUseCase>());
       expect(getIt<SubscriptionCubit>(), isA<SubscriptionCubit>());
     });
 
@@ -260,6 +262,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       isPremium: plan.trim().toUpperCase() != 'FREE',
     );
   }
+
   @override
   Future<Subscription> cancelPlanChange() async {
     return const Subscription(
@@ -269,6 +272,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       isPremium: true,
     );
   }
+
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,

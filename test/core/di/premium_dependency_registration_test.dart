@@ -30,7 +30,8 @@ void main() {
       );
     });
 
-    test('premium dependencies are registered after DioClient is available', () {
+    test('premium dependencies are registered after DioClient is available',
+        () {
       final dioRegistrationIndex = injectorSource.indexOf(
         'getIt.registerLazySingleton<DioClient>',
       );
@@ -43,7 +44,8 @@ void main() {
       expect(dioRegistrationIndex, lessThan(premiumRegistrationIndex));
     });
 
-    test('upload picker cubit receives subscription repository and quota usecase',
+    test(
+        'upload picker cubit receives subscription repository and quota usecase',
         () {
       expect(
         injectorSource,

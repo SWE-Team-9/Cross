@@ -115,7 +115,8 @@ void main() {
       expect((await repository.getMySubscription()).planCode, 'FREE');
     });
 
-    test('openBillingPortalSession returns free portal capabilities for free plan',
+    test(
+        'openBillingPortalSession returns free portal capabilities for free plan',
         () async {
       final session = await repository.openBillingPortalSession();
 
@@ -133,7 +134,8 @@ void main() {
       expect(session.launchUrl, 'https://mock-portal.example.com/session');
     });
 
-    test('openBillingPortalSession returns premium portal capabilities for premium plan',
+    test(
+        'openBillingPortalSession returns premium portal capabilities for premium plan',
         () async {
       await repository.createCheckout('PRO');
 
@@ -189,7 +191,8 @@ void main() {
       expect(subscription.canResume, isFalse);
     });
 
-    test('cancelSubscription schedules cancellation for premium plan', () async {
+    test('cancelSubscription schedules cancellation for premium plan',
+        () async {
       await repository.createCheckout('PRO');
 
       final subscription = await repository.cancelSubscription();
@@ -261,7 +264,8 @@ void main() {
       expect(subscription.isPremium, isTrue);
     });
 
-    test('getOfflineTrackEntitlement returns free plan entitlement when current plan is free',
+    test(
+        'getOfflineTrackEntitlement returns free plan entitlement when current plan is free',
         () async {
       final entitlement = await repository.getOfflineTrackEntitlement(
         ' track-1 ',

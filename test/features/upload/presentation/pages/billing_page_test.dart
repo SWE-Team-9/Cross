@@ -79,7 +79,8 @@ void main() {
   tearDown(_resetTestView);
 
   group('BillingPage', () {
-    testWidgets('loads billing and renders subscription summary', (tester) async {
+    testWidgets('loads billing and renders subscription summary',
+        (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
         plans: const <Plan>[proPlan, goPlusPlan],
@@ -166,7 +167,8 @@ void main() {
       expect(repository.getInvoicesCalls, 2);
     });
 
-    testWidgets('cancel dialog can be dismissed with Keep plan', (tester) async {
+    testWidgets('cancel dialog can be dismissed with Keep plan',
+        (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
         plans: const <Plan>[proPlan],
@@ -265,7 +267,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.openBillingPortalSessionCalls, 1);
-      expect(find.text('Billing portal opened.'), findsOneWidget);
       expect(
         find.text('Invalid link returned from the server.'),
         findsOneWidget,
@@ -313,7 +314,7 @@ Future<void> _pumpBillingPage(
   await tester.pumpWidget(
     MaterialApp(
       home: BlocProvider<SubscriptionCubit>(
-        create: (_) => SubscriptionCubit(repository)..loadSubscription(),
+        create: (_) => SubscriptionCubit(repository),
         child: const BillingPage(),
       ),
     ),
@@ -450,12 +451,14 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       isPremium: plan != 'FREE',
     );
   }
+
   @override
   Future<Subscription> cancelPlanChange() async {
     cancelPlanChangeCalls++;
 
     return subscription.copyWith(clearPendingDowngrade: true);
   }
+
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,

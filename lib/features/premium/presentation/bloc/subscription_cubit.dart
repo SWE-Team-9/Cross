@@ -299,7 +299,8 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
   }
 
   Future<String> openBillingPortal() async {
-    emit(      state.copyWith(
+    emit(
+      state.copyWith(
         actionStatus: SubscriptionActionStatus.loading,
         clearBillingPortalSession: true,
         clearActionMessage: true,

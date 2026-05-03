@@ -137,8 +137,7 @@ class BillingPortalSession {
       customerId: customerId ?? this.customerId,
       returnUrl: returnUrl ?? this.returnUrl,
       expiresAt: clearExpiresAt ? null : expiresAt ?? this.expiresAt,
-      paymentMethodSummary:
-          paymentMethodSummary ?? this.paymentMethodSummary,
+      paymentMethodSummary: paymentMethodSummary ?? this.paymentMethodSummary,
       paymentMethod:
           clearPaymentMethod ? null : paymentMethod ?? this.paymentMethod,
       canUpdatePaymentMethod:

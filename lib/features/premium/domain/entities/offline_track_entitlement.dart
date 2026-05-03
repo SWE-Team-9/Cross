@@ -52,7 +52,8 @@ class OfflineTrackEntitlement {
 
   String get displayArtist => artist.trim().isEmpty ? 'Unknown artist' : artist;
 
-  Duration get duration => Duration(milliseconds: durationMs < 0 ? 0 : durationMs);
+  Duration get duration =>
+      Duration(milliseconds: durationMs < 0 ? 0 : durationMs);
 
   factory OfflineTrackEntitlement.fromJson(Map<String, dynamic> json) {
     return OfflineTrackEntitlement(

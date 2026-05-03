@@ -92,8 +92,9 @@ class _UpgradePageState extends State<UpgradePage> {
             previous.errorMessage != current.errorMessage;
       },
       listener: (context, state) {
-        final message =
-            state.actionErrorMessage ?? state.errorMessage ?? state.actionMessage;
+        final message = state.actionErrorMessage ??
+            state.errorMessage ??
+            state.actionMessage;
 
         if (message == null || message.trim().isEmpty) {
           return;
@@ -102,9 +103,8 @@ class _UpgradePageState extends State<UpgradePage> {
         _showSnackBar(message);
       },
       builder: (context, state) {
-        final plans = state.upgradePlans.isEmpty
-            ? state.plans
-            : state.upgradePlans;
+        final plans =
+            state.upgradePlans.isEmpty ? state.plans : state.upgradePlans;
 
         return Scaffold(
           backgroundColor: Colors.black,
@@ -118,13 +118,15 @@ class _UpgradePageState extends State<UpgradePage> {
                 tooltip: 'Refresh',
                 onPressed: state.isLoading
                     ? null
-                    : () => context.read<SubscriptionCubit>().loadSubscription(),
+                    : () =>
+                        context.read<SubscriptionCubit>().loadSubscription(),
                 icon: const Icon(Icons.refresh),
               ),
             ],
           ),
           body: RefreshIndicator(
-            onRefresh: () => context.read<SubscriptionCubit>().loadSubscription(),
+            onRefresh: () =>
+                context.read<SubscriptionCubit>().loadSubscription(),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
@@ -138,21 +140,19 @@ class _UpgradePageState extends State<UpgradePage> {
                         const SizedBox(height: 20),
                         _CurrentPlanCard(
                           state: state,
-                          onOpenBilling:
-                              state.subscription.isPremium && !state.isActionLoading
-                                  ? () => context.go('/billing')
-                                  : null,
+                          onOpenBilling: state.subscription.isPremium &&
+                                  !state.isActionLoading
+                              ? () => context.go('/billing')
+                              : null,
                         ),
                         const SizedBox(height: 28),
                         Text(
                           'Choose your plan',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -179,8 +179,8 @@ class _UpgradePageState extends State<UpgradePage> {
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: _ErrorState(
-                      message:
-                          state.errorMessage ?? 'Could not load subscription plans.',
+                      message: state.errorMessage ??
+                          'Could not load subscription plans.',
                       onRetry: () =>
                           context.read<SubscriptionCubit>().loadSubscription(),
                     ),
@@ -409,7 +409,8 @@ class _PlanCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isHighlighted ? const Color(0xFF1D130D) : const Color(0xFF151515),
+        color:
+            isHighlighted ? const Color(0xFF1D130D) : const Color(0xFF151515),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isHighlighted ? const Color(0xFFFF5500) : Colors.white10,
@@ -464,16 +465,16 @@ class _PlanCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _FeatureLine(
-            icon: plan.adsEnabled
-                ? Icons.campaign_outlined
-                : Icons.block_rounded,
+            icon:
+                plan.adsEnabled ? Icons.campaign_outlined : Icons.block_rounded,
             text: plan.adsEnabled ? 'Ads supported' : 'Ad-free listening',
           ),
           const SizedBox(height: 8),
           _FeatureLine(
             icon: Icons.download_for_offline_outlined,
-            text:
-                plan.canDownload ? 'Offline downloads' : 'Online streaming only',
+            text: plan.canDownload
+                ? 'Offline downloads'
+                : 'Online streaming only',
           ),
           const SizedBox(height: 8),
           _FeatureLine(

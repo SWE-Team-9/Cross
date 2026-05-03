@@ -122,7 +122,8 @@ void main() {
       expect(uploadRepository.uploadTrackCalls, 0);
     });
 
-    test('blocks exhausted premium finite quota with detailed message', () async {
+    test('blocks exhausted premium finite quota with detailed message',
+        () async {
       subscriptionRepository.subscription = const Subscription(
         planCode: 'PRO',
         subscriptionType: 'PRO',
@@ -420,7 +421,8 @@ void main() {
       await cubit.uploadSelectedFile(title: 'Midnight Drive');
 
       expect(cubit.state.status, UploadPickerStatus.failure);
-      expect(cubit.state.errorMessage, 'Track processing failed. Please try again.');
+      expect(cubit.state.errorMessage,
+          'Track processing failed. Please try again.');
       expect(cubit.state.processingStatus, TrackStatus.FAILED.name);
     });
 
@@ -444,7 +446,8 @@ void main() {
       await cubit.uploadSelectedFile(title: 'Midnight Drive');
 
       expect(cubit.state.status, UploadPickerStatus.failure);
-      expect(cubit.state.errorMessage, 'Track processing failed. Please try again.');
+      expect(cubit.state.errorMessage,
+          'Track processing failed. Please try again.');
     });
 
     test('clearSelection resets upload picker state', () async {
@@ -535,6 +538,7 @@ class _FakeUploadRepository implements UploadRepository {
 
     for (final progress in progressValues) {
       onProgress?.call(progress);
+      await Future<void>.delayed(Duration.zero);
     }
 
     return uploadResult;
@@ -669,6 +673,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
     );
   }
 }
+
 class _FakeTrackManagementRepository implements TrackManagementRepository {
   ManagedTrack updatedTrack = const ManagedTrack(
     id: 'track-1',

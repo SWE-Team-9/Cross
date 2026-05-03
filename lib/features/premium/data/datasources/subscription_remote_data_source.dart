@@ -175,7 +175,8 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
   }
 
   @override
-  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement({    required String trackId,
+  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement({
+    required String trackId,
   }) async {
     final response = await _dioClient.get(
       ApiConstants.subscriptionOfflineTrackPath(trackId),
@@ -328,8 +329,7 @@ Map<String, dynamic> _normalizePortalPayload(Map<String, dynamic> payload) {
         capabilitiesMap['canResume'] ?? capabilitiesMap['can_resume'];
 
     normalized['canChangePlan'] ??=
-        capabilitiesMap['canChangePlan'] ??
-            capabilitiesMap['can_change_plan'];
+        capabilitiesMap['canChangePlan'] ?? capabilitiesMap['can_change_plan'];
   }
 
   return normalized;

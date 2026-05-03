@@ -10,6 +10,7 @@ import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
+import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/home/presentation/pages/mock_home_page.dart';
@@ -38,7 +39,8 @@ class FakeAudioPlayerService implements AudioPlayerService {
   double _currentVolume = 1;
 
   @override
-  Stream<PlayerState> get playerStateStream => const Stream<PlayerState>.empty();
+  Stream<PlayerState> get playerStateStream =>
+      const Stream<PlayerState>.empty();
 
   @override
   Future<void> play(track) async {}
@@ -193,8 +195,8 @@ Widget _buildApp(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
             ),
             BlocProvider<SubscriptionCubit>(
-              create: (_) => SubscriptionCubit(subscriptionRepository)
-                ..loadSubscription(),
+              create: (_) =>
+                  SubscriptionCubit(subscriptionRepository)..loadSubscription(),
             ),
           ],
           child: const MockHomePage(),
@@ -480,7 +482,13 @@ void main() {
       expect(find.text('Feed'), findsOneWidget);
       expect(find.text('Search'), findsOneWidget);
       expect(find.text('Library'), findsOneWidget);
-      expect(find.text('Upgrade'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(BottomNavBar),
+          matching: find.text('Upgrade'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('tapping Feed tab navigates to feed route', (tester) async {
@@ -515,7 +523,12 @@ void main() {
         (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
-      await tester.tap(find.text('Upgrade'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(BottomNavBar),
+          matching: find.text('Upgrade'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Upgrade Route'), findsOneWidget);
@@ -582,7 +595,8 @@ void main() {
       expect(find.text('Balthazar, Cage...'), findsOneWidget);
     });
 
-    testWidgets('tapping upload icon navigates to upload route', (tester) async {
+    testWidgets('tapping upload icon navigates to upload route',
+        (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
       await tester.tap(find.byIcon(Icons.upload_outlined));
@@ -683,10 +697,12 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       isPremium: plan.trim().toUpperCase() != 'FREE',
     );
   }
+
   @override
   Future<Subscription> cancelPlanChange() async {
     return subscription.copyWith(clearPendingDowngrade: true);
   }
+
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,

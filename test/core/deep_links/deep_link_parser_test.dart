@@ -83,7 +83,8 @@ void main() {
       );
 
       expect(destination, isA<InvalidDeepLink>());
-      expect((destination as InvalidDeepLink).reason, 'User link missing handle');
+      expect(
+          (destination as InvalidDeepLink).reason, 'User link missing handle');
     });
 
     test('parses playlist deep link', () {

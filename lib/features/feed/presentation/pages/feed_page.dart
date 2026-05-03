@@ -264,7 +264,8 @@ class _LoadedFeed extends StatelessWidget {
               ),
             );
           },
-        ),      ),
+        ),
+      ),
     );
   }
 }

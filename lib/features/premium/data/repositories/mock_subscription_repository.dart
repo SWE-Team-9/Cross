@@ -152,8 +152,7 @@ class MockSubscriptionRepository implements SubscriptionRepository {
       sessionId: 'bps_mock_123',
       customerId: 'cus_mock_123',
       returnUrl: 'iqa3://billing/return',
-      paymentMethodSummary:
-          _current.isPremium ? 'Visa •••• 4242' : '',
+      paymentMethodSummary: _current.isPremium ? 'Visa •••• 4242' : '',
       paymentMethod: _current.isPremium
           ? const <String, dynamic>{
               'brand': 'visa',
@@ -233,7 +232,8 @@ class MockSubscriptionRepository implements SubscriptionRepository {
   }
 
   @override
-  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(    String trackId,
+  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
+    String trackId,
   ) async {
     final normalizedTrackId = trackId.trim();
 
@@ -243,7 +243,8 @@ class MockSubscriptionRepository implements SubscriptionRepository {
       artist: 'IQA3 Artist',
       handle: 'iqa3artist',
       durationMs: 180000,
-      coverArtUrl: 'https://mock-media.example.com/covers/$normalizedTrackId.jpg',
+      coverArtUrl:
+          'https://mock-media.example.com/covers/$normalizedTrackId.jpg',
       downloadUrl:
           'https://mock-media.example.com/offline/$normalizedTrackId.mp3',
       expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 15)),

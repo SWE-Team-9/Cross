@@ -45,7 +45,9 @@ void main() {
       expect(cancelPlanChangeIndex, lessThan(offlineEntitlementIndex));
     });
 
-    test('repository implementation forwards cancel plan change to remote data source', () {
+    test(
+        'repository implementation forwards cancel plan change to remote data source',
+        () {
       expect(
         implSource,
         contains('Future<Subscription> cancelPlanChange()'),
@@ -73,12 +75,17 @@ void main() {
     });
 
     test('repository implementation keeps formatted invoices method', () {
+      final normalizedSource = implSource.replaceAll('\r\n', '\n');
+
       expect(
-        implSource,
-        contains('Future<List<BillingInvoice>> getInvoices() {\n    return _remoteDataSource.getInvoices();\n  }'),
+        normalizedSource,
+        contains(
+          'Future<List<BillingInvoice>> getInvoices() {\n'
+          '    return _remoteDataSource.getInvoices();\n'
+          '  }',
+        ),
       );
     });
-
     test('mock repository implements cancel plan change', () {
       expect(
         mockSource,

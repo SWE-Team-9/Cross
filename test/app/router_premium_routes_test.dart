@@ -75,7 +75,8 @@ void main() {
       expect(find.text('Subscription'), findsOneWidget);
       expect(find.text('Invoices'), findsOneWidget);
 
-      expect(subscriptionRepository.getMySubscriptionCalls, greaterThanOrEqualTo(1));
+      expect(subscriptionRepository.getMySubscriptionCalls,
+          greaterThanOrEqualTo(1));
       expect(subscriptionRepository.getInvoicesCalls, 1);
     });
 
@@ -286,12 +287,14 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       isPremium: plan.trim().toUpperCase() != 'FREE',
     );
   }
+
   @override
   Future<Subscription> cancelPlanChange() async {
     cancelPlanChangeCalls++;
 
     return subscription.copyWith(clearPendingDowngrade: true);
   }
+
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,
