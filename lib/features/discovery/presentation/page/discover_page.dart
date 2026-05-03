@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router.dart' show AppRoutes;
 import '../../../../core/di/injector.dart';
 import '../../../../core/models/track.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
 import '../../../../core/widgets/track_options_sheet.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
@@ -23,10 +22,8 @@ import '../../../playback/presentation/bloc/player_ui_state.dart';
 import '../../../playback/presentation/widgets/add_to_playlist_sheet.dart';
 import '../../../profile/presentation/routes/profile_routes.dart';
 import '../../../social/data/repositories/social_repo.dart';
-import '../../data/datasources/discovery_remote_data_source.dart';
-import '../../data/repositories/trending_repository_impl.dart';
 import '../../domain/entities/trending_track.dart';
-import '../../domain/usecases/get_trending_usecase.dart';
+import '../bloc/trending_cubit.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -36,17 +33,15 @@ class DiscoverPage extends StatefulWidget {
 }
 
 class _DiscoverPageState extends State<DiscoverPage> {
-  List<TrendingTrack> _tracks = [];
-  bool _loading = true;
-  String? _error;
-
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<PlayerCubit>().hideMiniPlayer();
+      if (mounted) {
+        context.read<PlayerCubit>().hideMiniPlayer();
+      }
     });
-    _load();
   }
 
   @override
@@ -55,62 +50,53 @@ class _DiscoverPageState extends State<DiscoverPage> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final dataSource = DiscoveryRemoteDataSourceImpl(getIt<DioClient>());
-      final repo = TrendingRepositoryImpl(remoteDataSource: dataSource);
-      final result = await GetTrendingUseCase(repo)();
-      result.fold(
-        (failure) => setState(() {
-          _error = failure.toString();
-          _loading = false;
-        }),
-        (tracks) => setState(() {
-          _tracks = tracks;
-          _loading = false;
-        }),
-      );
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          if (_loading)
-            const Center(
-                child: CircularProgressIndicator(color: Color(0xFFFF5500)))
-          else if (_error != null)
-            _ErrorState(message: _error!, onRetry: _load)
-          else if (_tracks.isEmpty)
-            const _EmptyState()
-          else
-            _ReelsPager(tracks: _tracks),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: _DiscoverHeader(),
+    return BlocProvider<TrendingCubit>(
+      create: (_) => getIt<TrendingCubit>()
+        ..loadTrending(
+          limit: 20,
+          windowDays: 7,
+        ),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        extendBodyBehindAppBar: true,
+        body: Stack(
+          children: [
+            BlocBuilder<TrendingCubit, TrendingState>(
+              builder: (context, state) {
+                return switch (state) {
+                  TrendingInitial() || TrendingLoading() => const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFFF5500),
+                      ),
+                    ),
+                  TrendingError(:final message) => _ErrorState(
+                      message: message,
+                      onRetry: () => context
+                          .read<TrendingCubit>()
+                          .loadTrending(limit: 20, windowDays: 7),
+                    ),
+                  TrendingLoaded(:final tracks) when tracks.isEmpty =>
+                    const _EmptyState(),
+                  TrendingLoaded(:final tracks) => _ReelsPager(tracks: tracks),
+                };
+              },
             ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: const BottomNavBar(selected: 1),
-          ),
-        ],
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: _DiscoverHeader(),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: const BottomNavBar(selected: 1),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -120,6 +106,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
 class _ReelsPager extends StatefulWidget {
   final List<TrendingTrack> tracks;
+
   const _ReelsPager({required this.tracks});
 
   @override
@@ -152,12 +139,13 @@ class _ReelsPagerState extends State<_ReelsPager> {
       itemCount: widget.tracks.length,
       itemBuilder: (context, index) {
         final track = widget.tracks[index];
+
         return BlocProvider(
           create: (_) => getIt<TrackInteractionCubit>()
             ..load(
               trackId: track.id,
-              likesCount: 0, // سيتحدث من getTrackDetail
-              repostsCount: 0,
+              likesCount: track.likesCount,
+              repostsCount: track.repostsCount,
             ),
           child: _ReelCard(
             track: track,
@@ -170,7 +158,6 @@ class _ReelsPagerState extends State<_ReelsPager> {
     );
   }
 }
-
 // ─── Reel Card ────────────────────────────────────────────────────────────────
 
 class _ReelCard extends StatefulWidget {
@@ -293,19 +280,21 @@ class _ReelCardState extends State<_ReelCard> {
 
   Future<void> _startPlayback() async {
     final queue = widget.allTracks
-        .map((t) => Track(
-              id: t.id,
-              title: t.title,
-              artist: t.ownerDisplayName,
-              audioUrl: '',
-              artworkUrl: t.coverUrl.isNotEmpty ? t.coverUrl : null,
-              handle: t.ownerHandle,
-              artistId: t.ownerId,
-              likesCount: t.likesCount,
-              repostsCount: t.repostsCount,
-            ))
+        .map(
+          (t) => Track(
+            id: t.id,
+            title: t.title,
+            artist: t.ownerDisplayName,
+            audioUrl: t.audioUrl,
+            artworkUrl: t.coverUrl.isNotEmpty ? t.coverUrl : null,
+            handle: t.ownerHandle,
+            artistId: t.ownerId,
+            genre: t.genre,
+            likesCount: t.likesCount,
+            repostsCount: t.repostsCount,
+          ),
+        )
         .toList();
-
     await context.read<PlayerCubit>().playFromContext(
           tracks: queue,
           startIndex: widget.index,
@@ -326,19 +315,22 @@ class _ReelCardState extends State<_ReelCard> {
   }
 
   void _openOptions() {
-    TrackOptionsSheet.show(context,
-        track: Track(
-          id: widget.track.id,
-          title: widget.track.title,
-          artist: widget.track.ownerDisplayName,
-          audioUrl: '',
-          artworkUrl:
-              widget.track.coverUrl.isNotEmpty ? widget.track.coverUrl : null,
-          handle: widget.track.ownerHandle,
-          artistId: widget.track.ownerId,
-          likesCount: widget.track.likesCount,
-          repostsCount: widget.track.repostsCount,
-        ));
+    TrackOptionsSheet.show(
+      context,
+      track: Track(
+        id: widget.track.id,
+        title: widget.track.title,
+        artist: widget.track.ownerDisplayName,
+        audioUrl: widget.track.audioUrl,
+        artworkUrl:
+            widget.track.coverUrl.isNotEmpty ? widget.track.coverUrl : null,
+        handle: widget.track.ownerHandle,
+        artistId: widget.track.ownerId,
+        genre: widget.track.genre,
+        likesCount: widget.track.likesCount,
+        repostsCount: widget.track.repostsCount,
+      ),
+    );
   }
 
   @override
@@ -484,12 +476,13 @@ class _ReelCardState extends State<_ReelCard> {
                                     id: track.id,
                                     title: track.title,
                                     artist: track.ownerDisplayName,
-                                    audioUrl: '',
+                                    audioUrl: track.audioUrl,
                                     artworkUrl: track.coverUrl.isNotEmpty
                                         ? track.coverUrl
                                         : null,
                                     handle: track.ownerHandle,
                                     artistId: track.ownerId,
+                                    genre: track.genre,
                                     likesCount: track.likesCount,
                                     repostsCount: track.repostsCount,
                                   ));
