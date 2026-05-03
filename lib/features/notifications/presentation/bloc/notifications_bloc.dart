@@ -5,13 +5,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure_message_mapper.dart';
 import '../../domain/entities/notification_entity.dart';
+import '../../domain/entities/notifications_result.dart';
 import '../../domain/repositories/notifications_repository.dart';
 import '../../domain/usecases/delete_notification_use_case.dart';
 import '../../domain/usecases/get_notifications_use_case.dart';
 import '../../domain/usecases/get_unread_count_use_case.dart';
 import '../../domain/usecases/mark_all_notifications_as_read_use_case.dart';
 import '../../domain/usecases/mark_notification_as_read_use_case.dart';
-import '../../domain/entities/notifications_result.dart';
 
 part 'notifications_event.dart';
 part 'notifications_state.dart';
@@ -70,10 +70,10 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     switch (notificationsResult) {
       case NotificationsSuccess(value: final notifications):
         final count = switch (countResult) {
-          NotificationsSuccess(value: final c) => c,
+          NotificationsSuccess(value: final count) => count,
           NotificationsFailure() => 0,
-          _ => 0,
         };
+
         emit(
           NotificationsLoaded(
             notifications: notifications,
@@ -82,20 +82,15 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
             currentPage: 1,
           ),
         );
-      case NotificationsFailure(failure: final f):
+
+      case NotificationsFailure(failure: final failure):
         emit(
           NotificationsError(
             FailureMessageMapper.toUserMessage(
-              f,
+              failure,
               fallback:
                   'Unable to load notifications right now. Please try again.',
             ),
-          ),
-        );
-      default:
-        emit(
-          const NotificationsError(
-            'Unable to load notifications right now. Please try again.',
           ),
         );
     }
@@ -123,6 +118,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     switch (result) {
       case NotificationsSuccess(value: final newItems):
         final merged = [...current.notifications, ...newItems];
+
         emit(
           current.copyWith(
             notifications: merged,
@@ -130,18 +126,17 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
             currentPage: nextPage,
           ),
         );
-      case NotificationsFailure(failure: final f):
+
+      case NotificationsFailure(failure: final failure):
         emit(
           NotificationsError(
             FailureMessageMapper.toUserMessage(
-              f,
+              failure,
               fallback:
                   'Unable to load notifications right now. Please try again.',
             ),
           ),
         );
-      default:
-        break;
     }
   }
 
@@ -152,11 +147,17 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     final current = state;
     if (current is! NotificationsLoaded) return;
 
-    final wasUnread = current.notifications
-        .any((n) => n.id == event.notificationId && !n.isRead);
+    final wasUnread = current.notifications.any(
+      (notification) =>
+          notification.id == event.notificationId && !notification.isRead,
+    );
 
     final updated = current.notifications
-        .map((n) => n.id == event.notificationId ? n.copyWith(isRead: true) : n)
+        .map(
+          (notification) => notification.id == event.notificationId
+              ? notification.copyWith(isRead: true)
+              : notification,
+        )
         .toList();
 
     emit(
@@ -181,9 +182,16 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     final current = state;
     if (current is! NotificationsLoaded) return;
 
-    final updated =
-        current.notifications.map((n) => n.copyWith(isRead: true)).toList();
-    emit(current.copyWith(notifications: updated, unreadCount: 0));
+    final updated = current.notifications
+        .map((notification) => notification.copyWith(isRead: true))
+        .toList();
+
+    emit(
+      current.copyWith(
+        notifications: updated,
+        unreadCount: 0,
+      ),
+    );
 
     final result = await _markAllAsRead();
     if (result is NotificationsFailure) {
@@ -199,8 +207,9 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     if (current is! NotificationsLoaded) return;
 
     final updated = current.notifications
-        .where((n) => n.id != event.notificationId)
+        .where((notification) => notification.id != event.notificationId)
         .toList();
+
     emit(current.copyWith(notifications: updated));
 
     final result = await _delete(event.notificationId);
@@ -220,9 +229,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
       (notification) => notification.id == event.notification.id,
     );
 
-    if (alreadyPresent) {
-      return;
-    }
+    if (alreadyPresent) return;
 
     emit(
       current.copyWith(

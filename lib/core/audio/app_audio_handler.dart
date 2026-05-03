@@ -1,11 +1,13 @@
 // coverage:ignore-file
+// ignore_for_file: experimental_member_use
+
 import 'package:audio_service/audio_service.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:get_it/get_it.dart';
+import 'package:just_audio/just_audio.dart';
 
-import '../models/player_state.dart' as app_player;
 import '../../features/playback/data/datasources/track_detail_remote_data_source.dart';
+import '../models/player_state.dart' as app_player;
 
 class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player = AudioPlayer();
@@ -40,9 +42,11 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     _player.durationStream.listen((duration) {
       final current = mediaItem.value;
       if (current != null) {
-        mediaItem.add(current.copyWith(
-          duration: duration ?? current.duration,
-        ));
+        mediaItem.add(
+          current.copyWith(
+            duration: duration ?? current.duration,
+          ),
+        );
       }
     });
 
@@ -56,27 +60,29 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   void _broadcastState(PlayerState state) {
-    playbackState.add(PlaybackState(
-      controls: [
-        MediaControl.rewind,
-        if (!state.playing) MediaControl.play,
-        if (state.playing) MediaControl.pause,
-        MediaControl.fastForward,
-      ],
-      systemActions: const {
-        MediaAction.seek,
-        MediaAction.seekForward,
-        MediaAction.seekBackward,
-      },
-      androidCompactActionIndices: const [0, 1, 2],
-      processingState: _mapState(state.processingState),
-      playing: state.playing,
-      updatePosition: _player.position,
-      bufferedPosition: _player.bufferedPosition,
-      speed: _player.speed,
-      queueIndex: _player.currentIndex,
-      repeatMode: _audioServiceRepeatMode(_repeatMode),
-    ));
+    playbackState.add(
+      PlaybackState(
+        controls: [
+          MediaControl.rewind,
+          if (!state.playing) MediaControl.play,
+          if (state.playing) MediaControl.pause,
+          MediaControl.fastForward,
+        ],
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.seekForward,
+          MediaAction.seekBackward,
+        },
+        androidCompactActionIndices: const [0, 1, 2],
+        processingState: _mapState(state.processingState),
+        playing: state.playing,
+        updatePosition: _player.position,
+        bufferedPosition: _player.bufferedPosition,
+        speed: _player.speed,
+        queueIndex: _player.currentIndex,
+        repeatMode: _audioServiceRepeatMode(_repeatMode),
+      ),
+    );
   }
 
   // ── Queue ─────────────────────────────────────────────────────────────────
@@ -85,15 +91,9 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     final preparedItems = items.map(_withNotificationDuration).toList();
     queue.add(preparedItems);
 
-    final sources = preparedItems.map((item) {
-      final localPath = item.extras?['localPath'] as String?;
-      if (localPath != null && localPath.isNotEmpty) {
-        return AudioSource.file(localPath);
-      }
-
-      final url = item.extras?['url'] as String;
-      return AudioSource.uri(Uri.parse(url));
-    }).toList();
+    final sources = await Future.wait(
+      preparedItems.map(_buildAudioSource),
+    );
 
     await _player.setAudioSources(sources);
 
@@ -103,6 +103,11 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   Future<AudioSource> _buildAudioSource(MediaItem item) async {
+    final localPath = item.extras?['localPath'] as String?;
+    if (localPath != null && localPath.isNotEmpty) {
+      return AudioSource.file(localPath, tag: item);
+    }
+
     final rawUrl = (item.extras?['url'] as String?) ?? '';
 
     if (rawUrl.trim().isNotEmpty) {
@@ -115,7 +120,6 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       return AudioSource.uri(Uri.parse(cached), tag: item);
     }
 
-    // Resolve from /source endpoint using track id
     try {
       final dataSource = GetIt.I<TrackDetailRemoteDataSource>();
       final sourceDto = await dataSource.fetchStreamSource(item.id);
@@ -125,11 +129,10 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         _resolvedUrls[item.id] = url;
         return AudioSource.uri(Uri.parse(url), tag: item);
       }
-    } catch (e) {
-      // ignore
+    } catch (_) {
+      // Keep playback safe by falling back to silence.
     }
 
-    // Fallback: silence
     return _SilentAudioSource(item);
   }
 
@@ -171,26 +174,34 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> seek(Duration position) async {
     final safePosition = _clampPosition(position);
     await _player.seek(safePosition);
-    playbackState.add(playbackState.value.copyWith(
-      updatePosition: safePosition,
-      bufferedPosition: _player.bufferedPosition,
-    ));
+    playbackState.add(
+      playbackState.value.copyWith(
+        updatePosition: safePosition,
+        bufferedPosition: _player.bufferedPosition,
+      ),
+    );
   }
 
   @override
-  Future<void> fastForward() =>
-      _seekRelative(AudioService.config.fastForwardInterval);
+  Future<void> fastForward() {
+    return _seekRelative(AudioService.config.fastForwardInterval);
+  }
 
   @override
-  Future<void> rewind() => _seekRelative(-AudioService.config.rewindInterval);
+  Future<void> rewind() {
+    return _seekRelative(-AudioService.config.rewindInterval);
+  }
 
-  Future<void> _seekRelative(Duration offset) =>
-      seek(_player.position + offset);
+  Future<void> _seekRelative(Duration offset) {
+    return seek(_player.position + offset);
+  }
 
   Duration _clampPosition(Duration position) {
     if (position < Duration.zero) return Duration.zero;
+
     final duration = _player.duration;
     if (duration != null && position > duration) return duration;
+
     return position;
   }
 
@@ -199,9 +210,11 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> setAppRepeatMode(app_player.AppRepeatMode mode) async {
     _repeatMode = mode;
     await _player.setLoopMode(_loopModeFor(mode));
-    playbackState.add(playbackState.value.copyWith(
-      repeatMode: _audioServiceRepeatMode(mode),
-    ));
+    playbackState.add(
+      playbackState.value.copyWith(
+        repeatMode: _audioServiceRepeatMode(mode),
+      ),
+    );
   }
 
   @override
@@ -228,12 +241,18 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Duration? _durationFromExtras(MediaItem item) {
     final value = item.extras?['durationMs'];
     if (value == null) return null;
-    if (value is int && value > 0) return Duration(milliseconds: value);
+
+    if (value is int && value > 0) {
+      return Duration(milliseconds: value);
+    }
+
     if (value is num && value > 0) {
       return Duration(milliseconds: value.round());
     }
+
     final parsed = int.tryParse(value.toString());
     if (parsed == null || parsed <= 0) return null;
+
     return Duration(milliseconds: parsed);
   }
 
@@ -264,7 +283,8 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   AudioServiceRepeatMode _audioServiceRepeatMode(
-      app_player.AppRepeatMode mode) {
+    app_player.AppRepeatMode mode,
+  ) {
     switch (mode) {
       case app_player.AppRepeatMode.off:
         return AudioServiceRepeatMode.none;
@@ -277,16 +297,16 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 }
 
 // ─── Silent fallback ──────────────────────────────────────────────────────────
-// AudioSourceItem تم إزالته من just_audio الإصدار الجديد
 
 class _SilentAudioSource extends StreamAudioSource {
-  final MediaItem item;
   _SilentAudioSource(this.item) : super(tag: item);
+
+  final MediaItem item;
 
   @override
   Future<StreamAudioResponse> request([int? start, int? end]) async {
-    // بيرجع stream فاضي بدل ما يكرش
     final bytes = <int>[];
+
     return StreamAudioResponse(
       sourceLength: 0,
       contentLength: 0,
