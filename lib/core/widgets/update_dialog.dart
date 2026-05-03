@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
+import '../services/apk_installer_service.dart';
 
 class UpdateDialog extends StatelessWidget {
   final Map<String, dynamic> updateData;
@@ -355,43 +356,41 @@ class _SectionHeader extends StatelessWidget {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-class _Actions extends StatelessWidget {
+class _Actions extends StatefulWidget {
   final bool isMandatory;
   final String downloadUrl;
 
   const _Actions({required this.isMandatory, required this.downloadUrl});
 
-  Future<void> _openUpdateUrl(BuildContext context) async {
-    final url = Uri.parse(downloadUrl);
+  @override
+  State<_Actions> createState() => _ActionsState();
+}
 
-    try {
-      // Do not gate on canLaunchUrl because it can be a false-negative on
-      // some Android environments.
-      final launchedExternal = await launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
-      );
+class _ActionsState extends State<_Actions> {
+  double? _progress;       // null = not started, 0.0-1.0 = downloading
+  bool _hasError = false;
+  String _errorMessage = '';
 
-      if (launchedExternal) {
-        return;
-      }
+  Future<void> _startDownload() async {
+    setState(() {
+      _progress = 0.0;
+      _hasError = false;
+    });
 
-      final launchedDefault =
-          await launchUrl(url, mode: LaunchMode.platformDefault);
-      if (launchedDefault) {
-        return;
-      }
-    } catch (_) {
-      // Show feedback below when both attempts fail.
-    }
-
-    if (!context.mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Could not open update link on this device.')),
+    await ApkInstallerService.downloadAndInstall(
+      downloadUrl: widget.downloadUrl,
+      onProgress: (progress) {
+        if (mounted) setState(() => _progress = progress);
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _progress = null;
+            _hasError = true;
+            _errorMessage = error;
+          });
+        }
+      },
     );
   }
 
@@ -401,46 +400,68 @@ class _Actions extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
       child: Column(
         children: [
-          // Update Now button
+          // ── Download button / progress ──────────────────
           SizedBox(
             width: double.infinity,
             height: 48,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF5500), Color(0xFFFF7A00)],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () => _openUpdateUrl(context),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.system_update_rounded, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Update Now',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
+            child: _progress != null
+                ? _ProgressButton(progress: _progress!)
+                : DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF5500), Color(0xFFFF7A00)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: _startDownload,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.system_update_rounded, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Update Now',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
+                  ),
           ),
 
-          // Later button
-          if (!isMandatory) ...[
+          // ── Error message ───────────────────────────────
+          if (_hasError) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.error_outline,
+                    color: Color(0xFFFF5252), size: 14),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(
+                      color: Color(0xFFFF5252),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          // ── Later button ────────────────────────────────
+          if (!widget.isMandatory) ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
@@ -452,15 +473,68 @@ class _Actions extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                onPressed: () => Navigator.pop(context),
+                // disable later button while downloading
+                onPressed: _progress != null
+                    ? null
+                    : () => Navigator.pop(context),
                 child: const Text(
-                  'Later',
+                  'Maybe Later',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ── Progress Button ───────────────────────────────────────────────────────────
+
+class _ProgressButton extends StatelessWidget {
+  final double progress;
+
+  const _ProgressButton({required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = (progress * 100).toInt();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF222222),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF333333)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          children: [
+            // progress fill
+            FractionallySizedBox(
+              widthFactor: progress,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFFF5500), Color(0xFFFF7A00)],
+                  ),
+                ),
+              ),
+            ),
+            // label
+            Center(
+              child: Text(
+                percent < 100 ? 'Downloading... $percent%' : 'Installing...',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -7,8 +7,11 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+import java.util.Properties
+import java.io.File
+
 // Load keystore properties if they exist
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
@@ -33,7 +36,8 @@ android {
         create("release") {
             keyAlias = keystoreProperties.getProperty("keyAlias", "")
             keyPassword = keystoreProperties.getProperty("keyPassword", "")
-            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+            val storeFilePath = keystoreProperties.getProperty("storeFile")
+            storeFile = if (storeFilePath != null) File(storeFilePath) else null
             storePassword = keystoreProperties.getProperty("storePassword", "")
         }
     }

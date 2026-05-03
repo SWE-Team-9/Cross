@@ -37,7 +37,7 @@ void main() {
     expect(find.textContaining('Bug Fixes'), findsOneWidget);
     expect(find.text('Fixed sharing'), findsOneWidget);
 
-    await tester.tap(find.text('Later'));
+    await tester.tap(find.text('Maybe Later'));
     await tester.pumpAndSettle();
 
     expect(find.text('Version 2.0'), findsNothing);
@@ -58,7 +58,7 @@ void main() {
     );
 
     expect(find.text('Required update'), findsOneWidget);
-    expect(find.text('Later'), findsNothing);
+    expect(find.text('Maybe Later'), findsNothing);
     expect(find.text('Update Now'), findsOneWidget);
   });
 }
