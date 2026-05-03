@@ -206,8 +206,8 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   int cancelSubscriptionCalls = 0;
   int resumeSubscriptionCalls = 0;
   int changePlanCalls = 0;
+  int cancelPlanChangeCalls = 0;
   int getOfflineTrackEntitlementCalls = 0;
-
   String? lastCheckoutPlan;
   String? lastSubscribePlan;
   String? lastChangePlan;
@@ -286,7 +286,12 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       isPremium: plan.trim().toUpperCase() != 'FREE',
     );
   }
+  @override
+  Future<Subscription> cancelPlanChange() async {
+    cancelPlanChangeCalls++;
 
+    return subscription.copyWith(clearPendingDowngrade: true);
+  }
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,

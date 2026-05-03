@@ -170,6 +170,22 @@ void main() {
       expect(repository.changePlanCalls, 1);
     });
 
+    test('contract exposes cancel plan change', () async {
+      final repository = _FakeSubscriptionRepository(
+        canceledPlanChangeSubscription: const Subscription(
+          planCode: 'PRO',
+          subscriptionType: 'PRO',
+          subscriptionStatus: 'ACTIVE',
+          isPremium: true,
+        ),
+      );
+
+      final subscription = await repository.cancelPlanChange();
+
+      expect(subscription.hasPendingDowngrade, isFalse);
+      expect(repository.cancelPlanChangeCalls, 1);
+    });
+
     test('contract exposes offline track entitlement', () async {
       final repository = _FakeSubscriptionRepository(
         entitlement: const OfflineTrackEntitlement(
@@ -215,6 +231,12 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       subscriptionStatus: 'ACTIVE',
       isPremium: true,
     ),
+    this.canceledPlanChangeSubscription = const Subscription(
+      planCode: 'PRO',
+      subscriptionType: 'PRO',
+      subscriptionStatus: 'ACTIVE',
+      isPremium: true,
+    ),
     this.entitlement = const OfflineTrackEntitlement(
       trackId: 'track-1',
       planCode: 'PRO',
@@ -230,6 +252,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   final Subscription canceledSubscription;
   final Subscription resumedSubscription;
   final Subscription changedPlanSubscription;
+  final Subscription canceledPlanChangeSubscription;
   final OfflineTrackEntitlement entitlement;
 
   int getMySubscriptionCalls = 0;
@@ -241,6 +264,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   int cancelSubscriptionCalls = 0;
   int resumeSubscriptionCalls = 0;
   int changePlanCalls = 0;
+  int cancelPlanChangeCalls = 0;
   int getOfflineTrackEntitlementCalls = 0;
 
   String? lastCheckoutPlan;
@@ -303,6 +327,12 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
     changePlanCalls++;
     lastChangePlan = plan;
     return changedPlanSubscription;
+  }
+
+  @override
+  Future<Subscription> cancelPlanChange() async {
+    cancelPlanChangeCalls++;
+    return canceledPlanChangeSubscription;
   }
 
   @override

@@ -260,7 +260,15 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       isPremium: plan.trim().toUpperCase() != 'FREE',
     );
   }
-
+  @override
+  Future<Subscription> cancelPlanChange() async {
+    return const Subscription(
+      planCode: 'PRO',
+      subscriptionType: 'PRO',
+      subscriptionStatus: 'ACTIVE',
+      isPremium: true,
+    );
+  }
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,
