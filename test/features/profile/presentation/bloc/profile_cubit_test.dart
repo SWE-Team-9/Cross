@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/errors/failure.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
@@ -72,6 +73,36 @@ void main() {
     visibility: TrackManagementVisibility.publicTrack,
   );
 
+  const testPlaylist = PlaylistEntity(
+    playlistId: 'playlist-1',
+    title: 'Test Playlist',
+    description: 'Test playlist description',
+    visibility: PlaylistVisibility.publicPlaylist,
+    genre: 'Electronic',
+    slug: 'test-playlist',
+    secretToken: null,
+    coverImageUrl: 'https://example.com/cover.jpg',
+    owner: PlaylistOwner(id: 'owner-1', displayName: 'Ali'),
+    tracks: <Track>[],
+    tracksCount: 10,
+    likesCount: 5,
+  );
+
+  const testLikedPlaylist = PlaylistEntity(
+    playlistId: 'liked-playlist-1',
+    title: 'Liked Playlist',
+    description: 'Liked playlist description',
+    visibility: PlaylistVisibility.publicPlaylist,
+    genre: 'Rock',
+    slug: 'liked-playlist',
+    secretToken: null,
+    coverImageUrl: 'https://example.com/cover2.jpg',
+    owner: PlaylistOwner(id: 'owner-2', displayName: 'Ali'),
+    tracks: <Track>[],
+    tracksCount: 5,
+    likesCount: 2,
+  );
+
   setUpAll(() {
     registerFallbackValue(
       const UpdateProfileParams(
@@ -128,26 +159,6 @@ void main() {
   blocTest<ProfileCubit, ProfileState>(
     'loadProfile includes playlists from aggregate endpoint',
     build: () {
-      const testPlaylist = PlaylistEntity(
-        playlistId: 'playlist-1',
-        title: 'Test Playlist',
-        slug: 'test-playlist',
-        coverImageUrl: 'https://example.com/cover.jpg',
-        visibility: 'PUBLIC',
-        likesCount: 5,
-        tracksCount: 10,
-        genre: 'Electronic',
-      );
-      const testLikedPlaylist = PlaylistEntity(
-        playlistId: 'liked-playlist-1',
-        title: 'Liked Playlist',
-        slug: 'liked-playlist',
-        coverImageUrl: 'https://example.com/cover2.jpg',
-        visibility: 'PUBLIC',
-        likesCount: 2,
-        tracksCount: 5,
-        genre: 'Rock',
-      );
       final profilePageData = ProfilePageData(
         profile: profile,
         playlists: [testPlaylist],
@@ -165,9 +176,11 @@ void main() {
       isA<ProfileLoaded>()
           .having((s) => s.profile.displayName, 'displayName', 'Ali')
           .having((s) => s.playlists.length, 'playlists count', 1)
-          .having((s) => s.playlists[0].playlistId, 'first playlist id', 'playlist-1')
+          .having((s) => s.playlists[0].playlistId, 'first playlist id',
+              'playlist-1')
           .having((s) => s.likedPlaylists.length, 'liked playlists count', 1)
-          .having((s) => s.likedPlaylists[0].playlistId, 'first liked playlist id', 'liked-playlist-1'),
+          .having((s) => s.likedPlaylists[0].playlistId,
+              'first liked playlist id', 'liked-playlist-1'),
     ],
   );
 

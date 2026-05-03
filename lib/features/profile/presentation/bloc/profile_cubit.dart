@@ -88,31 +88,33 @@ class ProfileCubit extends Cubit<ProfileState> {
               );
             },
           );
-          print('DEBUG: rawPlaylists = $rawPlaylists, type = ${rawPlaylists.runtimeType}');
-          playlists = (rawPlaylists as List?)
-                  ?.whereType<Map>()
-                  .map((item) {
-                    print('DEBUG: parsing playlist item = $item');
-                    return PlaylistDto.fromJson(
-                        Map<String, dynamic>.from(item as Map));
-                  })
-                  .map((dto) => dto.toEntity())
-                  .toList(growable: false) ??
-              const <PlaylistEntity>[];
-          print('DEBUG: parsed playlists = $playlists, count = ${playlists.length}');
+          print(
+              'DEBUG: rawPlaylists = $rawPlaylists, type = ${rawPlaylists.runtimeType}');
+          playlists = rawPlaylists
+              .whereType<Map>()
+              .map((item) {
+                print('DEBUG: parsing playlist item = $item');
+                return PlaylistDto.fromJson(Map<String, dynamic>.from(item));
+              })
+              .map((dto) => dto.toEntity())
+              .toList(growable: false);
+          print(
+              'DEBUG: parsed playlists = $playlists, count = ${playlists.length}');
         } catch (e, st) {
           print('DEBUG: Error fetching user playlists: $e\n$st');
           playlists = const <PlaylistEntity>[];
         }
       } else {
-        print('DEBUG: playlists already populated from aggregate endpoint, count = ${playlists.length}');
+        print(
+            'DEBUG: playlists already populated from aggregate endpoint, count = ${playlists.length}');
       }
 
       // Fetch user liked playlists if not obtained from aggregate endpoint
       if (likedPlaylists.isEmpty) {
         try {
-          final rawLikedPlaylists =
-              await _profileRepository.getUserLikedPlaylists(profile.id).timeout(
+          final rawLikedPlaylists = await _profileRepository
+              .getUserLikedPlaylists(profile.id)
+              .timeout(
             const Duration(seconds: 10),
             onTimeout: () {
               throw const ServerFailure(
@@ -120,24 +122,25 @@ class ProfileCubit extends Cubit<ProfileState> {
               );
             },
           );
-          print('DEBUG: rawLikedPlaylists = $rawLikedPlaylists, type = ${rawLikedPlaylists.runtimeType}');
-          likedPlaylists = (rawLikedPlaylists as List?)
-                  ?.whereType<Map>()
-                  .map((item) {
-                    print('DEBUG: parsing liked playlist item = $item');
-                    return PlaylistDto.fromJson(
-                        Map<String, dynamic>.from(item as Map));
-                  })
-                  .map((dto) => dto.toEntity())
-                  .toList(growable: false) ??
-              const <PlaylistEntity>[];
-          print('DEBUG: parsed likedPlaylists = $likedPlaylists, count = ${likedPlaylists.length}');
+          print(
+              'DEBUG: rawLikedPlaylists = $rawLikedPlaylists, type = ${rawLikedPlaylists.runtimeType}');
+          likedPlaylists = rawLikedPlaylists
+              .whereType<Map>()
+              .map((item) {
+                print('DEBUG: parsing liked playlist item = $item');
+                return PlaylistDto.fromJson(Map<String, dynamic>.from(item));
+              })
+              .map((dto) => dto.toEntity())
+              .toList(growable: false);
+          print(
+              'DEBUG: parsed likedPlaylists = $likedPlaylists, count = ${likedPlaylists.length}');
         } catch (e, st) {
           print('DEBUG: Error fetching user liked playlists: $e\n$st');
           likedPlaylists = const <PlaylistEntity>[];
         }
       } else {
-        print('DEBUG: likedPlaylists already populated from aggregate endpoint, count = ${likedPlaylists.length}');
+        print(
+            'DEBUG: likedPlaylists already populated from aggregate endpoint, count = ${likedPlaylists.length}');
       }
 
       try {
@@ -154,7 +157,8 @@ class ProfileCubit extends Cubit<ProfileState> {
       }
 
       try {
-        likedTracks = await _profileRepository.getUserLikedTracks(profile.id).timeout(
+        likedTracks =
+            await _profileRepository.getUserLikedTracks(profile.id).timeout(
           const Duration(seconds: 10),
           onTimeout: () {
             throw const ServerFailure(
@@ -167,7 +171,8 @@ class ProfileCubit extends Cubit<ProfileState> {
       }
 
       try {
-        repostedTracks = await _profileRepository.getUserRepostedTracks(profile.id).timeout(
+        repostedTracks =
+            await _profileRepository.getUserRepostedTracks(profile.id).timeout(
           const Duration(seconds: 10),
           onTimeout: () {
             throw const ServerFailure(
@@ -296,8 +301,8 @@ class ProfileCubit extends Cubit<ProfileState> {
         tracks: currentTracks,
         likedTracks: currentLikedTracks,
         repostedTracks: currentRepostedTracks,
-          playlists: _playlistsFromState(),
-          likedPlaylists: _likedPlaylistsFromState(),
+        playlists: _playlistsFromState(),
+        likedPlaylists: _likedPlaylistsFromState(),
       ),
     );
 
@@ -395,8 +400,8 @@ class ProfileCubit extends Cubit<ProfileState> {
         tracks: currentTracks,
         likedTracks: currentLikedTracks,
         repostedTracks: currentRepostedTracks,
-          playlists: _playlistsFromState(),
-          likedPlaylists: _likedPlaylistsFromState(),
+        playlists: _playlistsFromState(),
+        likedPlaylists: _likedPlaylistsFromState(),
       ),
     );
 

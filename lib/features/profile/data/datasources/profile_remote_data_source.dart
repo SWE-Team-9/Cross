@@ -391,7 +391,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       }
 
       if (responseData is List) {
-        print('DEBUG: responseData is already a List with ${responseData.length} items');
+        print(
+            'DEBUG: responseData is already a List with ${responseData.length} items');
         return responseData;
       }
 
@@ -429,13 +430,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
             responseData['results'];
         print('DEBUG: Extracted liked playlists from response: $playlists');
         if (playlists is List) {
-          print('DEBUG: liked playlists is a List with ${playlists.length} items');
+          print(
+              'DEBUG: liked playlists is a List with ${playlists.length} items');
           return playlists;
         }
       }
 
       if (responseData is List) {
-        print('DEBUG: responseData is already a List with ${responseData.length} items');
+        print(
+            'DEBUG: responseData is already a List with ${responseData.length} items');
         return responseData;
       }
 
