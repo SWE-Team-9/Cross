@@ -22,8 +22,7 @@ class _SplashPageState extends State<SplashPage> {
   Timer? _splashTimeout;
   String? _pendingRoute;
   bool _videoCompleted = false;
-  bool _updateCheckDone =
-      false; // ADD: track if update check (and dialog) is complete
+  bool _updateCheckDone = false; // ADD: track if update check (and dialog) is complete
 
   bool _isRunningInWidgetTest() {
     final bindingType = WidgetsBinding.instance.runtimeType.toString();
@@ -140,8 +139,7 @@ class _SplashPageState extends State<SplashPage> {
   void _navigateIfReady() {
     final route = _pendingRoute;
     // ADD: require update check to be done as well
-    if (!_videoCompleted || !_updateCheckDone || route == null || !mounted)
-      return;
+    if (!_videoCompleted || !_updateCheckDone || route == null || !mounted) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
