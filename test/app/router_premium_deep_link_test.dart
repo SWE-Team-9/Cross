@@ -70,8 +70,11 @@ void main() {
       );
       expect(
         source,
-        contains(
-            'destination.sessionId != null && destination.sessionId!.trim().isNotEmpty'),
+        contains('destination.sessionId != null &&'),
+      );
+      expect(
+        source,
+        contains('destination.sessionId!.trim().isNotEmpty'),
       );
       expect(
         source,
