@@ -43,7 +43,10 @@ import '../features/library/presentation/pages/library_page.dart';
 import '../features/playlists/presentation/bloc/playlists_cubit.dart';
 import '../features/playlists/domain/entities/playlist_entity.dart';
 import '../features/playlists/presentation/pages/playlist_detail_page.dart';
+
+// Project — notifications
 import '../features/playlists/presentation/pages/playlists_page.dart';
+import '../features/notifications/presentation/pages/notifications_page.dart';
 
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
@@ -85,6 +88,7 @@ class AppRoutes {
   // ── Messaging ───────────────────────────────────────────────────────────
   static const String inbox = '/messages';
   static const String chatThread = '/messages/:conversationId';
+  static const String notifications = '/notifications';
 
   // secretTrack MUST be before trackDetail — more specific path first
   static const String secretTrack = '/track/secret/:token';
@@ -292,6 +296,15 @@ GoRouter _createRouter() {
             ),
           );
         },
+      ),
+
+      // ── Notifications ─────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.notifications,
+        name: 'notifications',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: NotificationsPage()),
       ),
 
       // ── Upload picker ────────────────────────────────────────────────────────
