@@ -12,6 +12,8 @@ abstract class ProfileRemoteDataSource {
   Future<ProfileDto> getProfile(String handle);
   Future<ProfileDto> getMyProfile();
   Future<List<ManagedTrackDto>> getUserTracks(String userId);
+  Future<List<ManagedTrackDto>> getUserLikedTracks(String userId);
+  Future<List<ManagedTrackDto>> getUserRepostedTracks(String userId);
   Future<ProfileDto> updateProfile(Map<String, dynamic> body);
   Future<Map<String, String>> updateExternalLinks(
     Map<String, String> externalLinks,
@@ -71,6 +73,54 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     try {
       final response = await _dioClient.dio.get(
         ApiConstants.userTracksPath(userId),
+        queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
+      );
+
+      final dynamic responseData =
+          response.data is String ? jsonDecode(response.data) : response.data;
+      final List<dynamic> rawTracks = _extractTrackList(responseData);
+      final List<Map<String, dynamic>> normalizedTracks = rawTracks
+          .whereType<Map>()
+          .map((raw) => _normalizeTrackPayload(Map<String, dynamic>.from(raw)))
+          .toList(growable: false);
+
+      return normalizedTracks
+          .map(ManagedTrackDto.fromJson)
+          .toList(growable: false);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<ManagedTrackDto>> getUserLikedTracks(String userId) async {
+    try {
+      final response = await _dioClient.dio.get(
+        ApiConstants.userLikedTracksPath(userId),
+        queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
+      );
+
+      final dynamic responseData =
+          response.data is String ? jsonDecode(response.data) : response.data;
+      final List<dynamic> rawTracks = _extractTrackList(responseData);
+      final List<Map<String, dynamic>> normalizedTracks = rawTracks
+          .whereType<Map>()
+          .map((raw) => _normalizeTrackPayload(Map<String, dynamic>.from(raw)))
+          .toList(growable: false);
+
+      return normalizedTracks
+          .map(ManagedTrackDto.fromJson)
+          .toList(growable: false);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<ManagedTrackDto>> getUserRepostedTracks(String userId) async {
+    try {
+      final response = await _dioClient.dio.get(
+        ApiConstants.userRepostedTracksPath(userId),
         queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
       );
 
