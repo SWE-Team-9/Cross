@@ -19,6 +19,9 @@ import 'package:soundcloud_clone/features/profile/presentation/routes/profile_ro
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/widgets/recently_played_row.dart';
 import 'package:soundcloud_clone/features/settings/presentation/page/settings_page.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
+import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -186,6 +189,12 @@ class _LibraryPageState extends State<LibraryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 12),
+                  const PremiumAwareAdBanner(
+                    title: 'Take your library offline',
+                    subtitle:
+                        'Upgrade to remove sponsored cards, download music, and unlock more uploads.',
+                    actionLabel: 'Upgrade',
+                  ),
                   BlocBuilder<AuthCubit, AuthState>(
                     builder: (context, state) => _LibraryItem(
                       title: 'Your likes',
@@ -221,13 +230,15 @@ class _LibraryPageState extends State<LibraryPage> {
                       onTap: () => _goToOwnProfile(state),
                     ),
                   ),
-                  _LibraryItem(
+                  const _PremiumDownloadLibraryItem(
                     title: 'Downloaded tracks',
-                    onTap: () => context.push('/library/downloads/tracks'),
+                    downloadsPath: '/library/downloads/tracks',
+                    icon: Icons.download_for_offline_outlined,
                   ),
-                  _LibraryItem(
+                  const _PremiumDownloadLibraryItem(
                     title: 'Downloaded playlists',
-                    onTap: () => context.push('/library/downloads/playlists'),
+                    downloadsPath: '/library/downloads/playlists',
+                    icon: Icons.queue_music,
                   ),
                   const SizedBox(height: 20),
                   _PlaylistSection(
@@ -286,6 +297,125 @@ class _LibraryItem extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.white54),
       onTap: onTap,
+    );
+  }
+}
+
+class _PremiumDownloadLibraryItem extends StatelessWidget {
+  const _PremiumDownloadLibraryItem({
+    required this.title,
+    required this.downloadsPath,
+    required this.icon,
+  });
+
+  final String title;
+  final String downloadsPath;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final subscriptionCubit = _subscriptionCubitOf(context);
+
+    if (subscriptionCubit == null) {
+      return _buildItem(
+        context,
+        canDownload: true,
+        isLoading: false,
+      );
+    }
+
+    return BlocBuilder<SubscriptionCubit, SubscriptionState>(
+      bloc: subscriptionCubit,
+      builder: (context, state) {
+        return _buildItem(
+          context,
+          canDownload: state.subscription.canDownload,
+          isLoading: state.isInitial || state.isLoading,
+        );
+      },
+    );
+  }
+
+  SubscriptionCubit? _subscriptionCubitOf(BuildContext context) {
+    try {
+      return context.read<SubscriptionCubit>();
+    } catch (_) {
+      final getIt = GetIt.I;
+
+      if (getIt.isRegistered<SubscriptionCubit>()) {
+        return getIt<SubscriptionCubit>();
+      }
+
+      return null;
+    }
+  }
+
+  Widget _buildItem(
+    BuildContext context, {
+    required bool canDownload,
+    required bool isLoading,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+      leading: Icon(
+        icon,
+        color: canDownload ? const Color(0xFFFF5500) : Colors.white54,
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(color: Colors.white),
+      ),
+      subtitle: Text(
+        canDownload
+            ? 'Available offline'
+            : 'Premium required for offline listening',
+        style: const TextStyle(
+          color: Colors.white54,
+          fontSize: 12,
+        ),
+      ),
+      trailing: isLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFFFF5500),
+              ),
+            )
+          : canDownload
+              ? const Icon(Icons.chevron_right, color: Colors.white54)
+              : Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5500).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: const Color(0xFFFF5500).withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: const Text(
+                    'Premium',
+                    style: TextStyle(
+                      color: Color(0xFFFF5500),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+      onTap: isLoading
+          ? null
+          : () {
+              if (canDownload) {
+                context.push(downloadsPath);
+                return;
+              }
+
+              context.go('/upgrade');
+            },
     );
   }
 }

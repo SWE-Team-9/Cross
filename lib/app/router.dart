@@ -64,7 +64,8 @@ import '../features/messaging/presentation/pages/chat_thread_page.dart';
 import '../features/messaging/presentation/pages/inbox_page.dart';
 import '../features/messaging/presentation/routes/messaging_routes.dart';
 
-// Project - premium
+// Project — premium
+import 'package:soundcloud_clone/features/premium/presentation/pages/billing_page.dart';
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
 
 class AppRoutes {
@@ -73,6 +74,7 @@ class AppRoutes {
   static const String search = '/search';
   static const String library = '/library';
   static const String upgrade = '/upgrade';
+  static const String billing = '/billing';
   static const String uploadPicker = '/upload-picker';
   static const String editProfile = '/profile/edit';
   static const String profile = '/profile/:handle';
@@ -103,6 +105,31 @@ String _playlistPath(String id) => '/playlist/$id';
 String _secretPlaylistPath(String token) => '/playlist/secret/$token';
 String _searchPath(String query) => '/search?q=$query';
 
+String _billingReturnPath(BillingReturnDeepLink destination) {
+  final queryParameters = <String, String>{
+    if (destination.status != null && destination.status!.trim().isNotEmpty)
+      'status': destination.status!.trim(),
+    if (destination.planCode != null && destination.planCode!.trim().isNotEmpty)
+      'plan': destination.planCode!.trim(),
+    if (destination.sessionId != null &&
+        destination.sessionId!.trim().isNotEmpty)
+      'session_id': destination.sessionId!.trim(),
+    if (destination.checkoutSessionId != null &&
+        destination.checkoutSessionId!.trim().isNotEmpty)
+      'checkout_session_id': destination.checkoutSessionId!.trim(),
+    if (destination.subscriptionId != null &&
+        destination.subscriptionId!.trim().isNotEmpty)
+      'subscription_id': destination.subscriptionId!.trim(),
+  };
+
+  final uri = Uri(
+    path: AppRoutes.billing,
+    queryParameters: queryParameters.isEmpty ? null : queryParameters,
+  );
+
+  return uri.toString();
+}
+
 void _handleDeepLinkDestination(
   DeepLinkDestination destination,
   GoRouter router,
@@ -127,6 +154,9 @@ void _handleDeepLinkDestination(
 
     case SearchDeepLink(:final query):
       path = _searchPath(query);
+
+    case BillingReturnDeepLink():
+      path = _billingReturnPath(destination);
 
     case OAuthCallbackDeepLink():
       router.go('/oauth-debug', extra: destination);
@@ -212,12 +242,20 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Upgrade ─────────────────────────────────────────────────────────────
+      // ── Premium ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.upgrade,
         name: 'upgrade',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: const UpgradePage(),
+          child: UpgradePage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.billing,
+        name: 'billing',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: BillingPage(),
         ),
       ),
 
@@ -472,7 +510,6 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Playlist ───────────────────────────────────────────────────────────
       // ── Secret playlist ───────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.secretPlaylist,
@@ -562,57 +599,3 @@ GoRouter _createRouter() {
 
 final router = _createRouter();
 GoRouter createRouter() => _createRouter();
-
-// class _PlaceholderPage extends StatelessWidget {
-//   const _PlaceholderPage({required this.title});
-
-//   final String title;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.black,
-//       appBar: AppBar(
-//         backgroundColor: Colors.black,
-//         elevation: 0,
-//         title: Text(title, style: const TextStyle(color: Colors.white)),
-//         iconTheme: const IconThemeData(color: Colors.white),
-//       ),
-//       body: Center(
-//         child: Padding(
-//           padding: const EdgeInsets.symmetric(horizontal: 24),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               const Icon(
-//                 Icons.construction_outlined,
-//                 size: 56,
-//                 color: Colors.white54,
-//               ),
-//               const SizedBox(height: 16),
-//               Text(
-//                 '$title page is not implemented yet.',
-//                 textAlign: TextAlign.center,
-//                 style: const TextStyle(color: Colors.white, fontSize: 18),
-//               ),
-//               const SizedBox(height: 8),
-//               const Text(
-//                 'Temporary placeholder to keep navigation working on dev.',
-//                 textAlign: TextAlign.center,
-//                 style: TextStyle(color: Colors.white54),
-//               ),
-//               const SizedBox(height: 20),
-//               TextButton(
-//                 onPressed: () => context.go(AppRoutes.home),
-//                 child: const Text(
-//                   'Go Home',
-//                   style: TextStyle(color: Color(0xFFFF5500)),
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
