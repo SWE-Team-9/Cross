@@ -366,7 +366,7 @@ class _Actions extends StatelessWidget {
                 ),
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
-                  'Maybe Later',
+                  'Later',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
