@@ -4,16 +4,9 @@
   "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v1.1.1/app-release.apk",
   "release": {
     "title": "Version 1.1.1",
-    "subtitle": "Smoother updates & bug fixes",
-    "new_features": ["Notifications fully added - stay updated with the latest news and releases",
-    "background notifications now work even when the app is closed"],
-    "improvements": [
-      "Update check now waits until you finish with the update dialog – no more sudden navigation",
-      "App will not proceed to the home/welcome screen until update choice is completed"
-    ],
-    "bug_fixes": [
-      "Fixed an issue where the app could skip the update screen and go straight to the main app",
-      "Resolved a rare timing problem that could freeze the splash screen during mandatory updates"
-    ]
+    "subtitle": "What's new:",
+    "new_features": [],
+    "improvements": [],
+    "bug_fixes": []
   }
 }
