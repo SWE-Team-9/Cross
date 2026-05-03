@@ -15,6 +15,7 @@ import '../widgets/feed_skeleton.dart';
 import '../../domain/entities/feed_item.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../../social/domain/events/social_events.dart';
+import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
@@ -163,7 +164,6 @@ class _LoadedFeed extends StatelessWidget {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // ── Pinned Toggle ────────────────────────────────────────────
             SliverPersistentHeader(
               pinned: true,
               delegate: _PinnedHeaderDelegate(
@@ -171,8 +171,14 @@ class _LoadedFeed extends StatelessWidget {
                 child: const _PinnedToggle(),
               ),
             ),
-
-            // ── Feed cards ───────────────────────────────────────────────
+            const SliverToBoxAdapter(
+              child: PremiumAwareAdBanner(
+                title: 'Enjoy the feed without ads',
+                subtitle:
+                    'Upgrade to remove sponsored cards, download tracks, and upload more music.',
+                actionLabel: 'Upgrade',
+              ),
+            ),
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {

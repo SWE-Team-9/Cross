@@ -44,6 +44,51 @@ final class ResolvableResourceDeepLink extends DeepLinkDestination {
   final String url;
 }
 
+final class BillingReturnDeepLink extends DeepLinkDestination {
+  const BillingReturnDeepLink({
+    this.sessionId,
+    this.customerId,
+    this.status,
+    this.planCode,
+    this.checkoutSessionId,
+    this.subscriptionId,
+  });
+
+  final String? sessionId;
+  final String? customerId;
+  final String? status;
+  final String? planCode;
+  final String? checkoutSessionId;
+  final String? subscriptionId;
+
+  bool get hasSuccessStatus {
+    final normalized = status?.trim().toUpperCase() ?? '';
+
+    return normalized == 'SUCCESS' ||
+        normalized == 'COMPLETED' ||
+        normalized == 'PAID' ||
+        normalized == 'ACTIVE';
+  }
+
+  bool get hasCancelStatus {
+    final normalized = status?.trim().toUpperCase() ?? '';
+
+    return normalized == 'CANCEL' ||
+        normalized == 'CANCELED' ||
+        normalized == 'CANCELLED';
+  }
+
+  bool get hasSessionReference {
+    return _hasValue(sessionId) ||
+        _hasValue(checkoutSessionId) ||
+        _hasValue(subscriptionId);
+  }
+
+  bool _hasValue(String? value) {
+    return value != null && value.trim().isNotEmpty;
+  }
+}
+
 final class OAuthCallbackDeepLink extends DeepLinkDestination {
   const OAuthCallbackDeepLink({
     this.code,

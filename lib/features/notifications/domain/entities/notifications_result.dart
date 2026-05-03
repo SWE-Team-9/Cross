@@ -3,8 +3,7 @@ import '../../../../core/errors/failure.dart';
 sealed class NotificationsResult<T> {
   const NotificationsResult();
 
-  const factory NotificationsResult.success(T value) =
-      NotificationsSuccess<T>;
+  const factory NotificationsResult.success(T value) = NotificationsSuccess<T>;
 
   const factory NotificationsResult.failure(Failure failure) =
       NotificationsFailure<T>;

@@ -174,6 +174,7 @@ import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription
 import 'package:soundcloud_clone/features/premium/data/repositories/subscription_repository_impl.dart';
 import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/premium/premium_di.dart';
 import '../../features/discovery/data/datasources/discovery_remote_data_source.dart';
 import '../../features/discovery/data/repositories/discovery_repository_impl.dart';
 import '../../features/discovery/data/repositories/trending_repository_impl.dart';
@@ -244,6 +245,7 @@ Future<void> setupDependencies() async {
       ),
     );
   }
+  registerPremiumDependencies(getIt);
 
   if (!getIt.isRegistered<SocialRepo>()) {
     getIt.registerLazySingleton<SocialRepo>(
