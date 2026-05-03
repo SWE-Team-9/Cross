@@ -32,10 +32,10 @@ void main() {
   setUp(() {
     mockSecureStorage = _MockSecureStorage();
     mockDio = _MockDio();
-    
+
     // Mock the read method to return null (no token stored)
     when(() => mockSecureStorage.read(any())).thenAnswer((_) async => null);
-    
+
     interceptor = AuthInterceptor(secureStorage: mockSecureStorage);
   });
 
