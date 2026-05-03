@@ -168,6 +168,7 @@ import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription
 import 'package:soundcloud_clone/features/premium/data/repositories/subscription_repository_impl.dart';
 import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import 'package:soundcloud_clone/features/premium/premium_di.dart';
 
 final getIt = GetIt.instance;
 
@@ -222,6 +223,7 @@ Future<void> setupDependencies() async {
       ),
     );
   }
+  registerPremiumDependencies(getIt);
 
   if (!getIt.isRegistered<SocialRepo>()) {
     getIt.registerLazySingleton<SocialRepo>(

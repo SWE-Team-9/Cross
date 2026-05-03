@@ -26,6 +26,12 @@ abstract final class DeepLinkParser {
       case 'search':
         return _parseSearch(uri.queryParameters);
 
+      case 'billing':
+        return _parseBilling(segments, uri.queryParameters);
+
+      case 'checkout':
+        return _parseCheckout(segments, uri.queryParameters);
+
       case 'oauth':
         return _parseOAuth(segments, uri.queryParameters);
 
@@ -45,6 +51,7 @@ abstract final class DeepLinkParser {
           reason: 'Secret track link missing token',
         );
       }
+
       return SecretTrackDeepLink(secretToken: segments[1]);
     }
 
@@ -52,6 +59,7 @@ abstract final class DeepLinkParser {
     if (trackId.isEmpty) {
       return const InvalidDeepLink(reason: 'Track ID is empty');
     }
+
     return TrackDeepLink(trackId: trackId);
   }
 
@@ -59,6 +67,7 @@ abstract final class DeepLinkParser {
     if (segments.isEmpty || segments.first.isEmpty) {
       return const InvalidDeepLink(reason: 'User link missing handle');
     }
+
     return ProfileDeepLink(handle: segments.first);
   }
 
@@ -73,6 +82,7 @@ abstract final class DeepLinkParser {
           reason: 'Secret playlist link missing token',
         );
       }
+
       return SecretPlaylistDeepLink(secretToken: segments[1]);
     }
 
@@ -81,10 +91,106 @@ abstract final class DeepLinkParser {
 
   static DeepLinkDestination _parseSearch(Map<String, String> params) {
     final String? query = params['q'];
+
     if (query == null || query.trim().isEmpty) {
       return const InvalidDeepLink(reason: 'Search link missing query');
     }
+
     return SearchDeepLink(query: query.trim());
+  }
+
+  static DeepLinkDestination _parseBilling(
+    List<String> segments,
+    Map<String, String> params,
+  ) {
+    if (segments.isEmpty || segments.first != 'return') {
+      return const InvalidDeepLink(
+        reason: 'Billing link must be soundclone://billing/return',
+      );
+    }
+
+    return _parseBillingReturn(params);
+  }
+
+  static DeepLinkDestination _parseCheckout(
+    List<String> segments,
+    Map<String, String> params,
+  ) {
+    if (segments.isEmpty || segments.first != 'return') {
+      return const InvalidDeepLink(
+        reason: 'Checkout link must be soundclone://checkout/return',
+      );
+    }
+
+    return _parseBillingReturn(params);
+  }
+
+  static BillingReturnDeepLink _parseBillingReturn(
+    Map<String, String> params,
+  ) {
+    return BillingReturnDeepLink(
+      sessionId: _readParam(
+        params,
+        const <String>[
+          'session_id',
+          'sessionId',
+          'billing_session_id',
+          'billingSessionId',
+          'portal_session_id',
+          'portalSessionId',
+        ],
+      ),
+      customerId: _readParam(
+        params,
+        const <String>[
+          'customer_id',
+          'customerId',
+          'stripe_customer_id',
+          'stripeCustomerId',
+        ],
+      ),
+      status: _readParam(
+        params,
+        const <String>[
+          'status',
+          'payment_status',
+          'paymentStatus',
+          'billing_status',
+          'billingStatus',
+        ],
+      ),
+      planCode: _readParam(
+        params,
+        const <String>[
+          'plan',
+          'plan_code',
+          'planCode',
+          'tier',
+          'subscription_type',
+          'subscriptionType',
+        ],
+      ),
+      checkoutSessionId: _readParam(
+        params,
+        const <String>[
+          'checkout_session_id',
+          'checkoutSessionId',
+          'checkout_id',
+          'checkoutId',
+          'cs',
+        ],
+      ),
+      subscriptionId: _readParam(
+        params,
+        const <String>[
+          'subscription_id',
+          'subscriptionId',
+          'stripe_subscription_id',
+          'stripeSubscriptionId',
+          'sub',
+        ],
+      ),
+    );
   }
 
   static DeepLinkDestination _parseOAuth(
@@ -120,5 +226,20 @@ abstract final class DeepLinkParser {
       code: code.trim(),
       state: state?.trim(),
     );
+  }
+
+  static String? _readParam(
+    Map<String, String> params,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = params[key]?.trim();
+
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return null;
   }
 }

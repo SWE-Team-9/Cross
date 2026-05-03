@@ -6,6 +6,9 @@ import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/blocked_users_page.dart';
+import 'package:get_it/get_it.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -52,6 +55,10 @@ class SettingsPage extends StatelessWidget {
                 title: 'Change password',
                 onTap: () => _showChangePasswordDialog(context),
               ),
+              const _Divider(),
+              // ── Premium ───────────────────────────────────────────────────
+              _SectionHeader(title: 'Premium'),
+              const _SubscriptionSettingsTile(),
               const _Divider(),
 
               // ── Privacy ───────────────────────────────────────────────────
@@ -365,6 +372,76 @@ class _SectionHeader extends StatelessWidget {
           letterSpacing: 1.2,
         ),
       ),
+    );
+  }
+}
+
+class _SubscriptionSettingsTile extends StatelessWidget {
+  const _SubscriptionSettingsTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = _subscriptionCubitOf(context);
+
+    if (cubit == null) {
+      return _buildTile(
+        context,
+        title: 'IQA3 Premium',
+        subtitle: 'Manage your plan and billing',
+        icon: Icons.workspace_premium_outlined,
+        onTap: () => context.go('/upgrade'),
+      );
+    }
+
+    return BlocBuilder<SubscriptionCubit, SubscriptionState>(
+      bloc: cubit,
+      builder: (context, state) {
+        final subscription = state.subscription;
+        final isPremium = subscription.isPremium;
+
+        return _buildTile(
+          context,
+          title: isPremium
+              ? '${subscription.displayPlanName} plan'
+              : 'IQA3 Premium',
+          subtitle: isPremium
+              ? 'Manage billing, invoices, and premium features'
+              : 'Upgrade for ad-free listening and offline downloads',
+          icon: isPremium
+              ? Icons.workspace_premium_rounded
+              : Icons.workspace_premium_outlined,
+          onTap: () => context.go(isPremium ? '/billing' : '/upgrade'),
+        );
+      },
+    );
+  }
+
+  SubscriptionCubit? _subscriptionCubitOf(BuildContext context) {
+    try {
+      return context.read<SubscriptionCubit>();
+    } catch (_) {
+      final getIt = GetIt.I;
+
+      if (getIt.isRegistered<SubscriptionCubit>()) {
+        return getIt<SubscriptionCubit>();
+      }
+
+      return null;
+    }
+  }
+
+  Widget _buildTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return _SettingsTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
     );
   }
 }

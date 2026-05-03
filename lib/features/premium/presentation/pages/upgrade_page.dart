@@ -1,397 +1,317 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/di/injector.dart';
-import '../../domain/repositories/subscription_repository.dart';
-import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
-import '../bloc/upgrade_cubit.dart';
-import '../bloc/upgrade_state.dart';
-import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
-import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// ── Helper ──────────────────────────────────────────────────────────────────
-String _planLabel(String type) {
-  switch (type) {
-    case 'GO_PLUS':
-      return 'GO+';
-    case 'PRO':
-      return 'Pro';
-    default:
-      return type;
-  }
-}
+import '../../domain/entities/plan.dart';
+import '../bloc/subscription_cubit.dart';
+import '../bloc/subscription_state.dart';
 
-class UpgradePage extends StatelessWidget {
+class UpgradePage extends StatefulWidget {
   const UpgradePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => UpgradeCubit(getIt<SubscriptionRepository>()),
-      child: const _UpgradeView(),
-    );
-  }
+  State<UpgradePage> createState() => _UpgradePageState();
 }
 
-class _UpgradeView extends StatefulWidget {
-  const _UpgradeView();
-
-  @override
-  State<_UpgradeView> createState() => _UpgradeViewState();
-}
-
-class _UpgradeViewState extends State<_UpgradeView>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
-
-  String _selectedOption = 'monthly';
-
+class _UpgradePageState extends State<UpgradePage> {
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.08),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-    _animController.forward();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final cubit = context.read<SubscriptionCubit>();
+      if (cubit.state.isInitial || cubit.state.isFailure) {
+        cubit.loadSubscription();
+      }
+    });
   }
 
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
+  void _goBack() {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+
+    context.go('/home');
+  }
+
+  Future<void> _handleUpgrade(Plan plan) async {
+    final planCode = _readSubscriptionUpgradePlanCode(plan);
+
+    if (planCode == null) {
+      _showSnackBar(
+        'Free is your default plan. You can return to Free by canceling premium from Billing.',
+      );
+      return;
+    }
+
+    try {
+      final checkoutUrl = await context.read<SubscriptionCubit>().upgrade(
+            planCode,
+          );
+      if (!mounted) return;
+
+      if (checkoutUrl.trim().isEmpty) {
+        _showSnackBar('Checkout link is not available right now.');
+        return;
+      }
+
+      await _launchExternalUrl(checkoutUrl);
+    } catch (_) {
+      // The cubit already emits a readable actionErrorMessage.
+    }
+  }
+
+  Future<void> _launchExternalUrl(String rawUrl) async {
+    final uri = Uri.tryParse(rawUrl.trim());
+
+    if (uri == null || !uri.hasScheme) {
+      _showSnackBar('Invalid link returned from the server.');
+      return;
+    }
+
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!mounted) return;
+
+    if (!launched) {
+      _showSnackBar('Could not open the link.');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message)),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      bottomNavigationBar: const BottomNavBar(selected: 4),
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF5500),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Icon(Icons.bolt, color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'IQA3 Pro',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: BlocConsumer<UpgradeCubit, UpgradeState>(
-        listener: (context, state) async {
-          if (state.status == UpgradeStatus.success) {
-            final url = state.checkoutUrl;
-            if (url != null) {
-              await launchUrl(
-                Uri.parse(url),
-                mode: LaunchMode.externalApplication,
-              );
-              context.read<SubscriptionCubit>().refreshAfterPayment();
-            }
+    return BlocConsumer<SubscriptionCubit, SubscriptionState>(
+      listenWhen: (previous, current) {
+        return previous.actionMessage != current.actionMessage ||
+            previous.actionErrorMessage != current.actionErrorMessage ||
+            previous.errorMessage != current.errorMessage;
+      },
+      listener: (context, state) {
+        final message = state.actionErrorMessage ??
+            state.errorMessage ??
+            state.actionMessage;
+
+        if (message == null || message.trim().isEmpty) {
+          return;
+        }
+
+        _showSnackBar(message);
+      },
+      builder: (context, state) {
+        final rawPlans =
+            state.upgradePlans.isEmpty ? state.plans : state.upgradePlans;
+
+        final currentPlanCode = _normalizeSubscriptionUpgradePlanCode(
+          state.subscription.normalizedPlanCode,
+        );
+
+        final plans = rawPlans.where((plan) {
+          final planCode = _readSubscriptionUpgradePlanCode(plan);
+
+          if (planCode == null) {
+            return false;
           }
-        },
-        builder: (context, upgradeState) {
-          final cubit = context.read<UpgradeCubit>();
 
-          return FadeTransition(
-            opacity: _fadeAnim,
-            child: SlideTransition(
-              position: _slideAnim,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _HeroSection(),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 20),
-                          BlocBuilder<SubscriptionCubit, Subscription?>(
-                            builder: (context, sub) {
-                              if (sub == null) {
-                                return const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(40),
-                                    child: CircularProgressIndicator(
-                                      color: Color(0xFFFF5500),
-                                    ),
+          return planCode != currentPlanCode;
+        }).toList(growable: false);
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              tooltip: 'Back',
+              onPressed: _goBack,
+              icon: const Icon(Icons.arrow_back),
+            ),
+            title: const Text('Upgrade'),
+            actions: [
+              IconButton(
+                tooltip: 'Refresh',
+                onPressed: state.isLoading
+                    ? null
+                    : () =>
+                        context.read<SubscriptionCubit>().loadSubscription(),
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: () =>
+                context.read<SubscriptionCubit>().loadSubscription(),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _HeroHeader(state: state),
+                        const SizedBox(height: 20),
+                        _CurrentPlanCard(
+                          state: state,
+                          onOpenBilling: state.subscription.isPremium &&
+                                  !state.isActionLoading
+                              ? () => context.push('/billing')
+                              : null,
+                        ),
+                        const SizedBox(height: 28),
+                        Text(
+                          'Choose your plan',
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                );
-                              }
-
-                              final isFree = sub.subscriptionType == 'FREE';
-                              final isPro = sub.subscriptionType == 'PRO';
-                              final isGoPlus =
-                                  sub.subscriptionType == 'GO_PLUS';
-                              final isCanceling = sub.cancelAtPeriodEnd == true;
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (isFree) ...[
-                                    Text(
-                                      'CHOOSE YOUR PLAN',
-                                      style: TextStyle(
-                                        color: Colors.white
-                                            .withValues(alpha: 0.35),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1.4,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    _PlanCard(
-                                      title: 'IQA3 Pro',
-                                      subtitle: 'Monthly',
-                                      price: 'EGP 175',
-                                      period: '/ month',
-                                      isSelected: _selectedOption == 'monthly',
-                                      savingsBadge: null,
-                                      features: const [
-                                        'Unlimited uploads',
-                                        'Advanced insights & analytics',
-                                        'Replace tracks without losing stats',
-                                        'Priority support',
-                                      ],
-                                      onTap: () {
-                                        setState(
-                                            () => _selectedOption = 'monthly');
-                                        cubit.selectPlan('PRO');
-                                      },
-                                    ),
-                                    const SizedBox(height: 14),
-                                    _PlanCard(
-                                      title: 'IQA3 Pro',
-                                      subtitle: 'Yearly',
-                                      price: 'EGP 1055',
-                                      period: '/ year',
-                                      isSelected: _selectedOption == 'yearly',
-                                      savingsBadge: 'Save 50%',
-                                      features: const [
-                                        'Everything in monthly',
-                                        'Early access to new features',
-                                      ],
-                                      onTap: () {
-                                        setState(
-                                            () => _selectedOption = 'yearly');
-                                        cubit.selectPlan('PRO');
-                                      },
-                                    ),
-                                    const SizedBox(height: 32),
-                                  ],
-                                  if (!isFree) ...[
-                                    _ActivePlanBanner(
-                                      subscriptionType: sub.subscriptionType,
-                                      isCanceling: isCanceling,
-                                    ),
-                                    const SizedBox(height: 24),
-                                  ],
-                                  const _FeatureHighlights(),
-                                  const SizedBox(height: 32),
-                                  if (isFree) ...[
-                                    _CtaButton(
-                                      label: 'Upgrade to IQA3 Pro',
-                                      isLoading: upgradeState.status ==
-                                          UpgradeStatus.loading,
-                                      onPressed: () => cubit.subscribe(),
-                                    ),
-                                  ],
-                                  if (isPro && !isCanceling) ...[
-                                    _CtaButton(
-                                      label: 'Upgrade to GO+',
-                                      isLoading: false,
-                                      onPressed: () => context
-                                          .read<SubscriptionCubit>()
-                                          .changePlan('GO_PLUS'),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _SecondaryButton(
-                                      label: 'Cancel Subscription',
-                                      icon: Icons.cancel_outlined,
-                                      onPressed: () => context
-                                          .read<SubscriptionCubit>()
-                                          .cancel(),
-                                    ),
-                                  ],
-                                  if (isGoPlus && !isCanceling) ...[
-                                    _CtaButton(
-                                      label: 'Downgrade to Pro',
-                                      isLoading: false,
-                                      onPressed: () => context
-                                          .read<SubscriptionCubit>()
-                                          .changePlan('PRO'),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _SecondaryButton(
-                                      label: 'Cancel Subscription',
-                                      icon: Icons.cancel_outlined,
-                                      onPressed: () => context
-                                          .read<SubscriptionCubit>()
-                                          .cancel(),
-                                    ),
-                                  ],
-                                  if (isCanceling) ...[
-                                    _SecondaryButton(
-                                      label: 'Resume Subscription',
-                                      icon: Icons.refresh_rounded,
-                                      onPressed: () => context
-                                          .read<SubscriptionCubit>()
-                                          .resume(),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 12),
-                                  _SecondaryButton(
-                                    label: 'Manage Billing',
-                                    icon: Icons.credit_card_rounded,
-                                    onPressed: () async {
-                                      final url = await context
-                                          .read<SubscriptionCubit>()
-                                          .openBillingPortal();
-                                      await launchUrl(Uri.parse(url),
-                                          mode: LaunchMode.externalApplication);
-                                    },
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Center(
-                                    child: Text(
-                                      'Cancel anytime · Secure payment',
-                                      style: TextStyle(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.3),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 30),
-                                ],
-                              );
-                            },
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Upgrade to unlock more uploads, ad-free listening, offline downloads, and priority support.',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            height: 1.35,
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (state.isLoading && !state.hasPlans)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFFF5500),
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  )
+                else if (state.isFailure && !state.hasPlans)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _ErrorState(
+                      message: state.errorMessage ??
+                          'Could not load subscription plans.',
+                      onRetry: () =>
+                          context.read<SubscriptionCubit>().loadSubscription(),
+                    ),
+                  )
+                else if (plans.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _EmptyState(
+                      onRetry: () =>
+                          context.read<SubscriptionCubit>().loadSubscription(),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                    sliver: SliverList.separated(
+                      itemCount: plans.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final plan = plans[index];
+                        final isCurrentPlan = plan.normalizedCode ==
+                            state.subscription.normalizedPlanCode;
+
+                        return _PlanCard(
+                          plan: plan,
+                          isCurrentPlan: isCurrentPlan,
+                          isActionLoading: state.isActionLoading,
+                          onUpgrade:
+                              isCurrentPlan ? null : () => _handleUpgrade(plan),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// ACTIVE PLAN BANNER
-// ────────────────────────────────────────────────────────────────────────────
-class _ActivePlanBanner extends StatelessWidget {
-  final String subscriptionType;
-  final bool isCanceling;
+class _HeroHeader extends StatelessWidget {
+  const _HeroHeader({required this.state});
 
-  const _ActivePlanBanner({
-    required this.subscriptionType,
-    required this.isCanceling,
-  });
+  final SubscriptionState state;
 
   @override
   Widget build(BuildContext context) {
-    final label = _planLabel(subscriptionType);
-    final isGoPlus = subscriptionType == 'GO_PLUS';
-    final accentColor =
-        isGoPlus ? const Color(0xFF4B9EFF) : const Color(0xFFFF5500);
+    final title = state.subscription.isPremium
+        ? 'You are on ${state.subscription.displayPlanName}'
+        : 'Unlock IQA3 Premium';
+
+    final subtitle = state.subscription.isPremium
+        ? 'Manage your plan, billing, and premium features from one place.'
+        : 'Create more, listen without ads, and save tracks for offline playback.';
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: accentColor.withValues(alpha: 0.4),
-          width: 1.5,
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFFF5500),
+            Color(0xFFB53600),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55333333),
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.bolt, color: accentColor, size: 24),
+          const Icon(
+            Icons.workspace_premium_rounded,
+            color: Colors.white,
+            size: 42,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Current Plan: IQA3 $label',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  isCanceling
-                      ? 'Cancels at end of billing period'
-                      : 'Active · renews automatically',
-                  style: TextStyle(
-                    color: isCanceling
-                        ? Colors.orange.withValues(alpha: 0.8)
-                        : Colors.white.withValues(alpha: 0.45),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isCanceling
-                  ? Colors.orange.withValues(alpha: 0.15)
-                  : const Color(0xFF1DB954).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              isCanceling ? 'Canceling' : 'Active',
-              style: TextStyle(
-                color: isCanceling ? Colors.orange : const Color(0xFF1DB954),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: Colors.white,
+              height: 1.35,
+              fontSize: 15,
             ),
           ),
         ],
@@ -400,90 +320,269 @@ class _ActivePlanBanner extends StatelessWidget {
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// HERO SECTION
-// ────────────────────────────────────────────────────────────────────────────
-class _HeroSection extends StatelessWidget {
-  const _HeroSection();
+class _CurrentPlanCard extends StatelessWidget {
+  const _CurrentPlanCard({
+    required this.state,
+    required this.onOpenBilling,
+  });
+
+  final SubscriptionState state;
+  final VoidCallback? onOpenBilling;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          height: 270,
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF1A0800), Color(0xFF0A0A0A)],
+    final subscription = state.subscription;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151515),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Current plan',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ),
-        Positioned(
-          top: -60,
-          right: -60,
-          child: Container(
-            width: 220,
-            height: 220,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  const Color(0xFFFF5500).withValues(alpha: 0.35),
-                  Colors.transparent,
-                ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  subscription.displayPlanName,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+              _PlanBadge(
+                text: subscription.isPremium ? 'Premium' : 'Free',
+                isHighlighted: subscription.isPremium,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _FeatureLine(
+            icon: Icons.cloud_upload_outlined,
+            text:
+                '${subscription.displayRemainingUploads} uploads remaining / ${subscription.displayUploadLimit}',
+          ),
+          const SizedBox(height: 8),
+          _FeatureLine(
+            icon: subscription.adsEnabled
+                ? Icons.campaign_outlined
+                : Icons.block_rounded,
+            text: subscription.adsEnabled ? 'Ads enabled' : 'Ad-free listening',
+          ),
+          const SizedBox(height: 8),
+          _FeatureLine(
+            icon: Icons.download_for_offline_outlined,
+            text: subscription.canDownload
+                ? 'Offline downloads unlocked'
+                : 'Offline downloads locked',
+          ),
+          if (subscription.cancelAtPeriodEnd) ...[
+            const SizedBox(height: 12),
+            const _WarningBox(
+              text:
+                  'Your subscription is scheduled to cancel at the end of the current billing period.',
+            ),
+          ],
+          if (subscription.isPremium) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onOpenBilling,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white24),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: const Text('Manage billing'),
               ),
             ),
-          ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({
+    required this.plan,
+    required this.isCurrentPlan,
+    required this.isActionLoading,
+    required this.onUpgrade,
+  });
+
+  final Plan plan;
+  final bool isCurrentPlan;
+  final bool isActionLoading;
+  final VoidCallback? onUpgrade;
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = plan.isPro || plan.isGoPlus;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color:
+            isHighlighted ? const Color(0xFF1D130D) : const Color(0xFF151515),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isHighlighted ? const Color(0xFFFF5500) : Colors.white10,
+          width: isHighlighted ? 1.4 : 1,
         ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF5500).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: const Color(0xFFFF5500).withValues(alpha: 0.4)),
-                  ),
-                  child: const Text(
-                    '⚡  PRO MEMBERSHIP',
-                    style: TextStyle(
-                      color: Color(0xFFFF5500),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  plan.displayName,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+              if (isCurrentPlan)
+                const _PlanBadge(
+                  text: 'Current',
+                  isHighlighted: true,
+                )
+              else if (plan.trialDays > 0)
+                _PlanBadge(
+                  text: '${plan.trialDays}-day trial',
+                  isHighlighted: false,
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            plan.displayPrice,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: const Color(0xFFFF5500),
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          if (plan.billingIntervalLabel.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              plan.billingIntervalLabel,
+              style: const TextStyle(color: Colors.white54),
+            ),
+          ],
+          const SizedBox(height: 18),
+          _FeatureLine(
+            icon: Icons.cloud_upload_outlined,
+            text: '${plan.displayUploadLimit} uploads',
+          ),
+          const SizedBox(height: 8),
+          _FeatureLine(
+            icon:
+                plan.adsEnabled ? Icons.campaign_outlined : Icons.block_rounded,
+            text: plan.adsEnabled ? 'Ads supported' : 'Ad-free listening',
+          ),
+          const SizedBox(height: 8),
+          _FeatureLine(
+            icon: Icons.download_for_offline_outlined,
+            text: plan.canDownload
+                ? 'Offline downloads'
+                : 'Online streaming only',
+          ),
+          const SizedBox(height: 8),
+          _FeatureLine(
+            icon: Icons.support_agent_rounded,
+            text: '${plan.supportLevel} support',
+          ),
+          if (plan.highlightedFeatures.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            ...plan.highlightedFeatures.take(4).map(
+                  (feature) => Padding(
+                    padding: const EdgeInsets.only(bottom: 7),
+                    child: _FeatureLine(
+                      icon: Icons.check_circle_outline_rounded,
+                      text: feature,
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                const Text(
-                  "What's next in\nmusic starts here.",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Unlock unlimited uploads, premium tools,\nand analytics built for creators.',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-              ],
+          ],
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: isCurrentPlan || isActionLoading ? null : onUpgrade,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5500),
+                disabledBackgroundColor: Colors.white12,
+                disabledForegroundColor: Colors.white38,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+              child: isActionLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      isCurrentPlan
+                          ? 'Current plan'
+                          : 'Upgrade to ${plan.displayName}',
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeatureLine extends StatelessWidget {
+  const _FeatureLine({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: const Color(0xFFFF5500),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white70,
+              height: 1.25,
             ),
           ),
         ),
@@ -492,177 +591,70 @@ class _HeroSection extends StatelessWidget {
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// PLAN CARD
-// ────────────────────────────────────────────────────────────────────────────
-class _PlanCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String price;
-  final String period;
-  final bool isSelected;
-  final String? savingsBadge;
-  final List<String> features;
-  final VoidCallback onTap;
-
-  const _PlanCard({
-    required this.title,
-    required this.subtitle,
-    required this.price,
-    required this.period,
-    required this.isSelected,
-    required this.features,
-    required this.onTap,
-    this.savingsBadge,
+class _PlanBadge extends StatelessWidget {
+  const _PlanBadge({
+    required this.text,
+    required this.isHighlighted,
   });
+
+  final String text;
+  final bool isHighlighted;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFFF5500).withValues(alpha: 0.08)
-              : const Color(0xFF161616),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFFFF5500)
-                : Colors.white.withValues(alpha: 0.08),
-            width: isSelected ? 1.5 : 1,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isHighlighted ? const Color(0xFFFF5500) : Colors.white10,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
           ),
         ),
-        child: Column(
+      ),
+    );
+  }
+}
+
+class _WarningBox extends StatelessWidget {
+  const _WarningBox({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x22FF5500),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x55FF5500)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 22,
-                  height: 22,
-                  margin: const EdgeInsets.only(top: 2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color:
-                          isSelected ? const Color(0xFFFF5500) : Colors.white24,
-                      width: 2,
-                    ),
-                    color: isSelected
-                        ? const Color(0xFFFF5500)
-                        : Colors.transparent,
-                  ),
-                  child: isSelected
-                      ? const Icon(Icons.check, color: Colors.white, size: 13)
-                      : null,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.45),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            price,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(width: 3),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 3),
-                            child: Text(
-                              period,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (savingsBadge != null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF5500),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      savingsBadge!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-              ],
+            const Icon(
+              Icons.info_outline_rounded,
+              color: Color(0xFFFF5500),
+              size: 20,
             ),
-            if (features.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Divider(color: Colors.white.withValues(alpha: 0.07), height: 1),
-              const SizedBox(height: 14),
-              ...features.map(
-                (f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle_rounded,
-                        color: isSelected
-                            ? const Color(0xFFFF5500)
-                            : Colors.white30,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        f,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 13.5,
-                        ),
-                      ),
-                    ],
-                  ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  height: 1.35,
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -670,227 +662,133 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// FEATURE HIGHLIGHTS
-// ────────────────────────────────────────────────────────────────────────────
-class _FeatureHighlights extends StatelessWidget {
-  const _FeatureHighlights();
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({
+    required this.message,
+    required this.onRetry,
+  });
 
-  final _highlights = const [
-    (Icons.cloud_upload_rounded, 'Unlimited\nUploads'),
-    (Icons.bar_chart_rounded, 'Deep\nAnalytics'),
-    (Icons.swap_horiz_rounded, 'Track\nReplacement'),
-    (Icons.headset_mic_rounded, 'Priority\nSupport'),
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFFF5500),
+            size: 52,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton(
+            onPressed: onRetry,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5500),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Try again'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.workspace_premium_outlined,
+            color: Colors.white38,
+            size: 52,
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'No premium plans are available right now.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white70,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 18),
+          OutlinedButton(
+            onPressed: onRetry,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white24),
+            ),
+            child: const Text('Refresh'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String? _readSubscriptionUpgradePlanCode(Plan plan) {
+  final candidates = <String>[
+    plan.code,
+    plan.tier,
+    plan.name,
+    plan.displayName,
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'EVERYTHING YOU GET',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.3),
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.4,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: _highlights
-              .map((h) => _HighlightTile(icon: h.$1, label: h.$2))
-              .toList(),
-        ),
-      ],
-    );
+  for (final candidate in candidates) {
+    final normalized = _normalizeSubscriptionUpgradePlanCode(candidate);
+
+    if (normalized == 'PRO' || normalized == 'GO_PLUS') {
+      return normalized;
+    }
   }
+
+  return null;
 }
 
-class _HighlightTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
+String _normalizeSubscriptionUpgradePlanCode(String value) {
+  final normalized =
+      value.trim().toUpperCase().replaceAll('-', '_').replaceAll(' ', '_');
 
-  const _HighlightTile({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: const Color(0xFF161616),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-          ),
-          child: Icon(icon, color: const Color(0xFFFF5500), size: 26),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
-            fontSize: 11.5,
-            height: 1.35,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// CTA BUTTON (primary)
-// ────────────────────────────────────────────────────────────────────────────
-class _CtaButton extends StatefulWidget {
-  final String label;
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  const _CtaButton({
-    required this.label,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  @override
-  State<_CtaButton> createState() => _CtaButtonState();
-}
-
-class _CtaButtonState extends State<_CtaButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulse;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulse = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+  if (normalized.isEmpty) {
+    return '';
   }
 
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
+  if (normalized == 'GO+' ||
+      normalized == 'GO_PLUS' ||
+      normalized.contains('GO_PLUS') ||
+      normalized.contains('GO+')) {
+    return 'GO_PLUS';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _pulse,
-      builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFFF5500)
-                    .withValues(alpha: 0.25 + _pulse.value * 0.2),
-                blurRadius: 20 + _pulse.value * 10,
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: child,
-        );
-      },
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton(
-          onPressed: widget.isLoading ? null : widget.onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF5500),
-            disabledBackgroundColor:
-                const Color(0xFFFF5500).withValues(alpha: 0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            elevation: 0,
-          ),
-          child: widget.isLoading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.5,
-                  ),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.bolt, color: Colors.white, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      widget.label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
+  if (normalized == 'PRO' || normalized.contains('PRO')) {
+    return 'PRO';
   }
-}
 
-// ────────────────────────────────────────────────────────────────────────────
-// SECONDARY BUTTON
-// ────────────────────────────────────────────────────────────────────────────
-class _SecondaryButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const _SecondaryButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: Colors.white.withValues(alpha: 0.15),
-            width: 1,
-          ),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          backgroundColor: const Color(0xFF161616),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 18),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  if (normalized == 'FREE' || normalized.contains('FREE')) {
+    return 'FREE';
   }
+
+  return normalized;
 }
