@@ -22,6 +22,8 @@ class _SplashPageState extends State<SplashPage> {
   Timer? _splashTimeout;
   String? _pendingRoute;
   bool _videoCompleted = false;
+  bool _updateCheckDone =
+      false; // ADD: track if update check (and dialog) is complete
 
   bool _isRunningInWidgetTest() {
     final bindingType = WidgetsBinding.instance.runtimeType.toString();
@@ -41,34 +43,43 @@ class _SplashPageState extends State<SplashPage> {
     // Skip update checks in widget tests to avoid pending timer/network side effects.
     if (!_isRunningInWidgetTest()) {
       _checkForUpdate();
+    } else {
+      _updateCheckDone = true; // skip in tests
     }
   }
 
   Future<void> _checkForUpdate() async {
     final updateData = await UpdateService.checkForUpdate();
-    if (updateData == null || !mounted) return;
 
-    final packageInfo = await PackageInfo.fromPlatform();
-    final mandatory = UpdateService.isMandatoryUpdate(
-      updateData,
-      packageInfo.version,
-    );
+    if (updateData != null && mounted) {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final mandatory = UpdateService.isMandatoryUpdate(
+        updateData,
+        packageInfo.version,
+      );
 
-    // Wait a tiny bit to let the splash screen settle (optional)
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
+      // Wait a tiny bit to let the splash screen settle (optional)
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
 
-    showDialog(
-      context: context,
-      barrierDismissible: !mandatory,
-      builder: (_) => UpdateDialog(
-        updateData: updateData,
-        isMandatory: mandatory,
-      ),
-    );
+      // CHANGE: wait for the dialog to be dismissed
+      await showDialog(
+        context: context,
+        barrierDismissible: !mandatory,
+        builder: (_) => UpdateDialog(
+          updateData: updateData,
+          isMandatory: mandatory,
+        ),
+      );
+    }
+
+    // CHANGE: only allow navigation AFTER update check + dialog are done
+    if (mounted) {
+      setState(() => _updateCheckDone = true);
+      _navigateIfReady();
+    }
   }
 
-  // ****************** rest of your original code (unchanged) ******************
   Future<void> _initializeSplashVideo() async {
     try {
       final controller = VideoPlayerController.asset(
@@ -128,7 +139,9 @@ class _SplashPageState extends State<SplashPage> {
 
   void _navigateIfReady() {
     final route = _pendingRoute;
-    if (!_videoCompleted || route == null || !mounted) return;
+    // ADD: require update check to be done as well
+    if (!_videoCompleted || !_updateCheckDone || route == null || !mounted)
+      return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;

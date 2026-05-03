@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "183082578334",
+    "project_id": "iqa3-16c98",
+    "storage_bucket": "iqa3-16c98.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:183082578334:android:98b306014029b8b67b668f",
+        "android_client_info": {
+          "package_name": "com.SWETeam9.my_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5cQK_viOibwX88fWAgfBA-8oOvL4yif0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

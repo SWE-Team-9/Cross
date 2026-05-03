@@ -5,7 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
-
+import 'package:soundcloud_clone/features/notifications/presentation/bloc/notifications_bloc.dart';
+import 'package:soundcloud_clone/features/notifications/domain/entities/notification_entity.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
@@ -83,6 +84,12 @@ class FakeAudioPlayerService implements AudioPlayerService {
 }
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
+
+class MockNotificationsBloc
+    extends MockBloc<NotificationsEvent, NotificationsState>
+    implements NotificationsBloc {}
+
+late MockNotificationsBloc mockNotificationsBloc;
 
 class MockGetUnreadCountUseCase extends Mock implements GetUnreadCountUseCase {}
 
@@ -191,6 +198,7 @@ Widget _buildApp(
         builder: (context, state) => MultiBlocProvider(
           providers: [
             BlocProvider<AuthCubit>.value(value: authCubit),
+            BlocProvider<NotificationsBloc>.value(value: mockNotificationsBloc),
             BlocProvider<PlayerCubit>(
               create: (_) => PlayerCubit(GetIt.I<AudioPlayerService>()),
             ),
@@ -264,12 +272,21 @@ void main() {
     await _setUp();
 
     mockAuthCubit = MockAuthCubit();
-
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
     when(() => mockAuthCubit.stream).thenAnswer(
       (_) => const Stream<AuthState>.empty(),
     );
-  });
+
+    mockNotificationsBloc = MockNotificationsBloc();
+    when(() => mockNotificationsBloc.state).thenReturn(
+      const NotificationsLoaded(
+        notifications: <NotificationEntity>[],
+        unreadCount: 0,
+      ),
+    );
+    when(() => mockNotificationsBloc.stream).thenAnswer(
+      (_) => const Stream<NotificationsState>.empty(),
+    );  });
 
   tearDown(() async {
     testerViewReset();
