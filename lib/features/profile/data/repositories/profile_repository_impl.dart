@@ -27,6 +27,18 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<List<ManagedTrack>> getUserLikedTracks(String userId) async {
+    final dtos = await _remoteDataSource.getUserLikedTracks(userId);
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  }
+
+  @override
+  Future<List<ManagedTrack>> getUserRepostedTracks(String userId) async {
+    final dtos = await _remoteDataSource.getUserRepostedTracks(userId);
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  }
+
+  @override
   Future<ProfileEntity> updateProfile({
     String? displayName,
     String? bio,

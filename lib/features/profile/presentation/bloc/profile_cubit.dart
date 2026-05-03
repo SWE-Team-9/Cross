@@ -44,6 +44,8 @@ class ProfileCubit extends Cubit<ProfileState> {
       );
 
       List<ManagedTrack> tracks = const <ManagedTrack>[];
+      List<ManagedTrack> likedTracks = const <ManagedTrack>[];
+      List<ManagedTrack> repostedTracks = const <ManagedTrack>[];
 
       try {
         tracks = await _profileRepository.getUserTracks(profile.id).timeout(
@@ -58,7 +60,38 @@ class ProfileCubit extends Cubit<ProfileState> {
         tracks = const <ManagedTrack>[];
       }
 
-      emit(ProfileLoaded(profile, tracks: tracks));
+      try {
+        likedTracks = await _profileRepository.getUserLikedTracks(profile.id).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Liked tracks request timed out. Please check your connection.',
+            );
+          },
+        );
+      } catch (_) {
+        likedTracks = const <ManagedTrack>[];
+      }
+
+      try {
+        repostedTracks = await _profileRepository.getUserRepostedTracks(profile.id).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Reposted tracks request timed out. Please check your connection.',
+            );
+          },
+        );
+      } catch (_) {
+        repostedTracks = const <ManagedTrack>[];
+      }
+
+      emit(ProfileLoaded(
+        profile,
+        tracks: tracks,
+        likedTracks: likedTracks,
+        repostedTracks: repostedTracks,
+      ));
     } on Failure catch (failure) {
       emit(ProfileError(failure.message));
     } catch (_) {

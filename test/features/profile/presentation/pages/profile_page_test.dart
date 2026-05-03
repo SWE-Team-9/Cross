@@ -416,6 +416,58 @@ void main() {
       expect(find.text('No tracks yet'), findsOneWidget);
     });
 
+    testWidgets(
+        'non-own profile renders liked tracks and reposts when state provides them',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(otherUser));
+
+      profileCubit.setTestState(
+        ProfileLoaded(
+          profileWithoutAvatar,
+          tracks: const [
+            ManagedTrack(
+              id: 'uploaded-track-1',
+              title: 'Uploaded Track',
+              visibility: TrackManagementVisibility.publicTrack,
+            ),
+          ],
+          likedTracks: const [
+            ManagedTrack(
+              id: 'liked-track-1',
+              title: 'Liked Track',
+              visibility: TrackManagementVisibility.publicTrack,
+            ),
+          ],
+          repostedTracks: const [
+            ManagedTrack(
+              id: 'reposted-track-1',
+              title: 'Reposted Track',
+              visibility: TrackManagementVisibility.publicTrack,
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      final likedTab = find.widgetWithText(Tab, 'Likes');
+      await tester.ensureVisible(likedTab);
+      await tester.pumpAndSettle();
+      await tester.tap(likedTab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Liked Track'), findsOneWidget);
+
+      final repostsTab = find.widgetWithText(Tab, 'Reposts');
+      await tester.ensureVisible(repostsTab);
+      await tester.pumpAndSettle();
+      await tester.tap(repostsTab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reposted Track'), findsOneWidget);
+    });
+
     testWidgets('own profile tracks tab shows managed tracks', (tester) async {
       when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(ownUser));
 

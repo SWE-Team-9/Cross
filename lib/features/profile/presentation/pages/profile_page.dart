@@ -626,14 +626,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildLikedTracksTab(ProfileEntity profile) {
-    if (!_isOwnProfile) {
-      return _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet');
-    }
-
     return _ProfileTracksListTab(
       tracks: _likedTracks,
-      artistName: '',
-      artistHandle: '',
+      artistName: profile.displayName,
+      artistHandle: profile.handle,
       source: 'profile_likes',
       emptyIcon: Icons.favorite_border,
       emptyMessage: 'No liked tracks yet',
@@ -705,14 +701,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildRepostedTracksTab(ProfileEntity profile) {
-    if (!_isOwnProfile) {
-      return _buildEmptyTab(Icons.repeat, 'No reposts yet');
-    }
-
     return _ProfileTracksListTab(
       tracks: _repostedTracks,
-      artistName: '',
-      artistHandle: '',
+      artistName: profile.displayName,
+      artistHandle: profile.handle,
       source: 'profile_reposts',
       emptyIcon: Icons.repeat,
       emptyMessage: 'No reposts yet',

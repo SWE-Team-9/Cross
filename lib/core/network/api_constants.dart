@@ -111,6 +111,14 @@ abstract class ApiConstants {
       '$interactionsBase/tracks/$trackId/reposters';
   static const String myLikedTracks = '/api/v1/interactions/me/likes';
   static const String myRepostedTracks = '/api/v1/interactions/me/reposts';
+  static String userLikedTracksPath(String userId) =>
+      '$interactionsBase/users/$userId/likes';
+  static String userRepostedTracksPath(String userId) =>
+      '$interactionsBase/users/$userId/reposts';
+
+  // Pages / aggregate endpoints
+  static const String pagesBase = '/api/v1/pages';
+  static String profilePagePath(String handle) => '$pagesBase/profile/$handle';
 
   static String likePlaylistPath(String playlistId) =>
       '$playlistsBase/$playlistId/like';

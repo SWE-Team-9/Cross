@@ -5,6 +5,8 @@ abstract class ProfileRepository {
   Future<ProfileEntity> getProfile(String handle);
   Future<ProfileEntity> getMyProfile();
   Future<List<ManagedTrack>> getUserTracks(String userId);
+  Future<List<ManagedTrack>> getUserLikedTracks(String userId);
+  Future<List<ManagedTrack>> getUserRepostedTracks(String userId);
 
   Future<ProfileEntity> updateProfile({
     String? displayName,
