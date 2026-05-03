@@ -148,22 +148,4 @@ class FeedRepositoryImpl implements FeedRepository {
   Future<void> recordPlay(String trackId) async {
     await dataSource.recordPlay(trackId);
   }
-
-  @override
-  Future<SearchResults> search({
-    required String query,
-    int page = 1,
-  }) {
-    return dataSource.search(query: query, page: page);
-  }
-
-  @override
-  Future<List<TrendingTrack>> getTrending() {
-    return dataSource.getTrending();
-  }
-
-  @override
-  Future<ResolveResult> resolve(String permalink) {
-    return dataSource.resolve(permalink);
-  }
 }

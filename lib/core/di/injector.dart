@@ -51,7 +51,13 @@ import '../../features/upload/data/datasources/track_status_remote_data_source.d
 import '../../features/upload/data/repositories/track_status_repository_impl.dart';
 import '../../features/upload/domain/repositories/i_track_status_repository.dart';
 import '../../features/upload/domain/usecases/watch_track_processing_status_use_case.dart';
-
+import '../../features/feed/data/datasources/feed_remote_data_sources.dart';
+import '../../features/feed/data/repositories/feed_repository_impl.dart';
+import '../../features/feed/domain/repositories/feed_repository.dart';
+import '../../features/feed/domain/usecases/get_feed.dart';
+import '../../features/feed/domain/usecases/toggle_like.dart';
+import '../../features/feed/domain/usecases/toggle_repost.dart';
+import '../../features/feed/presentation/bloc/feed_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
 import '../../features/profile/data/repositories/profile_repository_impl.dart'
@@ -806,6 +812,50 @@ Future<void> setupDependencies() async {
     );
   }
 
+  // ── Feed Feature ─────────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<FeedRemoteDataSource>()) {
+    getIt.registerLazySingleton<FeedRemoteDataSource>(
+      () => FeedRemoteDataSourceImpl(client: getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<FeedRepository>()) {
+    getIt.registerLazySingleton<FeedRepository>(
+      () => FeedRepositoryImpl(
+        dataSource: getIt<FeedRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetFeedUseCase>()) {
+    getIt.registerLazySingleton<GetFeedUseCase>(
+      () => GetFeedUseCase(getIt<FeedRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ToggleLikeUseCase>()) {
+    getIt.registerLazySingleton<ToggleLikeUseCase>(
+      () => ToggleLikeUseCase(getIt<FeedRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ToggleRepostUseCase>()) {
+    getIt.registerLazySingleton<ToggleRepostUseCase>(
+      () => ToggleRepostUseCase(getIt<FeedRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<FeedCubit>()) {
+    getIt.registerFactory<FeedCubit>(
+      () => FeedCubit(
+        getFeed: getIt<GetFeedUseCase>(),
+        toggleLike: getIt<ToggleLikeUseCase>(),
+        toggleRepost: getIt<ToggleRepostUseCase>(),
+        repository: getIt<FeedRepository>(),
+      ),
+    );
+  }
   // ── Discovery Feature ────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<DiscoveryRemoteDataSource>()) {
