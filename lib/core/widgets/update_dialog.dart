@@ -302,6 +302,40 @@ class _Actions extends StatelessWidget {
 
   const _Actions({required this.isMandatory, required this.downloadUrl});
 
+  Future<void> _openUpdateUrl(BuildContext context) async {
+    final url = Uri.parse(downloadUrl);
+
+    try {
+      // Do not gate on canLaunchUrl because it can be a false-negative on
+      // some Android environments.
+      final launchedExternal = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (launchedExternal) {
+        return;
+      }
+
+      final launchedDefault =
+          await launchUrl(url, mode: LaunchMode.platformDefault);
+      if (launchedDefault) {
+        return;
+      }
+    } catch (_) {
+      // Show feedback below when both attempts fail.
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Could not open update link on this device.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -326,12 +360,7 @@ class _Actions extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                onPressed: () async {
-                  final url = Uri.parse(downloadUrl);
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  }
-                },
+                onPressed: () => _openUpdateUrl(context),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

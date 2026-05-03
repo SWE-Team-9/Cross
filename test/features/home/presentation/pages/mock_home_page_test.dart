@@ -14,7 +14,12 @@ import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
-import 'package:soundcloud_clone/features/home/presentation/pages/mock_home_page.dart';
+import 'package:soundcloud_clone/features/home/domain/entities/home_content.dart';
+import 'package:soundcloud_clone/features/home/domain/repositories/home_repository.dart';
+import 'package:soundcloud_clone/features/home/domain/usecases/get_home_content_usecase.dart';
+import 'package:soundcloud_clone/features/home/domain/usecases/get_home_trending_tracks_usecase.dart';
+import 'package:soundcloud_clone/features/home/presentation/bloc/home_cubit.dart';
+import 'package:soundcloud_clone/features/home/presentation/pages/home_page.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
@@ -98,6 +103,86 @@ class MockConnectMessagingSocketUseCase extends Mock
 
 class MockProfileRepository extends Mock implements ProfileRepository {}
 
+class FakeHomeRepository implements HomeRepository {
+  @override
+  Future<List<String>> getFavoriteGenres() async {
+    return const <String>[
+      HomeContent.topLikedGenre,
+      'electronic',
+      'hip-hop',
+      'pop',
+    ];
+  }
+
+  @override
+  Future<HomeTopPlaylists> getTopPlaylists({int limit = 10}) async {
+    const electronicPlaylist = PlaylistEntity(
+      playlistId: 'playlist-1',
+      title: 'Backend Beats',
+      description: '',
+      visibility: PlaylistVisibility.publicPlaylist,
+      genre: 'electronic',
+      secretToken: null,
+      coverImageUrl: null,
+      owner: PlaylistOwner(id: 'owner-1', displayName: 'Iqa3'),
+      tracks: <Track>[],
+      tracksCount: 12,
+      likesCount: 42,
+    );
+
+    const hipHopPlaylist = PlaylistEntity(
+      playlistId: 'playlist-2',
+      title: 'Hip Hop Picks',
+      description: '',
+      visibility: PlaylistVisibility.publicPlaylist,
+      genre: 'hip-hop',
+      secretToken: null,
+      coverImageUrl: null,
+      owner: PlaylistOwner(id: 'owner-2', displayName: 'Iqa3'),
+      tracks: <Track>[],
+      tracksCount: 8,
+      likesCount: 30,
+    );
+
+    return const HomeTopPlaylists(
+      overallPlaylists: <PlaylistEntity>[
+        electronicPlaylist,
+        hipHopPlaylist,
+      ],
+      genreGroups: <HomeTopPlaylistGroup>[
+        HomeTopPlaylistGroup(
+          genre: 'electronic',
+          playlists: <PlaylistEntity>[
+            electronicPlaylist,
+          ],
+        ),
+        HomeTopPlaylistGroup(
+          genre: 'hip-hop',
+          playlists: <PlaylistEntity>[
+            hipHopPlaylist,
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<List<Track>> getTrendingTracks({
+    required String genre,
+    int limit = 5,
+  }) async {
+    return <Track>[
+      Track(
+        id: 'track-$genre',
+        title: 'Trending $genre',
+        artist: 'Backend Artist',
+        audioUrl: '',
+        likesCount: 9,
+      ),
+    ];
+  }
+}
+
 const _testUser = User(
   id: '1',
   email: 'test@example.com',
@@ -166,6 +251,17 @@ Future<void> _setUp() async {
   GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
   GetIt.I.registerSingleton<OfflineCubit>(offlineCubit);
 
+  GetIt.I.registerFactory<HomeCubit>(
+    () {
+      final repository = FakeHomeRepository();
+
+      return HomeCubit(
+        getHomeContent: GetHomeContentUseCase(repository),
+        getHomeTrendingTracks: GetHomeTrendingTracksUseCase(repository),
+      );
+    },
+  );
+
   GetIt.I.registerFactory<UnreadCountCubit>(
     () => UnreadCountCubit(
       getUnreadCountUseCase: getUnreadCountUseCase,
@@ -207,7 +303,7 @@ Widget _buildApp(
                   SubscriptionCubit(subscriptionRepository)..loadSubscription(),
             ),
           ],
-          child: const MockHomePage(),
+          child: const HomePage(),
         ),
       ),
       GoRoute(
@@ -233,6 +329,12 @@ Widget _buildApp(
       GoRoute(
         path: '/upload-picker',
         builder: (_, __) => const Scaffold(body: Text('Upload Route')),
+      ),
+      GoRoute(
+        path: '/playlist/:playlistId',
+        builder: (_, state) => Scaffold(
+          body: Text('Playlist Route ${state.pathParameters['playlistId']}'),
+        ),
       ),
     ],
   );
@@ -262,6 +364,7 @@ Future<void> _pumpHome(
       subscription: subscription,
     ),
   );
+
   await tester.pumpAndSettle();
 }
 
@@ -272,18 +375,21 @@ void main() {
     await _setUp();
 
     mockAuthCubit = MockAuthCubit();
+
     when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(_testUser));
     when(() => mockAuthCubit.stream).thenAnswer(
       (_) => const Stream<AuthState>.empty(),
     );
 
     mockNotificationsBloc = MockNotificationsBloc();
+
     when(() => mockNotificationsBloc.state).thenReturn(
       const NotificationsLoaded(
         notifications: <NotificationEntity>[],
         unreadCount: 0,
       ),
     );
+
     when(() => mockNotificationsBloc.stream).thenAnswer(
       (_) => const Stream<NotificationsState>.empty(),
     );
@@ -295,7 +401,7 @@ void main() {
     await GetIt.I.reset();
   });
 
-  group('MockHomePage basic render', () {
+  group('HomePage basic render', () {
     testWidgets('builds without crashing when authenticated', (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
@@ -309,12 +415,11 @@ void main() {
       expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
     });
 
-    testWidgets('shows all section headers', (tester) async {
+    testWidgets('shows home section headers', (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
-      expect(find.textContaining('More of what you like'), findsOneWidget);
-      expect(find.textContaining('Mixed for you'), findsOneWidget);
-      expect(find.textContaining('Your favorite genres'), findsOneWidget);
+      expect(find.text('Top playlists'), findsOneWidget);
+      expect(find.text('Trending now'), findsOneWidget);
     });
   });
 
@@ -437,6 +542,7 @@ void main() {
   group('auth state handling', () {
     testWidgets('navigates to welcome when unauthenticated', (tester) async {
       when(() => mockAuthCubit.state).thenReturn(AuthInitial());
+
       whenListen(
         mockAuthCubit,
         Stream<AuthState>.fromIterable([AuthUnauthenticated()]),
@@ -450,6 +556,7 @@ void main() {
 
     testWidgets('shows snackbar on AuthError', (tester) async {
       when(() => mockAuthCubit.state).thenReturn(AuthInitial());
+
       whenListen(
         mockAuthCubit,
         Stream<AuthState>.fromIterable([AuthError('Something went wrong')]),
@@ -547,6 +654,7 @@ void main() {
           matching: find.text('Upgrade'),
         ),
       );
+
       await tester.pumpAndSettle();
 
       expect(find.text('Upgrade Route'), findsOneWidget);
@@ -595,22 +703,44 @@ void main() {
   });
 
   group('home content', () {
-    testWidgets('tapping a genre chip updates selection', (tester) async {
+    testWidgets('tapping a trending genre chip updates selection',
+        (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
-      await tester.tap(find.text('hip-hop'));
+      await tester.tap(find.text('hip-hop').last);
       await tester.pumpAndSettle();
 
-      expect(find.text('hip-hop'), findsOneWidget);
+      expect(find.text('Trending hip-hop'), findsOneWidget);
     });
 
-    testWidgets('renders related tracks and mix cards', (tester) async {
+    testWidgets('top playlists switch by favorite genre', (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
-      expect(find.text('Related tracks: L...'), findsOneWidget);
-      expect(find.text('SoundCloud'), findsWidgets);
-      expect(find.text('MIX 1'), findsOneWidget);
-      expect(find.text('Balthazar, Cage...'), findsOneWidget);
+      expect(find.text('Backend Beats'), findsOneWidget);
+      expect(find.text('Hip Hop Picks'), findsOneWidget);
+
+      await tester.tap(find.text('hip-hop').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hip Hop Picks'), findsOneWidget);
+    });
+
+    testWidgets('top playlists open playlist detail route', (tester) async {
+      await _pumpHome(tester, mockAuthCubit);
+
+      await tester.tap(find.text('Backend Beats'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Playlist Route playlist-1'), findsOneWidget);
+    });
+
+    testWidgets('does not render mock recommendation cards', (tester) async {
+      await _pumpHome(tester, mockAuthCubit);
+
+      expect(find.text('Related tracks: L...'), findsNothing);
+      expect(find.text('MIX 1'), findsNothing);
+      expect(find.text('Backend Beats'), findsOneWidget);
+      expect(find.text('Trending Top liked'), findsOneWidget);
     });
 
     testWidgets('tapping upload icon navigates to upload route',
@@ -623,12 +753,14 @@ void main() {
       expect(find.text('Upload Route'), findsOneWidget);
     });
 
-    testWidgets('renders genre chips for discovery browsing', (tester) async {
+    testWidgets('renders genre chips for playlist and discovery browsing',
+        (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
-      expect(find.text('electronic'), findsOneWidget);
-      expect(find.text('hip-hop'), findsOneWidget);
-      expect(find.text('pop'), findsOneWidget);
+      expect(find.text('Overall'), findsOneWidget);
+      expect(find.text('electronic'), findsWidgets);
+      expect(find.text('hip-hop'), findsWidgets);
+      expect(find.text('pop'), findsWidgets);
     });
 
     testWidgets('keeps authenticated home content visible', (tester) async {
@@ -636,7 +768,8 @@ void main() {
 
       expect(find.text('Home'), findsWidgets);
       expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
-      expect(find.text('Your favorite genres'), findsOneWidget);
+      expect(find.text('Top playlists'), findsOneWidget);
+      expect(find.text('Trending now'), findsOneWidget);
     });
   });
 }

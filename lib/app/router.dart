@@ -40,23 +40,30 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_i
 // Project — library
 import '../features/library/presentation/pages/downloaded_items_page.dart';
 import '../features/library/presentation/pages/library_page.dart';
-import '../features/playlists/presentation/bloc/playlists_cubit.dart';
+
+// Project — playlists
 import '../features/playlists/domain/entities/playlist_entity.dart';
+import '../features/playlists/presentation/bloc/playlists_cubit.dart';
 import '../features/playlists/presentation/pages/playlist_detail_page.dart';
+import '../features/playlists/presentation/pages/playlists_page.dart';
 
 // Project — notifications
-import '../features/playlists/presentation/pages/playlists_page.dart';
 import '../features/notifications/presentation/pages/notifications_page.dart';
 
 // Project — home
-import '../features/home/presentation/pages/mock_home_page.dart';
+import '../features/home/presentation/pages/home_page.dart';
 
 // Project — feed
 import '../features/feed/presentation/pages/feed_page.dart';
 
+// Project — discovery
+import '../features/discovery/presentation/page/discover_page.dart';
+import '../features/discovery/domain/entities/resolved_resource.dart';
+import '../features/discovery/domain/usecases/resolve_resource_usecase.dart';
 // Project — search
-import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
-
+import 'package:soundcloud_clone/features/search/presentation/bloc/search_cubit.dart';
+import 'package:soundcloud_clone/features/search/presentation/pages/search_page.dart';
+import 'package:soundcloud_clone/features/search/presentation/pages/genre_page.dart';
 // Project — messaging
 import '../features/messaging/domain/entities/conversation_entity.dart';
 import '../features/messaging/presentation/pages/chat_thread_loader_page.dart';
@@ -72,6 +79,19 @@ class AppRoutes {
   static const String home = '/home';
   static const String feed = '/feed';
   static const String search = '/search';
+  static const String discover = '/discover';
+  static const String searchActive = '/search/active';
+  static const String genre = '/genre/:genreSlug';
+
+  static String genrePath(String genreSlug, {String? label}) {
+    return Uri(
+      path: '/genre/$genreSlug',
+      queryParameters: {
+        if (label != null && label.trim().isNotEmpty) 'label': label.trim(),
+      },
+    ).toString();
+  }
+
   static const String library = '/library';
   static const String upgrade = '/upgrade';
   static const String billing = '/billing';
@@ -88,6 +108,8 @@ class AppRoutes {
   // ── Messaging ───────────────────────────────────────────────────────────
   static const String inbox = '/messages';
   static const String chatThread = '/messages/:conversationId';
+
+  // ── Notifications ───────────────────────────────────────────────────────
   static const String notifications = '/notifications';
 
   // secretTrack MUST be before trackDetail — more specific path first
@@ -98,12 +120,47 @@ class AppRoutes {
 }
 
 // ── Path builders ─────────────────────────────────────────────────────────────
+
 String _trackPath(String trackId) => '/track/$trackId';
+
 String _secretPath(String token) => '/track/secret/$token';
+
 String _profilePath(String handle) => '/profile/$handle';
+
 String _playlistPath(String id) => '/playlist/$id';
+
 String _secretPlaylistPath(String token) => '/playlist/secret/$token';
-String _searchPath(String query) => '/search?q=$query';
+
+String _searchPath(String query) {
+  return Uri(
+    path: AppRoutes.search,
+    queryParameters: {'q': query},
+  ).toString();
+}
+
+Future<String?> _resolveResourcePath(String url) async {
+  if (!getIt.isRegistered<ResolveResourceUseCase>()) return null;
+
+  try {
+    final resource = await getIt<ResolveResourceUseCase>()(url);
+
+    if (!resource.matched || resource.resourceId.trim().isEmpty) {
+      return null;
+    }
+
+    return switch (resource.type) {
+      ResolvedResourceType.track => _trackPath(resource.resourceId),
+      ResolvedResourceType.playlist => _playlistPath(resource.resourceId),
+      ResolvedResourceType.artist =>
+        resource.handle != null && resource.handle!.trim().isNotEmpty
+            ? _profilePath(resource.handle!.trim())
+            : null,
+      ResolvedResourceType.unknown => null,
+    };
+  } catch (_) {
+    return null;
+  }
+}
 
 String _billingReturnPath(BillingReturnDeepLink destination) {
   final queryParameters = <String, String>{
@@ -130,10 +187,10 @@ String _billingReturnPath(BillingReturnDeepLink destination) {
   return uri.toString();
 }
 
-void _handleDeepLinkDestination(
+Future<void> _handleDeepLinkDestination(
   DeepLinkDestination destination,
   GoRouter router,
-) {
+) async {
   String? path;
 
   switch (destination) {
@@ -155,21 +212,26 @@ void _handleDeepLinkDestination(
     case SearchDeepLink(:final query):
       path = _searchPath(query);
 
+    case ResolvableResourceDeepLink(:final url):
+      path = await _resolveResourcePath(url);
+
     case BillingReturnDeepLink():
       path = _billingReturnPath(destination);
 
     case OAuthCallbackDeepLink():
-      router.go('/oauth-debug', extra: destination);
+      router.go(AuthRoutes.oauthDebug, extra: destination);
       return;
 
     case InvalidDeepLink():
       return;
   }
 
-  final String currentLocation =
+  if (path == null || path.trim().isEmpty) return;
+
+  final currentLocation =
       router.routerDelegate.currentConfiguration.uri.toString();
 
-  final bool isOnAuthScreen = currentLocation.contains('/auth') ||
+  final isOnAuthScreen = currentLocation.contains('/auth') ||
       currentLocation.contains('splash') ||
       currentLocation == '/';
 
@@ -179,8 +241,8 @@ void _handleDeepLinkDestination(
     router.go(path);
   }
 }
-
 // ── Pending deep link ─────────────────────────────────────────────────────────
+
 String? _pendingDeepLink;
 
 String? getPendingDeepLink() {
@@ -190,6 +252,7 @@ String? getPendingDeepLink() {
 }
 
 // ── Fallback seed for track management demo ───────────────────────────────────
+
 ManagedTrack _fallbackTrackManagementSeed() {
   return const ManagedTrack(
     id: 'demo-track-001',
@@ -201,6 +264,16 @@ ManagedTrack _fallbackTrackManagementSeed() {
     visibility: TrackManagementVisibility.publicTrack,
     durationInSeconds: 212,
   );
+}
+
+String _labelFromGenreSlug(String slug) {
+  return slug
+      .split(RegExp(r'[-_\\s]+'))
+      .where((part) => part.trim().isNotEmpty)
+      .map((part) {
+    final lower = part.toLowerCase();
+    return lower[0].toUpperCase() + lower.substring(1);
+  }).join(' ');
 }
 
 GoRouter _createRouter() {
@@ -218,7 +291,7 @@ GoRouter _createRouter() {
         path: AppRoutes.home,
         name: 'home',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: MockHomePage(),
+          child: HomePage(),
         ),
       ),
 
@@ -231,17 +304,59 @@ GoRouter _createRouter() {
         ),
       ),
 
+      // ── Discover ────────────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.discover,
+        name: 'discover',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: DiscoverPage(),
+        ),
+      ),
+
       // ── Search ──────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.search,
         name: 'search',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: SearchPage(),
+        ),
+        routes: [
+          GoRoute(
+            path: 'active',
+            name: 'search-active',
+            pageBuilder: (context, state) {
+              final initialQuery = state.extra is String
+                  ? state.extra as String
+                  : state.uri.queryParameters['q'];
+
+              return MaterialPage(
+                child: BlocProvider<SearchCubit>(
+                  create: (_) => getIt<SearchCubit>(),
+                  child: SearchActivePage(initialQuery: initialQuery),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      // ── Genre discovery ────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.genre,
+        name: 'genre',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
-          return const NoTransitionPage(
-            child: MockSearchPage(),
+          final genreSlug = state.pathParameters['genreSlug'] ?? '';
+          final label = state.uri.queryParameters['label'] ??
+              _labelFromGenreSlug(genreSlug);
+
+          return MaterialPage(
+            child: GenrePage(
+              genreSlug: genreSlug,
+              genreLabel: label,
+            ),
           );
         },
       ),
-
       // ── Premium ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.upgrade,
@@ -307,7 +422,7 @@ GoRouter _createRouter() {
             const MaterialPage(child: NotificationsPage()),
       ),
 
-      // ── Upload picker ────────────────────────────────────────────────────────
+      // ── Upload picker ───────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.uploadPicker,
         name: 'upload-picker',
@@ -426,7 +541,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Secret track — MUST be before trackDetail ──────────────────────────
+      // ── Secret track — MUST be before trackDetail ───────────────────────────
       GoRoute(
         path: AppRoutes.secretTrack,
         name: 'secret-track',
@@ -445,7 +560,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Track detail ───────────────────────────────────────────────────────
+      // ── Track detail ────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.trackDetail,
         name: 'track-detail',
@@ -464,7 +579,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Messaging ─────────────────────────────────────────────────────────
+      // ── Messaging ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.inbox,
         name: 'messages-inbox',
@@ -510,7 +625,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Secret playlist ───────────────────────────────────────────────────
+      // ── Secret playlist — MUST be before playlist ───────────────────────────
       GoRoute(
         path: AppRoutes.secretPlaylist,
         name: 'secret-playlist',
@@ -529,7 +644,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Playlist ─────────────────────────────────────────────────────────────
+      // ── Playlist ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlist,
         name: 'playlist',
@@ -552,31 +667,44 @@ GoRouter _createRouter() {
       ),
     ],
 
-    // ── 404 fallback ────────────────────────────────────────────────────────
-    errorBuilder: (context, state) => Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.link_off, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
-              'Page not found',
-              style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => context.go(AppRoutes.home),
-              child: const Text(
-                'Go Home',
-                style: TextStyle(color: Color(0xFFFF5500)),
+    // ── 404 fallback ─────────────────────────────────────────────────────────
+    errorBuilder: (context, state) {
+      final uri = state.uri.toString();
+
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.link_off, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'Page not found',
+                style: TextStyle(color: Colors.white, fontSize: 20),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                uri,
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => context.go(AppRoutes.home),
+                child: const Text(
+                  'Go Home',
+                  style: TextStyle(color: Color(0xFFFF5500)),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    ),
+      );
+    },
   );
 
   final DeepLinkService deepLinkService = getIt<DeepLinkService>();
@@ -598,4 +726,5 @@ GoRouter _createRouter() {
 }
 
 final router = _createRouter();
+
 GoRouter createRouter() => _createRouter();

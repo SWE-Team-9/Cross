@@ -1,11 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  feed_item.dart  —  Domain Entity
-//  Clean entity, no JSON logic, no external dependencies.
-//  Matches data from:
-//    Module 4 → GET /api/v1/users/{userId}/tracks
-//    Module 3 → GET /api/v1/social/suggestions
-// ─────────────────────────────────────────────────────────────────────────────
-
 class FeedActor {
   final String userId;
   final String displayName;
@@ -87,6 +79,7 @@ class FeedTrack {
   final FeedActor artist;
   final TrackStats stats;
   final TrackUserState userState;
+  final String? audioUrl;
 
   const FeedTrack({
     required this.trackId,
@@ -101,19 +94,20 @@ class FeedTrack {
     required this.artist,
     required this.stats,
     required this.userState,
+    this.audioUrl,
   });
 
-  /// "2:23" from durationMs
   String get formattedDuration {
     final totalSec = durationMs ~/ 1000;
-    final m = totalSec ~/ 60;
-    final s = (totalSec % 60).toString().padLeft(2, '0');
-    return '$m:$s';
+    final minutes = totalSec ~/ 60;
+    final seconds = (totalSec % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   FeedTrack copyWith({
     TrackStats? stats,
     TrackUserState? userState,
+    String? audioUrl,
   }) {
     return FeedTrack(
       trackId: trackId,
@@ -128,15 +122,16 @@ class FeedTrack {
       artist: artist,
       stats: stats ?? this.stats,
       userState: userState ?? this.userState,
+      audioUrl: audioUrl ?? this.audioUrl,
     );
   }
 }
 
 class FeedItem {
   final String activityId;
-  final String
-      action; // 'posted a track' | 'reposted a track' | 'liked a track'
+  final String action;
   final String timeAgo;
+  final String? createdAt;
   final FeedActor actor;
   final FeedTrack track;
 
@@ -144,6 +139,7 @@ class FeedItem {
     required this.activityId,
     required this.action,
     required this.timeAgo,
+    this.createdAt,
     required this.actor,
     required this.track,
   });
@@ -153,6 +149,7 @@ class FeedItem {
       activityId: activityId,
       action: action,
       timeAgo: timeAgo,
+      createdAt: createdAt,
       actor: actor,
       track: track ?? this.track,
     );
@@ -164,11 +161,13 @@ class FeedPage {
   final int page;
   final bool hasMore;
   final int totalItems;
+  final int totalPages;
 
   const FeedPage({
     required this.items,
     required this.page,
     required this.hasMore,
     required this.totalItems,
+    required this.totalPages,
   });
 }

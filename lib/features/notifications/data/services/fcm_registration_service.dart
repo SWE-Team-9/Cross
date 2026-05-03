@@ -545,22 +545,21 @@ class FcmRegistrationService {
       platform: platform,
     );
 
-    final resultText = result.toString();
-    resultText.toLowerCase().contains('failure');
+    switch (result) {
+      case NotificationsSuccess<void>():
+        debugPrint('=== FCM TOKEN REGISTRATION SUCCESS ===');
+        debugPrint('Platform: $platform');
+        debugPrint('Token: $token');
+        debugPrint('=======================================');
+        return true;
 
-    if (result is NotificationsFailure<void>) {
-      debugPrint('=== FCM TOKEN REGISTRATION FAILED ===');
-      debugPrint('Platform: $platform');
-      debugPrint('Error: ${result.failure.message}');
-      debugPrint('=====================================');
-      return false;
+      case NotificationsFailure<void>(failure: final failure):
+        debugPrint('=== FCM TOKEN REGISTRATION FAILED ===');
+        debugPrint('Platform: $platform');
+        debugPrint('Error: ${failure.message}');
+        debugPrint('=====================================');
+        return false;
     }
-
-    debugPrint('=== FCM TOKEN REGISTRATION SUCCESS ===');
-    debugPrint('Platform: $platform');
-    debugPrint('Token: $token');
-    debugPrint('=======================================');
-    return true;
   }
 
   bool _isSupportedPlatform() {

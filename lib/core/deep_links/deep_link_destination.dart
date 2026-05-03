@@ -38,6 +38,12 @@ final class SearchDeepLink extends DeepLinkDestination {
   final String query;
 }
 
+final class ResolvableResourceDeepLink extends DeepLinkDestination {
+  const ResolvableResourceDeepLink({required this.url});
+
+  final String url;
+}
+
 final class BillingReturnDeepLink extends DeepLinkDestination {
   const BillingReturnDeepLink({
     this.sessionId,

@@ -5,8 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure_message_mapper.dart';
 import '../../domain/entities/notification_preferences_entity.dart';
-import '../../domain/usecases/notification_preferences_use_cases.dart';
 import '../../domain/entities/notifications_result.dart';
+import '../../domain/usecases/notification_preferences_use_cases.dart';
 
 abstract class NotificationPreferencesEvent extends Equatable {
   const NotificationPreferencesEvent();
@@ -32,7 +32,10 @@ class TogglePreference extends NotificationPreferencesEvent {
   final String key;
   final bool value;
 
-  const TogglePreference({required this.key, required this.value});
+  const TogglePreference({
+    required this.key,
+    required this.value,
+  });
 
   @override
   List<Object?> get props => [key, value];
@@ -103,7 +106,6 @@ class NotificationPreferencesBloc
 
     final result = await _getPreferences();
 
-    // Replaced .when with Dart 3 Switch
     switch (result) {
       case NotificationsSuccess(value: final preferences):
         emit(
@@ -113,12 +115,13 @@ class NotificationPreferencesBloc
             preferences: preferences,
           ),
         );
-      case NotificationsFailure(failure: final f):
+
+      case NotificationsFailure(failure: final failure):
         emit(
           state.copyWith(
             isLoading: false,
             error: FailureMessageMapper.toUserMessage(
-              f,
+              failure,
               fallback:
                   'Unable to load preferences right now. Please try again.',
             ),
@@ -159,16 +162,16 @@ class NotificationPreferencesBloc
 
     final result = await _updatePreferences(event.preferences);
 
-    // Replaced .when with Dart 3 Switch
     switch (result) {
       case NotificationsSuccess():
         emit(state.copyWith(isSaving: false, clearError: true));
-      case NotificationsFailure(failure: final f):
+
+      case NotificationsFailure(failure: final failure):
         emit(
           state.copyWith(
             isSaving: false,
             error: FailureMessageMapper.toUserMessage(
-              f,
+              failure,
               fallback:
                   'Unable to save preferences right now. Please try again.',
             ),

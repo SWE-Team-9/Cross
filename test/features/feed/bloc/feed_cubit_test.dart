@@ -28,10 +28,9 @@ void main() {
   // ─── Initial state ─────────────────────────────────────────────────────────
 
   group('initial state', () {
-    test('starts as FeedLoading on following tab', () {
+    test('starts as FeedLoading', () {
       final cubit = buildCubit(repo);
       expect(cubit.state, isA<FeedLoading>());
-      expect(cubit.state.tab, FeedTab.following);
       cubit.close();
     });
   });
@@ -47,7 +46,7 @@ void main() {
     );
 
     blocTest<FeedCubit, FeedState>(
-      'loaded state has items and correct tab',
+      'loaded state has items',
       build: () {
         repo.feedPageToReturn = makeFeedPage(count: 3);
         return buildCubit(repo);
@@ -104,57 +103,6 @@ void main() {
       },
       act: (c) => c.initialize(),
       verify: (c) => expect((c.state as FeedLoaded).hasMore, false),
-    );
-  });
-
-  // ─── setTab ────────────────────────────────────────────────────────────────
-
-  group('setTab', () {
-    blocTest<FeedCubit, FeedState>(
-      'switches to discover tab and reloads',
-      build: () => buildCubit(repo),
-      act: (c) async {
-        await c.initialize();
-        await c.setTab(FeedTab.discover);
-      },
-      verify: (c) {
-        expect(c.state.tab, FeedTab.discover);
-        expect(c.state, isA<FeedLoaded>());
-      },
-    );
-
-    blocTest<FeedCubit, FeedState>(
-      'does not reload if same tab is already loaded',
-      build: () => buildCubit(repo),
-      act: (c) async {
-        await c.initialize();
-        await c.setTab(FeedTab.following);
-      },
-      verify: (_) => expect(repo.getCalls.length, 1),
-    );
-
-    blocTest<FeedCubit, FeedState>(
-      'calls getFeed with discover key when switching to discover',
-      build: () => buildCubit(repo),
-      act: (c) async {
-        await c.initialize();
-        await c.setTab(FeedTab.discover);
-      },
-      verify: (_) => expect(repo.getCalls, contains('discover:1')),
-    );
-
-    blocTest<FeedCubit, FeedState>(
-      'resets items when switching tabs',
-      build: () {
-        repo.feedPageToReturn = makeFeedPage(count: 3);
-        return buildCubit(repo);
-      },
-      act: (c) async {
-        await c.initialize();
-        repo.feedPageToReturn = makeFeedPage(tab: 'discover', count: 2);
-        await c.setTab(FeedTab.discover);
-      },
-      verify: (c) => expect((c.state as FeedLoaded).items.length, 2),
     );
   });
 
@@ -236,7 +184,7 @@ void main() {
         await c.initialize();
         await c.refresh();
       },
-      verify: (_) => expect(repo.getCalls, ['following:1', 'following:1']),
+      verify: (_) => expect(repo.getCalls, ['1:1', '1:1']),
     );
 
     blocTest<FeedCubit, FeedState>(
@@ -278,6 +226,7 @@ void main() {
           page: 1,
           hasMore: false,
           totalItems: 1,
+          totalPages: 1,
         );
         return buildCubit(repo);
       },
@@ -299,6 +248,7 @@ void main() {
           page: 1,
           hasMore: false,
           totalItems: 1,
+          totalPages: 1,
         );
         return buildCubit(repo);
       },
@@ -321,6 +271,7 @@ void main() {
           page: 1,
           hasMore: false,
           totalItems: 1,
+          totalPages: 1,
         );
         return buildCubit(repo);
       },
@@ -349,6 +300,7 @@ void main() {
           page: 1,
           hasMore: false,
           totalItems: 1,
+          totalPages: 1,
         );
         return buildCubit(repo);
       },
@@ -371,6 +323,7 @@ void main() {
           page: 1,
           hasMore: false,
           totalItems: 1,
+          totalPages: 1,
         );
         return buildCubit(repo);
       },
@@ -395,6 +348,7 @@ void main() {
           page: 1,
           hasMore: false,
           totalItems: 1,
+          totalPages: 1,
         );
         return buildCubit(repo);
       },
@@ -468,37 +422,36 @@ void main() {
   // ─── FeedState equality ────────────────────────────────────────────────────
 
   group('FeedState equality (Equatable)', () {
-    test('FeedLoading same tab are equal', () {
+    test('FeedLoading instances are equal', () {
       expect(
-        const FeedLoading(FeedTab.following),
-        const FeedLoading(FeedTab.following),
+        const FeedLoading(),
+        const FeedLoading(),
       );
     });
 
-    test('FeedLoading different tabs are not equal', () {
+    test('FeedEmpty instances are equal', () {
       expect(
-        const FeedLoading(FeedTab.following),
-        isNot(const FeedLoading(FeedTab.discover)),
-      );
-    });
-
-    test('FeedEmpty same tab are equal', () {
-      expect(
-        const FeedEmpty(FeedTab.following),
-        const FeedEmpty(FeedTab.following),
+        const FeedEmpty(),
+        const FeedEmpty(),
       );
     });
 
     test('FeedError same message are equal', () {
       expect(
-        const FeedError(FeedTab.following, 'err'),
-        const FeedError(FeedTab.following, 'err'),
+        const FeedError('err'),
+        const FeedError('err'),
+      );
+    });
+
+    test('FeedError different messages are not equal', () {
+      expect(
+        const FeedError('err1'),
+        isNot(const FeedError('err2')),
       );
     });
 
     test('FeedLoaded copyWith different hasMore are not equal', () {
       final base = FeedLoaded(
-        tab: FeedTab.following,
         items: [makeItem()],
         nextPage: 2,
         hasMore: true,
@@ -507,20 +460,6 @@ void main() {
 
       expect(base, isNot(updated));
       expect(updated.hasMore, false);
-    });
-  });
-
-  // ─── FeedTab extension ─────────────────────────────────────────────────────
-
-  group('FeedTab extension', () {
-    test('key returns correct string', () {
-      expect(FeedTab.following.key, 'following');
-      expect(FeedTab.discover.key, 'discover');
-    });
-
-    test('label returns correct display string', () {
-      expect(FeedTab.following.label, 'Following');
-      expect(FeedTab.discover.label, 'Discover');
     });
   });
 }

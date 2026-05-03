@@ -46,17 +46,22 @@ class TrackLoaderCubit extends Cubit<TrackLoaderState> {
   /// Loads a public track by its UUID.
   /// Called when deep link is soundclone://track/{trackId}
   Future<void> loadByTrackId(String trackId) async {
+    if (isClosed) return;
+
     if (trackId.isEmpty) {
-      emit(const TrackLoaderError(message: 'Invalid track link.'));
+      _emitIfOpen(const TrackLoaderError(message: 'Invalid track link.'));
       return;
     }
 
-    emit(const TrackLoaderLoading());
+    _emitIfOpen(const TrackLoaderLoading());
 
     final result = await _getTrackDetail(trackId);
+    if (isClosed) return;
 
     if (result.failure != null) {
-      emit(TrackLoaderError(message: _mapFailureMessage(result.failure!)));
+      _emitIfOpen(
+        TrackLoaderError(message: _mapFailureMessage(result.failure!)),
+      );
       return;
     }
 
@@ -64,23 +69,28 @@ class TrackLoaderCubit extends Cubit<TrackLoaderState> {
     // Hand off to PlayerCubit — converts TrackDetail → Track internally
     unawaited(_playerCubit.play(detail.toPlaybackTrack()));
 
-    emit(TrackLoaderReady(detail: detail));
+    _emitIfOpen(TrackLoaderReady(detail: detail));
   }
 
   /// Loads a private track by its secret share token.
   /// Called when deep link is soundclone://track/secret/{token}
   Future<void> loadBySecretToken(String secretToken) async {
+    if (isClosed) return;
+
     if (secretToken.isEmpty) {
-      emit(const TrackLoaderError(message: 'Invalid share link.'));
+      _emitIfOpen(const TrackLoaderError(message: 'Invalid share link.'));
       return;
     }
 
-    emit(const TrackLoaderLoading());
+    _emitIfOpen(const TrackLoaderLoading());
 
     final result = await _getTrackBySecret(secretToken);
+    if (isClosed) return;
 
     if (result.failure != null) {
-      emit(TrackLoaderError(message: _mapFailureMessage(result.failure!)));
+      _emitIfOpen(
+        TrackLoaderError(message: _mapFailureMessage(result.failure!)),
+      );
       return;
     }
 
@@ -88,7 +98,7 @@ class TrackLoaderCubit extends Cubit<TrackLoaderState> {
 
     unawaited(_playerCubit.play(detail.toPlaybackTrack()));
 
-    emit(TrackLoaderReady(detail: detail));
+    _emitIfOpen(TrackLoaderReady(detail: detail));
   }
 
   /// Maps domain [Failure] types to user-facing strings.
@@ -101,5 +111,9 @@ class TrackLoaderCubit extends Cubit<TrackLoaderState> {
       AuthFailure() => 'Please log in to listen to this track.',
       _ => 'Something went wrong. Please try again.',
     };
+  }
+
+  void _emitIfOpen(TrackLoaderState nextState) {
+    if (!isClosed) emit(nextState);
   }
 }

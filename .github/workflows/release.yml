@@ -3,7 +3,7 @@ name: Auto Release
 on:
   push:
     tags:
-      - 'v*'   # triggers on tags like v1.0.1, v2.0.0
+      - 'v*'
 
 permissions:
   contents: write
@@ -23,12 +23,16 @@ jobs:
 
       - name: Extract version (remove 'v')
         id: version
-        run: echo "VERSION=${TAG_NAME#v}" >> $GITHUB_OUTPUT
+        run: |
+          TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Update pubspec.yaml version
         run: |
           sed -i "s/^version:.*/version: ${{ steps.version.outputs.VERSION }}+1/" pubspec.yaml
-          cat pubspec.yaml
+          echo "pubspec version is now:"
+          grep "^version:" pubspec.yaml
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -39,10 +43,13 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'   # use your Flutter version
+          flutter-version: '3.41.2'
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate freezed files
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build APK
         run: flutter build apk --release
@@ -58,6 +65,12 @@ jobs:
           files: |
             build/app/outputs/flutter-apk/app-release.apk
 
+      - name: Preserve source version.json
+        run: |
+          if [ -f version.json ]; then
+            cp version.json /tmp/source-version.json
+          fi
+
       - name: Checkout releases branch
         run: |
           git fetch origin releases
@@ -66,20 +79,49 @@ jobs:
 
       - name: Update version.json
         run: |
-          cat > version.json <<EOF
-          {
-            "latest_version": "${{ steps.version.outputs.VERSION }}",
-            "min_required_version": "${{ steps.version.outputs.VERSION }}",
-            "download_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.TAG_NAME }}/app-release.apk",
-            "release": {
-              "title": "Version ${{ steps.version.outputs.VERSION }}",
-              "subtitle": "What's new:",
-              "new_features": [],
-              "improvements": [],
-              "bug_fixes": []
-            }
-          }
-          EOF
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          version = "${{ steps.version.outputs.VERSION }}"
+          tag = "${{ steps.tag.outputs.TAG_NAME }}"
+          repo = "${{ github.repository }}"
+
+          source_path = Path('/tmp/source-version.json')
+          out_path = Path('version.json')
+
+          if source_path.exists():
+              data = json.loads(source_path.read_text(encoding='utf-8'))
+          else:
+              data = {
+                  'release': {
+                      'subtitle': "What's new:",
+                      'new_features': [],
+                      'improvements': [],
+                      'bug_fixes': [],
+                  }
+              }
+
+          if not isinstance(data, dict):
+              data = {}
+
+          release = data.get('release')
+          if not isinstance(release, dict):
+              release = {}
+
+          data['latest_version'] = version
+          data['download_url'] = f'https://github.com/{repo}/releases/download/{tag}/app-release.apk'
+          data['min_required_version'] = str(data.get('min_required_version') or version)
+
+          release['title'] = f'Version {version}'
+          release['subtitle'] = str(release.get('subtitle') or "What's new:")
+          release['new_features'] = list(release.get('new_features') or [])
+          release['improvements'] = list(release.get('improvements') or [])
+          release['bug_fixes'] = list(release.get('bug_fixes') or [])
+
+          data['release'] = release
+          out_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+          PY
 
       - name: Commit and push version.json
         run: |

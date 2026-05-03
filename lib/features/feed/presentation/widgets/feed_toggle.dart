@@ -1,14 +1,27 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  feed_toggle.dart  —  Discover / Following Toggle
-//  Matches SoundCloud's pill toggle at the top of the feed.
+//  feed_toggle.dart  —  Feed / Trending / Search Toggle
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
-import '../bloc/feed_state.dart';
+
+enum DiscoveryTab { feed, trending, search }
+
+extension DiscoveryTabX on DiscoveryTab {
+  String get label {
+    switch (this) {
+      case DiscoveryTab.feed:
+        return 'Feed';
+      case DiscoveryTab.trending:
+        return 'Trending';
+      case DiscoveryTab.search:
+        return 'Search';
+    }
+  }
+}
 
 class FeedToggle extends StatelessWidget {
-  final FeedTab selected;
-  final ValueChanged<FeedTab> onChanged;
+  final DiscoveryTab selected;
+  final ValueChanged<DiscoveryTab> onChanged;
 
   const FeedToggle({
     super.key,
@@ -26,7 +39,7 @@ class FeedToggle extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: FeedTab.values
+        children: DiscoveryTab.values
             .map((tab) => _Tab(
                   label: tab.label,
                   isActive: selected == tab,

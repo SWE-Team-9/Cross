@@ -178,9 +178,9 @@ class TrackRow extends StatelessWidget {
 
     final offlineCubit = _lookupCubit<OfflineCubit>(context);
     final tracks = queue ?? [track];
-    final index = tracks.indexWhere((item) => item.id == track.id);
-    final safeIndex = index >= 0 ? index : 0;
     final playableTracks = _withOfflinePaths(tracks, offlineCubit);
+    final index = playableTracks.indexWhere((item) => item.id == track.id);
+    final safeIndex = index >= 0 ? index : 0;
     final selectedTrack = playableTracks[safeIndex];
 
     if (selectedTrack.audioUrl.trim().isNotEmpty ||
@@ -223,18 +223,18 @@ class TrackRow extends StatelessWidget {
       return;
     }
 
-    final playbackTrack = _withOfflinePath(
-      detail.toPlaybackTrack(),
-      offlineCubit,
-    );
+    final resolvedTrack =
+        _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
+    final resolvedQueue = List<Track>.from(playableTracks);
+    resolvedQueue[safeIndex] = resolvedTrack;
 
     if (getIt.isRegistered<RecentlyPlayedCubit>()) {
-      getIt<RecentlyPlayedCubit>().addTrack(playbackTrack);
+      getIt<RecentlyPlayedCubit>().addTrack(resolvedTrack);
     }
 
     await playerCubit.playFromContext(
-      tracks: [playbackTrack],
-      startIndex: 0,
+      tracks: resolvedQueue,
+      startIndex: safeIndex,
       source: source,
     );
   }
@@ -308,11 +308,8 @@ class TrackRow extends StatelessWidget {
   }
 
   List<Track> _withOfflinePaths(
-    List<Track> tracks,
-    OfflineCubit? offlineCubit,
-  ) {
+      List<Track> tracks, OfflineCubit? offlineCubit) {
     if (offlineCubit == null) return tracks;
-
     return tracks.map((item) => _withOfflinePath(item, offlineCubit)).toList();
   }
 
@@ -320,7 +317,6 @@ class TrackRow extends StatelessWidget {
     if (offlineCubit == null || !offlineCubit.isDownloaded(track.id)) {
       return track;
     }
-
     final localPath = offlineCubit.getPath(track.id);
     if (localPath == null || localPath.trim().isEmpty) {
       return track;
@@ -430,7 +426,6 @@ class TrackRow extends StatelessWidget {
 
   void _openComments(BuildContext context) {
     Navigator.pop(context);
-
     Navigator.push(
       context,
       MaterialPageRoute(
