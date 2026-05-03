@@ -134,7 +134,7 @@ service-account.json
 .firebase/
 .firebaserc
 firebase.json
-google-services.json
+# google-services.json
 GoogleService-Info.plist
 
 # Fastlane

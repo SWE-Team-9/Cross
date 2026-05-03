@@ -2,6 +2,9 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
+
+    // Google Services plugin
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -27,7 +30,6 @@ android {
         versionName = flutter.versionName
         multiDexEnabled = true
 
-        // default — بيتغير per buildType تحت
         manifestPlaceholders["appHost"] = "dev.iqa3.tech"
     }
 
@@ -35,9 +37,9 @@ android {
         debug {
             manifestPlaceholders["appHost"] = "dev.iqa3.tech"
         }
+
         release {
             signingConfig = signingConfigs.getByName("debug")
-            // ── غير ده لما تروح production ──
             manifestPlaceholders["appHost"] = "dev.iqa3.tech"
         }
     }
@@ -45,6 +47,10 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // Firebase BoM and FCM
+    implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
+    implementation("com.google.firebase:firebase-messaging")
 }
 
 flutter {
