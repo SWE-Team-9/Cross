@@ -58,6 +58,7 @@ import '../../features/feed/domain/usecases/get_feed.dart';
 import '../../features/feed/domain/usecases/toggle_like.dart';
 import '../../features/feed/domain/usecases/toggle_repost.dart';
 import '../../features/feed/presentation/bloc/feed_cubit.dart';
+import '../../features/home/data/datasources/home_remote_data_source.dart';
 import '../../features/home/data/repositories/home_repository_impl.dart';
 import '../../features/home/domain/repositories/home_repository.dart';
 import '../../features/home/domain/usecases/get_home_content_usecase.dart';
@@ -1178,11 +1179,17 @@ Future<void> setupDependencies() async {
 
   // ── Home Feature ────────────────────────────────────────────────────────
 
+  if (!getIt.isRegistered<HomeRemoteDataSource>()) {
+    getIt.registerLazySingleton<HomeRemoteDataSource>(
+      () => HomeRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
   if (!getIt.isRegistered<HomeRepository>()) {
     getIt.registerLazySingleton<HomeRepository>(
       () => HomeRepositoryImpl(
         profileRepository: getIt<profile_domain.ProfileRepository>(),
-        playlistsRepository: getIt<PlaylistsRepository>(),
+        homeRemoteDataSource: getIt<HomeRemoteDataSource>(),
         discoveryRemoteDataSource: getIt<DiscoveryRemoteDataSource>(),
       ),
     );

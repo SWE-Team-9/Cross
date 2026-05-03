@@ -105,6 +105,7 @@ class App extends StatelessWidget {
                     current is AuthUnauthenticated &&
                     previous is! AuthUnauthenticated,
                 listener: (context, state) {
+                  unawaited(context.read<PlayerCubit>().stop());
                   getIt<NotificationsRealtimeRefreshService>().stop();
                 },
               ),

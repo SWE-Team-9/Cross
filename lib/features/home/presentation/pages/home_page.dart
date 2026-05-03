@@ -93,7 +93,7 @@ class HomePage extends StatelessWidget {
                                   title: 'Top playlists',
                                   subtitle: 'Most liked public playlists now',
                                 ),
-                                _TopPlaylists(playlists: state.topPlaylists),
+                                _TopPlaylists(playlists: state.topPlaylists.overallPlaylists),
                               ],
                               const _SectionHeader(
                                 title: 'Trending now',

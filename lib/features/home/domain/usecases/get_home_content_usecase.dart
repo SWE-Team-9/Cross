@@ -1,5 +1,4 @@
 import 'package:soundcloud_clone/core/models/track.dart';
-import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 
 import '../entities/home_content.dart';
 import '../repositories/home_repository.dart';
@@ -43,11 +42,11 @@ class GetHomeContentUseCase {
     }
   }
 
-  Future<List<PlaylistEntity>> _getTopPlaylists({required int limit}) async {
+  Future<HomeTopPlaylists> _getTopPlaylists({required int limit}) async {
     try {
       return await _repository.getTopPlaylists(limit: limit);
     } catch (_) {
-      return const <PlaylistEntity>[];
+      return HomeTopPlaylists.empty();
     }
   }
 

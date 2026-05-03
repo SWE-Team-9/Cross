@@ -17,7 +17,9 @@ class TrendingCubit extends Cubit<TrendingState> {
     int limit = 20,
     int windowDays = 7,
   }) async {
-    emit(const TrendingLoading());
+    if (isClosed) return;
+
+    _emitIfOpen(const TrendingLoading());
 
     final result = await _getTrendingUseCase(
       limit: limit,
@@ -27,8 +29,12 @@ class TrendingCubit extends Cubit<TrendingState> {
     if (isClosed) return;
 
     result.fold(
-      (failure) => emit(TrendingError(failure.message)),
-      (tracks) => emit(TrendingLoaded(tracks)),
+      (failure) => _emitIfOpen(TrendingError(failure.message)),
+      (tracks) => _emitIfOpen(TrendingLoaded(tracks)),
     );
+  }
+
+  void _emitIfOpen(TrendingState nextState) {
+    if (!isClosed) emit(nextState);
   }
 }

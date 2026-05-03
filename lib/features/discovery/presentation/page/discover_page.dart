@@ -33,21 +33,36 @@ class DiscoverPage extends StatefulWidget {
 }
 
 class _DiscoverPageState extends State<DiscoverPage> {
+  PlayerCubit? _playerCubit;
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<PlayerCubit>().hideMiniPlayer();
-      }
+      if (!mounted) return;
+      (_playerCubit ??= _lookupPlayerCubit())?.hideMiniPlayer();
     });
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _playerCubit ??= _lookupPlayerCubit();
+  }
+
+  @override
   void dispose() {
-    context.read<PlayerCubit>().showMiniPlayer();
+    _playerCubit?.showMiniPlayer();
     super.dispose();
+  }
+
+  PlayerCubit? _lookupPlayerCubit() {
+    try {
+      return context.read<PlayerCubit>();
+    } catch (_) {
+      return getIt.isRegistered<PlayerCubit>() ? getIt<PlayerCubit>() : null;
+    }
   }
 
   @override

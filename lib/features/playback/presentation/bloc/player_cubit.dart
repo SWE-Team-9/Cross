@@ -45,6 +45,10 @@ class PlayerCubit extends Cubit<PlayerUIState> {
   void _listenToPlayer() {
     _subscription = _audioService.playerStateStream.listen((playerState) {
       final localQueue = state.playerState.queue;
+      final shouldClearCurrentTrack = playerState.status == PlayerStatus.idle &&
+          playerState.currentTrackId == null &&
+          playerState.queue.isEmpty &&
+          !_hasPendingTrackSwitch;
       final incomingTrack = _trackFromServiceState(playerState) ??
           _trackById(playerState.currentTrackId, playerState.queue) ??
           _trackById(playerState.currentTrackId, localQueue);
@@ -73,10 +77,13 @@ class PlayerCubit extends Cubit<PlayerUIState> {
               mergedPlayerState.currentTrackId, mergedPlayerState.queue) ??
           _trackById(mergedPlayerState.currentTrackId, localQueue);
 
-      final nextTrack = serviceTrack ?? state.currentTrack;
+      final nextTrack =
+          shouldClearCurrentTrack ? null : serviceTrack ?? state.currentTrack;
       emit(state.copyWith(
         playerState: mergedPlayerState,
         currentTrack: nextTrack,
+        clearCurrentTrack: shouldClearCurrentTrack,
+        showMiniPlayer: shouldClearCurrentTrack ? false : state.showMiniPlayer,
       ));
 
       _prefetchNextTrackInBackground(mergedPlayerState);
@@ -213,7 +220,22 @@ class PlayerCubit extends Cubit<PlayerUIState> {
     await setRepeatMode(nextMode);
   }
 
-  Future<void> stop() async => await _audioService.stop();
+  Future<void> stop() async {
+    _clearPendingTrackSwitch();
+    _prefetchedIds.clear();
+
+    emit(PlayerUIState(
+      playerState: PlayerState(
+        status: PlayerStatus.idle,
+        position: Duration.zero,
+        volume: state.volume,
+        repeatMode: state.repeatMode,
+      ),
+      showMiniPlayer: false,
+    ));
+
+    await _audioService.stop();
+  }
 
   // ── Navigation ───────────────────────────────────────────────────────────
 

@@ -14,6 +14,7 @@ import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/home/domain/entities/home_content.dart';
 import 'package:soundcloud_clone/features/home/domain/repositories/home_repository.dart';
 import 'package:soundcloud_clone/features/home/domain/usecases/get_home_content_usecase.dart';
 import 'package:soundcloud_clone/features/home/domain/usecases/get_home_trending_tracks_usecase.dart';
@@ -109,13 +110,14 @@ class FakeHomeRepository implements HomeRepository {
   }
 
   @override
-  Future<List<PlaylistEntity>> getTopPlaylists({int limit = 10}) async {
-    return const <PlaylistEntity>[
+  Future<HomeTopPlaylists> getTopPlaylists({int limit = 10}) async {
+    const overall = <PlaylistEntity>[
       PlaylistEntity(
         playlistId: 'playlist-1',
         title: 'Backend Beats',
         description: '',
         visibility: PlaylistVisibility.publicPlaylist,
+        genre: 'electronic',
         secretToken: null,
         coverImageUrl: null,
         owner: PlaylistOwner(id: 'owner-1', displayName: 'Iqa3'),
@@ -124,6 +126,16 @@ class FakeHomeRepository implements HomeRepository {
         likesCount: 42,
       ),
     ];
+
+    return const HomeTopPlaylists(
+      overallPlaylists: overall,
+      genreGroups: <HomeTopPlaylistGroup>[
+        HomeTopPlaylistGroup(
+          genre: 'electronic',
+          playlists: overall,
+        ),
+      ],
+    );
   }
 
   @override
