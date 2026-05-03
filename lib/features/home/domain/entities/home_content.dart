@@ -42,16 +42,23 @@ class HomeTopPlaylists {
     ];
   }
 
-  List<PlaylistEntity> playlistsFor(String option) {
-    if (option == overall) return overallPlaylists;
-
-    for (final group in genreGroups) {
-      if (group.genre == option) return group.playlists;
-    }
-
+List<PlaylistEntity> playlistsFor(String option) {
+  if (_normalizeOption(option) == _normalizeOption(overall)) {
     return overallPlaylists;
   }
+
+  for (final group in genreGroups) {
+    if (_normalizeOption(group.genre) == _normalizeOption(option)) {
+      return group.playlists;
+    }
+  }
+
+  return const <PlaylistEntity>[];
 }
+
+static String _normalizeOption(String value) {
+  return value.trim().toLowerCase();
+}}
 
 class HomeContent {
   static const String topLikedGenre = 'Top liked';

@@ -88,13 +88,21 @@ class HomePage extends StatelessWidget {
                                     'Go Premium to remove sponsored cards, save music offline, and unlock more uploads.',
                                 actionLabel: 'Upgrade',
                               ),
-                              if (state.topPlaylists.isNotEmpty) ...[
-                                const _SectionHeader(
-                                  title: 'Top playlists',
-                                  subtitle: 'Most liked public playlists now',
-                                ),
-                                _TopPlaylists(playlists: state.topPlaylists.overallPlaylists),
-                              ],
+if (state.topPlaylists.isNotEmpty) ...[
+  const _SectionHeader(
+    title: 'Top playlists',
+    subtitle: 'Switch by your favorite genres',
+  ),
+  _GenreChips(
+    genres: state.playlistGenreOptions,
+    selected: state.selectedPlaylistGenre,
+    onSelect: context.read<HomeCubit>().selectPlaylistGenre,
+  ),
+  _TopPlaylists(
+    playlists: state.selectedTopPlaylists,
+    selectedGenre: state.selectedPlaylistGenre,
+  ),
+],
                               const _SectionHeader(
                                 title: 'Trending now',
                                 subtitle: 'Switch by your favorite genres',
@@ -516,31 +524,50 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _TopPlaylists extends StatelessWidget {
-  const _TopPlaylists({required this.playlists});
+  const _TopPlaylists({
+    required this.playlists,
+    required this.selectedGenre,
+  });
 
   final List<PlaylistEntity> playlists;
+  final String selectedGenre;
 
   @override
   Widget build(BuildContext context) {
+    if (playlists.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 18, 14, 4),
+        child: Text(
+          selectedGenre == HomeTopPlaylists.overall
+              ? 'No top playlists available yet'
+              : 'No playlists found for this genre',
+          style: const TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
     final visiblePlaylists = playlists.take(10).toList(growable: false);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Column(
-        children: [
-          for (var index = 0; index < visiblePlaylists.length; index++)
-            _TopPlaylistRow(
-              playlist: visiblePlaylists[index],
-              rank: index + 1,
-            ),
-        ],
+    return SizedBox(
+      height: 230,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+        itemCount: visiblePlaylists.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          return _TopPlaylistCard(
+            playlist: visiblePlaylists[index],
+            rank: index + 1,
+          );
+        },
       ),
     );
   }
 }
 
-class _TopPlaylistRow extends StatelessWidget {
-  const _TopPlaylistRow({
+class _TopPlaylistCard extends StatelessWidget {
+  const _TopPlaylistCard({
     required this.playlist,
     required this.rank,
   });
@@ -553,8 +580,10 @@ class _TopPlaylistRow extends StatelessWidget {
     final coverUrl = PlatformUrlUtils.normalizeBackendUrl(
       playlist.coverImageUrl,
     );
+
     final ownerName = playlist.owner?.displayName.trim() ?? '';
     final genre = playlist.genre?.trim();
+
     final subtitleParts = <String>[
       if (ownerName.isNotEmpty) ownerName,
       if (genre != null && genre.isNotEmpty) genre,
@@ -563,86 +592,90 @@ class _TopPlaylistRow extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => context.push('/playlist/${playlist.playlistId}'),
-      child: Container(
-        color: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Row(
+      child: SizedBox(
+        width: 150,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 26,
-              child: Text(
-                '$rank',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF777777),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    color: const Color(0xFF1E1E1E),
+                    child: coverUrl == null
+                        ? const Icon(
+                            Icons.queue_music_rounded,
+                            color: Colors.white38,
+                            size: 42,
+                          )
+                        : Image.network(
+                            coverUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.queue_music_rounded,
+                              color: Colors.white38,
+                              size: 42,
+                            ),
+                          ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                width: 54,
-                height: 54,
-                color: const Color(0xFF1E1E1E),
-                child: coverUrl == null
-                    ? const Icon(
-                        Icons.queue_music_rounded,
-                        color: Colors.white38,
-                        size: 24,
-                      )
-                    : Image.network(
-                        coverUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.queue_music_rounded,
-                          color: Colors.white38,
-                          size: 24,
-                        ),
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '#$rank',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
                       ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    playlist.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitleParts.join(' - '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF999999),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            Text(
+              playlist.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
+            const SizedBox(height: 3),
+            Text(
+              subtitleParts.join(' - '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF999999),
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Row(
               children: [
                 const Icon(
                   Icons.favorite_rounded,
                   color: Color(0xFFFF5500),
-                  size: 16,
+                  size: 14,
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(width: 4),
                 Text(
                   _formatCount(playlist.likesCount),
                   style: const TextStyle(
@@ -669,7 +702,6 @@ class _TopPlaylistRow extends StatelessWidget {
     return '$value';
   }
 }
-
 class _GenreChips extends StatelessWidget {
   const _GenreChips({
     required this.genres,
