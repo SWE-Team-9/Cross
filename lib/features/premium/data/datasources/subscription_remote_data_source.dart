@@ -39,6 +39,8 @@ abstract class SubscriptionRemoteDataSource {
     required String planCode,
   });
 
+  Future<Subscription> cancelPlanChange();
+
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement({
     required String trackId,
   });
@@ -163,8 +165,17 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
   }
 
   @override
-  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement({
-    required String trackId,
+  Future<Subscription> cancelPlanChange() async {
+    final response = await _dioClient.post(
+      ApiConstants.subscriptionCancelPlanChange,
+    );
+
+    final payload = _extractPayloadMap(response.data);
+    return Subscription.fromJson(payload);
+  }
+
+  @override
+  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement({    required String trackId,
   }) async {
     final response = await _dioClient.get(
       ApiConstants.subscriptionOfflineTrackPath(trackId),
