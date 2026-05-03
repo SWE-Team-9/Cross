@@ -222,8 +222,18 @@ class MockSubscriptionRepository implements SubscriptionRepository {
   }
 
   @override
-  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
-    String trackId,
+  Future<Subscription> cancelPlanChange() async {
+    if (!_current.hasPendingDowngrade) {
+      return _current;
+    }
+
+    _current = _current.copyWith(clearPendingDowngrade: true);
+
+    return _current;
+  }
+
+  @override
+  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(    String trackId,
   ) async {
     final normalizedTrackId = trackId.trim();
 
