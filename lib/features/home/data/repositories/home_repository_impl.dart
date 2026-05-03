@@ -1,23 +1,22 @@
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/discovery/data/datasources/discovery_remote_data_source.dart';
 import 'package:soundcloud_clone/features/discovery/domain/entities/trending_track.dart';
+import 'package:soundcloud_clone/features/home/data/datasources/home_remote_data_source.dart';
 import 'package:soundcloud_clone/features/home/domain/entities/home_content.dart';
 import 'package:soundcloud_clone/features/home/domain/repositories/home_repository.dart';
-import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
-import 'package:soundcloud_clone/features/playlists/domain/repositories/playlists_repository.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 
 class HomeRepositoryImpl implements HomeRepository {
   const HomeRepositoryImpl({
     required ProfileRepository profileRepository,
-    required PlaylistsRepository playlistsRepository,
+    required HomeRemoteDataSource homeRemoteDataSource,
     required DiscoveryRemoteDataSource discoveryRemoteDataSource,
   })  : _profileRepository = profileRepository,
-        _playlistsRepository = playlistsRepository,
+        _homeRemoteDataSource = homeRemoteDataSource,
         _discoveryRemoteDataSource = discoveryRemoteDataSource;
 
   final ProfileRepository _profileRepository;
-  final PlaylistsRepository _playlistsRepository;
+  final HomeRemoteDataSource _homeRemoteDataSource;
   final DiscoveryRemoteDataSource _discoveryRemoteDataSource;
 
   static const List<String> _supportedGenres = <String>[
@@ -73,8 +72,8 @@ class HomeRepositoryImpl implements HomeRepository {
   }
 
   @override
-  Future<List<PlaylistEntity>> getTopPlaylists({int limit = 10}) {
-    return _playlistsRepository.getTopPlaylists(limit: limit);
+  Future<HomeTopPlaylists> getTopPlaylists({int limit = 10}) {
+    return _homeRemoteDataSource.getTopPlaylists(limit: limit);
   }
 
   @override

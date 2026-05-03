@@ -168,7 +168,18 @@ class JustAudioPlayerService implements AudioPlayerService {
   Future<void> resume() => _handler.play();
 
   @override
-  Future<void> stop() => _handler.stop();
+  Future<void> stop() async {
+    await _handler.stop();
+
+    _updateState(
+      PlayerState(
+        status: PlayerStatus.idle,
+        position: Duration.zero,
+        volume: _volume,
+        repeatMode: _currentState.repeatMode,
+      ),
+    );
+  }
 
   @override
   Future<void> seek(Duration position) => _handler.seek(position);

@@ -9,7 +9,7 @@ class HomeState {
   final List<String> favoriteGenres;
   final String selectedGenre;
   final List<Track> trendingTracks;
-  final List<PlaylistEntity> topPlaylists;
+  final HomeTopPlaylists topPlaylists;
   final String? errorMessage;
   final String? trendingErrorMessage;
 
@@ -33,7 +33,10 @@ class HomeState {
       favoriteGenres: <String>[HomeContent.topLikedGenre],
       selectedGenre: HomeContent.topLikedGenre,
       trendingTracks: <Track>[],
-      topPlaylists: <PlaylistEntity>[],
+      topPlaylists: HomeTopPlaylists(
+        overallPlaylists: <PlaylistEntity>[],
+        genreGroups: <HomeTopPlaylistGroup>[],
+      ),
       errorMessage: null,
       trendingErrorMessage: null,
     );
@@ -48,7 +51,7 @@ class HomeState {
     List<String>? favoriteGenres,
     String? selectedGenre,
     List<Track>? trendingTracks,
-    List<PlaylistEntity>? topPlaylists,
+    HomeTopPlaylists? topPlaylists,
     String? errorMessage,
     String? trendingErrorMessage,
     bool clearError = false,

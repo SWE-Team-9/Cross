@@ -28,13 +28,16 @@ class PlayerUIState {
     Set<String>? playedTrackIds,
     WaveformData? waveform, // ✅ ADDED
     bool? showMiniPlayer,
+    bool clearCurrentTrack = false,
+    bool clearWaveform = false,
   }) {
     return PlayerUIState(
       playerState: playerState ?? this.playerState,
-      currentTrack: currentTrack ?? this.currentTrack,
+      currentTrack:
+          clearCurrentTrack ? null : currentTrack ?? this.currentTrack,
       isFullScreen: isFullScreen ?? this.isFullScreen,
       playedTrackIds: playedTrackIds ?? this.playedTrackIds,
-      waveform: waveform ?? this.waveform, // ✅ ADDED
+      waveform: clearWaveform ? null : waveform ?? this.waveform,
       showMiniPlayer: showMiniPlayer ?? this.showMiniPlayer,
     );
   }

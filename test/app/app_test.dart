@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,11 +37,15 @@ import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscri
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/bloc/notifications_bloc.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/bloc/notification_preferences_bloc.dart';
+import 'package:soundcloud_clone/features/notifications/data/services/notifications_realtime_refresh_service.dart';
+import 'package:soundcloud_clone/features/home/presentation/bloc/home_cubit.dart';
+import 'package:soundcloud_clone/features/home/presentation/bloc/home_state.dart';
 
 // ── Fakes / Mocks ─────────────────────────────────────────────────────────────
 
 class FakeAudioPlayerService implements AudioPlayerService {
   double _currentVolume = 1;
+  int stopCallCount = 0;
 
   @override
   Stream<app_state.PlayerState> get playerStateStream => const Stream.empty();
@@ -54,7 +60,9 @@ class FakeAudioPlayerService implements AudioPlayerService {
   Future<void> resume() async {}
 
   @override
-  Future<void> stop() async {}
+  Future<void> stop() async {
+    stopCallCount++;
+  }
 
   @override
   Future<void> seek(Duration position) async {}
@@ -125,12 +133,15 @@ class MockNotificationPreferencesBloc
     extends MockBloc<NotificationPreferencesEvent, NotificationPreferencesState>
     implements NotificationPreferencesBloc {}
 
+class MockHomeCubit extends MockCubit<HomeState> implements HomeCubit {}
+
 // ── Helper: pump the full App widget ─────────────────────────────────────────
 
 Future<void> _pumpApp(
   WidgetTester tester,
   MockAuthCubit authCubit, {
   AuthState? authState,
+  Stream<AuthState>? authStream,
 }) async {
   // Important: fully unmount any previous router tree before mounting App.
   // This prevents Duplicate GlobalKey errors from GoRouter's internal keys.
@@ -142,7 +153,7 @@ Future<void> _pumpApp(
   when(() => authCubit.state).thenReturn(state);
   whenListen(
     authCubit,
-    Stream<AuthState>.fromIterable([state]),
+    authStream ?? Stream<AuthState>.fromIterable([state]),
     initialState: state,
   );
   when(() => authCubit.checkAuthStatus()).thenAnswer((_) async {});
@@ -169,6 +180,8 @@ void main() {
   late MockDioClient mockDioClient;
   late MockNotificationsBloc mockNotificationsBloc;
   late MockNotificationPreferencesBloc mockNotificationPreferencesBloc;
+  late MockHomeCubit mockHomeCubit;
+  late FakeAudioPlayerService fakeAudioPlayerService;
 
   setUp(() async {
     await GetIt.I.reset();
@@ -180,6 +193,7 @@ void main() {
     mockDioClient = MockDioClient();
     getUnreadCountUseCase = MockGetUnreadCountUseCase();
     connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
+    mockHomeCubit = MockHomeCubit();
 
     when(() => getUnreadCountUseCase()).thenAnswer(
       (_) async => const UnreadCountEntity(count: 0),
@@ -205,14 +219,24 @@ void main() {
     );
     mockNotificationsBloc = MockNotificationsBloc();
     mockNotificationPreferencesBloc = MockNotificationPreferencesBloc();
+    fakeAudioPlayerService = FakeAudioPlayerService();
 
     // Mock states for notification blocs
     when(() => mockNotificationsBloc.state)
         .thenReturn(const NotificationsInitial());
     when(() => mockNotificationPreferencesBloc.state)
         .thenReturn(NotificationPreferencesState.initial());
+    when(() => mockHomeCubit.state).thenReturn(HomeState.initial());
+    whenListen(
+      mockHomeCubit,
+      const Stream<HomeState>.empty(),
+      initialState: HomeState.initial(),
+    );
+    when(() => mockHomeCubit.load()).thenAnswer((_) async {});
+    when(() => mockHomeCubit.refresh()).thenAnswer((_) async {});
+    when(() => mockHomeCubit.selectGenre(any())).thenAnswer((_) async {});
 
-    GetIt.I.registerSingleton<AudioPlayerService>(FakeAudioPlayerService());
+    GetIt.I.registerSingleton<AudioPlayerService>(fakeAudioPlayerService);
     GetIt.I.registerSingleton<DeepLinkService>(FakeDeepLinkService());
     GetIt.I.registerSingleton<DioClient>(mockDioClient);
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
@@ -229,6 +253,7 @@ void main() {
     );
 
     GetIt.I.registerFactory<AuthCubit>(() => authCubit);
+    GetIt.I.registerFactory<HomeCubit>(() => mockHomeCubit);
 
     GetIt.I.registerLazySingleton<PlaybackCubit>(
       () => PlaybackCubit(
@@ -246,6 +271,10 @@ void main() {
         getUnreadCountUseCase: getUnreadCountUseCase,
         connectMessagingSocketUseCase: connectMessagingSocketUseCase,
       ),
+    );
+
+    GetIt.I.registerLazySingleton<NotificationsRealtimeRefreshService>(
+      () => NotificationsRealtimeRefreshService(connectMessagingSocketUseCase),
     );
 
     GetIt.I.registerLazySingleton<NotificationsBloc>(
@@ -360,6 +389,36 @@ void main() {
       );
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('stops playback when auth becomes unauthenticated',
+        (tester) async {
+      final authController = StreamController<AuthState>();
+      addTearDown(authController.close);
+
+      final authenticatedState = AuthAuthenticated(
+        const User(
+          id: '1',
+          email: 'test@test.com',
+          handle: 'testuser',
+          displayName: 'Test User',
+          avatarUrl: null,
+        ),
+      );
+
+      await _pumpApp(
+        tester,
+        authCubit,
+        authState: authenticatedState,
+        authStream: authController.stream,
+      );
+
+      authController.add(AuthUnauthenticated());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(fakeAudioPlayerService.stopCallCount, 1);
       expect(tester.takeException(), isNull);
     });
   });

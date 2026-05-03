@@ -12,16 +12,21 @@ class DiscoveryCubit extends Cubit<DiscoveryState> {
   final ResolveResourceUseCase _resolveResource;
 
   Future<void> resolve(String url) async {
+    if (isClosed) return;
     if (url.trim().isEmpty) return;
 
-    emit(const DiscoveryLoading());
+    _emitIfOpen(const DiscoveryLoading());
     try {
       final resource = await _resolveResource(url.trim());
-      emit(DiscoveryResolved(resource));
+      _emitIfOpen(DiscoveryResolved(resource));
     } catch (e) {
-      emit(DiscoveryError(e.toString()));
+      _emitIfOpen(DiscoveryError(e.toString()));
     }
   }
 
-  void reset() => emit(const DiscoveryInitial());
+  void reset() => _emitIfOpen(const DiscoveryInitial());
+
+  void _emitIfOpen(DiscoveryState nextState) {
+    if (!isClosed) emit(nextState);
+  }
 }
