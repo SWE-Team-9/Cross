@@ -30,11 +30,17 @@ class HomeCubit extends Cubit<HomeState> {
         selectedGenre: state.selectedGenre,
       );
 
+      final safePlaylistGenre = _safePlaylistGenre(
+        state.selectedPlaylistGenre,
+        content.favoriteGenres,
+      );
+
       emit(
         state.copyWith(
           isLoading: false,
           favoriteGenres: content.favoriteGenres,
           selectedGenre: content.selectedGenre,
+          selectedPlaylistGenre: safePlaylistGenre,
           topPlaylists: content.topPlaylists,
           trendingTracks: content.trendingTracks,
           clearError: true,
@@ -65,11 +71,17 @@ class HomeCubit extends Cubit<HomeState> {
         selectedGenre: state.selectedGenre,
       );
 
+      final safePlaylistGenre = _safePlaylistGenre(
+        state.selectedPlaylistGenre,
+        content.favoriteGenres,
+      );
+
       emit(
         state.copyWith(
           isRefreshing: false,
           favoriteGenres: content.favoriteGenres,
           selectedGenre: content.selectedGenre,
+          selectedPlaylistGenre: safePlaylistGenre,
           topPlaylists: content.topPlaylists,
           trendingTracks: content.trendingTracks,
           clearError: true,
@@ -123,5 +135,37 @@ class HomeCubit extends Cubit<HomeState> {
         ),
       );
     }
+  }
+
+  void selectPlaylistGenre(String genre) {
+    final safeGenre = _safePlaylistGenre(
+      genre,
+      state.favoriteGenres,
+    );
+
+    if (safeGenre == state.selectedPlaylistGenre) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        selectedPlaylistGenre: safeGenre,
+      ),
+    );
+  }
+
+  String _safePlaylistGenre(String genre, List<String> favoriteGenres) {
+    final cleanGenre = genre.trim();
+
+    final options = <String>[
+      HomeTopPlaylists.overall,
+      ...favoriteGenres.where(
+        (favoriteGenre) =>
+            favoriteGenre.trim().isNotEmpty &&
+            favoriteGenre.trim() != HomeContent.topLikedGenre,
+      ),
+    ];
+
+    return options.contains(cleanGenre) ? cleanGenre : HomeTopPlaylists.overall;
   }
 }
