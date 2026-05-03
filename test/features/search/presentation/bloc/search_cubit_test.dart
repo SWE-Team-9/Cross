@@ -10,25 +10,33 @@ import 'package:soundcloud_clone/features/search/presentation/bloc/search_cubit.
 
 class MockSearchUseCase extends Mock implements SearchUseCase {}
 
-class MockSharedPreferences extends Mock implements SharedPreferences {}
-
 void main() {
   late SearchCubit cubit;
   late MockSearchUseCase mockUseCase;
 
+  const emptyResults = SearchResultsEntity(
+    tracks: [],
+    users: [],
+    playlists: [],
+    meta: SearchMetaEntity(
+      currentPage: 1,
+      totalResults: 0,
+      totalPages: 1,
+    ),
+  );
+
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    SharedPreferences.setMockInitialValues({});
-    registerFallbackValue(SearchQuery(''));
   });
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     mockUseCase = MockSearchUseCase();
     cubit = SearchCubit(mockUseCase);
   });
 
-  tearDown(() {
-    cubit.close();
+  tearDown(() async {
+    await cubit.close();
   });
 
   group('SearchCubit', () {
@@ -48,20 +56,19 @@ void main() {
 
     blocTest<SearchCubit, SearchState>(
       'submitSearch emits recents update, loading then success on successful search',
-      build: () => cubit,
-      setUp: () {
-        when(() => mockUseCase(any(), page: any(named: 'page')))
-            .thenAnswer((_) async => Right(SearchResultsEntity(
-                  tracks: [],
-                  users: [],
-                  playlists: [],
-                  meta: SearchMetaEntity(
-                    currentPage: 1,
-                    totalResults: 0,
-                    totalPages: 1,
-                  ),
-                )));
+      build: () {
+        when(
+          () => mockUseCase(
+            any(),
+            type: any(named: 'type'),
+            page: any(named: 'page'),
+            limit: any(named: 'limit'),
+          ),
+        ).thenAnswer((_) async => const Right(emptyResults));
+
+        return SearchCubit(mockUseCase);
       },
+      skip: 1,
       act: (cubit) => cubit.submitSearch('test'),
       expect: () => [
         isA<SearchState>()
@@ -69,51 +76,87 @@ void main() {
             .having((s) => s.recentSearches, 'recentSearches', ['test']),
         isA<SearchState>()
             .having((s) => s.status, 'status', SearchStatus.loading)
-            .having((s) => s.submittedQuery, 'submittedQuery', 'test'),
+            .having((s) => s.submittedQuery, 'submittedQuery', 'test')
+            .having((s) => s.typingQuery, 'typingQuery', 'test'),
         isA<SearchState>()
             .having((s) => s.status, 'status', SearchStatus.success)
-            .having((s) => s.currentPage, 'currentPage', 1),
+            .having((s) => s.currentPage, 'currentPage', 1)
+            .having((s) => s.totalPages, 'totalPages', 1),
       ],
       verify: (_) {
-        verify(() => mockUseCase('test', page: 1)).called(1);
+        verify(
+          () => mockUseCase(
+            'test',
+            type: 'all',
+            page: 1,
+            limit: 10,
+          ),
+        ).called(1);
       },
     );
 
     blocTest<SearchCubit, SearchState>(
       'submitSearch emits failure on search failure',
-      build: () => cubit,
-      setUp: () {
-        when(() => mockUseCase(any(), page: any(named: 'page')))
-            .thenAnswer((_) async => Left(const ServerFailure()));
+      build: () {
+        when(
+          () => mockUseCase(
+            any(),
+            type: any(named: 'type'),
+            page: any(named: 'page'),
+            limit: any(named: 'limit'),
+          ),
+        ).thenAnswer((_) async => const Left(ServerFailure()));
+
+        return SearchCubit(mockUseCase);
       },
+      skip: 1,
       act: (cubit) => cubit.submitSearch('test'),
       expect: () => [
+        isA<SearchState>()
+            .having((s) => s.status, 'status', SearchStatus.idle)
+            .having((s) => s.recentSearches, 'recentSearches', ['test']),
         isA<SearchState>()
             .having((s) => s.status, 'status', SearchStatus.loading),
         isA<SearchState>()
             .having((s) => s.status, 'status', SearchStatus.failure)
             .having((s) => s.failure, 'failure', isA<ServerFailure>()),
       ],
+      verify: (_) {
+        verify(
+          () => mockUseCase(
+            'test',
+            type: 'all',
+            page: 1,
+            limit: 10,
+          ),
+        ).called(1);
+      },
     );
 
-    test('onTabChanged updates active tab', () {
-      cubit.onTabChanged(SearchTab.tracks);
+    test('onTabChanged updates active tab', () async {
+      await cubit.onTabChanged(SearchTab.tracks);
+
       expect(cubit.state.activeTab, SearchTab.tracks);
     });
 
     test('loadNextPage does nothing if no submitted query', () async {
       await cubit.loadNextPage();
+
       expect(cubit.state.currentPage, 1);
     });
 
     test('loadNextPage does nothing if already loading more', () async {
-      cubit.emit(const SearchState(
-        submittedQuery: 'test',
-        isLoadingMore: true,
-        currentPage: 1,
-        totalPages: 2,
-      ));
+      cubit.emit(
+        const SearchState(
+          submittedQuery: 'test',
+          isLoadingMore: true,
+          currentPage: 1,
+          totalPages: 2,
+        ),
+      );
+
       await cubit.loadNextPage();
+
       expect(cubit.state.currentPage, 1);
     });
   });
