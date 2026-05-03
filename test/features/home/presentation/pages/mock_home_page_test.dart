@@ -286,7 +286,8 @@ void main() {
     );
     when(() => mockNotificationsBloc.stream).thenAnswer(
       (_) => const Stream<NotificationsState>.empty(),
-    );  });
+    );
+  });
 
   tearDown(() async {
     testerViewReset();

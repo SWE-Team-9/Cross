@@ -29,17 +29,29 @@ class _UpgradePageState extends State<UpgradePage> {
     });
   }
 
+  void _goBack() {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+
+    context.go('/home');
+  }
+
   Future<void> _handleUpgrade(Plan plan) async {
-    if (plan.code.trim().isEmpty) {
-      _showSnackBar('This plan is not available right now.');
+    final planCode = _readSubscriptionUpgradePlanCode(plan);
+
+    if (planCode == null) {
+      _showSnackBar(
+        'Free is your default plan. You can return to Free by canceling premium from Billing.',
+      );
       return;
     }
 
     try {
       final checkoutUrl = await context.read<SubscriptionCubit>().upgrade(
-            plan.code,
+            planCode,
           );
-
       if (!mounted) return;
 
       if (checkoutUrl.trim().isEmpty) {
@@ -103,15 +115,33 @@ class _UpgradePageState extends State<UpgradePage> {
         _showSnackBar(message);
       },
       builder: (context, state) {
-        final plans =
+        final rawPlans =
             state.upgradePlans.isEmpty ? state.plans : state.upgradePlans;
 
+        final currentPlanCode = _normalizeSubscriptionUpgradePlanCode(
+          state.subscription.normalizedPlanCode,
+        );
+
+        final plans = rawPlans.where((plan) {
+          final planCode = _readSubscriptionUpgradePlanCode(plan);
+
+          if (planCode == null) {
+            return false;
+          }
+
+          return planCode != currentPlanCode;
+        }).toList(growable: false);
         return Scaffold(
           backgroundColor: Colors.black,
           appBar: AppBar(
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
             elevation: 0,
+            leading: IconButton(
+              tooltip: 'Back',
+              onPressed: _goBack,
+              icon: const Icon(Icons.arrow_back),
+            ),
             title: const Text('Upgrade'),
             actions: [
               IconButton(
@@ -142,7 +172,7 @@ class _UpgradePageState extends State<UpgradePage> {
                           state: state,
                           onOpenBilling: state.subscription.isPremium &&
                                   !state.isActionLoading
-                              ? () => context.go('/billing')
+                              ? () => context.push('/billing')
                               : null,
                         ),
                         const SizedBox(height: 28),
@@ -716,4 +746,49 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _readSubscriptionUpgradePlanCode(Plan plan) {
+  final candidates = <String>[
+    plan.code,
+    plan.tier,
+    plan.name,
+    plan.displayName,
+  ];
+
+  for (final candidate in candidates) {
+    final normalized = _normalizeSubscriptionUpgradePlanCode(candidate);
+
+    if (normalized == 'PRO' || normalized == 'GO_PLUS') {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
+String _normalizeSubscriptionUpgradePlanCode(String value) {
+  final normalized =
+      value.trim().toUpperCase().replaceAll('-', '_').replaceAll(' ', '_');
+
+  if (normalized.isEmpty) {
+    return '';
+  }
+
+  if (normalized == 'GO+' ||
+      normalized == 'GO_PLUS' ||
+      normalized.contains('GO_PLUS') ||
+      normalized.contains('GO+')) {
+    return 'GO_PLUS';
+  }
+
+  if (normalized == 'PRO' || normalized.contains('PRO')) {
+    return 'PRO';
+  }
+
+  if (normalized == 'FREE' || normalized.contains('FREE')) {
+    return 'FREE';
+  }
+
+  return normalized;
 }
