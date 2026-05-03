@@ -49,9 +49,9 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   }
 
   @override
-  Future<List<BillingInvoice>> getInvoices() {    return _remoteDataSource.getInvoices();
+  Future<List<BillingInvoice>> getInvoices() {
+    return _remoteDataSource.getInvoices();
   }
-
   @override
   Future<Subscription> cancelSubscription() async {
     await _remoteDataSource.cancelSubscription();
@@ -71,8 +71,12 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   }
 
   @override
-  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(String trackId) {
-    return _remoteDataSource.getOfflineTrackEntitlement(
+  Future<Subscription> cancelPlanChange() {
+    return _remoteDataSource.cancelPlanChange();
+  }
+
+  @override
+  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(String trackId) {    return _remoteDataSource.getOfflineTrackEntitlement(
       trackId: trackId,
     );
   }
