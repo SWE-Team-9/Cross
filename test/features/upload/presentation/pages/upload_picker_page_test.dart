@@ -14,8 +14,9 @@ import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
 
-class MockSubscriptionCubit extends MockCubit<Subscription?>
+class MockSubscriptionCubit extends MockCubit<SubscriptionState>
     implements SubscriptionCubit {}
 
 class MockUploadPickerCubit extends MockCubit<UploadPickerState>
@@ -123,13 +124,21 @@ void main() {
     mockAuthCubit = MockAuthCubit();
     mockSubscriptionCubit = MockSubscriptionCubit();
 
-    when(() => mockSubscriptionCubit.state).thenReturn(const Subscription(
-      subscriptionType: 'PRO',
-      uploadLimit: 100,
-      uploadedTracks: 0,
-      remainingUploads: 100,
-    ));
+    when(() => mockSubscriptionCubit.state).thenReturn(
+      const SubscriptionState(
+        status: SubscriptionStatus.loaded,
+        subscription: Subscription(
+          subscriptionType: 'PRO',
+          uploadLimit: 100,
+          uploadedTracks: 0,
+          remainingUploads: 100,
+        ),
+      ),
+    );
 
+    when(() => mockSubscriptionCubit.stream).thenAnswer(
+      (_) => const Stream<SubscriptionState>.empty(),
+    );
     when(() => mockSubscriptionCubit.refreshAfterPayment())
         .thenAnswer((_) async {});
   });

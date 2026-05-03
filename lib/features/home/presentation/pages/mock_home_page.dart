@@ -18,10 +18,10 @@ import 'package:soundcloud_clone/features/messaging/presentation/routes/messagin
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/playlists/domain/usecases/get_top_playlists_usecase.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
-
+import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
 import '/features/profile/presentation/routes/profile_routes.dart';
-import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
 import 'package:soundcloud_clone/features/notifications/presentation/widgets/notification_badge.dart';
 
 class MockHomePage extends StatefulWidget {
@@ -430,6 +430,12 @@ class _MockHomePageState extends State<MockHomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const PremiumAwareAdBanner(
+                            title: 'Ad-free listening is one tap away',
+                            subtitle:
+                                'Go Premium to remove sponsored cards, save music offline, and unlock more uploads.',
+                            actionLabel: 'Upgrade',
+                          ),
                           const _SectionHeader(title: 'More of what you like'),
                           const _RelatedTracksRow(),
                           _PlaylistShelf(
@@ -846,12 +852,24 @@ class _SubscriptionBadge extends StatelessWidget {
     final cubit = _subscriptionCubitOf(context);
 
     if (cubit == null) {
-      return _buildBadge(context, null);
+      return _buildBadge(
+        context,
+        planCode: 'FREE',
+        isPremium: false,
+      );
     }
 
-    return BlocBuilder<SubscriptionCubit, Subscription?>(
+    return BlocBuilder<SubscriptionCubit, SubscriptionState>(
       bloc: cubit,
-      builder: (context, subscription) => _buildBadge(context, subscription),
+      builder: (context, state) {
+        final subscription = state.subscription;
+
+        return _buildBadge(
+          context,
+          planCode: subscription.normalizedPlanCode,
+          isPremium: subscription.isPremium,
+        );
+      },
     );
   }
 
@@ -860,29 +878,37 @@ class _SubscriptionBadge extends StatelessWidget {
       return context.read<SubscriptionCubit>();
     } catch (_) {
       final getIt = GetIt.I;
+
       if (getIt.isRegistered<SubscriptionCubit>()) {
         return getIt<SubscriptionCubit>();
       }
+
       return null;
     }
   }
 
-  Widget _buildBadge(BuildContext context, Subscription? subscription) {
-    final plan = subscription?.subscriptionType ?? 'FREE';
-    final isPremium = plan != 'FREE';
-
+  Widget _buildBadge(
+    BuildContext context, {
+    required String planCode,
+    required bool isPremium,
+  }) {
     Color badgeColor;
     String badgeLabel;
 
-    if (plan == 'GO_PLUS') {
-      badgeColor = const Color(0xFF4B9EFF);
-      badgeLabel = 'GO+';
-    } else if (plan == 'PRO') {
-      badgeColor = const Color(0xFF1DB954);
-      badgeLabel = 'PRO';
-    } else {
-      badgeColor = const Color(0xFFFF5500);
-      badgeLabel = 'GET PRO';
+    switch (planCode.trim().toUpperCase()) {
+      case 'GO_PLUS':
+        badgeColor = const Color(0xFF4B9EFF);
+        badgeLabel = 'GO+';
+        break;
+      case 'PRO':
+        badgeColor = const Color(0xFF1DB954);
+        badgeLabel = 'PRO';
+        break;
+      case 'FREE':
+      default:
+        badgeColor = const Color(0xFFFF5500);
+        badgeLabel = 'GET PRO';
+        break;
     }
 
     return GestureDetector(

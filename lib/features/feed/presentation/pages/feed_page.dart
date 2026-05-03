@@ -32,7 +32,7 @@ import '../../domain/usecases/toggle_like.dart';
 import '../../domain/usecases/toggle_repost.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../../social/domain/events/social_events.dart';
-
+import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
 // ─── DI helper (replace with your DI solution: get_it, riverpod, etc.) ───────
 
 FeedCubit _buildCubit() {
@@ -234,14 +234,23 @@ class _LoadedFeed extends StatelessWidget {
         onRefresh: cubit.refresh,
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: state.items.length + 1, // +1 for footer
+          itemCount: state.items.length + 2, // +1 ad banner, +1 footer
           itemBuilder: (context, index) {
+            if (index == 0) {
+              return const PremiumAwareAdBanner(
+                title: 'Enjoy the feed without ads',
+                subtitle:
+                    'Upgrade to remove sponsored cards, download tracks, and upload more music.',
+                actionLabel: 'Upgrade',
+              );
+            }
+
             // Footer
-            if (index == state.items.length) {
+            if (index == state.items.length + 1) {
               return _Footer(state: state);
             }
 
-            final item = state.items[index];
+            final item = state.items[index - 1];
 
             return FeedCard(
               key: ValueKey(item.activityId),

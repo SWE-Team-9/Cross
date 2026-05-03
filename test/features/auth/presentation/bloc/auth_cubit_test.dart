@@ -121,6 +121,11 @@ void main() {
     mockWindowsOAuthCallbackServer = MockWindowsOAuthCallbackServer();
     mockOAuthPendingRequestStore = MockOAuthPendingRequestStore();
     mockFcmRegistrationService = MockFcmRegistrationService();
+
+    when(() => mockFcmRegistrationService.syncToken()).thenAnswer(
+      (_) async => true,
+    );
+
     cubit = buildCubit();
   });
 
