@@ -98,6 +98,49 @@ void main() {
   });
 
   group('getTopPlaylists', () {
+    test('parses documented topPlaylists payload', () async {
+      when(() => dioClient.get(
+            '/api/v1/playlists/top',
+            queryParameters: {'limit': 10},
+          )).thenAnswer(
+        (_) async => Response<dynamic>(
+          requestOptions: RequestOptions(path: '/api/v1/playlists/top'),
+          data: <String, dynamic>{
+            'topPlaylists': <dynamic>[
+              <String, dynamic>{
+                'playlistId': 'pl_101',
+                'title': 'Late Night Drive',
+                'visibility': 'PUBLIC',
+                'tracksCount': 12,
+                'likesCount': 48,
+                'coverImageUrl': 'https://cdn.example.com/playlists/pl_101.jpg',
+                'genre': 'electronic',
+                'owner': <String, dynamic>{
+                  'id': 'u_1',
+                  'displayName': 'Ahmed Hassan',
+                },
+              },
+            ],
+            'genres': <dynamic>[],
+          },
+        ),
+      );
+
+      final result = await dataSource.getTopPlaylists();
+
+      expect(result, hasLength(1));
+      expect(result.single.playlistId, 'pl_101');
+      expect(result.single.title, 'Late Night Drive');
+      expect(result.single.genre, 'electronic');
+      expect(result.single.tracksCount, 12);
+      expect(result.single.likesCount, 48);
+      expect(
+        result.single.coverImageUrl,
+        'https://cdn.example.com/playlists/pl_101.jpg',
+      );
+      expect(result.single.owner?.displayName, 'Ahmed Hassan');
+    });
+
     test('flattens playlists grouped by genre', () async {
       when(() => dioClient.get(
             '/api/v1/playlists/top',

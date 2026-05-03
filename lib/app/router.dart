@@ -51,7 +51,7 @@ import '../features/playlists/presentation/pages/playlists_page.dart';
 import '../features/notifications/presentation/pages/notifications_page.dart';
 
 // Project — home
-import '../features/home/presentation/pages/mock_home_page.dart';
+import '../features/home/presentation/pages/home_page.dart';
 
 // Project — feed
 import '../features/feed/presentation/pages/feed_page.dart';
@@ -291,7 +291,7 @@ GoRouter _createRouter() {
         path: AppRoutes.home,
         name: 'home',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: MockHomePage(),
+          child: HomePage(),
         ),
       ),
 

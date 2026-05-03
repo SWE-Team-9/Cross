@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  bottom_nav_bar.dart  —  Shared Bottom Navigation Bar
-//  Used by: MockHomePage, FeedPage (and any future screen)
+//  Used by: HomePage, FeedPage (and any future screen)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';

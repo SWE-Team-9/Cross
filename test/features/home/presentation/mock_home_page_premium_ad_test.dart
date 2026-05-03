@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('MockHomePage premium ad banner integration', () {
+  group('HomePage premium ad banner integration', () {
     late String source;
 
     setUpAll(() {
       source = File(
-        'lib/features/home/presentation/pages/mock_home_page.dart',
+        'lib/features/home/presentation/pages/home_page.dart',
       ).readAsStringSync();
     });
 
@@ -42,18 +42,20 @@ void main() {
       );
     });
 
-    test('places premium ad before home recommendation sections', () {
+    test('places premium ad before real backend sections', () {
       final bannerIndex = source.indexOf('const PremiumAwareAdBanner(');
-      final moreLikeIndex = source.indexOf(
-        "const _SectionHeader(title: 'More of what you like')",
+      final playlistsIndex = source.indexOf(
+        "title: 'Top playlists'",
       );
-      final relatedTracksIndex = source.indexOf('const _RelatedTracksRow()');
+      final trendingIndex = source.indexOf(
+        "title: 'Trending now'",
+      );
 
       expect(bannerIndex, isNonNegative);
-      expect(moreLikeIndex, isNonNegative);
-      expect(relatedTracksIndex, isNonNegative);
-      expect(bannerIndex, lessThan(moreLikeIndex));
-      expect(moreLikeIndex, lessThan(relatedTracksIndex));
+      expect(playlistsIndex, isNonNegative);
+      expect(trendingIndex, isNonNegative);
+      expect(bannerIndex, lessThan(playlistsIndex));
+      expect(playlistsIndex, lessThan(trendingIndex));
     });
 
     test('keeps subscription badge integration on top bar', () {
@@ -67,18 +69,18 @@ void main() {
       );
       expect(
         source,
-        contains('subscription.normalizedPlanCode'),
+        contains('state.subscription.normalizedPlanCode'),
       );
       expect(
         source,
-        contains('subscription.isPremium'),
+        contains('state.subscription.isPremium'),
       );
     });
 
     test('keeps free badge navigation to upgrade route', () {
       expect(
         source,
-        contains("badgeLabel = 'GET PRO'"),
+        contains("_ => 'GET PRO'"),
       );
       expect(
         source,
@@ -89,11 +91,11 @@ void main() {
     test('keeps premium badge labels for pro and go plus users', () {
       expect(
         source,
-        contains("badgeLabel = 'PRO'"),
+        contains("'PRO' => 'PRO'"),
       );
       expect(
         source,
-        contains("badgeLabel = 'GO+'"),
+        contains("'GO_PLUS' => 'GO+'"),
       );
     });
   });

@@ -14,7 +14,11 @@ import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
-import 'package:soundcloud_clone/features/home/presentation/pages/mock_home_page.dart';
+import 'package:soundcloud_clone/features/home/domain/repositories/home_repository.dart';
+import 'package:soundcloud_clone/features/home/domain/usecases/get_home_content_usecase.dart';
+import 'package:soundcloud_clone/features/home/domain/usecases/get_home_trending_tracks_usecase.dart';
+import 'package:soundcloud_clone/features/home/presentation/bloc/home_cubit.dart';
+import 'package:soundcloud_clone/features/home/presentation/pages/home_page.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
@@ -98,6 +102,47 @@ class MockConnectMessagingSocketUseCase extends Mock
 
 class MockProfileRepository extends Mock implements ProfileRepository {}
 
+class FakeHomeRepository implements HomeRepository {
+  @override
+  Future<List<String>> getFavoriteGenres() async {
+    return const <String>['Top liked', 'electronic', 'hip-hop', 'pop'];
+  }
+
+  @override
+  Future<List<PlaylistEntity>> getTopPlaylists({int limit = 10}) async {
+    return const <PlaylistEntity>[
+      PlaylistEntity(
+        playlistId: 'playlist-1',
+        title: 'Backend Beats',
+        description: '',
+        visibility: PlaylistVisibility.publicPlaylist,
+        secretToken: null,
+        coverImageUrl: null,
+        owner: PlaylistOwner(id: 'owner-1', displayName: 'Iqa3'),
+        tracks: <Track>[],
+        tracksCount: 12,
+        likesCount: 42,
+      ),
+    ];
+  }
+
+  @override
+  Future<List<Track>> getTrendingTracks({
+    required String genre,
+    int limit = 5,
+  }) async {
+    return <Track>[
+      Track(
+        id: 'track-$genre',
+        title: 'Trending $genre',
+        artist: 'Backend Artist',
+        audioUrl: '',
+        likesCount: 9,
+      ),
+    ];
+  }
+}
+
 const _testUser = User(
   id: '1',
   email: 'test@example.com',
@@ -165,6 +210,15 @@ Future<void> _setUp() async {
   GetIt.I.registerSingleton<ProfileRepository>(profileRepository);
   GetIt.I.registerSingleton<RecentlyPlayedCubit>(RecentlyPlayedCubit());
   GetIt.I.registerSingleton<OfflineCubit>(offlineCubit);
+  GetIt.I.registerFactory<HomeCubit>(
+    () {
+      final repository = FakeHomeRepository();
+      return HomeCubit(
+        getHomeContent: GetHomeContentUseCase(repository),
+        getHomeTrendingTracks: GetHomeTrendingTracksUseCase(repository),
+      );
+    },
+  );
 
   GetIt.I.registerFactory<UnreadCountCubit>(
     () => UnreadCountCubit(
@@ -207,7 +261,7 @@ Widget _buildApp(
                   SubscriptionCubit(subscriptionRepository)..loadSubscription(),
             ),
           ],
-          child: const MockHomePage(),
+          child: const HomePage(),
         ),
       ),
       GoRoute(
@@ -295,7 +349,7 @@ void main() {
     await GetIt.I.reset();
   });
 
-  group('MockHomePage basic render', () {
+  group('HomePage basic render', () {
     testWidgets('builds without crashing when authenticated', (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
@@ -604,13 +658,13 @@ void main() {
       expect(find.text('hip-hop'), findsOneWidget);
     });
 
-    testWidgets('renders related tracks and mix cards', (tester) async {
+    testWidgets('does not render mock recommendation cards', (tester) async {
       await _pumpHome(tester, mockAuthCubit);
 
-      expect(find.text('Related tracks: L...'), findsOneWidget);
-      expect(find.text('SoundCloud'), findsWidgets);
-      expect(find.text('MIX 1'), findsOneWidget);
-      expect(find.text('Balthazar, Cage...'), findsOneWidget);
+      expect(find.text('Related tracks: L...'), findsNothing);
+      expect(find.text('MIX 1'), findsNothing);
+      expect(find.text('Backend Beats'), findsOneWidget);
+      expect(find.text('Trending Top liked'), findsOneWidget);
     });
 
     testWidgets('tapping upload icon navigates to upload route',
@@ -636,7 +690,7 @@ void main() {
 
       expect(find.text('Home'), findsWidgets);
       expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
-      expect(find.text('Your favorite genres'), findsOneWidget);
+      expect(find.text('Trending now'), findsOneWidget);
     });
   });
 }
