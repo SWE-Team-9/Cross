@@ -116,6 +116,9 @@ import '../../features/comments/domain/usecases/delete_comment_usecase.dart';
 import '../../features/comments/domain/usecases/get_track_comments_usecase.dart';
 import '../../features/comments/domain/usecases/reply_to_comment_usecase.dart';
 import '../../features/comments/presentation/bloc/comments_cubit.dart';
+import '../../features/notifications/notifications_injection.dart';
+import '../../features/notifications/data/services/fcm_registration_service.dart';
+import '../../features/notifications/data/services/notifications_realtime_refresh_service.dart';
 
 import '../network/api_constants.dart';
 import '../network/dio_client.dart';
@@ -438,6 +441,9 @@ Future<void> setupDependencies() async {
     );
   }
 
+  // ── Notifications Feature ───────────────────────────────────────────────
+  registerNotificationsModule(getIt);
+
   // ── Auth Feature ─────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
@@ -544,6 +550,7 @@ Future<void> setupDependencies() async {
         authRepository: getIt<AuthRepository>(),
         windowsOAuthCallbackServer: getIt<WindowsOAuthCallbackServer>(),
         oauthPendingRequestStore: getIt<OAuthPendingRequestStore>(),
+        fcmRegistrationService: getIt<FcmRegistrationService>(),
       ),
     );
   }
@@ -594,6 +601,7 @@ Future<void> setupDependencies() async {
     getIt.registerLazySingleton<MessagingSocketDataSource>(
       () => MessagingSocketDataSourceImpl(
         cookieJar: getIt<PersistCookieJar>(),
+        secureStorage: getIt<SecureStorage>(),
       ),
     );
   }
@@ -672,6 +680,14 @@ Future<void> setupDependencies() async {
     getIt.registerLazySingleton<ConnectMessagingSocketUseCase>(
       () => ConnectMessagingSocketUseCase(
         getIt<MessagingRealtimeRepository>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<NotificationsRealtimeRefreshService>()) {
+    getIt.registerLazySingleton<NotificationsRealtimeRefreshService>(
+      () => NotificationsRealtimeRefreshService(
+        getIt<ConnectMessagingSocketUseCase>(),
       ),
     );
   }

@@ -1,7 +1,9 @@
 // coverage:ignore-file
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,6 +13,7 @@ import '../../../../core/network/error_mapper.dart';
 import '../../../../core/oauth/oauth_pending_request_store.dart';
 import '../../../../core/oauth/pkce_utils.dart';
 import '../../../../core/oauth/windows_oauth_callback_server.dart';
+import '../../../notifications/data/services/fcm_registration_service.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/confirm_email_change_usecase.dart';
@@ -39,6 +42,7 @@ class AuthCubit extends Cubit<AuthState> {
   final VerifyEmailUseCase verifyEmailUseCase;
   final RequestEmailChangeUseCase requestEmailChangeUseCase;
   final ConfirmEmailChangeUseCase confirmEmailChangeUseCase;
+  final FcmRegistrationService fcmRegistrationService;
 
   final AuthRepository authRepository;
   final WindowsOAuthCallbackServer windowsOAuthCallbackServer;
@@ -67,6 +71,7 @@ class AuthCubit extends Cubit<AuthState> {
     required this.verifyEmailUseCase,
     required this.requestEmailChangeUseCase,
     required this.confirmEmailChangeUseCase,
+    required this.fcmRegistrationService,
     required this.authRepository,
     required this.windowsOAuthCallbackServer,
     required this.oauthPendingRequestStore,
@@ -110,6 +115,9 @@ class AuthCubit extends Cubit<AuthState> {
         return;
       }
       emit(AuthAuthenticated(user));
+      scheduleMicrotask(() {
+        _syncFcmToken();
+      });
     } catch (e) {
       emit(AuthUnauthenticated());
     }
@@ -130,6 +138,9 @@ class AuthCubit extends Cubit<AuthState> {
         captchaToken: captchaToken,
       );
       emit(AuthAuthenticated(user));
+      scheduleMicrotask(() {
+        _syncFcmToken();
+      });
     } on DioException catch (e) {
       final failure = ErrorMapper.mapDioErrorToFailure(e);
       if (failure.message.toLowerCase().contains("verify your email")) {
@@ -420,6 +431,9 @@ class AuthCubit extends Cubit<AuthState> {
 
       await Future<void>.delayed(const Duration(milliseconds: 450));
       emit(AuthAuthenticated(user));
+      scheduleMicrotask(() {
+        _syncFcmToken();
+      });
     } on DioException catch (e) {
       await _clearPendingOAuth();
       final failure = ErrorMapper.mapDioErrorToFailure(e);
@@ -701,8 +715,23 @@ class AuthCubit extends Cubit<AuthState> {
       final user = await getCurrentUserUseCase();
       if (user != null) {
         emit(AuthAuthenticated(user));
+        scheduleMicrotask(() {
+          _syncFcmToken();
+        });
       }
     } catch (_) {}
+  }
+
+  Future<void> _syncFcmToken() async {
+    try {
+      final synced = await fcmRegistrationService.syncToken();
+      if (!synced) {
+        debugPrint('FCM token sync skipped or failed.');
+      }
+    } catch (error, stackTrace) {
+      debugPrint('FCM token sync failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   String _mapOAuthProviderErrorToCause({
