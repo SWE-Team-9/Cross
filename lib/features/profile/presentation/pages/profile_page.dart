@@ -84,6 +84,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _repostedTracks = const <ManagedTrack>[];
+  List<PlaylistEntity> _profilePlaylists = const <PlaylistEntity>[];
+  List<PlaylistEntity> _likedPlaylists = const <PlaylistEntity>[];
   Future<List<PlaylistEntity>>? _profilePlaylistsFuture;
   Future<List<PlaylistEntity>>? _likedPlaylistsFuture;
 
@@ -111,6 +113,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       _managedTracks = profileState.tracks;
       _likedTracks = profileState.likedTracks;
       _repostedTracks = profileState.repostedTracks;
+      _profilePlaylists = profileState.playlists;
+      _likedPlaylists = profileState.likedPlaylists;
     }
 
     _syncFollowState(profileState);
@@ -130,6 +134,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         _managedTracks = state.tracks;
         _likedTracks = state.likedTracks;
         _repostedTracks = state.repostedTracks;
+        _profilePlaylists = state.playlists;
+        _likedPlaylists = state.likedPlaylists;
       });
     }
   }
@@ -626,14 +632,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildLikedTracksTab(ProfileEntity profile) {
-    if (!_isOwnProfile) {
-      return _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet');
-    }
-
     return _ProfileTracksListTab(
       tracks: _likedTracks,
-      artistName: '',
-      artistHandle: '',
+      artistName: profile.displayName,
+      artistHandle: profile.handle,
       source: 'profile_likes',
       emptyIcon: Icons.favorite_border,
       emptyMessage: 'No liked tracks yet',
@@ -642,7 +644,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildLikedPlaylistsTab() {
-    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+    if (!_isOwnProfile) {
+      return _buildPlaylistListTab(
+        playlists: _likedPlaylists,
+        emptyIcon: Icons.favorite_border,
+        emptyMessage: 'No liked playlists yet',
+      );
+    }
+
+    if (!getIt.isRegistered<PlaylistsRepository>()) {
       return _buildEmptyTab(
         Icons.favorite_border,
         'No liked playlists yet',
@@ -705,14 +715,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildRepostedTracksTab(ProfileEntity profile) {
-    if (!_isOwnProfile) {
-      return _buildEmptyTab(Icons.repeat, 'No reposts yet');
-    }
-
     return _ProfileTracksListTab(
       tracks: _repostedTracks,
-      artistName: '',
-      artistHandle: '',
+      artistName: profile.displayName,
+      artistHandle: profile.handle,
       source: 'profile_reposts',
       emptyIcon: Icons.repeat,
       emptyMessage: 'No reposts yet',
@@ -720,7 +726,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildPlaylistsTab() {
-    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+    if (!_isOwnProfile) {
+      return _buildPlaylistListTab(
+        playlists: _profilePlaylists,
+        emptyIcon: Icons.queue_music_outlined,
+        emptyMessage: 'No playlists yet',
+      );
+    }
+
+    if (!getIt.isRegistered<PlaylistsRepository>()) {
       return _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet');
     }
 
@@ -777,6 +791,18 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         );
       },
     );
+  }
+
+  Widget _buildPlaylistListTab({
+    required List<PlaylistEntity> playlists,
+    required IconData emptyIcon,
+    required String emptyMessage,
+  }) {
+    if (playlists.isEmpty) {
+      return _buildEmptyTab(emptyIcon, emptyMessage);
+    }
+
+    return _ProfilePlaylistsList(playlists: playlists);
   }
 
   Widget _buildActionRow(BuildContext context, ProfileEntity profile) {
@@ -1438,9 +1464,20 @@ class _ManagedProfileTracksTab extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
               child: Align(
                 alignment: Alignment.centerRight,
-                child: OutlinedButton(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF7A00),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    minimumSize: const Size(64, 36),
+                  ),
                   onPressed: () => onManageTap(managedTrack),
-                  child: const Text('Manage'),
+                  icon: const Icon(Icons.settings_outlined, size: 16),
+                  label: const Text('Manage'),
                 ),
               ),
             ),

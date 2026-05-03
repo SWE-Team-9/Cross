@@ -1,7 +1,6 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 
     // Google Services plugin
@@ -16,7 +15,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true 
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -25,26 +24,31 @@ android {
 
     defaultConfig {
         applicationId = "com.SWETeam9.my_app"
-        minSdk = 24 
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
+
+        manifestPlaceholders["appHost"] = "dev.iqa3.tech"
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["appHost"] = "dev.iqa3.tech"
+        }
+
         release {
             signingConfig = signingConfigs.getByName("debug")
+            manifestPlaceholders["appHost"] = "dev.iqa3.tech"
         }
     }
 }
 
-
 dependencies {
-
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 
-    //Firebase BoM and FCM
+    // Firebase BoM and FCM
     implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
     implementation("com.google.firebase:firebase-messaging")
 }

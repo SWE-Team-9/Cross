@@ -13,23 +13,22 @@ import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/auth/presentation/routes/auth_routes.dart';
 import '../features/comments/presentation/bloc/comments_cubit.dart';
 import '../features/comments/presentation/pages/track_comments_page.dart';
+import '../features/messaging/presentation/routes/messaging_routes.dart';
 import '../features/notifications/data/services/fcm_registration_service.dart';
 import '../features/notifications/data/services/notifications_realtime_refresh_service.dart';
 import '../features/notifications/domain/entities/notification_entity.dart';
 import '../features/notifications/domain/entities/notification_tap_target.dart';
 import '../features/notifications/domain/usecases/resolve_notification_tap_target_use_case.dart';
-import '../features/messaging/presentation/routes/messaging_routes.dart';
 import '../features/notifications/presentation/bloc/notification_preferences_bloc.dart';
 import '../features/notifications/presentation/bloc/notifications_bloc.dart';
-import '../features/profile/presentation/routes/profile_routes.dart';
+import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/player_ui_state.dart';
-import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
+import '../features/profile/presentation/routes/profile_routes.dart';
 import '../features/social/data/repositories/social_repo.dart';
 import 'router.dart';
 
-// Routes where the mini-player must stay hidden (auth/onboarding/full player).
 const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.splash,
   AuthRoutes.welcome,
@@ -43,6 +42,7 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AppRoutes.player,
   AppRoutes.trackManagementDemo,
   AppRoutes.uploadPicker,
+  AppRoutes.discover,
 };
 
 bool _shouldHideMiniPlayerForPath(String path) {
@@ -105,6 +105,7 @@ class App extends StatelessWidget {
                     current is AuthUnauthenticated &&
                     previous is! AuthUnauthenticated,
                 listener: (context, state) {
+                  unawaited(context.read<PlayerCubit>().stop());
                   getIt<NotificationsRealtimeRefreshService>().stop();
                 },
               ),
@@ -350,6 +351,14 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
 
     if (destination is OAuthCallbackDeepLink) {
       router.go(AuthRoutes.oauthDebug, extra: destination);
+    } else if (destination is TrackDeepLink) {
+      router.go('/track/${destination.trackId}');
+    } else if (destination is PlaylistDeepLink) {
+      router.go('/playlist/${destination.playlistId}');
+    } else if (destination is ProfileDeepLink) {
+      router.go('/profile/${destination.handle}');
+    } else if (destination is SearchDeepLink) {
+      router.go('/search?q=${destination.query}');
     }
   }
 
@@ -360,7 +369,5 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
+  Widget build(BuildContext context) => widget.child;
 }

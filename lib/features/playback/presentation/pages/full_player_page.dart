@@ -476,107 +476,23 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
     );
   }
 
+  // 🔥 NEW — يفتح الـ QueueSheet الجديد
   void _showQueue(BuildContext context) {
     final playerCubit = context.read<PlayerCubit>();
-    final queue = playerCubit.state.playerState.queue;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) {
-        if (queue.isEmpty) {
-          return const SizedBox(
-            height: 260,
-            child: Center(
-              child: Text(
-                'Queue is empty',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => BlocBuilder<PlayerCubit, PlayerUIState>(
+        bloc: playerCubit,
+        builder: (ctx, playerState) {
+          return _QueueSheet(
+            playerCubit: playerCubit,
+            playerState: playerState,
           );
-        }
-
-        return Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Up Next',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
-                itemCount: queue.length,
-                itemBuilder: (context, index) {
-                  final track = queue[index];
-                  return ListTile(
-                    leading: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(4),
-                        image: track.artworkUrl != null
-                            ? DecorationImage(
-                                image: NetworkImage(track.artworkUrl!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: track.artworkUrl == null
-                          ? const Icon(
-                              Icons.music_note,
-                              color: Colors.white54,
-                              size: 20,
-                            )
-                          : null,
-                    ),
-                    title: Text(
-                      track.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      track.artist,
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
-                    ),
-                    onTap: () {
-                      playerCubit.playFromContext(
-                        tracks: queue,
-                        startIndex: index,
-                        source: 'queue',
-                      );
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
+        },
+      ),
     );
   }
 
@@ -1017,6 +933,391 @@ class _FullPlayerPageState extends State<FullPlayerPage> {
     return '$m:$s';
   }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🔥 Queue Sheet — زي SoundCloud بالظبط
+// ════════════════════════════════════════════════════════════════════════════
+
+class _QueueSheet extends StatefulWidget {
+  final PlayerCubit playerCubit;
+  final PlayerUIState playerState;
+
+  const _QueueSheet({
+    required this.playerCubit,
+    required this.playerState,
+  });
+
+  @override
+  State<_QueueSheet> createState() => _QueueSheetState();
+}
+
+class _QueueSheetState extends State<_QueueSheet> {
+  late List<Track> _queue;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _queue = List<Track>.from(widget.playerState.queue);
+    _currentIndex = widget.playerState.currentIndex;
+  }
+
+  // لما الـ cubit يتحدّث، حدّث الـ queue المحلية
+  @override
+  void didUpdateWidget(covariant _QueueSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_sameList(oldWidget.playerState.queue, widget.playerState.queue)) {
+      setState(() {
+        _queue = List<Track>.from(widget.playerState.queue);
+        _currentIndex = widget.playerState.currentIndex;
+      });
+    }
+  }
+
+  bool _sameList(List<Track> a, List<Track> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id) return false;
+    }
+    return true;
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex--;
+      final track = _queue.removeAt(oldIndex);
+      _queue.insert(newIndex, track);
+
+      // حدّث الـ currentIndex لو اتغير مكانه
+      final currentTrackId = widget.playerState.currentTrack?.id;
+      if (currentTrackId != null) {
+        _currentIndex = _queue.indexWhere((t) => t.id == currentTrackId);
+      }
+    });
+
+    // ابعت التحديث للـ cubit
+    widget.playerCubit.reorderQueue(List<Track>.from(_queue));
+  }
+
+  String _formatSource(String source) {
+    return switch (source) {
+      'home_trending' => 'a recent play queue',
+      'profile_likes' => 'your liked tracks',
+      'profile_reposts' => 'your reposts',
+      'station' => 'station',
+      'queue' => 'queue',
+      _ => 'a recent play queue',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF111111),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Column(
+            children: [
+              // ── Handle ─────────────────────────────────────────────────
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // ── Header row ─────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 8, 4),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Next up',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    // Shuffle placeholder
+                    IconButton(
+                      icon: const Icon(
+                        Icons.shuffle,
+                        color: Colors.white38,
+                        size: 22,
+                      ),
+                      onPressed: null,
+                    ),
+                    // Repeat
+                    RepeatModeButton(
+                      mode: widget.playerState.repeatMode,
+                      iconSize: 22,
+                      showOptions: false,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      onChanged: (mode) =>
+                          widget.playerCubit.setRepeatMode(mode),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Source label ────────────────────────────────────────────
+              if (widget.playerState.playerState.source != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 20, bottom: 10),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'From ${_formatSource(widget.playerState.playerState.source!)}',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // ── Track list with drag & drop ─────────────────────────────
+              Expanded(
+                child: _queue.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Queue is empty',
+                          style: TextStyle(color: Colors.white38),
+                        ),
+                      )
+                    : ReorderableListView.builder(
+                        scrollController: scrollController,
+                        onReorder: _onReorder,
+                        // بيخفي الـ default drag handle لأننا بنعمل custom
+                        buildDefaultDragHandles: false,
+                        itemCount: _queue.length,
+                        itemBuilder: (context, index) {
+                          final track = _queue[index];
+                          final isPlaying =
+                              track.id == widget.playerState.currentTrack?.id;
+                          final isPlayed = index < _currentIndex;
+                          final isPaused =
+                              isPlaying && !widget.playerState.isPlaying;
+
+                          return _QueueTile(
+                            key: ValueKey(track.id),
+                            track: track,
+                            index: index,
+                            isPlaying: isPlaying,
+                            isPaused: isPaused,
+                            isPlayed: isPlayed,
+                            onTap: () {
+                              widget.playerCubit.playFromContext(
+                                tracks: _queue,
+                                startIndex: index,
+                                source: widget.playerState.playerState.source ??
+                                    'queue',
+                              );
+                              Navigator.pop(context);
+                            },
+                            onOptions: () {
+                              TrackOptionsSheet.show(context, track: track);
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🔥 Queue Tile — 3 نقاط للي اتشغل/شغال، 6 نقاط drag للجديد
+// ════════════════════════════════════════════════════════════════════════════
+
+class _QueueTile extends StatelessWidget {
+  final Track track;
+  final int index;
+  final bool isPlaying;
+  final bool isPaused;
+  final bool isPlayed;
+  final VoidCallback onTap;
+  final VoidCallback onOptions;
+
+  const _QueueTile({
+    super.key,
+    required this.track,
+    required this.index,
+    required this.isPlaying,
+    required this.isPaused,
+    required this.isPlayed,
+    required this.onTap,
+    required this.onOptions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // ── الألوان زي SoundCloud بالظبط ─────────────────────────────────────
+    final Color titleColor = isPlaying
+        ? const Color(0xFFFF5500) // برتقالي للشغالة
+        : isPlayed
+            ? Colors.white30 // بهتان للي اتشغلوا
+            : Colors.white; // أبيض للجايين
+
+    final Color artistColor = isPlaying
+        ? const Color(0xFFFF5500).withValues(alpha: 0.7)
+        : isPlayed
+            ? Colors.white24
+            : Colors.white54;
+
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.white10,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Row(
+          children: [
+            // ── Artwork مع overlay ──────────────────────────────────────
+            Stack(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[850],
+                    borderRadius: BorderRadius.circular(4),
+                    image: track.artworkUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(track.artworkUrl!),
+                            fit: BoxFit.cover,
+                            // بيغمق الصورة للي اتشغلوا
+                            colorFilter: isPlayed && !isPlaying
+                                ? ColorFilter.mode(
+                                    Colors.black.withValues(alpha: 0.5),
+                                    BlendMode.darken,
+                                  )
+                                : null,
+                          )
+                        : null,
+                  ),
+                  child: track.artworkUrl == null
+                      ? Icon(
+                          Icons.music_note,
+                          color: isPlayed ? Colors.white24 : Colors.white54,
+                          size: 20,
+                        )
+                      : null,
+                ),
+                // Equalizer أو Pause icon فوق الصورة للأغنية الشغالة
+                if (isPlaying)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Icon(
+                        isPaused ? Icons.pause : Icons.equalizer,
+                        color: const Color(0xFFFF5500),
+                        size: 20,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            const SizedBox(width: 12),
+
+            // ── Title + subtitle ────────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    track.title,
+                    style: TextStyle(
+                      color: titleColor,
+                      fontSize: 14,
+                      fontWeight:
+                          isPlaying ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    // لو شغالة بيعرض "Now Playing" أو "Paused"
+                    isPlaying
+                        ? (isPaused ? '⏸  Paused' : '▶  Now Playing')
+                        : track.artist,
+                    style: TextStyle(
+                      color: artistColor,
+                      fontSize: 12,
+                      fontWeight:
+                          isPlaying ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 4),
+
+            // ── Trailing: 3 نقاط أو 6 نقاط drag ───────────────────────
+            if (isPlaying || isPlayed)
+              // 3 نقاط عمودية للي شغال أو اتشغل — بيفتح options sheet
+              GestureDetector(
+                onTap: onOptions,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: Icon(
+                    Icons.more_vert,
+                    color: Colors.white54,
+                    size: 22,
+                  ),
+                ),
+              )
+            else
+              // 6 نقاط drag handle للي لسه ما اتشغلش
+              ReorderableDragStartListener(
+                index: index,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: Icon(
+                    Icons.drag_indicator,
+                    color: Colors.white38,
+                    size: 22,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// باقي الـ Widgets اللي كانت موجودة — بدون تغيير
+// ════════════════════════════════════════════════════════════════════════════
 
 class _CircleBtn extends StatelessWidget {
   final IconData icon;

@@ -21,10 +21,14 @@ void main() {
       );
     });
 
-    test('adds premium aware ad banner as first loaded feed item', () {
+    test('adds premium aware ad banner below the feed toggle', () {
       expect(
         source,
-        contains('return const PremiumAwareAdBanner('),
+        contains('const SliverToBoxAdapter('),
+      );
+      expect(
+        source,
+        contains('child: PremiumAwareAdBanner('),
       );
       expect(
         source,
@@ -42,39 +46,43 @@ void main() {
       );
     });
 
-    test('updates loaded feed item count for ad banner and footer', () {
+    test('keeps the loaded feed in a sliver layout', () {
       expect(
         source,
-        contains('itemCount: state.items.length + 2'),
+        contains('CustomScrollView('),
       );
       expect(
         source,
-        contains('// +1 ad banner, +1 footer'),
+        contains('SliverPersistentHeader('),
+      );
+      expect(
+        source,
+        contains('SliverList('),
       );
     });
 
-    test('renders ad banner only at index zero', () {
+    test('renders ad banner before feed cards', () {
       expect(
         source,
-        contains('if (index == 0)'),
+        contains('const SliverToBoxAdapter('),
       );
       expect(
         source,
-        contains('return const PremiumAwareAdBanner('),
+        contains('child: PremiumAwareAdBanner('),
       );
 
-      final indexCheck = source.indexOf('if (index == 0)');
-      final bannerReturn = source.indexOf('return const PremiumAwareAdBanner(');
+      final banner = source.indexOf('child: PremiumAwareAdBanner(');
+      final feedCards = source.indexOf('SliverList(');
 
-      expect(indexCheck, isNonNegative);
-      expect(bannerReturn, isNonNegative);
-      expect(bannerReturn, greaterThan(indexCheck));
+      expect(banner, isNonNegative);
+      expect(feedCards, isNonNegative);
+      expect(feedCards, greaterThan(banner));
     });
 
-    test('moves footer index after ad banner offset', () {
+    test('keeps footer after feed items', () {
       expect(
         source,
-        contains('if (index == state.items.length + 1)'),
+        contains('if (index == state.items.length)'),
       );
       expect(
         source,
@@ -82,10 +90,10 @@ void main() {
       );
     });
 
-    test('uses index minus one for feed item lookup after banner', () {
+    test('uses direct feed item lookup in the sliver list', () {
       expect(
         source,
-        contains('final item = state.items[index - 1];'),
+        contains('final item = state.items[index];'),
       );
     });
 

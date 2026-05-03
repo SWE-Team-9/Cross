@@ -27,6 +27,8 @@ class TrackDeepLinkBridgePage extends StatefulWidget {
 }
 
 class _TrackDeepLinkBridgePageState extends State<TrackDeepLinkBridgePage> {
+  bool _navigated = false;
+
   @override
   void initState() {
     super.initState();
@@ -35,10 +37,52 @@ class _TrackDeepLinkBridgePageState extends State<TrackDeepLinkBridgePage> {
 
   void _load() {
     final cubit = context.read<TrackLoaderCubit>();
+
     if (widget.secretToken != null) {
       cubit.loadBySecretToken(widget.secretToken!);
     } else {
       cubit.loadByTrackId(widget.trackId!);
+    }
+  }
+
+  void _openPlayer() {
+    if (_navigated) return;
+    _navigated = true;
+
+    final GoRouter? router = GoRouter.maybeOf(context);
+
+    if (router != null) {
+      context.read<PlayerCubit>().openFullPlayer();
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => BlocProvider.value(
+            value: context.read<PlayerCubit>(),
+            child: const FullPlayerPage(),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _handleError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFFFF5500),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    final GoRouter? router = GoRouter.maybeOf(context);
+
+    if (router != null) {
+      context.go(AppRoutes.home);
+    } else {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/home',
+        (_) => false,
+      );
     }
   }
 
@@ -48,64 +92,35 @@ class _TrackDeepLinkBridgePageState extends State<TrackDeepLinkBridgePage> {
       listener: (context, state) {
         switch (state) {
           case TrackLoaderReady():
-            final GoRouter? router = GoRouter.maybeOf(context);
-            if (router != null) {
-              context.replace(AppRoutes.player);
-            } else {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute<void>(
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<PlayerCubit>(),
-                    child: const FullPlayerPage(),
-                  ),
-                ),
-              );
-            }
+            // مهم جدًا: navigate بعد ما الـ PlayerCubit يكون بدأ فعليًا
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _openPlayer();
+            });
 
           case TrackLoaderError(:final message):
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: const Color(0xFFFF5500),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-
-            final GoRouter? router = GoRouter.maybeOf(context);
-            if (router != null) {
-              context.go(AppRoutes.home);
-            } else {
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                '/home',
-                (_) => false,
-              );
-            }
+            _handleError(message);
 
           case TrackLoaderLoading():
           case TrackLoaderIdle():
             break;
         }
       },
-      child: Scaffold(
+      child: const Scaffold(
         backgroundColor: Colors.black,
-        body: BlocBuilder<TrackLoaderCubit, TrackLoaderState>(
-          builder: (context, state) {
-            return const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    color: Color(0xFFFF5500),
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    'Opening track...',
-                    style: TextStyle(color: Colors.white54),
-                  ),
-                ],
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                color: Color(0xFFFF5500),
               ),
-            );
-          },
+              SizedBox(height: 20),
+              Text(
+                'Opening track...',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ],
+          ),
         ),
       ),
     );

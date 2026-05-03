@@ -1,23 +1,65 @@
 import 'deep_link_destination.dart';
 
 abstract final class DeepLinkParser {
-  static const String _scheme = 'soundclone';
+  static const String _customScheme = 'iqa3';
+  static const String _legacyScheme = 'soundclone';
+  static const String _httpsHost = 'dev.iqa3.tech';
 
   static DeepLinkDestination parse(Uri uri) {
-    if (uri.scheme != _scheme) {
-      return const InvalidDeepLink(
-        reason: 'Unknown scheme: expected soundclone://',
-      );
+    if (uri.scheme == 'https' && uri.host == _httpsHost) {
+      return _parseHttpsPath(uri);
     }
 
-    final String host = uri.host;
-    final List<String> segments = uri.pathSegments;
+    if (uri.scheme == _customScheme || uri.scheme == _legacyScheme) {
+      return _parseCustomScheme(uri);
+    }
+
+    return InvalidDeepLink(reason: 'Unknown scheme: ${uri.scheme}');
+  }
+
+  static DeepLinkDestination _parseHttpsPath(Uri uri) {
+    final segments = uri.pathSegments;
+
+    if (segments.isEmpty) {
+      return const InvalidDeepLink(reason: 'Empty path');
+    }
+
+    switch (segments.first) {
+      case 'track':
+        return _parseTrack(segments.skip(1).toList());
+
+      case 'playlist':
+        return _parsePlaylist(segments.skip(1).toList());
+
+      case 'search':
+        return _parseSearch(uri.queryParameters);
+
+      case 'user':
+      case 'profile':
+        return _parseUser(segments.skip(1).toList());
+
+      case 'reset-password':
+      case 'verify-email':
+      case 'auth':
+        return InvalidDeepLink(
+          reason: 'Web-only route — not handled by app: ${uri.path}',
+        );
+
+      default:
+        return ResolvableResourceDeepLink(url: uri.toString());
+    }
+  }
+
+  static DeepLinkDestination _parseCustomScheme(Uri uri) {
+    final host = uri.host;
+    final segments = uri.pathSegments;
 
     switch (host) {
       case 'track':
         return _parseTrack(segments);
 
       case 'user':
+      case 'profile':
         return _parseUser(segments);
 
       case 'playlist':
@@ -25,6 +67,9 @@ abstract final class DeepLinkParser {
 
       case 'search':
         return _parseSearch(uri.queryParameters);
+
+      case 'resolve':
+        return _parseResolvableUri(uri);
 
       case 'billing':
         return _parseBilling(segments, uri.queryParameters);
@@ -47,15 +92,13 @@ abstract final class DeepLinkParser {
 
     if (segments.first == 'secret') {
       if (segments.length < 2 || segments[1].isEmpty) {
-        return const InvalidDeepLink(
-          reason: 'Secret track link missing token',
-        );
+        return const InvalidDeepLink(reason: 'Secret track link missing token');
       }
 
       return SecretTrackDeepLink(secretToken: segments[1]);
     }
 
-    final String trackId = segments.first;
+    final trackId = segments.first;
     if (trackId.isEmpty) {
       return const InvalidDeepLink(reason: 'Track ID is empty');
     }
@@ -97,6 +140,16 @@ abstract final class DeepLinkParser {
     }
 
     return SearchDeepLink(query: query.trim());
+  }
+
+  static DeepLinkDestination _parseResolvableUri(Uri uri) {
+    final rawUrl = uri.queryParameters['url'];
+
+    if (rawUrl == null || rawUrl.trim().isEmpty) {
+      return const InvalidDeepLink(reason: 'Resolve link missing url');
+    }
+
+    return ResolvableResourceDeepLink(url: rawUrl.trim());
   }
 
   static DeepLinkDestination _parseBilling(
@@ -203,8 +256,8 @@ abstract final class DeepLinkParser {
       );
     }
 
-    final String? error = params['error'];
-    final String? errorDescription = params['error_description'];
+    final error = params['error'];
+    final errorDescription = params['error_description'];
 
     if (error != null && error.trim().isNotEmpty) {
       return OAuthCallbackDeepLink(
@@ -213,8 +266,8 @@ abstract final class DeepLinkParser {
       );
     }
 
-    final String? code = params['code'];
-    final String? state = params['state'];
+    final code = params['code'];
+    final state = params['state'];
 
     if (code == null || code.trim().isEmpty) {
       return const InvalidDeepLink(

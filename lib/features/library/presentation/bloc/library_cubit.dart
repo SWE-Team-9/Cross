@@ -17,6 +17,8 @@ class LibraryCubit extends Cubit<LibraryState> {
   }) : super(LibraryState.initial());
 
   Future<void> loadLibraryPlaylists() async {
+    if (isClosed) return;
+
     await Future.wait([
       loadRecentPlaylists(),
       loadLikedPlaylists(),
@@ -24,9 +26,11 @@ class LibraryCubit extends Cubit<LibraryState> {
   }
 
   Future<void> loadRecentPlaylists({int limit = 10}) async {
+    if (isClosed) return;
+
     var localPlaylists = const <PlaylistEntity>[];
 
-    emit(
+    _emitIfOpen(
       state.copyWith(
         isLoadingRecentPlaylists: true,
         clearError: true,
@@ -35,8 +39,10 @@ class LibraryCubit extends Cubit<LibraryState> {
 
     try {
       localPlaylists = await recentPlaylistsStore.load(limit: limit);
+      if (isClosed) return;
+
       if (localPlaylists.isNotEmpty) {
-        emit(
+        _emitIfOpen(
           state.copyWith(
             recentPlaylists: localPlaylists,
             isLoadingRecentPlaylists: true,
@@ -45,7 +51,7 @@ class LibraryCubit extends Cubit<LibraryState> {
       }
 
       final remotePlaylists = await getRecentPlaylistsUseCase(limit: limit);
-      emit(
+      _emitIfOpen(
         state.copyWith(
           recentPlaylists: _mergePlaylists(
             remotePlaylists,
@@ -57,7 +63,7 @@ class LibraryCubit extends Cubit<LibraryState> {
         ),
       );
     } catch (_) {
-      emit(
+      _emitIfOpen(
         state.copyWith(
           recentPlaylists: localPlaylists,
           isLoadingRecentPlaylists: false,
@@ -71,7 +77,9 @@ class LibraryCubit extends Cubit<LibraryState> {
     int page = 1,
     int limit = 20,
   }) async {
-    emit(
+    if (isClosed) return;
+
+    _emitIfOpen(
       state.copyWith(
         isLoadingLikedPlaylists: true,
         clearError: true,
@@ -84,7 +92,7 @@ class LibraryCubit extends Cubit<LibraryState> {
         limit: limit,
       );
 
-      emit(
+      _emitIfOpen(
         state.copyWith(
           likedPlaylists: playlists,
           isLoadingLikedPlaylists: false,
@@ -92,7 +100,7 @@ class LibraryCubit extends Cubit<LibraryState> {
         ),
       );
     } catch (_) {
-      emit(
+      _emitIfOpen(
         state.copyWith(
           likedPlaylists: const <PlaylistEntity>[],
           isLoadingLikedPlaylists: false,
@@ -120,5 +128,9 @@ class LibraryCubit extends Cubit<LibraryState> {
     }
 
     return merged;
+  }
+
+  void _emitIfOpen(LibraryState nextState) {
+    if (!isClosed) emit(nextState);
   }
 }

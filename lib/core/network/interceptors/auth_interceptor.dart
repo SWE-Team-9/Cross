@@ -11,14 +11,20 @@ class AuthInterceptor extends Interceptor {
   void setDio(Dio dio) => _dio = dio;
 
   @override
-  void onRequest(
+  Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
-  ) {
+  ) async {
+    // ── Content-Type ─────────────────────────────────────────────────────
     final existingContentType = options.headers['Content-Type'];
-
     if (options.data is! FormData && existingContentType == null) {
       options.headers['Content-Type'] = 'application/json';
+    }
+
+    // ── Authorization ─────────────────────────────────────────────────────
+    final token = await secureStorage.read(SecureStorage.accessTokenKey);
+    if (token != null && token.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $token';
     }
 
     handler.next(options);

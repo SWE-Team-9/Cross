@@ -1062,6 +1062,15 @@ class _PlaylistTrackTile extends StatelessWidget {
                     width: 42,
                     height: 42,
                     fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 42,
+                      height: 42,
+                      color: const Color(0xFF262626),
+                      child: const Icon(
+                        Icons.music_note,
+                        color: Colors.white38,
+                      ),
+                    ),
                   ),
                 ),
         ],

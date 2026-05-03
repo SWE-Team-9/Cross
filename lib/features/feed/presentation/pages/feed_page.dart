@@ -1,53 +1,21 @@
 // coverage:ignore-file
-// ─────────────────────────────────────────────────────────────────────────────
-//  feed_page.dart  —  Main Feed Screen
-//
-//  Features:
-//    ✓ Discover / Following toggle
-//    ✓ Infinite scroll  (NotificationListener → loadMore)
-//    ✓ Pull-to-refresh  (RefreshIndicator)
-//    ✓ Loading skeleton (full screen on initial load)
-//    ✓ Empty state
-//    ✓ Error state with retry
-//    ✓ Load-more footer spinner
-//    ✓ Playback via PlayerCubit + AudioPlayerService (queue-aware)
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../../core/widgets/bottom_nav_bar.dart';
 import '../../../../core/models/track.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/di/injector.dart';
 import '../bloc/feed_cubit.dart';
 import '../bloc/feed_state.dart';
 import '../widgets/feed_card.dart';
 import '../widgets/feed_skeleton.dart';
-import '../widgets/feed_toggle.dart';
-import '../../data/datasources/feed_mock_data_source.dart';
-import '../../data/repositories/feed_repository_impl.dart';
 import '../../domain/entities/feed_item.dart';
-import '../../domain/usecases/get_feed.dart';
-import '../../domain/usecases/toggle_like.dart';
-import '../../domain/usecases/toggle_repost.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../../social/domain/events/social_events.dart';
 import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
-// ─── DI helper (replace with your DI solution: get_it, riverpod, etc.) ───────
-
-FeedCubit _buildCubit() {
-  // ↓ Swap FeedMockDataSource → FeedRemoteDataSourceImpl when backend is ready
-  final dataSource = FeedMockDataSource();
-  final repo = FeedRepositoryImpl(dataSource: dataSource);
-  return FeedCubit(
-    getFeed: GetFeedUseCase(repo),
-    toggleLike: ToggleLikeUseCase(repo),
-    toggleRepost: ToggleRepostUseCase(repo),
-    repository: repo,
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
@@ -55,13 +23,11 @@ class FeedPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => _buildCubit()..initialize(),
+      create: (_) => getIt<FeedCubit>()..initialize(),
       child: const _FeedView(),
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _FeedView extends StatefulWidget {
   const _FeedView();
@@ -94,62 +60,29 @@ class _FeedViewState extends State<_FeedView> {
       backgroundColor: Colors.black,
       bottomNavigationBar: const BottomNavBar(selected: 1),
       body: SafeArea(
-        child: Column(
-          children: [
-            // ── Toggle ───────────────────────────────────────────────────
-            BlocBuilder<FeedCubit, FeedState>(
-              buildWhen: (prev, curr) => prev.tab != curr.tab,
-              builder: (context, state) => FeedToggle(
-                selected: state.tab,
-                onChanged: (tab) => context.read<FeedCubit>().setTab(tab),
-              ),
-            ),
-
-            // ── Body ─────────────────────────────────────────────────────
-            Expanded(
-              child: BlocBuilder<FeedCubit, FeedState>(
-                builder: (context, state) {
-                  if (state is FeedLoading) {
-                    return const FeedSkeleton();
-                  }
-                  if (state is FeedEmpty) {
-                    return const _EmptyState();
-                  }
-                  if (state is FeedError) {
-                    return _ErrorState(
-                      message: state.message,
-                      onRetry: () => context.read<FeedCubit>().initialize(),
-                    );
-                  }
-                  if (state is FeedLoaded) {
-                    return _LoadedFeed(state: state);
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-          ],
+        child: BlocBuilder<FeedCubit, FeedState>(
+          builder: (context, state) {
+            if (state is FeedLoading) return const FeedSkeleton();
+            if (state is FeedEmpty) return const _EmptyState();
+            if (state is FeedError) {
+              return _ErrorState(
+                message: state.message,
+                onRetry: () => context.read<FeedCubit>().initialize(),
+              );
+            }
+            if (state is FeedLoaded) return _LoadedFeed(state: state);
+            return const SizedBox.shrink();
+          },
         ),
       ),
     );
   }
 }
 
-// ─── Loaded Feed ─────────────────────────────────────────────────────────────
-
 class _LoadedFeed extends StatelessWidget {
   final FeedLoaded state;
   const _LoadedFeed({required this.state});
 
-  // ─── Converts FeedItem list → Track list (needs resolved streamUrl) ───────
-  //
-  // We build the full queue eagerly so playFromContext gets the whole list.
-  // audioUrl is filled in after getStreamUrl resolves for the tapped item;
-  // other items keep an empty placeholder — just_audio will skip unresolved
-  // sources, and they'll be resolved when the user taps them individually.
-  //
-  // If you later want pre-resolved queues, call getStreamUrl for every item
-  // before building the list (at the cost of N extra network calls).
   static Track _toTrack(FeedItem item, {String audioUrl = ''}) {
     return Track(
       id: item.track.trackId,
@@ -173,13 +106,15 @@ class _LoadedFeed extends StatelessWidget {
     final cubit = context.read<FeedCubit>();
     final playerCubit = context.read<PlayerCubit>();
 
-    // 1. Resolve stream URL for tapped track + record play event
-    final access = await cubit.handlePlay(tappedItem.track.trackId);
+    final access = await cubit.handlePlay(
+      tappedItem.track.trackId,
+      feedAudioUrl: tappedItem.track.audioUrl,
+    );
 
     if (!access.canPlay || access.streamUrl == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Track is blocked for playback')),
+          const SnackBar(content: Text('Track is not available for playback')),
         );
       }
       return;
@@ -189,23 +124,18 @@ class _LoadedFeed extends StatelessWidget {
 
     if (access.isPreview) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preview mode: limited playback')),
+        const SnackBar(content: Text('Preview mode — limited playback')),
       );
     }
 
-    // 2. Build queue — tapped track gets the resolved URL, others get placeholder
     final tracks = currentState.items.map((item) {
-      if (item.track.trackId == tappedItem.track.trackId) {
-        return _toTrack(item, audioUrl: access.streamUrl!);
-      }
-      return _toTrack(item);
+      final isTapped = item.track.trackId == tappedItem.track.trackId;
+      return _toTrack(item, audioUrl: isTapped ? access.streamUrl! : '');
     }).toList();
 
-    final startIndex = tracks.indexWhere(
-      (t) => t.id == tappedItem.track.trackId,
-    );
+    final startIndex =
+        tracks.indexWhere((t) => t.id == tappedItem.track.trackId);
 
-    // 3. Load queue into audio engine + update player UI state
     await playerCubit.playFromContext(
       tracks: tracks,
       startIndex: startIndex >= 0 ? startIndex : 0,
@@ -219,7 +149,6 @@ class _LoadedFeed extends StatelessWidget {
 
     return NotificationListener<ScrollNotification>(
       onNotification: (n) {
-        // Trigger loadMore when 300px from bottom
         if (n is ScrollUpdateNotification) {
           final metrics = n.metrics;
           if (metrics.pixels >= metrics.maxScrollExtent - 300) {
@@ -230,40 +159,142 @@ class _LoadedFeed extends StatelessWidget {
       },
       child: RefreshIndicator(
         color: const Color(0xFFFF5500),
-        backgroundColor: const Color(0xFF1C1C1C),
+        backgroundColor: const Color(0xFF1A1A1A),
         onRefresh: cubit.refresh,
-        child: ListView.builder(
+        child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: state.items.length + 2, // +1 ad banner, +1 footer
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return const PremiumAwareAdBanner(
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _PinnedHeaderDelegate(
+                height: 64,
+                child: const _PinnedToggle(),
+              ),
+            ),
+            const SliverToBoxAdapter(
+              child: PremiumAwareAdBanner(
                 title: 'Enjoy the feed without ads',
                 subtitle:
                     'Upgrade to remove sponsored cards, download tracks, and upload more music.',
                 actionLabel: 'Upgrade',
-              );
-            }
-
-            // Footer
-            if (index == state.items.length + 1) {
-              return _Footer(state: state);
-            }
-
-            final item = state.items[index - 1];
-
-            return FeedCard(
-              key: ValueKey(item.activityId),
-              item: item,
-              onLike: () => cubit.handleLike(item.track.trackId),
-              onRepost: () => cubit.handleRepost(item.track.trackId),
-              onPlay: () => _handlePlay(
-                context: context,
-                currentState: state,
-                tappedItem: item,
               ),
-            );
-          },
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index == state.items.length) {
+                    return _Footer(state: state);
+                  }
+                  final item = state.items[index];
+                  return FeedCard(
+                    key: ValueKey(item.activityId),
+                    item: item,
+                    onLike: () => cubit.handleLike(item.track.trackId),
+                    onRepost: () => cubit.handleRepost(item.track.trackId),
+                    onPlay: () => _handlePlay(
+                      context: context,
+                      currentState: state,
+                      tappedItem: item,
+                    ),
+                  );
+                },
+                childCount: state.items.length + 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Pinned Header Delegate ───────────────────────────────────────────────────
+
+class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double height;
+  final Widget child;
+  const _PinnedHeaderDelegate({required this.height, required this.child});
+
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(_PinnedHeaderDelegate old) =>
+      old.height != height || old.child != child;
+}
+
+// ─── Pinned Toggle ────────────────────────────────────────────────────────────
+
+class _PinnedToggle extends StatelessWidget {
+  const _PinnedToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      alignment: Alignment.center,
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Discover — ينقل لـ /discover
+            _TabPill(
+              label: 'Discover',
+              active: false,
+              onTap: () => context.go('/discover'),
+            ),
+            // Following — active
+            _TabPill(
+              label: 'Following',
+              active: true,
+              onTap: () {},
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TabPill extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _TabPill(
+      {required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.all(3),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 7),
+        decoration: BoxDecoration(
+          color: active ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(19),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: active ? Colors.black : const Color(0xFF888888),
+          ),
         ),
       ),
     );
@@ -280,11 +311,11 @@ class _Footer extends StatelessWidget {
   Widget build(BuildContext context) {
     if (state.isLoadingMore) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
+        padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: SizedBox(
-            width: 22,
-            height: 22,
+            width: 20,
+            height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation(Color(0xFFFF5500)),
@@ -295,12 +326,10 @@ class _Footer extends StatelessWidget {
     }
     if (!state.hasMore) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
+        padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(
-          child: Text(
-            "You're all caught up ✓",
-            style: TextStyle(color: Color(0xFF555555), fontSize: 13),
-          ),
+          child: Text("You're all caught up ✓",
+              style: TextStyle(color: Color(0xFF555555), fontSize: 12)),
         ),
       );
     }
@@ -308,7 +337,7 @@ class _Footer extends StatelessWidget {
   }
 }
 
-// ─── Empty State ─────────────────────────────────────────────────────────────
+// ─── Empty State ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -319,29 +348,24 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.music_note, size: 56, color: Color(0xFF333333)),
-          SizedBox(height: 12),
-          Text(
-            'No activity yet',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
+          Icon(Icons.music_note_outlined, size: 56, color: Color(0xFF333333)),
+          SizedBox(height: 14),
+          Text('No activity yet',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white)),
           SizedBox(height: 6),
-          Text(
-            'Follow artists to see their tracks here',
-            style: TextStyle(fontSize: 13, color: Color(0xFF666666)),
-            textAlign: TextAlign.center,
-          ),
+          Text('Follow artists to see their tracks here',
+              style: TextStyle(fontSize: 13, color: Color(0xFF666666)),
+              textAlign: TextAlign.center),
         ],
       ),
     );
   }
 }
 
-// ─── Error State ─────────────────────────────────────────────────────────────
+// ─── Error State ──────────────────────────────────────────────────────────────
 
 class _ErrorState extends StatelessWidget {
   final String message;
@@ -356,26 +380,25 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off, size: 48, color: Color(0xFF444444)),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: const TextStyle(color: Color(0xFF888888), fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
+            const Icon(Icons.wifi_off_rounded,
+                size: 48, color: Color(0xFF444444)),
+            const SizedBox(height: 14),
+            Text(message,
+                style: const TextStyle(color: Color(0xFF888888), fontSize: 13),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 18),
             TextButton(
               onPressed: onRetry,
               style: TextButton.styleFrom(
                 backgroundColor: const Color(0xFF1C1C1C),
                 foregroundColor: Colors.white,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 11),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                    borderRadius: BorderRadius.circular(22)),
               ),
-              child: const Text('Retry'),
+              child: const Text('Retry',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
             ),
           ],
         ),
