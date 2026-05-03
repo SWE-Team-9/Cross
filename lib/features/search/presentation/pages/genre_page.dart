@@ -348,7 +348,7 @@ class _PlaylistCard extends StatelessWidget {
             child: Text(
               '${playlist.trackCount} tracks',
               style: const TextStyle(
-                color: Colors.white45,
+                color: Colors.white54,
                 fontSize: 12,
               ),
             ),
@@ -417,7 +417,7 @@ class _ProfilesList extends StatelessWidget {
           ),
           subtitle: Text(
             '@${profile.username}',
-            style: const TextStyle(color: Colors.white45),
+            style: const TextStyle(color: Colors.white54),
           ),
           trailing: OutlinedButton(
             onPressed: () =>
@@ -540,7 +540,7 @@ class _EmptyView extends StatelessWidget {
             const Text(
               'Try another genre or check back later.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white45),
+              style: TextStyle(color: Colors.white54),
             ),
           ],
         ),
