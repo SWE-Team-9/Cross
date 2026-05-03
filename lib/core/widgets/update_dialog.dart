@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 
 class UpdateDialog extends StatelessWidget {
   final Map<String, dynamic> updateData;
@@ -23,10 +24,68 @@ class UpdateDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final release = updateData['release'] as Map<String, dynamic>;
-    final newFeatures = List<String>.from(release['new_features'] ?? []);
-    final improvements = List<String>.from(release['improvements'] ?? []);
-    final bugFixes = List<String>.from(release['bug_fixes'] ?? []);
+    // Normalize release payloads: support Map, JSON string, 'releases' list or
+    // alternative key names used by different version feeds.
+    dynamic rawRelease = updateData['release'];
+
+    if (rawRelease == null && updateData['releases'] is List) {
+      final list = updateData['releases'] as List;
+      if (list.isNotEmpty) rawRelease = list.first;
+    }
+
+    Map<String, dynamic> release;
+    if (rawRelease is Map<String, dynamic>) {
+      release = rawRelease;
+    } else if (rawRelease is String) {
+      // Try to decode JSON string, otherwise store as title/notes.
+      final decoded = rawRelease.trim();
+      if (decoded.startsWith('{') || decoded.startsWith('[')) {
+        try {
+          final parsed = jsonDecode(decoded);
+          if (parsed is Map<String, dynamic>) {
+            release = parsed;
+          } else if (parsed is List && parsed.isNotEmpty && parsed.first is Map) {
+            release = Map<String, dynamic>.from(parsed.first as Map);
+          } else {
+            release = <String, dynamic>{};
+          }
+        } catch (_) {
+          release = <String, dynamic>{'notes': rawRelease};
+        }
+      } else {
+        release = <String, dynamic>{'notes': rawRelease};
+      }
+    } else {
+      release = <String, dynamic>{};
+    }
+
+    List<String> _extractList(Map<String, dynamic> src, List<String> keys) {
+      for (final k in keys) {
+        final v = src[k];
+        if (v == null) continue;
+        if (v is List) return v.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+        if (v is String) {
+          final s = v.trim();
+          if (s.isEmpty) return <String>[];
+          return s.split(RegExp(r"\r?\n")).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        }
+      }
+      return <String>[];
+    }
+
+    final newFeatures = _extractList(release, [
+      'new_features',
+      'newFeatures',
+      'whats_new',
+      'what\'s_new',
+      'features',
+      'notes',
+      'release_notes',
+      'description',
+      'body'
+    ]);
+    final improvements = _extractList(release, ['improvements', 'improvement', 'improvements_list', 'enhancements']);
+    final bugFixes = _extractList(release, ['bug_fixes', 'bugFixes', 'fixes', 'bugs', 'patches']);
     final hasContent = newFeatures.isNotEmpty ||
         improvements.isNotEmpty ||
         bugFixes.isNotEmpty;
