@@ -5,7 +5,8 @@
   "release": {
     "title": "Version 1.1.1",
     "subtitle": "Smoother updates & bug fixes",
-    "new_features": [],
+    "new_features": ["Notifications fully added - stay updated with the latest news and releases",
+    "background notifications now work even when the app is closed"],
     "improvements": [
       "Update check now waits until you finish with the update dialog – no more sudden navigation",
       "App will not proceed to the home/welcome screen until update choice is completed"
