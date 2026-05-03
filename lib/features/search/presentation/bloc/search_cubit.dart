@@ -5,10 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../core/di/injector.dart';
 import '../../../../core/errors/failure.dart';
-import '../../../auth/presentation/bloc/auth_cubit.dart';
-import '../../../social/data/repositories/social_repo.dart';
 import '../../domain/entities/search_entities.dart';
 import '../../domain/usecases/search_usecase.dart';
 
@@ -27,7 +24,7 @@ class SearchCubit extends Cubit<SearchState> {
   static const _suggestionDelay = Duration(milliseconds: 300);
   static const _recentKey = 'recent_searches';
   static const _maxRecents = 10;
-  static const _pageSize = 20;
+  static const _pageSize = 10;
 
   // ══════════════════════════════════════════════════════════════════════════
   // RECENT SEARCHES
@@ -156,10 +153,12 @@ class SearchCubit extends Cubit<SearchState> {
 
   Future<void> submitSearch(String query) async {
     final trimmed = query.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty || isClosed) return;
 
     _suggestionDebounce?.cancel();
     await _saveRecent(trimmed);
+
+    if (isClosed) return;
 
     emit(
       state.copyWith(
@@ -180,7 +179,6 @@ class SearchCubit extends Cubit<SearchState> {
 
     await _fetch(trimmed, page: 1);
   }
-
   // ══════════════════════════════════════════════════════════════════════════
   // TAB + PAGINATION
   // ══════════════════════════════════════════════════════════════════════════
@@ -235,13 +233,17 @@ class SearchCubit extends Cubit<SearchState> {
     required int page,
     bool append = false,
   }) async {
+    if (isClosed) return;
+
     if (append) {
       emit(state.copyWith(isLoadingMore: true));
     }
 
+    final activeTab = state.activeTab;
+
     final result = await _searchUseCase(
       query,
-      type: _apiTypeForTab(state.activeTab),
+      type: _apiTypeForTab(activeTab),
       page: page,
       limit: _pageSize,
     );
@@ -250,6 +252,8 @@ class SearchCubit extends Cubit<SearchState> {
 
     result.fold(
       (failure) {
+        if (isClosed) return;
+
         emit(
           state.copyWith(
             status: SearchStatus.failure,
@@ -259,10 +263,10 @@ class SearchCubit extends Cubit<SearchState> {
         );
       },
       (data) {
+        if (isClosed) return;
+
         final tracks = append ? [...state.tracks, ...data.tracks] : data.tracks;
-
         final users = append ? [...state.users, ...data.users] : data.users;
-
         final playlists =
             append ? [...state.playlists, ...data.playlists] : data.playlists;
 
@@ -278,61 +282,17 @@ class SearchCubit extends Cubit<SearchState> {
             clearFailure: true,
           ),
         );
-
-        _loadFollowingAfterSearch();
       },
     );
   }
 
   String? _apiTypeForTab(SearchTab tab) {
     return switch (tab) {
-      SearchTab.all => null,
+      SearchTab.all => 'all',
       SearchTab.tracks => 'tracks',
       SearchTab.people => 'users',
       SearchTab.playlists => 'playlists',
     };
-  }
-
-  Future<void> loadFollowingState(String currentUserId) async {
-    try {
-      final repo = getIt<SocialRepo>();
-      final following = await repo.getFollowing(currentUserId, 1, limit: 100);
-      final followingIds = following.map((user) => user.id).toSet();
-
-      final updatedUsers = state.users.map((user) {
-        return UserEntity(
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          avatarUrl: user.avatarUrl,
-          followersCount: user.followersCount,
-          trackCount: user.trackCount,
-          verified: user.verified,
-          city: user.city,
-          country: user.country,
-          isFollowing: followingIds.contains(user.id),
-        );
-      }).toList(growable: false);
-
-      if (!isClosed) {
-        emit(state.copyWith(users: updatedUsers));
-      }
-    } catch (_) {
-      // Best-effort UI enhancement only.
-    }
-  }
-
-  void _loadFollowingAfterSearch() {
-    if (!getIt.isRegistered<AuthCubit>()) return;
-    if (!getIt.isRegistered<SocialRepo>()) return;
-
-    final authState = getIt<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) return;
-
-    final currentUserId = authState.user.id;
-    if (currentUserId.isEmpty) return;
-
-    unawaited(loadFollowingState(currentUserId));
   }
 
   @override
