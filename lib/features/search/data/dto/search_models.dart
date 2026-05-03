@@ -1,5 +1,3 @@
-// lib/features/search/data/dto/search_models.dart
-
 import '../../domain/entities/search_entities.dart';
 
 class SearchResponseModel {
@@ -16,8 +14,9 @@ class SearchResponseModel {
   });
 
   factory SearchResponseModel.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>? ?? {};
-    final meta = json['meta'] as Map<String, dynamic>? ?? {};
+    final data = _map(json['data']).isNotEmpty ? _map(json['data']) : json;
+    final meta = _map(json['meta']);
+
     return SearchResponseModel(
       tracks: _parseList(data['tracks'], TrackModel.fromJson),
       users: _parseList(data['users'], UserModel.fromJson),
@@ -30,22 +29,23 @@ class SearchResponseModel {
     dynamic raw,
     T Function(Map<String, dynamic>) fromJson,
   ) {
-    if (raw is! List) return [];
+    if (raw is! List) return const [];
+
     return raw
-        .whereType<Map<String, dynamic>>()
-        .map(fromJson)
+        .whereType<Map>()
+        .map((item) => fromJson(Map<String, dynamic>.from(item)))
         .toList(growable: false);
   }
 
-  SearchResultsEntity toEntity() => SearchResultsEntity(
-        tracks: tracks,
-        users: users,
-        playlists: playlists,
-        meta: meta.toEntity(),
-      );
+  SearchResultsEntity toEntity() {
+    return SearchResultsEntity(
+      tracks: tracks,
+      users: users,
+      playlists: playlists,
+      meta: meta.toEntity(),
+    );
+  }
 }
-
-// ── Meta ──────────────────────────────────────────────────────────────────────
 
 class SearchMetaModel {
   final int currentPage;
@@ -58,21 +58,25 @@ class SearchMetaModel {
     required this.totalPages,
   });
 
-  factory SearchMetaModel.fromJson(Map<String, dynamic> json) =>
-      SearchMetaModel(
-        currentPage: (json['current_page'] as num?)?.toInt() ?? 1,
-        totalResults: (json['total_results'] as num?)?.toInt() ?? 0,
-        totalPages: (json['total_pages'] as num?)?.toInt() ?? 0,
-      );
+  factory SearchMetaModel.fromJson(Map<String, dynamic> json) {
+    return SearchMetaModel(
+      currentPage: _int(
+          json['current_page'] ?? json['currentPage'] ?? json['page'],
+          fallback: 1),
+      totalResults:
+          _int(json['total_results'] ?? json['totalResults'] ?? json['total']),
+      totalPages: _int(json['total_pages'] ?? json['totalPages']),
+    );
+  }
 
-  SearchMetaEntity toEntity() => SearchMetaEntity(
-        currentPage: currentPage,
-        totalResults: totalResults,
-        totalPages: totalPages,
-      );
+  SearchMetaEntity toEntity() {
+    return SearchMetaEntity(
+      currentPage: currentPage,
+      totalResults: totalResults,
+      totalPages: totalPages,
+    );
+  }
 }
-
-// ── Track ─────────────────────────────────────────────────────────────────────
 
 class TrackModel extends TrackEntity {
   const TrackModel({
@@ -89,39 +93,58 @@ class TrackModel extends TrackEntity {
     required super.createdAt,
   });
 
-  factory TrackModel.fromJson(Map<String, dynamic> j) => TrackModel(
-        id: j['id']?.toString() ?? '',
-        title: j['title'] as String? ?? '',
-        artistName: j['artistHandle'] as String? ??
-            j['artist_handle'] as String? ??
-            (j['user'] as Map<String, dynamic>?)?['username'] as String? ??
-            '',
-        artworkUrl: j['coverArtUrl'] as String? ??
-            j['cover_art_url'] as String? ??
-            j['artwork_url'] as String? ??
-            '',
-        streamUrl:
-            j['streamUrl'] as String? ?? j['stream_url'] as String? ?? '',
-        duration: Duration(
-          seconds: (j['duration'] as num?)?.toInt() ?? 0,
-        ),
-        playbackCount: (j['views'] as num?)?.toInt() ??
-            (j['playback_count'] as num?)?.toInt() ??
-            0,
-        likesCount: (j['likesCount'] as num?)?.toInt() ??
-            (j['likes_count'] as num?)?.toInt() ??
-            0,
-        genre: j['genre'] as String? ?? '',
-        isPrivate: j['sharing'] == 'private' || // ← التصحيح
-            (j['isPrivate'] as bool? ?? false),
-        createdAt: DateTime.tryParse(
-              j['createdAt'] as String? ?? j['created_at'] as String? ?? '',
-            ) ??
-            DateTime(1970),
-      );
-}
+  factory TrackModel.fromJson(Map<String, dynamic> json) {
+    final artist = _map(json['artist']);
+    final uploader = _map(json['uploader']);
+    final uploaderProfile = _map(uploader['profile']);
+    final genre = _map(json['genre']);
+    final stats = _map(json['stats']);
 
-// ── User ──────────────────────────────────────────────────────────────────────
+    return TrackModel(
+      id: _s(json['id'] ?? json['trackId']),
+      title: _s(json['title']),
+      artistName: _s(
+        json['artistName'] ??
+            json['artistHandle'] ??
+            artist['displayName'] ??
+            artist['handle'] ??
+            uploaderProfile['displayName'] ??
+            uploaderProfile['handle'],
+      ),
+      artworkUrl: _s(
+        json['coverArtUrl'] ??
+            json['artworkUrl'] ??
+            json['artwork_url'] ??
+            json['cover_art_url'],
+      ),
+      streamUrl: _s(
+        json['streamUrl'] ??
+            json['stream_url'] ??
+            json['audioUrl'] ??
+            json['audio_url'],
+      ),
+      duration: _duration(json),
+      playbackCount: _int(
+        json['playsCount'] ??
+            json['playbackCount'] ??
+            json['playback_count'] ??
+            json['views'] ??
+            stats['playsCount'],
+      ),
+      likesCount: _int(
+          json['likesCount'] ?? json['likes_count'] ?? stats['likesCount']),
+      genre: _s(genre['slug'] ?? genre['name'] ?? json['genre']),
+      isPrivate: json['sharing'] == 'private' ||
+          json['visibility'] == 'PRIVATE' ||
+          json['isPrivate'] == true ||
+          json['is_private'] == true,
+      createdAt: DateTime.tryParse(
+            _s(json['createdAt'] ?? json['created_at'] ?? json['publishedAt']),
+          ) ??
+          DateTime(1970),
+    );
+  }
+}
 
 class UserModel extends UserEntity {
   const UserModel({
@@ -134,33 +157,40 @@ class UserModel extends UserEntity {
     required super.verified,
     required super.city,
     required super.country,
+    super.isFollowing = false,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> j) => UserModel(
-        id: j['userId']?.toString() ?? j['id']?.toString() ?? '',
-        username: j['handle'] as String? ??
-            j['permalink'] as String? ??
-            j['username'] as String? ??
-            '',
-        displayName: j['displayName'] as String? ??
-            j['display_name'] as String? ??
-            j['username'] as String? ??
-            '',
-        avatarUrl:
-            j['avatarUrl'] as String? ?? j['avatar_url'] as String? ?? '',
-        followersCount: (j['followersCount'] as num?)?.toInt() ??
-            (j['followers_count'] as num?)?.toInt() ??
-            0,
-        trackCount: (j['trackCount'] as num?)?.toInt() ??
-            (j['track_count'] as num?)?.toInt() ??
-            0,
-        verified: j['verified'] as bool? ?? false,
-        city: j['city'] as String? ?? '',
-        country: j['country'] as String? ?? '',
-      );
-}
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    final profile = _map(json['profile']);
 
-// ── Playlist ──────────────────────────────────────────────────────────────────
+    return UserModel(
+      id: _s(json['userId'] ?? json['id']),
+      username: _s(
+        json['handle'] ??
+            json['permalink'] ??
+            json['username'] ??
+            profile['handle'],
+      ),
+      displayName: _s(
+        json['displayName'] ??
+            json['display_name'] ??
+            json['username'] ??
+            profile['displayName'] ??
+            profile['handle'],
+      ),
+      avatarUrl:
+          _s(json['avatarUrl'] ?? json['avatar_url'] ?? profile['avatarUrl']),
+      followersCount: _int(json['followersCount'] ?? json['followers_count']),
+      trackCount: _int(json['trackCount'] ?? json['track_count']),
+      verified:
+          json['verified'] as bool? ?? profile['verified'] as bool? ?? false,
+      city: _s(json['city']),
+      country: _s(json['country']),
+      isFollowing:
+          json['isFollowing'] as bool? ?? json['following'] as bool? ?? false,
+    );
+  }
+}
 
 class PlaylistModel extends PlaylistEntity {
   const PlaylistModel({
@@ -176,39 +206,84 @@ class PlaylistModel extends PlaylistEntity {
     required super.createdAt,
   });
 
-  factory PlaylistModel.fromJson(Map<String, dynamic> j) => PlaylistModel(
-        id: j['id']?.toString() ?? '',
-        title: j['title'] as String? ?? '',
-        artworkUrl: j['coverArtUrl'] as String? ??
-            j['artwork_url'] as String? ??
-            _firstTrackArtwork(j['tracks']) ??
-            '',
-        trackCount: (j['trackCount'] as num?)?.toInt() ??
-            (j['track_count'] as num?)?.toInt() ??
-            0,
-        ownerName:
-            (j['user'] as Map<String, dynamic>?)?['username'] as String? ??
-                j['ownerName'] as String? ??
-                '',
-        isAlbum: j['is_album'] as bool? ?? j['isAlbum'] as bool? ?? false,
-        isPrivate: j['sharing'] == 'private' || // ← التصحيح
-            (j['isPrivate'] as bool? ?? false),
-        duration: Duration(
-          seconds: (j['duration'] as num?)?.toInt() ?? 0,
-        ),
-        likesCount: (j['likesCount'] as num?)?.toInt() ??
-            (j['likes_count'] as num?)?.toInt() ??
-            0,
-        createdAt: DateTime.tryParse(
-              j['createdAt'] as String? ?? j['created_at'] as String? ?? '',
-            ) ??
-            DateTime(1970),
-      );
+  factory PlaylistModel.fromJson(Map<String, dynamic> json) {
+    final user = _map(json['user']);
+    final owner = _map(json['owner']);
+
+    return PlaylistModel(
+      id: _s(json['id']),
+      title: _s(json['title']),
+      artworkUrl: _s(
+        json['coverArtUrl'] ??
+            json['artworkUrl'] ??
+            json['artwork_url'] ??
+            _firstTrackArtwork(json['tracks']),
+      ),
+      trackCount: _int(
+        json['trackCount'] ?? json['track_count'] ?? json['tracksCount'],
+      ),
+      ownerName: _s(
+        json['ownerName'] ??
+            user['displayName'] ??
+            user['username'] ??
+            owner['displayName'] ??
+            owner['username'],
+      ),
+      isAlbum: json['isAlbum'] as bool? ?? json['is_album'] as bool? ?? false,
+      isPrivate: json['sharing'] == 'private' ||
+          json['visibility'] == 'PRIVATE' ||
+          json['isPrivate'] == true ||
+          json['is_private'] == true,
+      duration: Duration(
+        milliseconds: _int(json['durationMs'] ?? json['duration_ms']),
+      ),
+      likesCount: _int(json['likesCount'] ?? json['likes_count']),
+      createdAt: DateTime.tryParse(
+            _s(json['createdAt'] ?? json['created_at']),
+          ) ??
+          DateTime(1970),
+    );
+  }
 
   static String? _firstTrackArtwork(dynamic tracks) {
     if (tracks is! List || tracks.isEmpty) return null;
+
     final first = tracks.first;
-    if (first is! Map<String, dynamic>) return null;
-    return first['coverArtUrl'] as String? ?? first['artwork_url'] as String?;
+    if (first is! Map) return null;
+
+    final map = Map<String, dynamic>.from(first);
+
+    return _nullableString(
+      map['coverArtUrl'] ?? map['artworkUrl'] ?? map['artwork_url'],
+    );
   }
+}
+
+Map<String, dynamic> _map(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return const {};
+}
+
+String _s(dynamic value) => value?.toString() ?? '';
+
+String? _nullableString(dynamic value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
+
+int _int(dynamic value, {int fallback = 0}) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+Duration _duration(Map<String, dynamic> json) {
+  final durationMs = json['durationMs'] ?? json['duration_ms'];
+
+  if (durationMs != null) {
+    return Duration(milliseconds: _int(durationMs));
+  }
+
+  return Duration(seconds: _int(json['duration'] ?? json['durationSeconds']));
 }

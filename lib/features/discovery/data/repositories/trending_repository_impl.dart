@@ -1,6 +1,5 @@
-// lib/features/discovery/data/repositories/trending_repository_impl.dart
-
 import 'package:dartz/dartz.dart';
+
 import '../../../../core/errors/failure.dart';
 import '../../domain/entities/trending_track.dart';
 import '../../domain/repositories/trending_repository.dart';
@@ -14,14 +13,19 @@ class TrendingRepositoryImpl implements TrendingRepository {
   }) : _remoteDataSource = remoteDataSource;
 
   @override
-  Future<Either<Failure, List<TrendingTrack>>> getTrending() async {
+  Future<Either<Failure, List<TrendingTrack>>> getTrending({
+    int limit = 20,
+    int windowDays = 7,
+  }) async {
     try {
-      final tracks = await _remoteDataSource.getTrending();
+      final tracks = await _remoteDataSource.getTrending(
+        limit: limit,
+        windowDays: windowDays,
+      );
+
       return Right(tracks);
-    } on ServerFailure catch (e) {
-      return Left(e);
-    } on NetworkFailure catch (e) {
-      return Left(e);
+    } on Failure catch (failure) {
+      return Left(failure);
     } catch (_) {
       return const Left(ServerFailure());
     }

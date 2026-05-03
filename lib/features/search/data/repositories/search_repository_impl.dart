@@ -1,7 +1,6 @@
-// lib/features/search/data/repositories/search_repository_impl.dart
-
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
+
 import '../../../../core/errors/failure.dart';
 import '../../domain/entities/search_entities.dart';
 import '../../domain/repositories/search_repository.dart';
@@ -13,49 +12,55 @@ class SearchRepositoryImpl implements SearchRepository {
 
   SearchRepositoryImpl(this._remote);
 
-  // Simple LRU-style in-memory cache keyed by "query:page"
-  // Lives as long as the singleton — cleared on logout by calling clearCache().
   final _cache = <String, SearchResultsEntity>{};
   static const _maxCacheSize = 30;
 
   @override
   Future<Either<Failure, SearchResultsEntity>> search(
     String query, {
+    String? type,
     int page = 1,
+    int limit = 20,
   }) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
-      return const Right(SearchResultsEntity(
-        tracks: [],
-        users: [],
-        playlists: [],
-        meta: SearchMetaEntity(
-          currentPage: 1,
-          totalResults: 0,
-          totalPages: 0,
+      return const Right(
+        SearchResultsEntity(
+          tracks: [],
+          users: [],
+          playlists: [],
+          meta: SearchMetaEntity(
+            currentPage: 1,
+            totalResults: 0,
+            totalPages: 0,
+          ),
         ),
-      ));
+      );
     }
 
-    final cacheKey = '$trimmed:$page';
+    final cacheKey = '$trimmed:${type ?? 'all'}:$page:$limit';
 
-    // Cache hit
     final cached = _cache[cacheKey];
     if (cached != null) return Right(cached);
 
     try {
-      final model = await _remote.search(trimmed, page: page);
+      final model = await _remote.search(
+        trimmed,
+        type: type,
+        page: page,
+        limit: limit,
+      );
+
       final entity = model.toEntity();
 
-      // Evict oldest entry if over limit
       if (_cache.length >= _maxCacheSize) {
         _cache.remove(_cache.keys.first);
       }
-      _cache[cacheKey] = entity;
 
+      _cache[cacheKey] = entity;
       return Right(entity);
-    } on Failure catch (f) {
-      return Left(f);
+    } on Failure catch (failure) {
+      return Left(failure);
     } catch (_) {
       return const Left(ServerFailure());
     }

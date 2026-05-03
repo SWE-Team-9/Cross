@@ -486,14 +486,33 @@ class ResolveResultModel extends ResolveResult {
   });
 
   factory ResolveResultModel.fromJson(Map<String, dynamic> json) {
+    final matched = json['matched'] as bool? ?? false;
+
+    if (!matched) {
+      return const ResolveResultModel(
+        type: '',
+        resourceId: '',
+        ownerId: null,
+      );
+    }
+
     return ResolveResultModel(
-      type: json['type'] as String? ?? '',
-      resourceId: json['resource_id'] as String? ?? '',
-      ownerId: json['owner_id'] as String?,
+      type: _string(json['resourceType'] ?? json['type']),
+      resourceId:
+          _string(json['id'] ?? json['resource_id'] ?? json['resourceId']),
+      ownerId: _nullableString(
+        json['owner_id'] ?? json['ownerId'] ?? json['handle'] ?? json['slug'],
+      ),
     );
   }
-}
 
+  static String _string(dynamic value) => value?.toString() ?? '';
+
+  static String? _nullableString(dynamic value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
+  }
+}
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 String formatCount(int n) {
