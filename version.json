@@ -1,37 +1,12 @@
 {
   "latest_version": "1.2.0",
-  "min_required_version": "1.1.1",
+  "min_required_version": "1.2.0",
   "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v1.2.0/app-release.apk",
   "release": {
     "title": "Version 1.2.0",
-    "subtitle": "Premium subscriptions, billing, and offline downloads",
-    "new_features": [
-      "Premium subscription plans are now available inside the app",
-      "Upgrade page fully added with available plans, premium benefits, and checkout support",
-      "Billing page added to manage your current plan, invoices, payment portal, cancellation, resume, and plan changes",
-      "Offline downloads are now available for eligible premium users",
-      "Premium users can enjoy an ad-free experience across supported app screens",
-      "Upload quota system added based on your current subscription plan",
-      "Billing and checkout return deep links are now supported"
-    ],
-    "improvements": [
-      "Subscription data is now loaded directly from the backend instead of using placeholder premium data",
-      "Upload page now shows your current upload quota and guides you to upgrade when the limit is reached",
-      "Offline downloads now check premium entitlement before saving tracks locally",
-      "Downloaded tracks now store better local metadata for smoother offline library usage",
-      "Settings page now includes access to premium and billing management",
-      "App routing improved for premium, billing, checkout return, and billing portal return flows",
-      "Premium-aware ad banners now automatically hide for users whose plan disables ads",
-      "Dependency injection updated to register premium, billing, offline, and upload quota services correctly"
-    ],
-    "bug_fixes": [
-      "Fixed upload limit handling so users are blocked correctly when their plan quota is reached",
-      "Fixed premium-only offline downloads so free users are guided to upgrade instead of starting unavailable downloads",
-      "Fixed billing and checkout return navigation after payment or portal actions",
-      "Fixed subscription state handling after cancel, resume, and plan change actions",
-      "Fixed ad banner visibility so premium users no longer see upgrade ads when ads are disabled",
-      "Fixed upload error messages to show clear upgrade actions for quota and billing-related failures",
-      "Fixed several premium route, deep link, and test stability issues"
-    ]
+    "subtitle": "What's new:",
+    "new_features": [],
+    "improvements": [],
+    "bug_fixes": []
   }
 }
