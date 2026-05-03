@@ -13,7 +13,7 @@ abstract class DiscoveryRemoteDataSource {
 
   Future<List<TrendingTrackModel>> getGenreTrendingTracks({
     required String genreSlug,
-    int limit = 50,
+    int limit = 5,
   });
 }
 
@@ -56,7 +56,7 @@ class DiscoveryRemoteDataSourceImpl implements DiscoveryRemoteDataSource {
   @override
   Future<List<TrendingTrackModel>> getGenreTrendingTracks({
     required String genreSlug,
-    int limit = 50,
+    int limit = 5,
   }) async {
     final response = await _client.get<Map<String, dynamic>>(
       ApiConstants.discoveryTrendingGenreTracksPath(genreSlug),

@@ -36,7 +36,8 @@ class GenreRemoteDatasource {
     }
 
     return GenrePageData(
-      headerImageUrl: trending.isNotEmpty ? trending.first.artworkUrl ?? '' : '',
+      headerImageUrl:
+          trending.isNotEmpty ? trending.first.artworkUrl ?? '' : '',
       trending: trending,
       introducing: introducing,
       introducingExtras: introducingExtras,
@@ -51,7 +52,7 @@ class GenreRemoteDatasource {
   Future<List<Track>> _fetchTrending(String genreSlug) async {
     final response = await _client.get<Map<String, dynamic>>(
       ApiConstants.discoveryTrendingGenreTracksPath(genreSlug),
-      queryParameters: {'limit': 50},
+      queryParameters: {'limit': 5},
     );
 
     final body = response.data ?? <String, dynamic>{};
@@ -65,7 +66,7 @@ class GenreRemoteDatasource {
       ApiConstants.globalSearch,
       queryParameters: {
         'q': genreSlug,
-        'type': 'playlist',
+        'type': 'playlists',
         'page': 1,
         'limit': 20,
       },
@@ -85,7 +86,7 @@ class GenreRemoteDatasource {
       ApiConstants.globalSearch,
       queryParameters: {
         'q': genreSlug,
-        'type': 'track',
+        'type': 'tracks',
         'page': 1,
         'limit': 30,
       },
@@ -99,15 +100,12 @@ class GenreRemoteDatasource {
 
     final normalizedSlug = genreSlug.toLowerCase();
 
-    return tracks
-        .map(_parseTrack)
-        .where((track) {
-          final genre = (track.genre ?? '').toLowerCase();
-          return genre.isEmpty ||
-              genre == normalizedSlug ||
-              genre.contains(normalizedSlug);
-        })
-        .toList(growable: false);
+    return tracks.map(_parseTrack).where((track) {
+      final genre = (track.genre ?? '').toLowerCase();
+      return genre.isEmpty ||
+          genre == normalizedSlug ||
+          genre.contains(normalizedSlug);
+    }).toList(growable: false);
   }
 
   Future<List<GenreProfileEntity>> _fetchSuggestedProfiles(
@@ -117,7 +115,7 @@ class GenreRemoteDatasource {
       ApiConstants.globalSearch,
       queryParameters: {
         'q': genreSlug,
-        'type': 'user',
+        'type': 'users',
         'page': 1,
         'limit': 10,
       },
@@ -171,7 +169,10 @@ class GenreRemoteDatasource {
       ),
       slug: _nullableString(json['slug']),
       artistId: _nullableString(
-        artist['id'] ?? uploader['userId'] ?? json['artistId'] ?? json['uploaderId'],
+        artist['id'] ??
+            uploader['userId'] ??
+            json['artistId'] ??
+            json['uploaderId'],
       ),
       genre: _nullableString(
         genre['slug'] ?? genre['name'] ?? json['genre'],
