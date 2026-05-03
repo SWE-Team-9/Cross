@@ -264,8 +264,41 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     }
   }
 
-  Future<String> openBillingPortal() async {
+  Future<void> cancelPlanChange() async {
     emit(
+      state.copyWith(
+        actionStatus: SubscriptionActionStatus.loading,
+        clearActionMessage: true,
+        clearActionErrorMessage: true,
+      ),
+    );
+
+    try {
+      final subscription = await repository.cancelPlanChange();
+
+      emit(
+        state.copyWith(
+          status: SubscriptionStatus.loaded,
+          actionStatus: SubscriptionActionStatus.success,
+          subscription: subscription,
+          actionMessage: 'Scheduled plan change canceled.',
+          clearActionErrorMessage: true,
+        ),
+      );
+
+      await _refreshBillingAfterAction();
+    } catch (error) {
+      emit(
+        state.copyWith(
+          actionStatus: SubscriptionActionStatus.failure,
+          actionErrorMessage: _readableError(error),
+          clearActionMessage: true,
+        ),
+      );
+    }
+  }
+
+  Future<String> openBillingPortal() async {    emit(
       state.copyWith(
         actionStatus: SubscriptionActionStatus.loading,
         clearBillingPortalSession: true,
