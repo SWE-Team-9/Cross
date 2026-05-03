@@ -30,7 +30,8 @@ class ProfilePageDto {
         'created_playlists',
       ],
     );
-    print('DEBUG ProfilePageDto: Found ${extractedPlaylists.length} playlists from aggregate endpoint');
+    print(
+        'DEBUG ProfilePageDto: Found ${extractedPlaylists.length} playlists from aggregate endpoint');
 
     final extractedLikedPlaylists = _extractPlaylistDtos(
       source,
@@ -42,7 +43,8 @@ class ProfilePageDto {
         'likes',
       ],
     );
-    print('DEBUG ProfilePageDto: Found ${extractedLikedPlaylists.length} liked playlists from aggregate endpoint');
+    print(
+        'DEBUG ProfilePageDto: Found ${extractedLikedPlaylists.length} liked playlists from aggregate endpoint');
 
     return ProfilePageDto(
       profile: ProfileDto.fromJson(profileMap),

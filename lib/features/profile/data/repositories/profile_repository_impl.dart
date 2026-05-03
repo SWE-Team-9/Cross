@@ -3,8 +3,6 @@ import '../../domain/entities/profile_entity.dart';
 import '../../domain/entities/profile_page_data.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../datasources/profile_remote_data_source.dart';
-import '../dto/profile_dto.dart';
-import '../../../playlists/data/dto/playlist_dto.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileRemoteDataSource _remoteDataSource;
