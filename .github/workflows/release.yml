@@ -3,7 +3,7 @@ name: Auto Release
 on:
   push:
     tags:
-      - 'v*'   # triggers on tags like v1.0.1, v2.0.0
+      - 'v*'
 
 permissions:
   contents: write
@@ -47,6 +47,9 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate freezed files
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build APK
         run: flutter build apk --release
