@@ -2,12 +2,17 @@ import 'dart:io';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
+import 'package:soundcloud_clone/core/storage/secure_storage.dart';
 import 'package:soundcloud_clone/features/messaging/data/datasources/messaging_socket_data_source.dart';
+
+class MockSecureStorage extends Mock implements SecureStorage {}
 
 void main() {
   late Directory tempDir;
   late PersistCookieJar cookieJar;
+  late MockSecureStorage secureStorage;
   late MessagingSocketDataSourceImpl dataSource;
 
   setUp(() async {
@@ -15,7 +20,14 @@ void main() {
     cookieJar = PersistCookieJar(
       storage: FileStorage(tempDir.path),
     );
-    dataSource = MessagingSocketDataSourceImpl(cookieJar: cookieJar);
+    secureStorage = MockSecureStorage();
+    when(() => secureStorage.read(SecureStorage.accessTokenKey))
+        .thenAnswer((_) async => null);
+
+    dataSource = MessagingSocketDataSourceImpl(
+      cookieJar: cookieJar,
+      secureStorage: secureStorage,
+    );
   });
 
   tearDown(() async {
