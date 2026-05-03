@@ -168,7 +168,7 @@ class _Header extends StatelessWidget {
                   color: const Color(0xFF222222),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFFFF5500).withOpacity(0.3),
+                    color: const Color(0xFFFF5500).withValues(alpha: 0.3),
                     width: 1.5,
                   ),
                 ),
@@ -235,10 +235,10 @@ class _Header extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF5500).withOpacity(0.15),
+                color: const Color(0xFFFF5500).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: const Color(0xFFFF5500).withOpacity(0.4),
+                  color: const Color(0xFFFF5500).withValues(alpha: 0.4),
                 ),
               ),
               child: const Text(
@@ -366,7 +366,7 @@ class _Actions extends StatelessWidget {
                 ),
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
-                  'Maybe Later',
+                  'Later',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
