@@ -168,6 +168,21 @@ import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription
 import 'package:soundcloud_clone/features/premium/data/repositories/subscription_repository_impl.dart';
 import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
+import '../../features/discovery/data/datasources/discovery_remote_data_source.dart';
+import '../../features/discovery/data/repositories/discovery_repository_impl.dart';
+import '../../features/discovery/data/repositories/trending_repository_impl.dart';
+import '../../features/discovery/domain/repositories/discovery_repository.dart';
+import '../../features/discovery/domain/repositories/trending_repository.dart';
+import '../../features/discovery/domain/usecases/get_trending_usecase.dart';
+import '../../features/discovery/domain/usecases/resolve_resource_usecase.dart';
+import '../../features/discovery/presentation/bloc/discovery_cubit.dart';
+import '../../features/discovery/presentation/bloc/trending_cubit.dart';
+
+import '../../features/search/data/datasources/genre_remote_datasource.dart';
+import '../../features/search/data/repositories/genre_repository_impl.dart';
+import '../../features/search/domain/repositories/genre_repository.dart';
+import '../../features/search/domain/usecases/genre_usecase.dart';
+import '../../features/search/presentation/bloc/genre_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -791,6 +806,88 @@ Future<void> setupDependencies() async {
     );
   }
 
+  // ── Discovery Feature ────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<DiscoveryRemoteDataSource>()) {
+    getIt.registerLazySingleton<DiscoveryRemoteDataSource>(
+      () => DiscoveryRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DiscoveryRepository>()) {
+    getIt.registerLazySingleton<DiscoveryRepository>(
+      () => DiscoveryRepositoryImpl(getIt<DiscoveryRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ResolveResourceUseCase>()) {
+    getIt.registerLazySingleton<ResolveResourceUseCase>(
+      () => ResolveResourceUseCase(getIt<DiscoveryRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DiscoveryCubit>()) {
+    getIt.registerFactory<DiscoveryCubit>(
+      () => DiscoveryCubit(getIt<ResolveResourceUseCase>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrendingRepository>()) {
+    getIt.registerLazySingleton<TrendingRepository>(
+      () => TrendingRepositoryImpl(
+        remoteDataSource: getIt<DiscoveryRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrendingUseCase>()) {
+    getIt.registerLazySingleton<GetTrendingUseCase>(
+      () => GetTrendingUseCase(getIt<TrendingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrendingCubit>()) {
+    getIt.registerFactory<TrendingCubit>(
+      () => TrendingCubit(
+        getTrendingUseCase: getIt<GetTrendingUseCase>(),
+      ),
+    );
+  }
+
+  // ── Genre Discovery Feature ──────────────────────────────────────────────
+
+  if (!getIt.isRegistered<GenreRemoteDatasource>()) {
+    getIt.registerLazySingleton<GenreRemoteDatasource>(
+      () => GenreRemoteDatasource(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GenreRepository>()) {
+    getIt.registerLazySingleton<GenreRepository>(
+      () => GenreRepositoryImpl(getIt<GenreRemoteDatasource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GenreUseCase>()) {
+    getIt.registerLazySingleton<GenreUseCase>(
+      () => GenreUseCase(getIt<GenreRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<FollowUserUseCase>()) {
+    getIt.registerLazySingleton<FollowUserUseCase>(
+      () => FollowUserUseCase(getIt<GenreRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GenreCubit>()) {
+    getIt.registerFactory<GenreCubit>(
+      () => GenreCubit(
+        getIt<GenreUseCase>(),
+        getIt<FollowUserUseCase>(),
+      ),
+    );
+  }
   // ── Interactions Feature ─────────────────────────────────────────────────
 
   if (!getIt.isRegistered<InteractionsRemoteDataSource>()) {

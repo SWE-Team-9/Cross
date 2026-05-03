@@ -1,250 +1,306 @@
-// // lib/features/search/data/datasources/genre_remote_datasource.dart
+import 'package:injectable/injectable.dart';
 
-// import 'package:injectable/injectable.dart';
+import '../../../../core/models/track.dart';
+import '../../../../core/network/api_constants.dart';
+import '../../../../core/network/dio_client.dart';
+import '../../domain/entities/genre_entities.dart';
+import '../../domain/entities/search_entities.dart';
 
-// import '../../../../core/models/track.dart';
-// import '../../../../core/network/dio_client.dart';
-// import '../../../../core/network/api_constants.dart';
-// import '../../../search/domain/entities/search_entities.dart';
-// import '../../domain/entities/genre_entities.dart';
+@lazySingleton
+class GenreRemoteDatasource {
+  final DioClient _client;
 
-// @lazySingleton
-// class GenreRemoteDatasource {
-//   final DioClient _client;
-//   GenreRemoteDatasource(this._client);
+  GenreRemoteDatasource(this._client);
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // Public entry-point
-//   // ─────────────────────────────────────────────────────────────────────────
+  Future<GenrePageData> fetchGenrePage(String genreSlug) async {
+    final results = await Future.wait([
+      _fetchTrending(genreSlug),
+      _fetchPlaylists(genreSlug),
+      _fetchDiscoverMore(genreSlug),
+      _fetchSuggestedProfiles(genreSlug),
+    ]);
 
-//   Future<GenrePageData> fetchGenrePage(String genreSlug) async {
-//     final results = await Future.wait([
-//       _fetchTrending(genreSlug),
-//       _fetchPlaylists(genreSlug),
-//       _fetchDiscoverMore(genreSlug),
-//       _fetchSuggestedProfiles(),
-//       _fetchMyFollowingIds(),
-//     ]);
+    final trending = results[0] as List<Track>;
+    final playlists = results[1] as List<PlaylistEntity>;
+    final discoverMore = results[2] as List<Track>;
+    final profiles = results[3] as List<GenreProfileEntity>;
 
-//     final trending     = results[0] as List<Track>;
-//     final playlists    = results[1] as List<PlaylistEntity>;
-//     final discoverMore = results[2] as List<Track>;
-//     final profiles     = results[3] as List<GenreProfileEntity>;
-//     final followingIds = results[4] as Set<String>;
+    Track? introducing;
+    List<Track> introducingExtras = const [];
 
-//     // Introducing = most-liked track; next 2 shown under it
-//     Track? introducing;
-//     List<Track> introducingExtras = [];
-//     if (trending.isNotEmpty) {
-//       final byLikes = List<Track>.from(trending)
-//         ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
-//       introducing       = byLikes.first;
-//       introducingExtras = byLikes.skip(1).take(2).toList();
-//     }
+    if (trending.isNotEmpty) {
+      final sortedByLikes = List<Track>.from(trending)
+        ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+      introducing = sortedByLikes.first;
+      introducingExtras = sortedByLikes.skip(1).take(2).toList();
+    }
 
-//     return GenrePageData(
-//       headerImageUrl:    trending.isNotEmpty ? (trending.first.artworkUrl ?? '') : '',
-//       trending:          trending,
-//       introducing:       introducing,
-//       introducingExtras: introducingExtras,
-//       playlists:         playlists,
-//       albums:            [],
-//       profiles:          profiles,
-//       discoverMore:      discoverMore,
-//       followingIds:      followingIds,
-//     );
-//   }
+    return GenrePageData(
+      headerImageUrl: trending.isNotEmpty ? trending.first.artworkUrl ?? '' : '',
+      trending: trending,
+      introducing: introducing,
+      introducingExtras: introducingExtras,
+      playlists: playlists,
+      albums: const [],
+      profiles: profiles,
+      discoverMore: discoverMore,
+      followingIds: const {},
+    );
+  }
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // GET /api/v1/discovery/trending/genres/{genreSlug}/tracks
-//   // Response: { genre:{slug,name}, limit:n, total:n, tracks:[...] }
-//   // ─────────────────────────────────────────────────────────────────────────
+  Future<List<Track>> _fetchTrending(String genreSlug) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      ApiConstants.discoveryTrendingGenreTracksPath(genreSlug),
+      queryParameters: {'limit': 50},
+    );
 
-//   Future<List<Track>> _fetchTrending(String genreSlug) async {
-//     try {
-//       final r = await _client.get<Map<String, dynamic>>(
-//         '/api/v1/discovery/trending/genres/$genreSlug/tracks',
-//         queryParameters: {'limit': 50},
-//       );
-//       final body = r.data as Map<String, dynamic>? ?? {};
-//       final list = (body['tracks'] as List<dynamic>? ?? [])
-//           .cast<Map<String, dynamic>>();
-//       return list.map(_parseTrack).toList();
-//     } catch (_) {
-//       return [];
-//     }
-//   }
+    final body = response.data ?? <String, dynamic>{};
+    final tracks = _extractList(body, const ['tracks', 'items', 'data']);
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // Playlists  GET /api/v1/playlists?genre=<slug>&limit=20
-//   // ─────────────────────────────────────────────────────────────────────────
+    return tracks.map(_parseTrack).toList(growable: false);
+  }
 
-//   Future<List<PlaylistEntity>> _fetchPlaylists(String genreSlug) async {
-//     try {
-//       final r = await _client.get<Map<String, dynamic>>(
-//         ApiConstants.playlistsBase,
-//         queryParameters: {'genre': genreSlug, 'limit': 20},
-//       );
-//       return _extractList(r.data as Map<String, dynamic>?)
-//           .map(_parsePlaylist)
-//           .toList();
-//     } catch (_) {
-//       return [];
-//     }
-//   }
+  Future<List<PlaylistEntity>> _fetchPlaylists(String genreSlug) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      ApiConstants.globalSearch,
+      queryParameters: {
+        'q': genreSlug,
+        'type': 'playlist',
+        'page': 1,
+        'limit': 20,
+      },
+    );
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // Discover more  — reuse global search, filter by genre slug client-side
-//   // ─────────────────────────────────────────────────────────────────────────
+    final body = response.data ?? <String, dynamic>{};
+    final playlists = _extractNestedList(
+      body,
+      const ['playlists', 'items', 'data'],
+    );
 
-//   Future<List<Track>> _fetchDiscoverMore(String genreSlug) async {
-//     try {
-//       final r = await _client.get<Map<String, dynamic>>(
-//         ApiConstants.globalSearch,
-//         queryParameters: {'q': genreSlug, 'kind': 'track', 'limit': 30},
-//       );
-//       final slug = genreSlug.toLowerCase();
-//       return _extractList(r.data as Map<String, dynamic>?)
-//           .map(_parseTrack)
-//           .where((t) {
-//             final g = (t.genre ?? '').toLowerCase();
-//             return g == slug || g.contains(slug) || g.isEmpty;
-//           })
-//           .toList();
-//     } catch (_) {
-//       return [];
-//     }
-//   }
+    return playlists.map(_parsePlaylist).toList(growable: false);
+  }
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // Suggested profiles  GET /api/v1/social/suggestions
-//   // ─────────────────────────────────────────────────────────────────────────
+  Future<List<Track>> _fetchDiscoverMore(String genreSlug) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      ApiConstants.globalSearch,
+      queryParameters: {
+        'q': genreSlug,
+        'type': 'track',
+        'page': 1,
+        'limit': 30,
+      },
+    );
 
-//   Future<List<GenreProfileEntity>> _fetchSuggestedProfiles() async {
-//     try {
-//       final r = await _client.get<Map<String, dynamic>>(
-//         ApiConstants.suggestedUsersPath,
-//         queryParameters: {'limit': 10},
-//       );
-//       return _extractList(r.data as Map<String, dynamic>?)
-//           .map(_parseProfile)
-//           .toList();
-//     } catch (_) {
-//       return [];
-//     }
-//   }
+    final body = response.data ?? <String, dynamic>{};
+    final tracks = _extractNestedList(
+      body,
+      const ['tracks', 'items', 'data'],
+    );
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // My following IDs  (lightweight endpoint, falls back to empty)
-//   // ─────────────────────────────────────────────────────────────────────────
+    final normalizedSlug = genreSlug.toLowerCase();
 
-//   Future<Set<String>> _fetchMyFollowingIds() async {
-//     try {
-//       final r = await _client.get<Map<String, dynamic>>(
-//         '${ApiConstants.socialBase}/me/following-ids',
-//       );
-//       final body = r.data as Map<String, dynamic>? ?? {};
-//       final list = body['ids'] as List<dynamic>?
-//           ?? body['following_ids'] as List<dynamic>?
-//           ?? [];
-//       return list.map((e) => e.toString()).toSet();
-//     } catch (_) {
-//       return {};
-//     }
-//   }
+    return tracks
+        .map(_parseTrack)
+        .where((track) {
+          final genre = (track.genre ?? '').toLowerCase();
+          return genre.isEmpty ||
+              genre == normalizedSlug ||
+              genre.contains(normalizedSlug);
+        })
+        .toList(growable: false);
+  }
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // Follow / Unfollow  PUT|DELETE /api/v1/social/follow/<userId>
-//   // ─────────────────────────────────────────────────────────────────────────
+  Future<List<GenreProfileEntity>> _fetchSuggestedProfiles(
+    String genreSlug,
+  ) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      ApiConstants.globalSearch,
+      queryParameters: {
+        'q': genreSlug,
+        'type': 'user',
+        'page': 1,
+        'limit': 10,
+      },
+    );
 
-//   Future<void> followUser({required String userId, required bool follow}) async {
-//     final path = ApiConstants.followUserPath(userId);
-//     if (follow) {
-//       await _client.put<dynamic>(path);
-//     } else {
-//       await _client.delete<dynamic>(path);
-//     }
-//   }
+    final body = response.data ?? <String, dynamic>{};
+    final users = _extractNestedList(
+      body,
+      const ['users', 'profiles', 'items', 'data'],
+    );
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // Parsers — match the real API response shape:
-//   //
-//   // {
-//   //   "trackId":     "uuid",
-//   //   "title":       "Example Track",
-//   //   "slug":        "example-track",
-//   //   "artist":      { "id":"uuid", "displayName":"...", "handle":"...", "avatarUrl":null },
-//   //   "genre":       { "slug":"electronic", "name":"Electronic" },
-//   //   "coverArtUrl": null,
-//   //   "durationMs":  210000,
-//   //   "likesCount":  42,
-//   //   "repostsCount":7,
-//   //   "createdAt":   "2026-01-01T00:00:00.000Z"
-//   // }
-//   // ─────────────────────────────────────────────────────────────────────────
+    return users.map(_parseProfile).toList(growable: false);
+  }
 
-//   Track _parseTrack(Map<String, dynamic> j) {
-//     final artist    = j['artist'] as Map<String, dynamic>? ?? {};
-//     final genreMap  = j['genre']  as Map<String, dynamic>? ?? {};
+  Future<void> followUser({
+    required String userId,
+    required bool follow,
+  }) async {
+    final path = ApiConstants.followUserPath(userId);
 
-//     // durationMs (API) → seconds (Track model)
-//     final durationMs  = _i(j['durationMs'] ?? j['duration_ms'] ?? j['duration']);
-//     final durationSec = durationMs > 1000 ? durationMs ~/ 1000 : durationMs;
+    if (follow) {
+      await _client.put<dynamic>(path);
+    } else {
+      await _client.delete<dynamic>(path);
+    }
+  }
 
-//     return Track(
-//       // Use whichever ID field the API sends
-//       id:            _s(j['trackId'] ?? j['id']),
-//       title:         _s(j['title']),
-//       // Artist name comes from nested artist object
-//       artist:        _s(artist['displayName'] ?? artist['handle'] ?? j['artist']),
-//       // Cover art field name in this API is coverArtUrl
-//       artworkUrl:    (j['coverArtUrl'] ?? j['artwork_url'] ?? j['artworkUrl']) as String?,
-//       likesCount:    _i(j['likesCount']    ?? j['likes_count']),
-//       repostsCount:  _i(j['repostsCount']  ?? j['reposts_count']),
-//       // Map to whichever field name Track uses — see note below
-//       durationSeconds: durationSec,
-//       handle:        _s(artist['handle']   ?? j['handle']),
-//       // Store genre slug for client-side filtering
-//       genre:         _s(genreMap['slug']   ?? genreMap['name'] ?? j['genre']),
-//     );
-//   }
+  Track _parseTrack(Map<String, dynamic> json) {
+    final artist = _map(json['artist']);
+    final uploader = _map(json['uploader']);
+    final uploaderProfile = _map(uploader['profile']);
+    final genre = _map(json['genre']);
 
-//   PlaylistEntity _parsePlaylist(Map<String, dynamic> j) {
-//     final user = j['user'] as Map<String, dynamic>? ?? {};
-//     return PlaylistEntity(
-//       id:         _s(j['id']),
-//       title:      _s(j['title']),
-//       artworkUrl: _s(j['artwork_url'] ?? j['artworkUrl'] ?? j['coverArtUrl']),
-//       ownerName:  _s(j['owner_name']  ?? user['displayName'] ?? user['username']),
-//       trackCount: _i(j['track_count'] ?? j['trackCount']     ?? j['tracks_count']),
-//       isPrivate:  j['sharing'] == 'private' || j['is_private'] == true,
-//     );
-//   }
+    return Track(
+      id: _s(json['id'] ?? json['trackId']),
+      title: _s(json['title']),
+      artist: _s(
+        artist['displayName'] ??
+            artist['handle'] ??
+            uploaderProfile['displayName'] ??
+            uploaderProfile['handle'] ??
+            json['artistName'] ??
+            json['artistHandle'],
+      ),
+      audioUrl: _s(json['audioUrl'] ?? json['audio_url'] ?? json['streamUrl']),
+      artworkUrl: _nullableString(
+        json['coverArtUrl'] ?? json['artworkUrl'] ?? json['artwork_url'],
+      ),
+      handle: _nullableString(
+        artist['handle'] ?? uploaderProfile['handle'] ?? json['artistHandle'],
+      ),
+      slug: _nullableString(json['slug']),
+      artistId: _nullableString(
+        artist['id'] ?? uploader['userId'] ?? json['artistId'] ?? json['uploaderId'],
+      ),
+      genre: _nullableString(
+        genre['slug'] ?? genre['name'] ?? json['genre'],
+      ),
+      likesCount: _int(json['likesCount'] ?? json['likes_count']),
+      repostsCount: _int(json['repostsCount'] ?? json['reposts_count']),
+      durationMs: _nullableInt(json['durationMs'] ?? json['duration_ms']),
+    );
+  }
 
-//   GenreProfileEntity _parseProfile(Map<String, dynamic> j) {
-//     return GenreProfileEntity(
-//       id:          _s(j['id']),
-//       username:    _s(j['handle']      ?? j['username']     ?? j['permalink']),
-//       displayName: _s(j['displayName'] ?? j['display_name'] ?? j['full_name'] ?? j['username']),
-//       avatarUrl:   _s(j['avatarUrl']   ?? j['avatar_url']   ?? j['profile_picture']),
-//       isVerified:  j['verified'] as bool? ?? false,
-//     );
-//   }
+  PlaylistEntity _parsePlaylist(Map<String, dynamic> json) {
+    final user = _map(json['user']);
+    final owner = _map(json['owner']);
 
-//   // ─────────────────────────────────────────────────────────────────────────
-//   // Utilities
-//   // ─────────────────────────────────────────────────────────────────────────
+    return PlaylistEntity(
+      id: _s(json['id']),
+      title: _s(json['title']),
+      artworkUrl: _s(
+        json['coverArtUrl'] ??
+            json['artworkUrl'] ??
+            json['artwork_url'] ??
+            _firstTrackArtwork(json['tracks']),
+      ),
+      trackCount: _int(
+        json['trackCount'] ?? json['track_count'] ?? json['tracksCount'],
+      ),
+      ownerName: _s(
+        json['ownerName'] ??
+            user['displayName'] ??
+            user['username'] ??
+            owner['displayName'] ??
+            owner['username'],
+      ),
+      isAlbum: json['isAlbum'] as bool? ?? json['is_album'] as bool? ?? false,
+      isPrivate: json['sharing'] == 'private' ||
+          json['visibility'] == 'PRIVATE' ||
+          json['isPrivate'] == true ||
+          json['is_private'] == true,
+      duration: Duration(
+        milliseconds: _int(json['durationMs'] ?? json['duration_ms']),
+      ),
+      likesCount: _int(json['likesCount'] ?? json['likes_count']),
+      createdAt: DateTime.tryParse(
+            _s(json['createdAt'] ?? json['created_at']),
+          ) ??
+          DateTime(1970),
+    );
+  }
 
-//   List<Map<String, dynamic>> _extractList(Map<String, dynamic>? body) {
-//     if (body == null) return [];
-//     for (final key in ['tracks', 'collection', 'playlists', 'users', 'data', 'results']) {
-//       if (body[key] is List) {
-//         return (body[key] as List).cast<Map<String, dynamic>>();
-//       }
-//     }
-//     return [];
-//   }
+  GenreProfileEntity _parseProfile(Map<String, dynamic> json) {
+    return GenreProfileEntity(
+      id: _s(json['id'] ?? json['userId']),
+      username: _s(json['handle'] ?? json['username'] ?? json['permalink']),
+      displayName: _s(
+        json['displayName'] ??
+            json['display_name'] ??
+            json['fullName'] ??
+            json['username'] ??
+            json['handle'],
+      ),
+      avatarUrl: _s(json['avatarUrl'] ?? json['avatar_url']),
+      isVerified: json['verified'] as bool? ?? false,
+    );
+  }
 
-//   String _s(dynamic v) => v?.toString() ?? '';
-//   int    _i(dynamic v) => (v as num?)?.toInt() ?? 0;
-// }
+  List<Map<String, dynamic>> _extractNestedList(
+    Map<String, dynamic> body,
+    List<String> keys,
+  ) {
+    final data = body['data'];
+
+    if (data is Map) {
+      final nested = Map<String, dynamic>.from(data);
+      final nestedResult = _extractList(nested, keys);
+      if (nestedResult.isNotEmpty) return nestedResult;
+    }
+
+    return _extractList(body, keys);
+  }
+
+  List<Map<String, dynamic>> _extractList(
+    Map<String, dynamic> body,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = body[key];
+      if (value is List) {
+        return value
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList(growable: false);
+      }
+    }
+
+    return const [];
+  }
+
+  static Map<String, dynamic> _map(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return const {};
+  }
+
+  static String? _firstTrackArtwork(dynamic tracks) {
+    if (tracks is! List || tracks.isEmpty) return null;
+
+    final first = tracks.first;
+    if (first is! Map) return null;
+
+    final map = Map<String, dynamic>.from(first);
+    return _nullableString(
+      map['coverArtUrl'] ?? map['artworkUrl'] ?? map['artwork_url'],
+    );
+  }
+
+  static String _s(dynamic value) => value?.toString() ?? '';
+
+  static String? _nullableString(dynamic value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  static int _int(dynamic value) {
+    return _nullableInt(value) ?? 0;
+  }
+
+  static int? _nullableInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+}

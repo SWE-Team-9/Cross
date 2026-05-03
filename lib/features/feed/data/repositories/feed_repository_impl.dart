@@ -1,8 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  feed_repository_impl.dart  —  Repository Implementation
-//  Bridges data layer → domain layer.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import '../../domain/entities/feed_item.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../datasources/feed_remote_data_sources.dart';
@@ -12,21 +7,15 @@ class FeedRepositoryImpl implements FeedRepository {
 
   const FeedRepositoryImpl({required this.dataSource});
 
-  // ─── Activity Feed ────────────────────────────────────────────────────────
-
   @override
   Future<FeedPage> getFeed({required int page}) async {
     final model = await dataSource.getFeed(page: page);
     return _mapFeedPage(model);
   }
 
-  // ─── Mappers ──────────────────────────────────────────────────────────────
-
   FeedPage _mapFeedPage(ActivityFeedPageModel model) {
-    print('🟡 items count: ${model.items.length}');
-    print('🟡 pagination: ${model.pagination.total}');
     return FeedPage(
-      items: model.items.map(_mapFeedItem).toList(),
+      items: model.items.map(_mapFeedItem).toList(growable: false),
       page: model.pagination.page,
       hasMore: model.pagination.hasNextPage,
       totalItems: model.pagination.total,
@@ -37,7 +26,7 @@ class FeedRepositoryImpl implements FeedRepository {
   FeedItem _mapFeedItem(FeedActivityItemModel model) {
     return FeedItem(
       activityId: model.id,
-      action: model.actionType, // 'POST' | 'REPOST'
+      action: model.actionType,
       timeAgo: _timeAgo(model.activityAt),
       createdAt: model.activityAt,
       actor: _mapActor(model.actor),
@@ -51,32 +40,11 @@ class FeedRepositoryImpl implements FeedRepository {
       displayName: model.displayName,
       handle: model.handle,
       avatarUrl: model.avatarUrl,
-      verified: false, // not in API yet — default false
+      verified: model.verified,
     );
   }
 
   FeedTrack _mapTrack(FeedTrackModel model) {
-    final artist = FeedActor(
-      userId: model.artistId,
-      displayName: model.artistName,
-      handle: model.artistHandle,
-      avatarUrl: model.artistAvatarUrl,
-      verified: false,
-    );
-
-    final stats = TrackStats(
-      likesCount: model.likesCount,
-      commentsCount: model.commentsCount, // not in API yet — default 0
-      repostsCount: model.repostsCount,
-      playsCount: 0, // not in API yet — default 0
-    );
-
-    final userState = TrackUserState(
-      liked: model.liked,
-      reposted: model.reposted,
-      inLibrary: false, // not in API yet — default false
-    );
-
     return FeedTrack(
       trackId: model.id,
       title: model.title,
@@ -85,20 +53,37 @@ class FeedRepositoryImpl implements FeedRepository {
       status: model.status,
       visibility: model.visibility,
       coverArtUrl: model.coverArtUrl,
-      genre: '', // not in API yet — default empty
+      genre: model.genre,
       waveformData: model.waveformData,
-      artist: artist,
-      stats: stats,
-      userState: userState,
+      audioUrl: model.audioUrl,
+      artist: FeedActor(
+        userId: model.artistId,
+        displayName: model.artistName,
+        handle: model.artistHandle,
+        avatarUrl: model.artistAvatarUrl,
+        verified: false,
+      ),
+      stats: TrackStats(
+        likesCount: model.likesCount,
+        commentsCount: model.commentsCount,
+        repostsCount: model.repostsCount,
+        playsCount: model.playsCount,
+      ),
+      userState: TrackUserState(
+        liked: model.liked,
+        reposted: model.reposted,
+        inLibrary: false,
+      ),
     );
   }
 
-  /// Converts an ISO-8601 string → human-readable "X ago" string.
   String _timeAgo(String? iso) {
     if (iso == null || iso.isEmpty) return '';
-    final dt = DateTime.tryParse(iso);
-    if (dt == null) return '';
-    final diff = DateTime.now().toUtc().difference(dt.toUtc());
+
+    final dateTime = DateTime.tryParse(iso);
+    if (dateTime == null) return '';
+
+    final diff = DateTime.now().toUtc().difference(dateTime.toUtc());
 
     if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
@@ -106,44 +91,41 @@ class FeedRepositoryImpl implements FeedRepository {
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
     if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo ago';
+
     return '${(diff.inDays / 365).floor()}y ago';
   }
-
-  // ─── Like ─────────────────────────────────────────────────────────────────
 
   @override
   Future<({int likesCount, bool liked})> toggleLike({
     required String trackId,
     required bool currentlyLiked,
   }) async {
-    final res = await dataSource.toggleLike(
+    final response = await dataSource.toggleLike(
       trackId: trackId,
       currentlyLiked: currentlyLiked,
     );
+
     return (
-      likesCount: (res['likesCount'] as int?) ?? 0,
-      liked: (res['liked'] as bool?) ?? !currentlyLiked,
+      likesCount: (response['likesCount'] as int?) ?? 0,
+      liked: (response['liked'] as bool?) ?? !currentlyLiked,
     );
   }
-
-  // ─── Repost ───────────────────────────────────────────────────────────────
 
   @override
   Future<({int repostsCount, bool reposted})> toggleRepost({
     required String trackId,
     required bool currentlyReposted,
   }) async {
-    final res = await dataSource.toggleRepost(
+    final response = await dataSource.toggleRepost(
       trackId: trackId,
       currentlyReposted: currentlyReposted,
     );
+
     return (
-      repostsCount: (res['repostsCount'] as int?) ?? 0,
-      reposted: (res['reposted'] as bool?) ?? !currentlyReposted,
+      repostsCount: (response['repostsCount'] as int?) ?? 0,
+      reposted: (response['reposted'] as bool?) ?? !currentlyReposted,
     );
   }
-
-  // ─── Playback ─────────────────────────────────────────────────────────────
 
   @override
   Future<String?> getStreamUrl(String trackId) async {
@@ -154,11 +136,11 @@ class FeedRepositoryImpl implements FeedRepository {
 
   @override
   Future<PlaybackAccessResult> getPlaybackAccess(String trackId) async {
-    final res = await dataSource.getTrackSource(trackId);
-    final accessState = (res['accessState'] as String?) ?? 'BLOCKED';
+    final response = await dataSource.getTrackSource(trackId);
+
     return PlaybackAccessResult(
-      accessState: accessState,
-      streamUrl: res['streamUrl'] as String?,
+      accessState: (response['accessState'] as String?) ?? 'BLOCKED',
+      streamUrl: response['streamUrl'] as String?,
     );
   }
 
@@ -167,24 +149,21 @@ class FeedRepositoryImpl implements FeedRepository {
     await dataSource.recordPlay(trackId);
   }
 
-  // ─── Search ───────────────────────────────────────────────────────────────
-
   @override
-  Future<SearchResults> search({required String query, int page = 1}) async {
+  Future<SearchResults> search({
+    required String query,
+    int page = 1,
+  }) {
     return dataSource.search(query: query, page: page);
   }
 
-  // ─── Trending ─────────────────────────────────────────────────────────────
-
   @override
-  Future<List<TrendingTrack>> getTrending() async {
+  Future<List<TrendingTrack>> getTrending() {
     return dataSource.getTrending();
   }
 
-  // ─── Resolve ──────────────────────────────────────────────────────────────
-
   @override
-  Future<ResolveResult> resolve(String permalink) async {
+  Future<ResolveResult> resolve(String permalink) {
     return dataSource.resolve(permalink);
   }
 }

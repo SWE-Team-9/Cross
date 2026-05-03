@@ -1,13 +1,20 @@
-// lib/features/discovery/data/datasources/discovery_remote_data_source.dart
-
 import '../../../../core/network/api_constants.dart';
-import '/core/network/dio_client.dart';
+import '../../../../core/network/dio_client.dart';
 import '../dto/resolved_resource_model.dart';
 import '../dto/trending_track_model.dart';
 
 abstract class DiscoveryRemoteDataSource {
   Future<ResolvedResourceModel> resolveUrl(String url);
-  Future<List<TrendingTrackModel>> getTrending();
+
+  Future<List<TrendingTrackModel>> getTrending({
+    int limit = 20,
+    int windowDays = 7,
+  });
+
+  Future<List<TrendingTrackModel>> getGenreTrendingTracks({
+    required String genreSlug,
+    int limit = 50,
+  });
 }
 
 class DiscoveryRemoteDataSourceImpl implements DiscoveryRemoteDataSource {
@@ -19,37 +26,63 @@ class DiscoveryRemoteDataSourceImpl implements DiscoveryRemoteDataSource {
   Future<ResolvedResourceModel> resolveUrl(String url) async {
     final response = await _client.get<Map<String, dynamic>>(
       ApiConstants.resolve,
-      queryParameters: {'url': url},
+      queryParameters: {'url': url.trim()},
     );
+
     return ResolvedResourceModel.fromJson(
-      response.data as Map<String, dynamic>,
+      response.data ?? <String, dynamic>{},
     );
   }
 
-  // GET /api/v1/discovery/trending
-  // الـ response: { windowDays: 7, items: [...] }
   @override
-  Future<List<TrendingTrackModel>> getTrending() async {
-    final res = await _client.get<dynamic>(ApiConstants.trending);
+  Future<List<TrendingTrackModel>> getTrending({
+    int limit = 20,
+    int windowDays = 7,
+  }) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      ApiConstants.trending,
+      queryParameters: {
+        'limit': limit,
+        'windowDays': windowDays,
+      },
+    );
 
-    List<dynamic> list;
-    if (res.data is List) {
-      list = res.data as List;
-    } else if (res.data is Map) {
-      final data = res.data as Map<String, dynamic>;
-      if (data['items'] is List) {
-        list = data['items'] as List; // ✅ { windowDays, items: [...] }
-      } else if (data['data'] is List) {
-        list = data['data'] as List; // fallback
-      } else {
-        list = [];
+    final body = response.data ?? <String, dynamic>{};
+    final items = _extractList(body, const ['items', 'data', 'tracks']);
+
+    return items.map(TrendingTrackModel.fromJson).toList(growable: false);
+  }
+
+  @override
+  Future<List<TrendingTrackModel>> getGenreTrendingTracks({
+    required String genreSlug,
+    int limit = 50,
+  }) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      ApiConstants.discoveryTrendingGenreTracksPath(genreSlug),
+      queryParameters: {'limit': limit},
+    );
+
+    final body = response.data ?? <String, dynamic>{};
+    final tracks = _extractList(body, const ['tracks', 'items', 'data']);
+
+    return tracks.map(TrendingTrackModel.fromJson).toList(growable: false);
+  }
+
+  static List<Map<String, dynamic>> _extractList(
+    Map<String, dynamic> body,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = body[key];
+      if (value is List) {
+        return value
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList(growable: false);
       }
-    } else {
-      list = [];
     }
 
-    return list
-        .map((e) => TrendingTrackModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return const [];
   }
 }

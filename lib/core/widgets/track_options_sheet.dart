@@ -104,7 +104,12 @@ class TrackOptionsSheet extends StatelessWidget {
 
     final text = 'Check out "${track.title}" by @$artistHandle\n$url';
 
-    await Share.share(text, subject: track.title);
+    await SharePlus.instance.share(
+      ShareParams(
+        text: text,
+        subject: track.title,
+      ),
+    );
   }
 
   @override

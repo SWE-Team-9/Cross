@@ -4,15 +4,19 @@ enum ResolvedResourceType { track, artist, playlist, unknown }
 
 class ResolvedResource extends Equatable {
   const ResolvedResource({
+    required this.matched,
     required this.type,
     required this.resourceId,
-    this.ownerId,
+    this.handle,
+    this.slug,
   });
 
+  final bool matched;
   final ResolvedResourceType type;
   final String resourceId;
-  final String? ownerId;
+  final String? handle;
+  final String? slug;
 
   @override
-  List<Object?> get props => [type, resourceId, ownerId];
+  List<Object?> get props => [matched, type, resourceId, handle, slug];
 }
