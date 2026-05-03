@@ -261,7 +261,10 @@ class _RoutePathObserver extends NavigatorObserver {
   final String Function() _currentPath;
 
   void _syncRoutePath() {
-    _routePathNotifier.value = _currentPath();
+    // Defer to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _routePathNotifier.value = _currentPath();
+    });
   }
 
   @override
@@ -364,7 +367,10 @@ GoRouter _createRouter() {
     redirect: (context, state) {
       final location = state.uri.toString();
       // Update the route path notifier whenever route changes
-      _routePathNotifier.value = state.uri.path;
+      // Defer update to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _routePathNotifier.value = state.uri.path;
+      });
       if (state.uri.path == AppRoutes.discover) {
         return '/feed/discover';
       }

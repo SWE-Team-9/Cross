@@ -461,107 +461,110 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A1A),
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            if (isOwner) ...[
-              _BottomSheetTile(
-                icon: Icons.edit_outlined,
-                label: 'Edit playlist',
-                onTap: () {
-                  Navigator.pop(context);
-                  _editPlaylist(playlist);
-                },
-              ),
-              _BottomSheetTile(
-                icon: Icons.code,
-                label: 'Get embed code',
-                onTap: () {
-                  Navigator.pop(context);
-                  _openEmbedCode(playlist.playlistId);
-                },
-              ),
-              _BottomSheetTile(
-                icon: Icons.library_add,
-                label: 'Add current track',
-                onTap: () {
-                  Navigator.pop(context);
-                  _addCurrentTrack(playlist);
-                },
-              ),
-              _BottomSheetTile(
-                icon: Icons.search,
-                label: 'Search and add track',
-                onTap: () {
-                  Navigator.pop(context);
-                  _openTrackPicker(playlist);
-                },
-              ),
-              if (playlist.visibility.isSecret &&
-                  playlist.secretToken != null &&
-                  playlist.secretToken!.isNotEmpty)
+              if (isOwner) ...[
                 _BottomSheetTile(
-                  icon: Icons.link,
-                  label: 'Copy secret link',
+                  icon: Icons.edit_outlined,
+                  label: 'Edit playlist',
                   onTap: () {
                     Navigator.pop(context);
-                    _copySecretLink(playlist.secretToken!);
+                    _editPlaylist(playlist);
                   },
                 ),
-              _BottomSheetTile(
-                icon: Icons.delete_outline,
-                label: 'Delete playlist',
-                color: Colors.redAccent,
-                onTap: () {
-                  Navigator.pop(context);
-                  _deletePlaylist(playlist.playlistId);
-                },
-              ),
-            ] else ...[
-              _BottomSheetTile(
-                icon: Icons.copy_all,
-                label: 'Copy playlist',
-                onTap: () {
-                  Navigator.pop(context);
-                  _copyPlaylist(playlist);
-                },
-              ),
-            ],
-            _BottomSheetTile(
-              icon: Icons.share_outlined,
-              label: 'Share',
-              onTap: () {
-                Navigator.pop(context);
-                _sharePlaylist(playlist);
-              },
-            ),
-            _BottomSheetTile(
-              icon: _isDownloadingPlaylist
-                  ? Icons.downloading
-                  : Icons.download_for_offline_outlined,
-              label: 'Download playlist',
-              onTap: isSubmitting || _isDownloadingPlaylist
-                  ? null
-                  : () {
+                _BottomSheetTile(
+                  icon: Icons.code,
+                  label: 'Get embed code',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openEmbedCode(playlist.playlistId);
+                  },
+                ),
+                _BottomSheetTile(
+                  icon: Icons.library_add,
+                  label: 'Add current track',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _addCurrentTrack(playlist);
+                  },
+                ),
+                _BottomSheetTile(
+                  icon: Icons.search,
+                  label: 'Search and add track',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openTrackPicker(playlist);
+                  },
+                ),
+                if (playlist.visibility.isSecret &&
+                    playlist.secretToken != null &&
+                    playlist.secretToken!.isNotEmpty)
+                  _BottomSheetTile(
+                    icon: Icons.link,
+                    label: 'Copy secret link',
+                    onTap: () {
                       Navigator.pop(context);
-                      _downloadPlaylist(playlist);
+                      _copySecretLink(playlist.secretToken!);
                     },
-            ),
-            const SizedBox(height: 8),
-          ],
+                  ),
+                _BottomSheetTile(
+                  icon: Icons.delete_outline,
+                  label: 'Delete playlist',
+                  color: Colors.redAccent,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deletePlaylist(playlist.playlistId);
+                  },
+                ),
+              ] else ...[
+                _BottomSheetTile(
+                  icon: Icons.copy_all,
+                  label: 'Copy playlist',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _copyPlaylist(playlist);
+                  },
+                ),
+              ],
+              _BottomSheetTile(
+                icon: Icons.share_outlined,
+                label: 'Share',
+                onTap: () {
+                  Navigator.pop(context);
+                  _sharePlaylist(playlist);
+                },
+              ),
+              _BottomSheetTile(
+                icon: _isDownloadingPlaylist
+                    ? Icons.downloading
+                    : Icons.download_for_offline_outlined,
+                label: 'Download playlist',
+                onTap: isSubmitting || _isDownloadingPlaylist
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        _downloadPlaylist(playlist);
+                      },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -752,6 +755,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                       const SizedBox(width: 16),
                       // More (3-dot)
                       InkWell(
+                        key: const ValueKey('playlist-more-options'),
                         borderRadius: BorderRadius.circular(20),
                         onTap: () => _showMoreOptions(
                             context, playlist, isOwner, state.isSubmitting),

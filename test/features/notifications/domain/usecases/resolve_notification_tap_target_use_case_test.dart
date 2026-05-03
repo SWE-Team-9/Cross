@@ -88,6 +88,11 @@ class _RepoSuccess implements MessagingRepository {
   Future<void> deleteMessage(String messageId) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> deleteConversation(String conversationId) {
+    throw UnimplementedError();
+  }
 }
 
 class _RepoThrows implements MessagingRepository {
@@ -161,6 +166,11 @@ class _RepoThrows implements MessagingRepository {
 
   @override
   Future<void> deleteMessage(String messageId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> deleteConversation(String conversationId) {
     throw UnimplementedError();
   }
 }

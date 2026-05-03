@@ -160,6 +160,11 @@ class FakeMessagingRepository implements MessagingRepository {
   Future<void> unarchiveConversation(String conversationId) async {
     lastConversationId = conversationId;
   }
+
+  @override
+  Future<void> deleteConversation(String conversationId) async {
+    lastConversationId = conversationId;
+  }
 }
 
 void main() {

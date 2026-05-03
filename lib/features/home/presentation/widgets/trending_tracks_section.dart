@@ -66,14 +66,14 @@ class TrendingTracksSection extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              accentColor.withOpacity(0.18),
-              accentColor.withOpacity(0.07),
+              accentColor.withValues(alpha: 0.18),
+              accentColor.withValues(alpha: 0.07),
               Colors.transparent,
             ],
             stops: const [0.0, 0.4, 1.0],
           ),
           border: Border.all(
-            color: accentColor.withOpacity(0.22),
+            color: accentColor.withValues(alpha: 0.22),
           ),
         ),
         child: Stack(
@@ -92,7 +92,7 @@ class TrendingTracksSection extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        accentColor.withOpacity(0.32),
+                        accentColor.withValues(alpha: 0.32),
                         Colors.transparent,
                       ],
                     ),

@@ -36,15 +36,15 @@ class GenreChips extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 15),
               decoration: BoxDecoration(
-                color: active ? color : color.withOpacity(0.08),
+                color: active ? color : color.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: active ? color : color.withOpacity(0.35),
+                  color: active ? color : color.withValues(alpha: 0.35),
                 ),
                 boxShadow: active
                     ? [
                         BoxShadow(
-                          color: color.withOpacity(0.45),
+                          color: color.withValues(alpha: 0.45),
                           blurRadius: 12,
                           spreadRadius: -2,
                         )

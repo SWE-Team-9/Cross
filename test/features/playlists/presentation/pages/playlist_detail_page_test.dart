@@ -18,7 +18,15 @@ import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_ent
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/bloc/playlists_state.dart';
 import 'package:soundcloud_clone/features/playlists/presentation/pages/playlist_detail_page.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+
+
+// ignore: deprecated_member_use
+
 
 class MockPlaylistsCubit extends MockCubit<PlaylistsState>
     implements PlaylistsCubit {}
@@ -30,22 +38,31 @@ class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 class MockOfflineCubit extends MockCubit<OfflineState>
     implements OfflineCubit {}
 
+class MockSubscriptionCubit extends MockCubit<SubscriptionState>
+    implements SubscriptionCubit {}
+
 void main() {
   late MockPlaylistsCubit playlistsCubit;
   late MockPlayerCubit playerCubit;
   late MockAuthCubit authCubit;
   late MockOfflineCubit offlineCubit;
+  late MockSubscriptionCubit subscriptionCubit;
 
   setUpAll(() {
     registerFallbackValue(_track(id: 'fallback'));
   });
 
-  setUp(() {
+  setUp(() async {
+    await getIt.reset();
     SharedPreferences.setMockInitialValues(<String, Object>{});
     playlistsCubit = MockPlaylistsCubit();
     playerCubit = MockPlayerCubit();
     authCubit = MockAuthCubit();
     offlineCubit = MockOfflineCubit();
+    subscriptionCubit = MockSubscriptionCubit();
+
+    getIt.registerSingleton<AuthCubit>(authCubit);
+    getIt.registerSingleton<SubscriptionCubit>(subscriptionCubit);
 
     when(() => playerCubit.state).thenReturn(
       const PlayerUIState(
@@ -55,11 +72,27 @@ void main() {
         ),
       ),
     );
+    when(() => playerCubit.stream)
+        .thenAnswer((_) => const Stream<PlayerUIState>.empty());
+    when(() => playerCubit.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: any(named: 'startIndex'),
+          source: any(named: 'source'),
+        )).thenAnswer((_) async {});
     when(() => authCubit.state).thenReturn(AuthUnauthenticated());
     when(() => offlineCubit.state).thenReturn(const OfflineState());
     when(() => offlineCubit.isDownloaded(any())).thenReturn(false);
-  });
 
+    final premiumState = SubscriptionState.loaded(
+      subscription: const Subscription(canDownload: true),
+    );
+    when(() => subscriptionCubit.state).thenReturn(premiumState);
+    whenListen(
+      subscriptionCubit,
+      const Stream<SubscriptionState>.empty(),
+      initialState: premiumState,
+    );
+  });
   tearDown(() async {
     if (getIt.isRegistered<PlayerCubit>()) {
       await getIt.unregister<PlayerCubit>();
@@ -179,7 +212,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final playButton = find.widgetWithText(OutlinedButton, 'Play playlist');
+      final playButton = find.byIcon(Icons.play_arrow);
       expect(playButton, findsOneWidget);
 
       await tester.ensureVisible(playButton);
@@ -213,10 +246,8 @@ void main() {
 
       expect(find.text('No tracks in this playlist yet'), findsOneWidget);
 
-      final playButton = find.widgetWithText(OutlinedButton, 'Play playlist');
+      final playButton = find.byIcon(Icons.play_arrow);
       expect(playButton, findsOneWidget);
-
-      await tester.ensureVisible(playButton);
       await tester.tap(playButton);
       await tester.pumpAndSettle();
 
@@ -298,13 +329,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final trackTile = tester.widget<ListTile>(
-        find.ancestor(
-          of: find.text('Track trk_2'),
-          matching: find.byType(ListTile),
-        ),
-      );
-      trackTile.onTap!();
+      final trackTile = find.text('Track trk_2');
+      await tester.ensureVisible(trackTile);
+      await tester.tap(trackTile);
       await tester.pumpAndSettle();
 
       verify(() => playerCubit.playFromContext(
@@ -357,12 +384,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final addButton =
-          find.widgetWithText(OutlinedButton, 'Add current track');
-      expect(addButton, findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
+        await tester.pumpAndSettle();
 
-      await tester.ensureVisible(addButton);
-      tester.widget<OutlinedButton>(addButton).onPressed!();
+        final addButton = find.text('Add current track');
+        expect(addButton, findsOneWidget);
+
+        await tester.tap(addButton);
       await tester.pumpAndSettle();
 
       verify(() => playlistsCubit.addTrackToPlaylist(
@@ -398,10 +426,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final addButton =
-          find.widgetWithText(OutlinedButton, 'Add current track');
-      await tester.ensureVisible(addButton);
-      tester.widget<OutlinedButton>(addButton).onPressed!();
+        await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
+        await tester.pumpAndSettle();
+
+        final addButton = find.text('Add current track');
+        await tester.tap(addButton);
       await tester.pump();
 
       expect(find.text('No active track to add'), findsOneWidget);
@@ -445,10 +474,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final addButton =
-          find.widgetWithText(OutlinedButton, 'Add current track');
-      await tester.ensureVisible(addButton);
-      tester.widget<OutlinedButton>(addButton).onPressed!();
+        await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
+        await tester.pumpAndSettle();
+
+        final addButton = find.text('Add current track');
+        await tester.tap(addButton);
       await tester.pump();
 
       expect(find.text('Track is already in this playlist'), findsOneWidget);
@@ -481,14 +511,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      tester
-          .widget<IconButton>(
-            find.ancestor(
-              of: find.byIcon(Icons.favorite_border),
-              matching: find.byType(IconButton),
-            ),
-          )
-          .onPressed!();
+      await tester.tap(find.byIcon(Icons.favorite_border));
       await tester.pump();
       verify(() => playlistsCubit.likePlaylist('pl_1')).called(1);
     });
@@ -516,14 +539,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      tester
-          .widget<IconButton>(
-            find.ancestor(
-              of: find.byIcon(Icons.favorite),
-              matching: find.byType(IconButton),
-            ),
-          )
-          .onPressed!();
+      await tester.tap(find.byIcon(Icons.favorite));
       await tester.pump();
       verify(() => playlistsCubit.unlikePlaylist('pl_1')).called(1);
     });
@@ -597,7 +613,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Get embed code'));
+      await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Get embed code'));
       await tester.pumpAndSettle();
 
       expect(find.text('Embed code'), findsOneWidget);
@@ -638,13 +657,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Download track'));
+      await tester.tap(find.byTooltip('Download for offline listening'));
       await tester.pump();
       verify(() => offlineCubit.downloadTrack(track)).called(1);
 
-      final downloadPlaylist =
-          find.widgetWithText(OutlinedButton, 'Download playlist');
-      await tester.ensureVisible(downloadPlaylist);
+      await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
+      await tester.pumpAndSettle();
+
+      final downloadPlaylist = find.widgetWithText(ListTile, 'Download playlist');
+      expect(downloadPlaylist, findsOneWidget);
       await tester.tap(downloadPlaylist);
       await tester.pumpAndSettle();
 
@@ -696,7 +717,9 @@ void main() {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(SystemChannels.platform, null);
       });
-      final playlist = _playlist().copyWith(
+      final playlist = _playlist(
+        owner: const PlaylistOwner(id: 'user_1', displayName: 'Ali'),
+      ).copyWith(
         visibility: PlaylistVisibility.privatePlaylist,
         secretToken: 'secret_token',
       );
@@ -710,6 +733,7 @@ void main() {
         initialState: state,
       );
       when(() => playlistsCubit.state).thenReturn(state);
+      when(() => authCubit.state).thenReturn(AuthAuthenticated(_user()));
 
       await tester.pumpWidget(
         _buildSubject(
@@ -720,10 +744,12 @@ void main() {
       );
       await tester.pump();
 
-      final copyButton =
-          find.widgetWithText(OutlinedButton, 'Copy secret link');
-      await tester.ensureVisible(copyButton);
-      await tester.tap(copyButton);
+        await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
+        await tester.pumpAndSettle();
+
+        final copyButton = find.widgetWithText(ListTile, 'Copy secret link');
+        expect(copyButton, findsOneWidget);
+        await tester.tap(copyButton);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -760,7 +786,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete playlist'));
       await tester.pumpAndSettle();
@@ -769,7 +795,7 @@ void main() {
 
       verifyNever(() => playlistsCubit.deletePlaylist(any()));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete playlist'));
       await tester.pumpAndSettle();
@@ -814,8 +840,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      tester
-          .widget<ReorderableListView>(find.byType(ReorderableListView))
+        tester
+          .widget<SliverReorderableList>(find.byType(SliverReorderableList))
           .onReorder(0, 2);
 
       final captured = verify(() => playlistsCubit.reorderTracks(
@@ -861,7 +887,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('Track downloaded'), findsOneWidget);
+      expect(find.byIcon(Icons.download_done_rounded), findsOneWidget);
     });
 
     testWidgets('track download failure shows snackbar', (tester) async {
@@ -898,13 +924,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final downloadTrack =
-          find.byIcon(Icons.download_for_offline_outlined).last;
+        final downloadTrack = find.byTooltip('Download for offline listening');
       await tester.ensureVisible(downloadTrack);
       await tester.tap(downloadTrack);
       await tester.pump();
 
-      expect(find.text('Track download failed'), findsOneWidget);
+      expect(find.text('Download failed'), findsOneWidget);
     });
 
     testWidgets('playlist download handles already-downloaded playlists',
@@ -945,10 +970,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final downloadPlaylist =
-          find.widgetWithText(OutlinedButton, 'Playlist downloaded');
-      await tester.ensureVisible(downloadPlaylist);
-      await tester.tap(downloadPlaylist);
+        await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
+        await tester.pumpAndSettle();
+
+        final downloadPlaylist = find.text('Download playlist');
+        await tester.tap(downloadPlaylist);
       await tester.pump();
 
       verify(() => offlineCubit.saveDownloadedPlaylist(playlist)).called(1);
@@ -1008,8 +1034,10 @@ void main() {
       );
       await tester.pump();
 
-      final copyButton = find.widgetWithText(OutlinedButton, 'Copy playlist');
-      await tester.ensureVisible(copyButton);
+      await tester.tap(find.byKey(const ValueKey('playlist-more-options')));
+      await tester.pumpAndSettle();
+
+      final copyButton = find.text('Copy playlist');
       await tester.tap(copyButton);
       await tester.pumpAndSettle();
 

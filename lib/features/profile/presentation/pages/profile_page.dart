@@ -326,10 +326,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             return BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: AlertDialog(
-                backgroundColor: Colors.black.withOpacity(0.6),
+                backgroundColor: Colors.black.withValues(alpha: 0.6),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(color: Colors.white.withOpacity(0.12)),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
                 ),
                 title: const Text(
                   'Change email',
@@ -349,10 +349,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                           labelText: 'New email',
                           labelStyle: const TextStyle(color: Colors.white70),
                           filled: true,
-                          fillColor: Colors.white.withOpacity(0.05),
+                          fillColor: Colors.white.withValues(alpha: 0.05),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -379,10 +379,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                           labelText: 'Current password',
                           labelStyle: const TextStyle(color: Colors.white70),
                           filled: true,
-                          fillColor: Colors.white.withOpacity(0.05),
+                          fillColor: Colors.white.withValues(alpha: 0.05),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -901,10 +901,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                                 child: Container(
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.08),
+                                    color: Colors.white.withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: Colors.white.withOpacity(0.15),
+                                      color: Colors.white.withValues(alpha: 0.15),
                                     ),
                                   ),
                                   alignment: Alignment.center,
@@ -975,9 +975,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           child: Container(
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
@@ -1067,12 +1067,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
         ],
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
       ),
       child: CircleAvatar(
         radius: 50,
@@ -1267,9 +1267,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.07),
+                    color: Colors.white.withValues(alpha: 0.07),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.15)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                   ),
                   child: Icon(
                     _iconForPlatform(platform),
@@ -1293,19 +1293,19 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
+            color: Colors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: Colors.white.withOpacity(0.85)),
+              Icon(icon, size: 14, color: Colors.white.withValues(alpha: 0.85)),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1365,9 +1365,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: TabBar(
           controller: _tabController,
@@ -1384,7 +1384,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
             ),
           ),
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white.withOpacity(0.5),
+          unselectedLabelColor: Colors.white.withValues(alpha: 0.5),
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
           tabs: const [
@@ -1407,9 +1407,9 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.08),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.15)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           ),
           child: IconButton(
             onPressed: onTap,
@@ -1519,7 +1519,7 @@ class _ProfilePlaylistCover extends StatelessWidget {
       child: Container(
         width: 44,
         height: 44,
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         child: coverUrl == null
             ? Icon(
                 playlist.visibility.isSecret
@@ -1558,7 +1558,7 @@ class _ProfilePlaylistsList extends StatelessWidget {
         return ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               leading: _ProfilePlaylistCover(playlist: playlist),
@@ -1570,11 +1570,11 @@ class _ProfilePlaylistsList extends StatelessWidget {
               ),
               subtitle: Text(
                 '${playlist.tracksCount} tracks • ${playlist.likesCount} likes',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
               ),
               trailing: Icon(
                 Icons.chevron_right,
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
               ),
               onTap: () => context.push('/playlist/${playlist.playlistId}'),
             ),
@@ -1651,7 +1651,7 @@ class _ManagedProfileTracksTab extends StatelessWidget {
         return ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1667,7 +1667,7 @@ class _ManagedProfileTracksTab extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     child: Text(
                       managedTrack.description!,
-                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1678,7 +1678,7 @@ class _ManagedProfileTracksTab extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     child: Text(
                       '#${managedTrack.tags.join(' · #')}',
-                      style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1694,8 +1694,8 @@ class _ManagedProfileTracksTab extends StatelessWidget {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            side: BorderSide(color: Colors.white.withOpacity(0.2)),
-                            backgroundColor: Colors.white.withOpacity(0.05),
+                            side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                            backgroundColor: Colors.white.withValues(alpha: 0.05),
                             shape: const StadiumBorder(),
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
@@ -1801,7 +1801,7 @@ class _ProfileTracksListTab extends StatelessWidget {
         return ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: TrackRow(
               track: _toTrackRowData(track),

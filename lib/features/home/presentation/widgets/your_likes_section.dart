@@ -210,7 +210,7 @@ class _YourLikesHeroCard extends StatelessWidget {
               color: Colors.black26,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFF5500).withOpacity(0.45),
+                  color: const Color(0xFFFF5500).withValues(alpha: 0.45),
                   blurRadius: 18, 
                 ),
               ],
