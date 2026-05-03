@@ -45,7 +45,25 @@ void main() {
     canResume: true,
     paymentMethodSummary: 'Visa •••• 4242',
   );
-
+  const subscriptionWithPendingPlanChange = Subscription(
+    userId: 'user-1',
+    planCode: 'PRO',
+    subscriptionType: 'PRO',
+    subscriptionStatus: 'ACTIVE',
+    planName: 'Pro',
+    isPremium: true,
+    adsEnabled: false,
+    canDownload: true,
+    uploadLimit: 100,
+    uploadLimitDisplay: '100',
+    uploadedTracks: 10,
+    remainingUploads: 90,
+    paymentMethodSummary: 'Visa •••• 4242',
+    pendingDowngrade: <String, dynamic>{
+      'planCode': 'GO_PLUS',
+      'effectiveDate': '2026-06-01T00:00:00.000Z',
+    },
+  );
   const freeSubscription = Subscription(
     userId: 'user-1',
     planCode: 'FREE',
@@ -354,6 +372,52 @@ void main() {
       expect(find.text('Resume'), findsOneWidget);
     });
 
+    testWidgets('shows scheduled plan change card when pending change exists',
+        (tester) async {
+      final repository = _FakeSubscriptionRepository(
+        subscription: subscriptionWithPendingPlanChange,
+        plans: plans,
+      );
+
+      await _pumpBillingPage(tester, repository);
+
+      expect(find.text('Scheduled plan change'), findsOneWidget);
+      expect(
+        find.text(
+          'A plan change is scheduled for your next billing period. Your current plan remains active until then.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Next plan'), findsOneWidget);
+      expect(find.text('GO+'), findsWidgets);
+      expect(find.text('Effective date'), findsOneWidget);
+      expect(find.text('01/06/2026'), findsOneWidget);
+      expect(find.text('Cancel plan change'), findsOneWidget);
+    });
+
+    testWidgets('cancel scheduled plan change clears pending plan change',
+        (tester) async {
+      final repository = _FakeSubscriptionRepository(
+        subscription: subscriptionWithPendingPlanChange,
+        plans: plans,
+      );
+
+      await _pumpBillingPage(tester, repository);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Cancel plan change'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cancel scheduled plan change?'), findsOneWidget);
+      expect(find.text('Keep schedule'), findsOneWidget);
+      expect(find.text('Cancel change'), findsOneWidget);
+
+      await tester.tap(find.text('Cancel change'));
+      await tester.pumpAndSettle();
+
+      expect(repository.cancelPlanChangeCalls, 1);
+      expect(find.text('Scheduled plan change canceled.'), findsOneWidget);
+      expect(find.text('Scheduled plan change'), findsNothing);
+    });
     testWidgets('switch plan changes subscription plan', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: proSubscription,
@@ -464,8 +528,8 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   int cancelSubscriptionCalls = 0;
   int resumeSubscriptionCalls = 0;
   int changePlanCalls = 0;
+  int cancelPlanChangeCalls = 0;
   int getOfflineTrackEntitlementCalls = 0;
-
   String? lastCheckoutPlan;
   String? lastSubscribePlan;
   String? lastChangePlan;
@@ -594,6 +658,14 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
     return subscription;
   }
 
+  @override
+  Future<Subscription> cancelPlanChange() async {
+    cancelPlanChangeCalls++;
+
+    subscription = subscription.copyWith(clearPendingDowngrade: true);
+
+    return subscription;
+  }
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,
