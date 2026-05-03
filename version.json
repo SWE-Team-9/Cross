@@ -1,35 +1,12 @@
 {
-  "latest_version": "1.3.1",
-  "min_required_version": "1.2.0",
-  "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v1.3.1/app-release.apk",
   "release": {
-    "title": "Version 1.3.1",
-    "subtitle": "Feed, search & discovery experience",
-    "new_features": [
-      "Added a full Discovery page with trending content and a smooth feed/discover navigation flow",
-      "Added a complete Search experience for tracks, profiles, and playlists with tabs, suggestions, and recent searches",
-      "Added genre and vibe browsing pages so users can explore music by category",
-      "Added a new real Home page with top playlists, trending tracks, genre chips, notification shortcuts, messages shortcut, upload shortcut, and profile access",
-      "Added richer deep-link support for tracks, playlists, profiles, search links, and resolved shared resources",
-      "Added playback support from Home, Feed, Search, and Discovery contexts"
-    ],
-    "improvements": [
-      "Reworked the Feed page with improved loading, empty, error, refresh, and pagination states",
-      "Improved feed cards with better track actions, optimistic like/repost behavior, and playback handling",
-      "Updated app routing to support /discover, /search, /search/active, and /genre routes",
-      "Updated dependency injection registrations for the new feed, search, discovery, home, playback, and profile flows",
-      "Improved profile loading with aggregate profile data, playlists, and liked playlists support",
-      "Improved premium-aware UI surfaces on Home and Feed",
-      "Improved playback queue/context handling across the new music discovery surfaces",
-      "Updated Android, release workflow, CI workflow, and API constants to support the new feature set"
-    ],
-    "bug_fixes": [
-      "Fixed router tests and navigation expectations after replacing mock pages with real Home and Search pages",
-      "Fixed SearchCubit tests to match the current SearchUseCase signature and SharedPreferences recents loading behavior",
-      "Fixed outdated feed test setup that referenced removed FeedState.initial() and FeedCubit.load() APIs",
-      "Fixed direct imports of part files by importing SearchCubit instead of search_state.dart",
-      "Fixed update-dialog launch behavior to avoid false-negative URL launch checks on some Android environments",
-      "Fixed several model, DTO, and state compatibility issues introduced by the new feed/search/discovery payloads"
-    ]
-  }
+    "subtitle": "What's new:",
+    "new_features": [],
+    "improvements": [],
+    "bug_fixes": [],
+    "title": "Version 1.3.1"
+  },
+  "latest_version": "1.3.1",
+  "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v1.3.1/app-release.apk",
+  "min_required_version": "1.3.1"
 }
