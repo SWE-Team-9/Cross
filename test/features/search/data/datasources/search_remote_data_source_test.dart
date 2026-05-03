@@ -5,6 +5,7 @@ import 'package:soundcloud_clone/core/errors/failure.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/search/data/datasources/search_remote_data_source.dart';
 import 'package:soundcloud_clone/features/search/data/dto/search_models.dart';
+import 'package:soundcloud_clone/core/network/api_constants.dart';
 
 class MockDioClient extends Mock implements DioClient {}
 
@@ -81,8 +82,12 @@ void main() {
       expect(result.tracks.length, 1);
       expect(result.tracks.first.title, 'Test Track');
       verify(() => mockDio.get(
-            any(),
-            queryParameters: {'q': tQuery, 'page': tPage},
+            ApiConstants.globalSearch,
+            queryParameters: {
+              'q': tQuery,
+              'page': tPage,
+              'limit': 20,
+            },
           )).called(1);
     });
 
