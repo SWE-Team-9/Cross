@@ -336,14 +336,17 @@ class _BillingPageState extends State<BillingPage> {
   }
 
   Future<void> _changePlan(Plan plan) async {
-    if (plan.code.trim().isEmpty) {
-      _showSnackBar('This plan is not available right now.');
+    final planCode = _readSubscriptionChangePlanCode(plan);
+
+    if (planCode == null) {
+      _showSnackBar(
+        'This plan cannot be switched from here. Use cancel subscription to return to Free.',
+      );
       return;
     }
 
-    await context.read<SubscriptionCubit>().changePlan(plan.code);
+    await context.read<SubscriptionCubit>().changePlan(planCode);
   }
-
   void _showSnackBar(String message) {
     if (!mounted) return;
 
@@ -677,7 +680,21 @@ class _PlanManagementSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (plans.isEmpty) {
+    final currentBackendPlanCode = _normalizeSubscriptionChangePlanCode(
+      currentPlanCode,
+    );
+
+    final switchablePlans = plans.where((plan) {
+      final planCode = _readSubscriptionChangePlanCode(plan);
+
+      if (planCode == null) {
+        return false;
+      }
+
+      return planCode != currentBackendPlanCode;
+    }).toList(growable: false);
+
+    if (switchablePlans.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -685,22 +702,20 @@ class _PlanManagementSection extends StatelessWidget {
       title: 'Change plan',
       child: Column(
         children: [
-          for (int index = 0; index < plans.length; index++) ...[
+          for (int index = 0; index < switchablePlans.length; index++) ...[
             _PlanChangeTile(
-              plan: plans[index],
-              isCurrentPlan: plans[index].normalizedCode == currentPlanCode,
+              plan: switchablePlans[index],
+              isCurrentPlan: false,
               isActionLoading: isActionLoading,
               onChangePlan: onChangePlan,
             ),
-            if (index != plans.length - 1)
+            if (index != switchablePlans.length - 1)
               const Divider(color: Colors.white10, height: 1),
           ],
         ],
       ),
     );
-  }
-}
-
+  }}
 class _PlanChangeTile extends StatelessWidget {
   const _PlanChangeTile({
     required this.plan,
@@ -738,7 +753,6 @@ class _PlanChangeTile extends StatelessWidget {
     );
   }
 }
-
 class _InvoicesSection extends StatelessWidget {
   const _InvoicesSection({
     required this.invoices,
@@ -1055,7 +1069,53 @@ String _formatPlanName(String value) {
       return value.trim();
   }
 }
+String? _readSubscriptionChangePlanCode(Plan plan) {
+  final candidates = <String>[
+    plan.code,
+    plan.tier,
+    plan.name,
+    plan.displayName,
+  ];
 
+  for (final candidate in candidates) {
+    final normalized = _normalizeSubscriptionChangePlanCode(candidate);
+
+    if (normalized == 'PRO' || normalized == 'GO_PLUS') {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
+String _normalizeSubscriptionChangePlanCode(String value) {
+  final normalized = value
+      .trim()
+      .toUpperCase()
+      .replaceAll('-', '_')
+      .replaceAll(' ', '_');
+
+  if (normalized.isEmpty) {
+    return '';
+  }
+
+  if (normalized == 'GO+' ||
+      normalized == 'GO_PLUS' ||
+      normalized.contains('GO_PLUS') ||
+      normalized.contains('GO+')) {
+    return 'GO_PLUS';
+  }
+
+  if (normalized == 'PRO' || normalized.contains('PRO')) {
+    return 'PRO';
+  }
+
+  if (normalized == 'FREE' || normalized.contains('FREE')) {
+    return 'FREE';
+  }
+
+  return normalized;
+}
 String _formatDate(DateTime date) {
   final normalized = date.toLocal();
   final day = normalized.day.toString().padLeft(2, '0');
