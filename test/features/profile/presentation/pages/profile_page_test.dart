@@ -12,6 +12,8 @@ import 'package:soundcloud_clone/features/messaging/domain/entities/conversation
 import 'package:soundcloud_clone/features/messaging/domain/entities/participant_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_or_create_direct_conversation_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/start_direct_conversation_cubit.dart';
+import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
@@ -414,6 +416,117 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No tracks yet'), findsOneWidget);
+    });
+
+    testWidgets(
+        'non-own profile renders liked tracks and reposts when state provides them',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(otherUser));
+
+      profileCubit.setTestState(
+        ProfileLoaded(
+          profileWithoutAvatar,
+          tracks: const [
+            ManagedTrack(
+              id: 'uploaded-track-1',
+              title: 'Uploaded Track',
+              visibility: TrackManagementVisibility.publicTrack,
+            ),
+          ],
+          likedTracks: const [
+            ManagedTrack(
+              id: 'liked-track-1',
+              title: 'Liked Track',
+              visibility: TrackManagementVisibility.publicTrack,
+            ),
+          ],
+          repostedTracks: const [
+            ManagedTrack(
+              id: 'reposted-track-1',
+              title: 'Reposted Track',
+              visibility: TrackManagementVisibility.publicTrack,
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      final likedTab = find.widgetWithText(Tab, 'Likes');
+      await tester.ensureVisible(likedTab);
+      await tester.pumpAndSettle();
+      await tester.tap(likedTab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Liked Track'), findsOneWidget);
+
+      final repostsTab = find.widgetWithText(Tab, 'Reposts');
+      await tester.ensureVisible(repostsTab);
+      await tester.pumpAndSettle();
+      await tester.tap(repostsTab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reposted Track'), findsOneWidget);
+    });
+
+    testWidgets(
+        'non-own profile renders playlists and liked playlists when state provides them',
+        (tester) async {
+      when(() => mockAuthCubit.state).thenReturn(AuthAuthenticated(otherUser));
+
+      profileCubit.setTestState(
+        ProfileLoaded(
+          profileWithoutAvatar,
+          playlists: const [
+            PlaylistEntity(
+              playlistId: 'playlist-1',
+              title: 'External Playlist',
+              description: 'Shared collection',
+              visibility: PlaylistVisibility.publicPlaylist,
+              secretToken: null,
+              coverImageUrl: null,
+              owner: null,
+              tracks: const <Track>[],
+              tracksCount: 3,
+              likesCount: 4,
+            ),
+          ],
+          likedPlaylists: const [
+            PlaylistEntity(
+              playlistId: 'liked-playlist-1',
+              title: 'Liked Playlist',
+              description: 'Favorite collection',
+              visibility: PlaylistVisibility.publicPlaylist,
+              secretToken: null,
+              coverImageUrl: null,
+              owner: null,
+              tracks: const <Track>[],
+              tracksCount: 5,
+              likesCount: 9,
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      final playlistsTab = find.widgetWithText(Tab, 'Playlists');
+      await tester.ensureVisible(playlistsTab);
+      await tester.pumpAndSettle();
+      await tester.tap(playlistsTab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('External Playlist'), findsOneWidget);
+
+      final likedPlaylistsTab = find.widgetWithText(Tab, 'Liked playlists');
+      await tester.ensureVisible(likedPlaylistsTab);
+      await tester.pumpAndSettle();
+      await tester.tap(likedPlaylistsTab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Liked Playlist'), findsOneWidget);
     });
 
     testWidgets('own profile tracks tab shows managed tracks', (tester) async {
