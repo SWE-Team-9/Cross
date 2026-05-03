@@ -77,8 +77,9 @@ abstract class ApiConstants {
   static const String subscriptionPortal = '$subscriptionsBase/portal';
   static const String subscriptionResume = '$subscriptionsBase/resume';
   static const String subscriptionChangePlan = '$subscriptionsBase/change-plan';
+  static const String subscriptionCancelPlanChange =
+      '$subscriptionsBase/cancel-plan-change';
   static const String subscriptionCancel = '$subscriptionsBase/cancel';
-
   static String subscriptionOfflineTrackPath(String trackId) =>
       '$subscriptionsBase/offline/$trackId';
 
