@@ -37,13 +37,22 @@ abstract class ApiConstants {
 
   static String profileByHandlePath(String handle) => '$profilesBase/$handle';
 
+  // Pages / aggregate endpoints
+  static const String pagesBase = '/api/v1/pages';
+
+  static String profilePagePath(String handle) => '$pagesBase/profile/$handle';
+
   // ── Social graph ────────────────────────────────────────────────────────
   static const String socialBase = '/api/v1/social';
 
   static String followersPath(String userId) => '$socialBase/$userId/followers';
+
   static String followingPath(String userId) => '$socialBase/$userId/following';
+
   static String followUserPath(String userId) => '$socialBase/follow/$userId';
+
   static String blockUserPath(String userId) => '$socialBase/block/$userId';
+
   static const String blockedUsersPath = '$socialBase/blocked-users';
   static const String suggestedUsersPath = '$socialBase/suggestions';
 
@@ -52,15 +61,21 @@ abstract class ApiConstants {
   static const String users = '/api/v1/users';
 
   static String trackByIdPath(String trackId) => '$tracks/$trackId';
+
   static String trackStatusPath(String trackId) =>
       '${trackByIdPath(trackId)}/status';
+
   static String trackWaveformPath(String trackId) =>
       '${trackByIdPath(trackId)}/waveform';
+
   static String userTracksPath(String userId) => '$users/$userId/tracks';
+
   static String playerTrackSourcePath(String trackId) =>
       '/api/v1/player/tracks/$trackId/source';
+
   static String playerTrackPlayPath(String trackId) =>
       '/api/v1/player/tracks/$trackId/play';
+
   static const String listeningHistoryPath = '/api/v1/player/me/history';
 
   // ── Subscriptions / Premium ─────────────────────────────────────────────
@@ -76,6 +91,7 @@ abstract class ApiConstants {
   static const String subscriptionCancelPlanChange =
       '$subscriptionsBase/cancel-plan-change';
   static const String subscriptionCancel = '$subscriptionsBase/cancel';
+
   static String subscriptionOfflineTrackPath(String trackId) =>
       '$subscriptionsBase/offline/$trackId';
 
@@ -109,10 +125,16 @@ abstract class ApiConstants {
   static const String myLikedTracks = '/api/v1/interactions/me/likes';
   static const String myRepostedTracks = '/api/v1/interactions/me/reposts';
 
+  static String userLikedTracksPath(String userId) =>
+      '$interactionsBase/users/$userId/likes';
+
+  static String userRepostedTracksPath(String userId) =>
+      '$interactionsBase/users/$userId/reposts';
+
   static String likePlaylistPath(String playlistId) =>
       '$playlistsBase/$playlistId/like';
 
-  // ── Messaging ─────────────────────────────────────────────────────────────
+  // ── Messaging ───────────────────────────────────────────────────────────
   static const String messagingBase = '/api/v1/messages';
   static const String messagingConversationsPath =
       '$messagingBase/conversations';
@@ -143,6 +165,7 @@ abstract class ApiConstants {
 
   static String messagingMessageByIdPath(String messageId) =>
       '$messagingBase/$messageId';
+
   // ── Playlists ───────────────────────────────────────────────────────────
   static const String playlistsBase = '/api/v1/playlists';
   static const String myPlaylists = '$playlistsBase/me';
@@ -163,7 +186,9 @@ abstract class ApiConstants {
       '${playlistByIdPath(playlistId)}/tracks';
 
   static String removeTrackFromPlaylistPath(
-          String playlistId, String trackId) =>
+    String playlistId,
+    String trackId,
+  ) =>
       '${playlistTracksPath(playlistId)}/$trackId';
 
   static String reorderPlaylistPath(String playlistId) =>
@@ -174,15 +199,22 @@ abstract class ApiConstants {
 
   static String playlistPlayPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/play';
+
   static String playlistEmbedPath(String playlistId) =>
       '${playlistByIdPath(playlistId)}/embed';
+
+  static String userPlaylistsPath(String userId) =>
+      '/api/v1/users/$userId/playlists';
+
+  static String userLikedPlaylistsPath(String userId) =>
+      '/api/v1/users/$userId/liked-playlists';
 
   // ── Feed ────────────────────────────────────────────────────────────────
   static const String feedBase = '/api/v1/feed';
 
   static const String activityFeed = feedBase;
 
-  // ── Player Queue ─────────────────────────────────────────────────────────
+  // ── Player Queue ────────────────────────────────────────────────────────
   static const String playerBase = '/api/v1/player';
 
   static String trackPreviewPath(String trackId) =>
@@ -194,12 +226,16 @@ abstract class ApiConstants {
   static const String queueCurrent = '$playerBase/queue';
   static const String queueJump = '$playerBase/queue/jump';
 
-// ── Discovery ───────────────────────────────────────────────────────────
+  // ── Discovery ───────────────────────────────────────────────────────────
   static const String discoveryBase = '/api/v1/discovery';
 
   static const String globalSearch = '$discoveryBase/search';
   static const String trending = '$discoveryBase/trending';
   static const String resolve = '$discoveryBase/resolve';
+
+  // Backward-compatible aliases used by older profile/discovery code.
+  static const String discoverySearchPath = globalSearch;
+  static const String discoveryTrendingPath = trending;
 
   static String discoveryTrendingGenreTracksPath(String genreSlug) =>
       '$trending/genres/$genreSlug/tracks';
