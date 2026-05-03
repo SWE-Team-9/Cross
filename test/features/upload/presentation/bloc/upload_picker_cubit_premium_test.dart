@@ -571,6 +571,7 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   int cancelSubscriptionCalls = 0;
   int resumeSubscriptionCalls = 0;
   int changePlanCalls = 0;
+  int cancelPlanChangeCalls = 0;
   int getOfflineTrackEntitlementCalls = 0;
 
   @override
@@ -650,6 +651,14 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
   }
 
   @override
+  Future<Subscription> cancelPlanChange() async {
+    cancelPlanChangeCalls++;
+    subscription = subscription.copyWith(clearPendingDowngrade: true);
+
+    return subscription;
+  }
+
+  @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,
   ) async {
@@ -660,7 +669,6 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
     );
   }
 }
-
 class _FakeTrackManagementRepository implements TrackManagementRepository {
   ManagedTrack updatedTrack = const ManagedTrack(
     id: 'track-1',

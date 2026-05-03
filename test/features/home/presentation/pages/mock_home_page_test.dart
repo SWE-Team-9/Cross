@@ -683,7 +683,10 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
       isPremium: plan.trim().toUpperCase() != 'FREE',
     );
   }
-
+  @override
+  Future<Subscription> cancelPlanChange() async {
+    return subscription.copyWith(clearPendingDowngrade: true);
+  }
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,

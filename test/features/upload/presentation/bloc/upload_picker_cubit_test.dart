@@ -908,7 +908,12 @@ class _FakeSubscriptionRepository extends SubscriptionRepository {
 
     return subscription;
   }
+  @override
+  Future<Subscription> cancelPlanChange() async {
+    subscription = subscription.copyWith(clearPendingDowngrade: true);
 
+    return subscription;
+  }
   @override
   Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(
     String trackId,
