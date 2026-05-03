@@ -5,7 +5,9 @@ import 'package:soundcloud_clone/core/errors/failure.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/managed_track.dart';
 import 'package:soundcloud_clone/features/upload/domain/entities/track_management_visibility.dart';
 import 'package:soundcloud_clone/features/profile/domain/entities/profile_entity.dart';
+import 'package:soundcloud_clone/features/profile/domain/entities/profile_page_data.dart';
 import 'package:soundcloud_clone/features/profile/domain/repositories/profile_repository.dart';
+import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/get_profile_usecase.dart';
 import 'package:soundcloud_clone/features/profile/domain/usecases/update_profile_usecase.dart';
 import 'package:soundcloud_clone/features/interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
@@ -103,7 +105,13 @@ void main() {
   blocTest<ProfileCubit, ProfileState>(
     'loadProfile emits [ProfileLoading, ProfileLoaded] on success',
     build: () {
-      when(() => mockGetProfileUseCase('ali')).thenAnswer((_) async => profile);
+      final profilePageData = ProfilePageData(
+        profile: profile,
+        playlists: const <PlaylistEntity>[],
+        likedPlaylists: const <PlaylistEntity>[],
+      );
+      when(() => mockProfileRepository.getProfilePage('ali'))
+          .thenAnswer((_) async => profilePageData);
       when(() => mockProfileRepository.getUserTracks('1'))
           .thenAnswer((_) async => [ownTrack]);
       return buildCubit();
@@ -118,8 +126,56 @@ void main() {
   );
 
   blocTest<ProfileCubit, ProfileState>(
+    'loadProfile includes playlists from aggregate endpoint',
+    build: () {
+      const testPlaylist = PlaylistEntity(
+        playlistId: 'playlist-1',
+        title: 'Test Playlist',
+        slug: 'test-playlist',
+        coverImageUrl: 'https://example.com/cover.jpg',
+        visibility: 'PUBLIC',
+        likesCount: 5,
+        tracksCount: 10,
+        genre: 'Electronic',
+      );
+      const testLikedPlaylist = PlaylistEntity(
+        playlistId: 'liked-playlist-1',
+        title: 'Liked Playlist',
+        slug: 'liked-playlist',
+        coverImageUrl: 'https://example.com/cover2.jpg',
+        visibility: 'PUBLIC',
+        likesCount: 2,
+        tracksCount: 5,
+        genre: 'Rock',
+      );
+      final profilePageData = ProfilePageData(
+        profile: profile,
+        playlists: [testPlaylist],
+        likedPlaylists: [testLikedPlaylist],
+      );
+      when(() => mockProfileRepository.getProfilePage('ali'))
+          .thenAnswer((_) async => profilePageData);
+      when(() => mockProfileRepository.getUserTracks('1'))
+          .thenAnswer((_) async => [ownTrack]);
+      return buildCubit();
+    },
+    act: (cubit) => cubit.loadProfile('ali'),
+    expect: () => [
+      isA<ProfileLoading>(),
+      isA<ProfileLoaded>()
+          .having((s) => s.profile.displayName, 'displayName', 'Ali')
+          .having((s) => s.playlists.length, 'playlists count', 1)
+          .having((s) => s.playlists[0].playlistId, 'first playlist id', 'playlist-1')
+          .having((s) => s.likedPlaylists.length, 'liked playlists count', 1)
+          .having((s) => s.likedPlaylists[0].playlistId, 'first liked playlist id', 'liked-playlist-1'),
+    ],
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
     'loadProfile emits [ProfileLoading, ProfileError] on Failure',
     build: () {
+      when(() => mockProfileRepository.getProfilePage('ali'))
+          .thenThrow(const ServerFailure('server failed'));
       when(() => mockGetProfileUseCase('ali'))
           .thenThrow(const ServerFailure('server failed'));
       return buildCubit();
@@ -134,6 +190,8 @@ void main() {
   blocTest<ProfileCubit, ProfileState>(
     'loadProfile emits generic error on unexpected exception',
     build: () {
+      when(() => mockProfileRepository.getProfilePage('ali'))
+          .thenThrow(Exception('boom'));
       when(() => mockGetProfileUseCase('ali')).thenThrow(Exception('boom'));
       return buildCubit();
     },

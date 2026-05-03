@@ -7,6 +7,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../../upload/data/dto/managed_track_dto.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../dto/profile_dto.dart';
+import '../dto/profile_page_dto.dart';
 
 abstract class ProfileRemoteDataSource {
   Future<ProfileDto> getProfile(String handle);
@@ -14,6 +15,9 @@ abstract class ProfileRemoteDataSource {
   Future<List<ManagedTrackDto>> getUserTracks(String userId);
   Future<List<ManagedTrackDto>> getUserLikedTracks(String userId);
   Future<List<ManagedTrackDto>> getUserRepostedTracks(String userId);
+  Future<ProfilePageDto> getProfilePage(String handle);
+  Future<List<dynamic>> getUserPlaylists(String userId);
+  Future<List<dynamic>> getUserLikedPlaylists(String userId);
   Future<ProfileDto> updateProfile(Map<String, dynamic> body);
   Future<Map<String, String>> updateExternalLinks(
     Map<String, String> externalLinks,
@@ -135,6 +139,25 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       return normalizedTracks
           .map(ManagedTrackDto.fromJson)
           .toList(growable: false);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<ProfilePageDto> getProfilePage(String handle) async {
+    try {
+      final response = await _dioClient.dio.get(
+        ApiConstants.profilePagePath(handle),
+      );
+
+      final responseData =
+          response.data is String ? jsonDecode(response.data) : response.data;
+      final Map<String, dynamic> payload = responseData is Map<String, dynamic>
+          ? responseData
+          : Map<String, dynamic>.from(responseData as Map);
+
+      return ProfilePageDto.fromJson(payload);
     } catch (e) {
       rethrow;
     }
@@ -336,5 +359,91 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     }
 
     return normalized;
+  }
+
+  @override
+  Future<List<dynamic>> getUserPlaylists(String userId) async {
+    try {
+      print('DEBUG: Fetching playlists for user: $userId');
+      final response = await _dioClient.dio.get(
+        ApiConstants.userPlaylistsPath(userId),
+        queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
+      );
+
+      print('DEBUG: Response status: ${response.statusCode}');
+      print('DEBUG: Response data type: ${response.data.runtimeType}');
+
+      final dynamic responseData =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      print('DEBUG: responseData after decode: $responseData');
+
+      if (responseData is Map<String, dynamic>) {
+        final dynamic playlists = responseData['playlists'] ??
+            responseData['data'] ??
+            responseData['items'] ??
+            responseData['results'];
+        print('DEBUG: Extracted playlists from response: $playlists');
+        if (playlists is List) {
+          print('DEBUG: playlists is a List with ${playlists.length} items');
+          return playlists;
+        }
+      }
+
+      if (responseData is List) {
+        print('DEBUG: responseData is already a List with ${responseData.length} items');
+        return responseData;
+      }
+
+      print('DEBUG: Returning empty list');
+      return const <dynamic>[];
+    } catch (e) {
+      print('DEBUG: Error in getUserPlaylists: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<dynamic>> getUserLikedPlaylists(String userId) async {
+    try {
+      print('DEBUG: Fetching liked playlists for user: $userId');
+      final response = await _dioClient.dio.get(
+        ApiConstants.userLikedPlaylistsPath(userId),
+        queryParameters: const <String, dynamic>{'page': 1, 'limit': 100},
+      );
+
+      print('DEBUG: Response status: ${response.statusCode}');
+      print('DEBUG: Response data type: ${response.data.runtimeType}');
+
+      final dynamic responseData =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      print('DEBUG: responseData after decode: $responseData');
+
+      if (responseData is Map<String, dynamic>) {
+        final dynamic playlists = responseData['playlists'] ??
+            responseData['likedPlaylists'] ??
+            responseData['liked_playlists'] ??
+            responseData['data'] ??
+            responseData['items'] ??
+            responseData['results'];
+        print('DEBUG: Extracted liked playlists from response: $playlists');
+        if (playlists is List) {
+          print('DEBUG: liked playlists is a List with ${playlists.length} items');
+          return playlists;
+        }
+      }
+
+      if (responseData is List) {
+        print('DEBUG: responseData is already a List with ${responseData.length} items');
+        return responseData;
+      }
+
+      print('DEBUG: Returning empty list');
+      return const <dynamic>[];
+    } catch (e) {
+      print('DEBUG: Error in getUserLikedPlaylists: $e');
+      rethrow;
+    }
   }
 }

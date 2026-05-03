@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
+import '../../../playlists/domain/entities/playlist_entity.dart';
+import '../../../playlists/data/dto/playlist_dto.dart';
 import '../../../interactions/domain/usecases/get_my_liked_tracks_usecase.dart';
 import '../../../interactions/domain/usecases/get_my_reposted_tracks_usecase.dart';
 import '../../../upload/domain/entities/managed_track.dart';
@@ -34,18 +36,109 @@ class ProfileCubit extends Cubit<ProfileState> {
     emit(ProfileLoading());
 
     try {
-      final profile = await _getProfileUseCase(handle).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw const ServerFailure(
-            'Request timed out. Please check your connection.',
-          );
-        },
-      );
+      ProfileEntity profile;
+      List<PlaylistEntity> playlists = const <PlaylistEntity>[];
+      List<PlaylistEntity> likedPlaylists = const <PlaylistEntity>[];
+
+      try {
+        final profilePage =
+            await _profileRepository.getProfilePage(handle).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Request timed out. Please check your connection.',
+            );
+          },
+        );
+
+        profile = profilePage.profile;
+        playlists = profilePage.playlists;
+        likedPlaylists = profilePage.likedPlaylists;
+
+        // Fallback to legacy profile endpoint if aggregate profile is incomplete.
+        if (profile.id.trim().isEmpty || profile.handle.trim().isEmpty) {
+          throw const FormatException('Incomplete aggregate profile payload');
+        }
+      } catch (_) {
+        profile = await _getProfileUseCase(handle).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw const ServerFailure(
+              'Request timed out. Please check your connection.',
+            );
+          },
+        );
+        playlists = const <PlaylistEntity>[];
+        likedPlaylists = const <PlaylistEntity>[];
+      }
 
       List<ManagedTrack> tracks = const <ManagedTrack>[];
       List<ManagedTrack> likedTracks = const <ManagedTrack>[];
       List<ManagedTrack> repostedTracks = const <ManagedTrack>[];
+
+      // Fetch user playlists if not obtained from aggregate endpoint
+      if (playlists.isEmpty) {
+        try {
+          final rawPlaylists =
+              await _profileRepository.getUserPlaylists(profile.id).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw const ServerFailure(
+                'User playlists request timed out. Please check your connection.',
+              );
+            },
+          );
+          print('DEBUG: rawPlaylists = $rawPlaylists, type = ${rawPlaylists.runtimeType}');
+          playlists = (rawPlaylists as List?)
+                  ?.whereType<Map>()
+                  .map((item) {
+                    print('DEBUG: parsing playlist item = $item');
+                    return PlaylistDto.fromJson(
+                        Map<String, dynamic>.from(item as Map));
+                  })
+                  .map((dto) => dto.toEntity())
+                  .toList(growable: false) ??
+              const <PlaylistEntity>[];
+          print('DEBUG: parsed playlists = $playlists, count = ${playlists.length}');
+        } catch (e, st) {
+          print('DEBUG: Error fetching user playlists: $e\n$st');
+          playlists = const <PlaylistEntity>[];
+        }
+      } else {
+        print('DEBUG: playlists already populated from aggregate endpoint, count = ${playlists.length}');
+      }
+
+      // Fetch user liked playlists if not obtained from aggregate endpoint
+      if (likedPlaylists.isEmpty) {
+        try {
+          final rawLikedPlaylists =
+              await _profileRepository.getUserLikedPlaylists(profile.id).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw const ServerFailure(
+                'Liked playlists request timed out. Please check your connection.',
+              );
+            },
+          );
+          print('DEBUG: rawLikedPlaylists = $rawLikedPlaylists, type = ${rawLikedPlaylists.runtimeType}');
+          likedPlaylists = (rawLikedPlaylists as List?)
+                  ?.whereType<Map>()
+                  .map((item) {
+                    print('DEBUG: parsing liked playlist item = $item');
+                    return PlaylistDto.fromJson(
+                        Map<String, dynamic>.from(item as Map));
+                  })
+                  .map((dto) => dto.toEntity())
+                  .toList(growable: false) ??
+              const <PlaylistEntity>[];
+          print('DEBUG: parsed likedPlaylists = $likedPlaylists, count = ${likedPlaylists.length}');
+        } catch (e, st) {
+          print('DEBUG: Error fetching user liked playlists: $e\n$st');
+          likedPlaylists = const <PlaylistEntity>[];
+        }
+      } else {
+        print('DEBUG: likedPlaylists already populated from aggregate endpoint, count = ${likedPlaylists.length}');
+      }
 
       try {
         tracks = await _profileRepository.getUserTracks(profile.id).timeout(
@@ -86,12 +179,16 @@ class ProfileCubit extends Cubit<ProfileState> {
         repostedTracks = const <ManagedTrack>[];
       }
 
-      emit(ProfileLoaded(
-        profile,
-        tracks: tracks,
-        likedTracks: likedTracks,
-        repostedTracks: repostedTracks,
-      ));
+      emit(
+        ProfileLoaded(
+          profile,
+          tracks: tracks,
+          likedTracks: likedTracks,
+          repostedTracks: repostedTracks,
+          playlists: playlists,
+          likedPlaylists: likedPlaylists,
+        ),
+      );
     } on Failure catch (failure) {
       emit(ProfileError(failure.message));
     } catch (_) {
@@ -160,6 +257,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: tracks,
           likedTracks: likedTracks,
           repostedTracks: repostedTracks,
+          playlists: const <PlaylistEntity>[],
+          likedPlaylists: const <PlaylistEntity>[],
         ),
       );
     } on Failure catch (failure) {
@@ -184,6 +283,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: currentTracks,
           likedTracks: currentLikedTracks,
           repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
         ),
       );
       return;
@@ -195,6 +296,8 @@ class ProfileCubit extends Cubit<ProfileState> {
         tracks: currentTracks,
         likedTracks: currentLikedTracks,
         repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
       ),
     );
 
@@ -232,6 +335,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: currentTracks,
           likedTracks: currentLikedTracks,
           repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
         ),
       );
 
@@ -241,6 +346,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: currentTracks,
           likedTracks: currentLikedTracks,
           repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
         ),
       );
     } on Failure catch (failure) {
@@ -251,6 +358,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: currentTracks,
           likedTracks: currentLikedTracks,
           repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
         ),
       );
     } catch (_) {
@@ -261,6 +370,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: currentTracks,
           likedTracks: currentLikedTracks,
           repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
         ),
       );
     }
@@ -284,6 +395,8 @@ class ProfileCubit extends Cubit<ProfileState> {
         tracks: currentTracks,
         likedTracks: currentLikedTracks,
         repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
       ),
     );
 
@@ -303,6 +416,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: currentTracks,
           likedTracks: currentLikedTracks,
           repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
         ),
       );
     } on Failure catch (failure) {
@@ -315,6 +430,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: currentTracks,
           likedTracks: currentLikedTracks,
           repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
         ),
       );
     } catch (_) {
@@ -327,6 +444,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           tracks: currentTracks,
           likedTracks: currentLikedTracks,
           repostedTracks: currentRepostedTracks,
+          playlists: _playlistsFromState(),
+          likedPlaylists: _likedPlaylistsFromState(),
         ),
       );
     }
@@ -430,5 +549,55 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
 
     return const <ManagedTrack>[];
+  }
+
+  List<PlaylistEntity> _playlistsFromState() {
+    final currentState = state;
+
+    if (currentState is ProfileLoaded) {
+      return currentState.playlists;
+    }
+    if (currentState is ProfileUpdating) {
+      return currentState.playlists;
+    }
+    if (currentState is ProfileUpdateSuccess) {
+      return currentState.playlists;
+    }
+    if (currentState is ProfileUpdateError) {
+      return currentState.playlists;
+    }
+    if (currentState is ProfileImageUploading) {
+      return currentState.playlists;
+    }
+    if (currentState is ProfileImageUploadError) {
+      return currentState.playlists;
+    }
+
+    return const <PlaylistEntity>[];
+  }
+
+  List<PlaylistEntity> _likedPlaylistsFromState() {
+    final currentState = state;
+
+    if (currentState is ProfileLoaded) {
+      return currentState.likedPlaylists;
+    }
+    if (currentState is ProfileUpdating) {
+      return currentState.likedPlaylists;
+    }
+    if (currentState is ProfileUpdateSuccess) {
+      return currentState.likedPlaylists;
+    }
+    if (currentState is ProfileUpdateError) {
+      return currentState.likedPlaylists;
+    }
+    if (currentState is ProfileImageUploading) {
+      return currentState.likedPlaylists;
+    }
+    if (currentState is ProfileImageUploadError) {
+      return currentState.likedPlaylists;
+    }
+
+    return const <PlaylistEntity>[];
   }
 }
