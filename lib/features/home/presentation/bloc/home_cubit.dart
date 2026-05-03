@@ -17,6 +17,8 @@ class HomeCubit extends Cubit<HomeState> {
   final GetHomeTrendingTracksUseCase _getHomeTrendingTracks;
 
   Future<void> load() async {
+    if (isClosed) return;
+
     emit(
       state.copyWith(
         isLoading: true,
@@ -29,6 +31,8 @@ class HomeCubit extends Cubit<HomeState> {
       final content = await _getHomeContent(
         selectedGenre: state.selectedGenre,
       );
+
+      if (isClosed) return;
 
       final safePlaylistGenre = _safePlaylistGenre(
         state.selectedPlaylistGenre,
@@ -48,6 +52,7 @@ class HomeCubit extends Cubit<HomeState> {
         ),
       );
     } catch (_) {
+      if (isClosed) return;
       emit(
         state.copyWith(
           isLoading: false,
@@ -58,6 +63,8 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> refresh() async {
+    if (isClosed) return;
+
     emit(
       state.copyWith(
         isRefreshing: true,
@@ -70,6 +77,8 @@ class HomeCubit extends Cubit<HomeState> {
       final content = await _getHomeContent(
         selectedGenre: state.selectedGenre,
       );
+
+      if (isClosed) return;
 
       final safePlaylistGenre = _safePlaylistGenre(
         state.selectedPlaylistGenre,
@@ -89,6 +98,7 @@ class HomeCubit extends Cubit<HomeState> {
         ),
       );
     } catch (_) {
+      if (isClosed) return;
       emit(
         state.copyWith(
           isRefreshing: false,
@@ -106,6 +116,8 @@ class HomeCubit extends Cubit<HomeState> {
     final safeGenre =
         genre.trim().isEmpty ? HomeContent.topLikedGenre : genre.trim();
 
+    if (isClosed) return;
+
     emit(
       state.copyWith(
         selectedGenre: safeGenre,
@@ -119,6 +131,8 @@ class HomeCubit extends Cubit<HomeState> {
         genre: safeGenre,
       );
 
+      if (isClosed) return;
+
       emit(
         state.copyWith(
           isLoadingTrending: false,
@@ -127,6 +141,7 @@ class HomeCubit extends Cubit<HomeState> {
         ),
       );
     } catch (_) {
+      if (isClosed) return;
       emit(
         state.copyWith(
           isLoadingTrending: false,

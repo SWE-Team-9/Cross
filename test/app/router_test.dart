@@ -21,6 +21,12 @@ import 'package:soundcloud_clone/features/auth/presentation/pages/reset_password
 import 'package:soundcloud_clone/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/routes/auth_routes.dart';
 import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
+import 'package:soundcloud_clone/features/feed/presentation/bloc/feed_cubit.dart';
+import 'package:soundcloud_clone/features/feed/presentation/bloc/feed_state.dart';
+import 'package:soundcloud_clone/features/home/presentation/bloc/home_cubit.dart';
+import 'package:soundcloud_clone/features/home/presentation/bloc/home_state.dart';
+import 'package:soundcloud_clone/features/search/presentation/bloc/search_cubit.dart';
+import 'package:soundcloud_clone/features/search/presentation/bloc/search_state.dart';
 import 'package:soundcloud_clone/features/library/presentation/pages/library_page.dart';
 import 'package:soundcloud_clone/features/library/presentation/bloc/library_cubit.dart';
 import 'package:soundcloud_clone/features/library/presentation/bloc/library_state.dart';
@@ -179,6 +185,12 @@ class FakeOfflineRepository implements OfflineRepository {
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
+class MockHomeCubit extends MockCubit<HomeState> implements HomeCubit {}
+
+class MockFeedCubit extends MockCubit<FeedState> implements FeedCubit {}
+
+class MockSearchCubit extends MockCubit<SearchState> implements SearchCubit {}
+
 class MockLibraryCubit extends MockCubit<LibraryState>
     implements LibraryCubit {}
 
@@ -200,6 +212,9 @@ class MockConnectMessagingSocketUseCase extends Mock
 
 void main() {
   late MockAuthCubit authCubit;
+  late MockHomeCubit homeCubit;
+  late MockFeedCubit feedCubit;
+  late MockSearchCubit searchCubit;
   late MockLibraryCubit libraryCubit;
   late MockProfileCubit profileCubit;
   late MockUploadPickerCubit uploadPickerCubit;
@@ -223,6 +238,9 @@ void main() {
 
     mockSocialRepo = MockSocialRepo();
     authCubit = MockAuthCubit();
+    homeCubit = MockHomeCubit();
+    feedCubit = MockFeedCubit();
+    searchCubit = MockSearchCubit();
     libraryCubit = MockLibraryCubit();
     profileCubit = MockProfileCubit();
     uploadPickerCubit = MockUploadPickerCubit();
@@ -239,6 +257,31 @@ void main() {
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(
       RecentlyPlayedCubit(),
     );
+    when(() => homeCubit.state).thenReturn(HomeState.initial());
+    when(() => homeCubit.stream).thenAnswer(
+      (_) => const Stream<HomeState>.empty(),
+    );
+    when(() => homeCubit.load()).thenAnswer((_) async {});
+    when(() => homeCubit.refresh()).thenAnswer((_) async {});
+    when(() => homeCubit.selectGenre(any())).thenAnswer((_) async {});
+    when(() => homeCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<HomeCubit>(() => homeCubit);
+    when(() => feedCubit.state).thenReturn(FeedState.initial());
+    when(() => feedCubit.stream).thenAnswer(
+      (_) => const Stream<FeedState>.empty(),
+    );
+    when(() => feedCubit.load()).thenAnswer((_) async {});
+    when(() => feedCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<FeedCubit>(() => feedCubit);
+    when(() => searchCubit.state).thenReturn(const SearchState());
+    when(() => searchCubit.stream).thenAnswer(
+      (_) => const Stream<SearchState>.empty(),
+    );
+    when(() => searchCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<SearchCubit>(() => searchCubit);
     when(() => libraryCubit.state).thenReturn(LibraryState.initial());
     when(() => libraryCubit.stream).thenAnswer(
       (_) => const Stream<LibraryState>.empty(),

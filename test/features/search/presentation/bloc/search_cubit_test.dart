@@ -19,6 +19,7 @@ void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
+    registerFallbackValue(SearchQuery(''));
   });
 
   setUp(() {

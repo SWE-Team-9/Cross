@@ -605,13 +605,13 @@ class _TopPlaylistCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     width: 150,
-                    height: 150,
+                    height: 126,
                     color: const Color(0xFF1E1E1E),
                     child: coverUrl == null
                         ? const Icon(
                             Icons.queue_music_rounded,
                             color: Colors.white38,
-                            size: 42,
+                            size: 36,
                           )
                         : Image.network(
                             coverUrl,
@@ -619,7 +619,7 @@ class _TopPlaylistCard extends StatelessWidget {
                             errorBuilder: (_, __, ___) => const Icon(
                               Icons.queue_music_rounded,
                               color: Colors.white38,
-                              size: 42,
+                              size: 36,
                             ),
                           ),
                   ),
@@ -648,41 +648,41 @@ class _TopPlaylistCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 9),
+            const SizedBox(height: 6),
             Text(
               playlist.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               subtitleParts.join(' - '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF999999),
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 3),
             Row(
               children: [
                 const Icon(
                   Icons.favorite_rounded,
                   color: Color(0xFFFF5500),
-                  size: 14,
+                  size: 13,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 3),
                 Text(
                   _formatCount(playlist.likesCount),
                   style: const TextStyle(
                     color: Color(0xFF999999),
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

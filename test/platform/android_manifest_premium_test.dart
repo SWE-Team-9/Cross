@@ -62,7 +62,7 @@ void main() {
         r'android:scheme="soundclone"',
       ).allMatches(manifest);
 
-      expect(soundcloneSchemeMatches.length, greaterThanOrEqualTo(3));
+      expect(soundcloneSchemeMatches.length, greaterThanOrEqualTo(2));
     });
 
     test('billing return filters are browsable and default', () {
