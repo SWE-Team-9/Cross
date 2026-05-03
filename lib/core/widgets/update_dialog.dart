@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 
 class UpdateDialog extends StatelessWidget {
   final Map<String, dynamic> updateData;
@@ -7,12 +8,8 @@ class UpdateDialog extends StatelessWidget {
 
   // SoundCloud brand colors
   static const _orange = Color(0xFFFF5500);
-  // static const _darkBg = Color(0xFF111111);
   static const _cardBg = Color(0xFF1A1A1A);
-  // static const _surfaceBg = Color(0xFF222222);
-  // static const _textPrimary = Color(0xFFFFFFFF);
   static const _textSecondary = Color(0xFFCCCCCC);
-  // static const _textMuted = Color(0xFF999999);
   static const _divider = Color(0xFF333333);
 
   const UpdateDialog({
@@ -23,13 +20,64 @@ class UpdateDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final release = updateData['release'] as Map<String, dynamic>;
-    final newFeatures = List<String>.from(release['new_features'] ?? []);
-    final improvements = List<String>.from(release['improvements'] ?? []);
-    final bugFixes = List<String>.from(release['bug_fixes'] ?? []);
-    final hasContent = newFeatures.isNotEmpty ||
-        improvements.isNotEmpty ||
-        bugFixes.isNotEmpty;
+    dynamic rawRelease = updateData['release'];
+
+    if (rawRelease == null && updateData['releases'] is List) {
+      final list = updateData['releases'] as List;
+      if (list.isNotEmpty) rawRelease = list.first;
+    }
+
+    Map<String, dynamic> release;
+    if (rawRelease is Map<String, dynamic>) {
+      release = rawRelease;
+    } else if (rawRelease is String) {
+      final decoded = rawRelease.trim();
+      if (decoded.startsWith('{') || decoded.startsWith('[')) {
+        try {
+          final parsed = jsonDecode(decoded);
+          if (parsed is Map<String, dynamic>) {
+            release = parsed;
+          } else if (parsed is List && parsed.isNotEmpty && parsed.first is Map) {
+            release = Map<String, dynamic>.from(parsed.first as Map);
+          } else {
+            release = <String, dynamic>{};
+          }
+        } catch (_) {
+          release = <String, dynamic>{'notes': rawRelease};
+        }
+      } else {
+        release = <String, dynamic>{'notes': rawRelease};
+      }
+    } else {
+      release = <String, dynamic>{};
+    }
+
+    List<String> extractList(Map<String, dynamic> src, List<String> keys) {
+      for (final k in keys) {
+        final v = src[k];
+        if (v == null) continue;
+        if (v is List) return v.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+        if (v is String) {
+          final s = v.trim();
+          if (s.isEmpty) return <String>[];
+          return s.split(RegExp(r"\r?\n")).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        }
+      }
+      return <String>[];
+    }
+
+    final newFeatures = extractList(release, [
+      'new_features', 'newFeatures', 'whats_new', "what's_new",
+      'features', 'notes', 'release_notes', 'description', 'body'
+    ]);
+    final improvements = extractList(release, [
+      'improvements', 'improvement', 'improvements_list', 'enhancements'
+    ]);
+    final bugFixes = extractList(release, [
+      'bug_fixes', 'bugFixes', 'fixes', 'bugs', 'patches'
+    ]);
+
+    final hasContent = newFeatures.isNotEmpty || improvements.isNotEmpty || bugFixes.isNotEmpty;
 
     return PopScope(
       canPop: !isMandatory,
@@ -45,10 +93,7 @@ class UpdateDialog extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Header ──────────────────────────────────────
               _Header(release: release, isMandatory: isMandatory),
-
-              // ── Content ─────────────────────────────────────
               if (hasContent)
                 Flexible(
                   child: SingleChildScrollView(
@@ -90,11 +135,7 @@ class UpdateDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-
-              // ── Divider ─────────────────────────────────────
               const Divider(color: _divider, height: 1, thickness: 1),
-
-              // ── Actions ─────────────────────────────────────
               _Actions(
                 isMandatory: isMandatory,
                 downloadUrl: updateData['download_url'] as String,
@@ -157,7 +198,6 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       child: Column(
         children: [
-          // SoundCloud logo mark + update badge
           Stack(
             alignment: Alignment.center,
             children: [
@@ -204,8 +244,6 @@ class _Header extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-
-          // Title
           Text(
             release['title'] ?? 'Update Available',
             textAlign: TextAlign.center,
@@ -217,8 +255,6 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-
-          // Subtitle
           if (release['subtitle'] != null)
             Text(
               release['subtitle'],
@@ -228,8 +264,6 @@ class _Header extends StatelessWidget {
                 fontSize: 13,
               ),
             ),
-
-          // Mandatory badge
           if (isMandatory) ...[
             const SizedBox(height: 10),
             Container(
@@ -252,7 +286,6 @@ class _Header extends StatelessWidget {
               ),
             ),
           ],
-
           const SizedBox(height: 16),
           const Divider(color: Color(0xFF333333), height: 1, thickness: 1),
         ],
@@ -304,35 +337,21 @@ class _Actions extends StatelessWidget {
 
   Future<void> _openUpdateUrl(BuildContext context) async {
     final url = Uri.parse(downloadUrl);
-
     try {
-      // Do not gate on canLaunchUrl because it can be a false-negative on
-      // some Android environments.
       final launchedExternal = await launchUrl(
         url,
         mode: LaunchMode.externalApplication,
       );
+      if (launchedExternal) return;
 
-      if (launchedExternal) {
-        return;
-      }
+      final launchedDefault = await launchUrl(url, mode: LaunchMode.platformDefault);
+      if (launchedDefault) return;
+    } catch (_) {}
 
-      final launchedDefault =
-          await launchUrl(url, mode: LaunchMode.platformDefault);
-      if (launchedDefault) {
-        return;
-      }
-    } catch (_) {
-      // Show feedback below when both attempts fail.
-    }
-
-    if (!context.mounted) {
-      return;
-    }
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Could not open update link on this device.')),
+      const SnackBar(content: Text('Could not open update link on this device.')),
     );
   }
 
@@ -342,7 +361,6 @@ class _Actions extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
       child: Column(
         children: [
-          // Update Now button
           SizedBox(
             width: double.infinity,
             height: 48,
@@ -379,8 +397,6 @@ class _Actions extends StatelessWidget {
               ),
             ),
           ),
-
-          // Later button
           if (!isMandatory) ...[
             const SizedBox(height: 10),
             SizedBox(

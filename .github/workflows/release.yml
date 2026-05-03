@@ -65,6 +65,27 @@ jobs:
           files: |
             build/app/outputs/flutter-apk/app-release.apk
 
+<<<<<<< HEAD
+=======
+      - name: Fetch release notes
+        id: fetch_release_notes
+        run: |
+          TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          API="https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}"
+          echo "Fetching release metadata from $API"
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$API" -o /tmp/release.json || true
+          python3 - <<'PY'
+          import json,sys
+          from pathlib import Path
+          try:
+            data = json.load(open('/tmp/release.json'))
+            body = str(data.get('body') or '')
+          except Exception:
+            body = ''
+          Path('/tmp/release_body.txt').write_text(body, encoding='utf-8')
+          PY
+
+>>>>>>> 70afcb0cda06c7de432dd94ff267445f9289b406
       - name: Preserve source version.json
         run: |
           if [ -f version.json ]; then
@@ -91,6 +112,7 @@ jobs:
           out_path = Path('version.json')
 
           if source_path.exists():
+<<<<<<< HEAD
               data = json.loads(source_path.read_text(encoding='utf-8'))
           else:
               data = {
@@ -108,6 +130,61 @@ jobs:
           release = data.get('release')
           if not isinstance(release, dict):
               release = {}
+=======
+            data = json.loads(source_path.read_text(encoding='utf-8'))
+          else:
+            data = {
+              'release': {
+                'subtitle': "What's new:",
+                'new_features': [],
+                'improvements': [],
+                'bug_fixes': [],
+              }
+            }
+
+          if not isinstance(data, dict):
+            data = {}
+
+          release = data.get('release')
+          if not isinstance(release, dict):
+            release = {}
+
+          # Try to read release body fetched earlier from the GitHub Release
+          release_body_path = Path('/tmp/release_body.txt')
+          release_body = ''
+          if release_body_path.exists():
+            release_body = release_body_path.read_text(encoding='utf-8').strip()
+
+          # Simple parser: split the release body into sections by headings
+          parsed_sections = {'new_features': [], 'improvements': [], 'bug_fixes': []}
+          if release_body:
+            current = None
+            for line in release_body.splitlines():
+              l = line.strip()
+              if not l:
+                continue
+              if l.startswith('#'):
+                h = l.lstrip('#').strip().lower()
+                if 'feature' in h:
+                  current = 'new_features'
+                elif 'improv' in h or 'enhanc' in h:
+                  current = 'improvements'
+                elif 'bug' in h or 'fix' in h or 'patch' in h:
+                  current = 'bug_fixes'
+                else:
+                  current = None
+                continue
+              # list items
+              if current and (l.startswith('-') or l.startswith('*') or l[0].isdigit()):
+                item = l.lstrip('-*0123456789. ').strip()
+                if item:
+                  parsed_sections[current].append(item)
+            # If no headings found but body contains bullet-like lines, treat as new_features
+            if not any(parsed_sections.values()):
+              bullets = [ln.strip().lstrip('-*').strip() for ln in release_body.splitlines() if ln.strip().startswith(('-', '*'))]
+              if bullets:
+                parsed_sections['new_features'] = [b for b in bullets if b]
+>>>>>>> 70afcb0cda06c7de432dd94ff267445f9289b406
 
           data['latest_version'] = version
           data['download_url'] = f'https://github.com/{repo}/releases/download/{tag}/app-release.apk'
@@ -115,9 +192,17 @@ jobs:
 
           release['title'] = f'Version {version}'
           release['subtitle'] = str(release.get('subtitle') or "What's new:")
+<<<<<<< HEAD
           release['new_features'] = list(release.get('new_features') or [])
           release['improvements'] = list(release.get('improvements') or [])
           release['bug_fixes'] = list(release.get('bug_fixes') or [])
+=======
+
+          # Prefer parsed sections from the release body when present
+          release['new_features'] = parsed_sections['new_features'] or list(release.get('new_features') or [])
+          release['improvements'] = parsed_sections['improvements'] or list(release.get('improvements') or [])
+          release['bug_fixes'] = parsed_sections['bug_fixes'] or list(release.get('bug_fixes') or [])
+>>>>>>> 70afcb0cda06c7de432dd94ff267445f9289b406
 
           data['release'] = release
           out_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
