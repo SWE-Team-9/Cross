@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/billing_invoice.dart';
@@ -7,11 +10,8 @@ import '../../domain/entities/plan.dart';
 import '../../domain/entities/subscription.dart';
 import '../bloc/subscription_cubit.dart';
 import '../bloc/subscription_state.dart';
-import 'dart:async';
 
-import 'package:go_router/go_router.dart';
-class BillingPage extends StatefulWidget {
-  const BillingPage({super.key});
+class BillingPage extends StatefulWidget {  const BillingPage({super.key});
 
   @override
   State<BillingPage> createState() => _BillingPageState();
@@ -35,8 +35,7 @@ class _BillingPageState extends State<BillingPage> {
     });
   }
 
-    bool _handleBillingReturnIfNeeded() {
-    final queryParameters = _billingReturnQueryParameters();
+  bool _handleBillingReturnIfNeeded() {    final queryParameters = _billingReturnQueryParameters();
 
     if (queryParameters.isEmpty || !_hasBillingReturnParameter(queryParameters)) {
       return false;
@@ -290,6 +289,45 @@ class _BillingPageState extends State<BillingPage> {
     await context.read<SubscriptionCubit>().resume();
   }
 
+
+  Future<void> _confirmCancelPlanChange() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF181818),
+          title: const Text(
+            'Cancel scheduled plan change?',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Your current plan will continue without switching at the next billing period.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep schedule'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5500),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Cancel change'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    await context.read<SubscriptionCubit>().cancelPlanChange();
+  }
   Future<void> _changePlan(Plan plan) async {
     if (plan.code.trim().isEmpty) {
       _showSnackBar('This plan is not available right now.');
@@ -381,6 +419,14 @@ class _BillingPageState extends State<BillingPage> {
                                 : null,
                           ),
                           const SizedBox(height: 22),
+                          if (state.subscription.hasPendingDowngrade) ...[
+                            _PendingPlanChangeCard(
+                              subscription: state.subscription,
+                              isActionLoading: state.isActionLoading,
+                              onCancelPlanChange: _confirmCancelPlanChange,
+                            ),
+                            const SizedBox(height: 22),
+                          ],
                           _PlanManagementSection(
                             plans: state.upgradePlans,
                             currentPlanCode:
@@ -389,8 +435,7 @@ class _BillingPageState extends State<BillingPage> {
                             onChangePlan: _changePlan,
                           ),
                           const SizedBox(height: 22),
-                          _InvoicesSection(
-                            invoices: state.invoices,
+                          _InvoicesSection(                            invoices: state.invoices,
                             onRefresh: () =>
                                 context.read<SubscriptionCubit>().loadBilling(),
                           ),
@@ -538,6 +583,63 @@ class _SubscriptionSummaryCard extends StatelessWidget {
                   label: const Text('Resume'),
                 ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingPlanChangeCard extends StatelessWidget {
+  const _PendingPlanChangeCard({
+    required this.subscription,
+    required this.isActionLoading,
+    required this.onCancelPlanChange,
+  });
+
+  final Subscription subscription;
+  final bool isActionLoading;
+  final VoidCallback onCancelPlanChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final pendingPlanName = _readPendingPlanName(subscription.pendingDowngrade);
+    final effectiveDate = _readPendingPlanEffectiveDate(
+      subscription.pendingDowngrade,
+    );
+
+    return _SectionCard(
+      title: 'Scheduled plan change',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _NoticeBox(
+            text:
+                'A plan change is scheduled for your next billing period. Your current plan remains active until then.',
+          ),
+          const SizedBox(height: 14),
+          _BillingInfoLine(
+            icon: Icons.workspace_premium_outlined,
+            label: 'Next plan',
+            value: pendingPlanName,
+          ),
+          if (effectiveDate != null) ...[
+            const SizedBox(height: 10),
+            _BillingInfoLine(
+              icon: Icons.event_available_outlined,
+              label: 'Effective date',
+              value: _formatDate(effectiveDate),
+            ),
+          ],
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: isActionLoading ? null : onCancelPlanChange,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              side: const BorderSide(color: Colors.redAccent),
+            ),
+            icon: const Icon(Icons.undo_rounded),
+            label: const Text('Cancel plan change'),
           ),
         ],
       ),
@@ -860,6 +962,83 @@ class _NoticeBox extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _readPendingPlanName(Map<String, dynamic>? pendingDowngrade) {
+  if (pendingDowngrade == null || pendingDowngrade.isEmpty) {
+    return 'Next plan';
+  }
+
+  final candidates = <dynamic>[
+    pendingDowngrade['planName'],
+    pendingDowngrade['plan_name'],
+    pendingDowngrade['name'],
+    pendingDowngrade['targetPlanName'],
+    pendingDowngrade['target_plan_name'],
+    pendingDowngrade['newPlanName'],
+    pendingDowngrade['new_plan_name'],
+    pendingDowngrade['planCode'],
+    pendingDowngrade['plan_code'],
+    pendingDowngrade['targetPlanCode'],
+    pendingDowngrade['target_plan_code'],
+    pendingDowngrade['newPlanCode'],
+    pendingDowngrade['new_plan_code'],
+  ];
+
+  for (final candidate in candidates) {
+    final value = candidate?.toString().trim() ?? '';
+
+    if (value.isNotEmpty) {
+      return _formatPlanName(value);
+    }
+  }
+
+  return 'Next plan';
+}
+
+DateTime? _readPendingPlanEffectiveDate(
+  Map<String, dynamic>? pendingDowngrade,
+) {
+  if (pendingDowngrade == null || pendingDowngrade.isEmpty) {
+    return null;
+  }
+
+  final candidates = <dynamic>[
+    pendingDowngrade['effectiveDate'],
+    pendingDowngrade['effective_date'],
+    pendingDowngrade['currentPeriodEnd'],
+    pendingDowngrade['current_period_end'],
+    pendingDowngrade['scheduledAt'],
+    pendingDowngrade['scheduled_at'],
+    pendingDowngrade['startsAt'],
+    pendingDowngrade['starts_at'],
+  ];
+
+  for (final candidate in candidates) {
+    final parsed = DateTime.tryParse(candidate?.toString().trim() ?? '');
+
+    if (parsed != null) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+String _formatPlanName(String value) {
+  final normalized = value.trim().toUpperCase();
+
+  switch (normalized) {
+    case 'GO_PLUS':
+    case 'GO+':
+      return 'GO+';
+    case 'PRO':
+      return 'Pro';
+    case 'FREE':
+      return 'Free';
+    default:
+      return value.trim();
   }
 }
 
