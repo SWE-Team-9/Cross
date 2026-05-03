@@ -33,7 +33,8 @@ class UpdateService {
       final latestVersion =
           (data['latest_version'] as String).split('+').first.trim();
 
-      print('>>> [UpdateService] current: $currentVersion | latest: $latestVersion');
+      print(
+          '>>> [UpdateService] current: $currentVersion | latest: $latestVersion');
 
       if (_isNewer(latestVersion, currentVersion)) {
         print('>>> [UpdateService] update available!');
@@ -59,12 +60,14 @@ class UpdateService {
   static bool _isNewer(String latest, String current) {
     try {
       final l = latest
-          .split('-').first
+          .split('-')
+          .first
           .split('.')
           .map((e) => int.parse(e.trim()))
           .toList();
       final c = current
-          .split('-').first
+          .split('-')
+          .first
           .split('.')
           .map((e) => int.parse(e.trim()))
           .toList();

@@ -27,8 +27,9 @@ class UpdateDialog extends StatelessWidget {
     final newFeatures = List<String>.from(release['new_features'] ?? []);
     final improvements = List<String>.from(release['improvements'] ?? []);
     final bugFixes = List<String>.from(release['bug_fixes'] ?? []);
-    final hasContent =
-        newFeatures.isNotEmpty || improvements.isNotEmpty || bugFixes.isNotEmpty;
+    final hasContent = newFeatures.isNotEmpty ||
+        improvements.isNotEmpty ||
+        bugFixes.isNotEmpty;
 
     return PopScope(
       canPop: !isMandatory,
