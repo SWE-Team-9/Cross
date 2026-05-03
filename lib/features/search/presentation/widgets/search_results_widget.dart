@@ -511,8 +511,7 @@ class _TrackTile extends StatelessWidget {
       ),
       trailing: IconButton(
         icon: const Icon(Icons.more_horiz, color: Colors.white38, size: 20),
-        onPressed: () {
-        },
+        onPressed: () {},
       ),
       onTap: () => context.push('/track/${track.id}'),
     );

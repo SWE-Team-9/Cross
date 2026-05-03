@@ -1057,7 +1057,7 @@ class _QueueSheetState extends State<_QueueSheet> {
                         color: Colors.white38,
                         size: 22,
                       ),
-                      onPressed: null, 
+                      onPressed: null,
                     ),
                     // Repeat
                     RepeatModeButton(
