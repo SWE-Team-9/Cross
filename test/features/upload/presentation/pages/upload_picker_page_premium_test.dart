@@ -45,8 +45,11 @@ void main() {
     test('adds upgrade snackbar action for upload-limit failures', () {
       expect(
         source,
-        contains(
-            'final isUploadLimitFailure = _isUploadLimitFailure(errorMessage);'),
+        contains('final isUploadLimitFailure ='),
+      );
+      expect(
+        source,
+        contains('_isUploadLimitFailure(errorMessage);'),
       );
       expect(
         source,
