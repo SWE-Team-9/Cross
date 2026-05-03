@@ -15,6 +15,8 @@ void main() {
                   context: context,
                   builder: (_) => UpdateDialog(
                     updateData: _updateData(),
+                    downloadUrl: 'https://example.com/download',
+                    updateType: UpdateType.inApp,
                   ),
                 );
               },
@@ -52,6 +54,8 @@ void main() {
               'title': 'Required update',
             },
           ),
+          downloadUrl: 'https://example.com/download',
+          updateType: UpdateType.inApp,
           isMandatory: true,
         ),
       ),
