@@ -71,26 +71,6 @@ class FakeFeedRepository implements FeedRepository {
   Future<void> recordPlay(String trackId) async {
     playCalls.add(trackId);
   }
-
-  @override
-  Future<List<TrendingTrack>> getTrending() async => [];
-
-  @override
-  Future<SearchResults> search({required String query, int page = 1}) async =>
-      SearchResults(
-        users: [],
-        tracks: [],
-        playlists: [],
-        currentPage: page,
-        totalResults: 0,
-        totalPages: 1,
-      );
-
-  @override
-  Future<ResolveResult> resolve(String permalink) async => ResolveResult(
-        type: 'TRACK',
-        resourceId: permalink,
-      );
 }
 
 // ─── Factory helpers ──────────────────────────────────────────────────────────

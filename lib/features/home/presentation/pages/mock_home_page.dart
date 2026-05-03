@@ -186,7 +186,7 @@ class _MockHomePageState extends State<MockHomePage> {
     final isTopLike = selectedGenre == _topLikeGenre;
     final response = await dioClient.get(
       isTopLike
-          ? ApiConstants.discoveryTrendingPath
+          ? ApiConstants.trending
           : ApiConstants.discoveryTrendingGenreTracksPath(selectedGenre),
       queryParameters: const <String, dynamic>{'limit': 5},
     );

@@ -2,8 +2,6 @@
 
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
-import '../dto/feed_item_model.dart'
-    show ResolveResultModel, SearchResultsModel, TrendingTrackModel;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Activity Feed DTOs
@@ -291,20 +289,6 @@ abstract class FeedRemoteDataSource {
   Future<Map<String, dynamic>> getTrackSource(String trackId);
 
   Future<void> recordPlay(String trackId);
-
-  Future<SearchResultsModel> search({
-    required String query,
-    String? type,
-    int page = 1,
-    int limit = 20,
-  });
-
-  Future<List<TrendingTrackModel>> getTrending({
-    int limit = 20,
-    int windowDays = 7,
-  });
-
-  Future<ResolveResultModel> resolve(String permalink);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -380,88 +364,6 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
   @override
   Future<void> recordPlay(String trackId) async {
     await _client.post<void>(ApiConstants.playerTrackPlayPath(trackId));
-  }
-
-  @override
-  Future<SearchResultsModel> search({
-    required String query,
-    String? type,
-    int page = 1,
-    int limit = 20,
-  }) async {
-    final response = await _client.get<Map<String, dynamic>>(
-      ApiConstants.globalSearch,
-      queryParameters: {
-        'q': query.trim(),
-        if (type != null && type.trim().isNotEmpty) 'type': type.trim(),
-        'page': page,
-        'limit': limit,
-      },
-    );
-
-    return SearchResultsModel.fromJson(response.data ?? <String, dynamic>{});
-  }
-
-  @override
-  Future<List<TrendingTrackModel>> getTrending({
-    int limit = 20,
-    int windowDays = 7,
-  }) async {
-    final response = await _client.get<Map<String, dynamic>>(
-      ApiConstants.trending,
-      queryParameters: {
-        'limit': limit,
-        'windowDays': windowDays,
-      },
-    );
-
-    final body = response.data ?? <String, dynamic>{};
-    final items = _extractList(body, const ['items', 'data', 'tracks']);
-
-    return items.map(TrendingTrackModel.fromJson).toList(growable: false);
-  }
-
-  @override
-  Future<ResolveResultModel> resolve(String permalink) async {
-    final response = await _client.get<Map<String, dynamic>>(
-      ApiConstants.resolve,
-      queryParameters: {'url': permalink.trim()},
-    );
-
-    final body = response.data ?? <String, dynamic>{};
-
-    if (body['matched'] == false) {
-      return const ResolveResultModel(
-        type: '',
-        resourceId: '',
-        ownerId: null,
-      );
-    }
-
-    return ResolveResultModel(
-      type: _s(body['resourceType'] ?? body['type']),
-      resourceId: _s(body['id'] ?? body['resource_id'] ?? body['resourceId']),
-      ownerId: _nullableString(
-        body['owner_id'] ?? body['ownerId'] ?? body['handle'] ?? body['slug'],
-      ),
-    );
-  }
-
-  static List<Map<String, dynamic>> _extractList(
-    Map<String, dynamic> body,
-    List<String> keys,
-  ) {
-    for (final key in keys) {
-      final value = body[key];
-      if (value is List) {
-        return value
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList(growable: false);
-      }
-    }
-
-    return const [];
   }
 }
 

@@ -3,101 +3,116 @@ import 'package:soundcloud_clone/features/search/data/dto/search_models.dart';
 
 void main() {
   group('SearchResponseModel', () {
-    test('fromJson parses full response and toEntity preserves values', () {
-      final json = {
+    test('parses grouped discovery search response', () {
+      final model = SearchResponseModel.fromJson({
+        'tracks': [
+          {
+            'id': 'trk_1',
+            'title': 'Layali',
+            'durationMs': 143000,
+            'coverArtUrl': 'https://cdn.test/cover.jpg',
+            'audioUrl': 'https://cdn.test/audio.mp3',
+            'genre': {'slug': 'electronic'},
+            'stats': {'playsCount': 55, 'likesCount': 7},
+            'uploader': {
+              'profile': {
+                'displayName': 'Ali Beats',
+                'handle': 'ali-beats',
+              },
+            },
+            'createdAt': '2026-05-01T10:00:00.000Z',
+          }
+        ],
+        'users': [
+          {
+            'id': 'usr_1',
+            'handle': 'ali',
+            'displayName': 'Ali',
+            'avatarUrl': 'https://cdn.test/avatar.jpg',
+            'followersCount': 12,
+            'trackCount': 3,
+            'verified': true,
+          }
+        ],
+        'playlists': [
+          {
+            'id': 'pl_1',
+            'title': 'Night Mix',
+            'trackCount': 8,
+            'ownerName': 'Ali',
+            'coverArtUrl': 'https://cdn.test/pl.jpg',
+            'durationMs': 120000,
+            'likesCount': 4,
+            'createdAt': '2026-05-01T10:00:00.000Z',
+          }
+        ],
+        'meta': {
+          'current_page': 2,
+          'total_results': 30,
+          'total_pages': 3,
+        },
+      });
+
+      expect(model.tracks, hasLength(1));
+      expect(model.users, hasLength(1));
+      expect(model.playlists, hasLength(1));
+
+      expect(model.tracks.first.id, 'trk_1');
+      expect(model.tracks.first.artistName, 'Ali Beats');
+      expect(model.tracks.first.genre, 'electronic');
+      expect(model.tracks.first.duration, const Duration(milliseconds: 143000));
+      expect(model.tracks.first.playbackCount, 55);
+      expect(model.tracks.first.likesCount, 7);
+
+      expect(model.users.first.id, 'usr_1');
+      expect(model.users.first.username, 'ali');
+      expect(model.users.first.verified, true);
+
+      expect(model.playlists.first.id, 'pl_1');
+      expect(model.playlists.first.trackCount, 8);
+
+      expect(model.meta.currentPage, 2);
+      expect(model.meta.totalResults, 30);
+      expect(model.meta.totalPages, 3);
+    });
+
+    test('parses response when groups are nested under data', () {
+      final model = SearchResponseModel.fromJson({
         'data': {
           'tracks': [
-            {
-              'id': '1',
-              'title': 'Track One',
-              'artistHandle': 'artist123',
-              'artwork_url': 'track.png',
-              'stream_url': 'stream.mp3',
-              'duration': 120,
-              'views': 10,
-              'likes_count': 4,
-              'genre': 'pop',
-              'sharing': 'private',
-              'created_at': '2024-01-01T00:00:00Z',
-            },
+            {'id': 'trk_1', 'title': 'Track'}
           ],
           'users': [
-            {
-              'id': 'u1',
-              'handle': 'user123',
-              'display_name': 'User Name',
-              'avatar_url': 'avatar.png',
-              'followers_count': 7,
-              'track_count': 3,
-              'verified': true,
-              'city': 'Cairo',
-              'country': 'Egypt',
-            }
+            {'id': 'usr_1', 'handle': 'user'}
           ],
           'playlists': [
-            {
-              'id': 'p1',
-              'title': 'Playlist One',
-              'artwork_url': 'playlist.png',
-              'trackCount': 5,
-              'ownerName': 'Owner',
-              'is_album': true,
-              'sharing': 'public',
-              'duration': 2400,
-              'likesCount': 12,
-              'created_at': '2024-01-01T00:00:00Z',
-            }
+            {'id': 'pl_1', 'title': 'Playlist'}
           ],
         },
         'meta': {
-          'current_page': 1,
-          'total_results': 3,
-          'total_pages': 1,
+          'page': 1,
+          'total': 3,
+          'totalPages': 1,
         },
-      };
+      });
 
-      final model = SearchResponseModel.fromJson(json);
-
-      expect(model.tracks, hasLength(1));
-      expect(model.tracks.first.isPrivate, true);
-      expect(model.tracks.first.duration, Duration(seconds: 120));
-      expect(model.users.first.username, 'user123');
-      expect(model.playlists.first.isAlbum, true);
+      expect(model.tracks.single.id, 'trk_1');
+      expect(model.users.single.id, 'usr_1');
+      expect(model.playlists.single.id, 'pl_1');
       expect(model.meta.currentPage, 1);
-
-      final entity = model.toEntity();
-      expect(entity.tracks.first.title, 'Track One');
-      expect(entity.meta.totalResults, 3);
+      expect(model.meta.totalResults, 3);
+      expect(model.meta.totalPages, 1);
     });
 
-    test('fromJson handles missing arrays and fallback fields', () {
-      final Map<String, dynamic> json = {
-        'data': <String, dynamic>{
-          'tracks': <Map<String, dynamic>>[
-            <String, dynamic>{
-              'id': '2',
-              'title': 'Track Two',
-              'artist_handle': 'artist2',
-              'coverArtUrl': 'art2.png',
-              'streamUrl': 'stream2.mp3',
-              'duration': 60,
-              'likesCount': 1,
-              'genre': 'rock',
-              'isPrivate': false,
-              'createdAt': '2024-01-02T00:00:00Z',
-            }
-          ],
-          'users': <dynamic>[],
-          'playlists': <dynamic>[],
-        },
-        'meta': <String, dynamic>{},
-      };
+    test('returns empty groups when response has no lists', () {
+      final model = SearchResponseModel.fromJson({
+        'meta': {'page': 1, 'total': 0, 'totalPages': 0},
+      });
 
-      final model = SearchResponseModel.fromJson(json);
-      expect(model.tracks.first.artistName, 'artist2');
-      expect(model.tracks.first.artworkUrl, 'art2.png');
-      expect(model.tracks.first.streamUrl, 'stream2.mp3');
-      expect(model.meta.totalPages, 0);
+      expect(model.tracks, isEmpty);
+      expect(model.users, isEmpty);
+      expect(model.playlists, isEmpty);
+      expect(model.meta.totalResults, 0);
     });
   });
 }

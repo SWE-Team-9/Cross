@@ -342,7 +342,7 @@ class PlaylistsRemoteDataSourceImpl implements PlaylistsRemoteDataSource {
     if (trimmed.isEmpty) return const <PlaylistDto>[];
 
     final response = await dioClient.get(
-      ApiConstants.discoverySearchPath,
+      ApiConstants.globalSearch,
       queryParameters: {
         'q': trimmed,
         'type': 'playlists',

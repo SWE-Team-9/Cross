@@ -62,10 +62,6 @@ abstract class ApiConstants {
   static String playerTrackPlayPath(String trackId) =>
       '/api/v1/player/tracks/$trackId/play';
   static const String listeningHistoryPath = '/api/v1/player/me/history';
-  static const String discoverySearchPath = '/api/v1/discovery/search';
-  static const String discoveryTrendingPath = '/api/v1/discovery/trending';
-  static String discoveryTrendingGenreTracksPath(String genreSlug) =>
-      '/api/v1/discovery/trending/genres/$genreSlug/tracks';
 
   // ── Interactions ────────────────────────────────────────────────────────
   static const String interactionsBase = '/api/v1/interactions';
@@ -179,10 +175,13 @@ abstract class ApiConstants {
   static const String queueCurrent = '$playerBase/queue';
   static const String queueJump = '$playerBase/queue/jump';
 
-  // ── Discovery ───────────────────────────────────────────────────────────
+// ── Discovery ───────────────────────────────────────────────────────────
   static const String discoveryBase = '/api/v1/discovery';
 
   static const String globalSearch = '$discoveryBase/search';
   static const String trending = '$discoveryBase/trending';
   static const String resolve = '$discoveryBase/resolve';
+
+  static String discoveryTrendingGenreTracksPath(String genreSlug) =>
+      '$trending/genres/$genreSlug/tracks';
 }
