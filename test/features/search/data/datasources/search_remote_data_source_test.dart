@@ -66,6 +66,33 @@ void main() {
       },
     };
 
+    test('sends type and custom limit when provided', () async {
+      when(() => mockDio.get(
+            any(),
+            queryParameters: any(named: 'queryParameters'),
+          )).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: ''),
+            data: tResponseData,
+            statusCode: 200,
+          ));
+
+      await dataSource.search(
+        tQuery,
+        type: 'track',
+        page: tPage,
+        limit: 10,
+      );
+
+      verify(() => mockDio.get(
+            ApiConstants.globalSearch,
+            queryParameters: {
+              'q': tQuery,
+              'type': 'track',
+              'page': tPage,
+              'limit': 10,
+            },
+          )).called(1);
+    });
     test('returns SearchResponseModel on successful response', () async {
       when(() => mockDio.get(
             any(),
