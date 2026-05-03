@@ -58,6 +58,11 @@ import '../../features/feed/domain/usecases/get_feed.dart';
 import '../../features/feed/domain/usecases/toggle_like.dart';
 import '../../features/feed/domain/usecases/toggle_repost.dart';
 import '../../features/feed/presentation/bloc/feed_cubit.dart';
+import '../../features/home/data/repositories/home_repository_impl.dart';
+import '../../features/home/domain/repositories/home_repository.dart';
+import '../../features/home/domain/usecases/get_home_content_usecase.dart';
+import '../../features/home/domain/usecases/get_home_trending_tracks_usecase.dart';
+import '../../features/home/presentation/bloc/home_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
 import '../../features/profile/data/repositories/profile_repository_impl.dart'
@@ -1167,6 +1172,39 @@ Future<void> setupDependencies() async {
         likePlaylistUseCase: getIt<LikePlaylistUseCase>(),
         unlikePlaylistUseCase: getIt<UnlikePlaylistUseCase>(),
         recordPlaylistPlaybackUseCase: getIt<RecordPlaylistPlaybackUseCase>(),
+      ),
+    );
+  }
+
+  // ── Home Feature ────────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<HomeRepository>()) {
+    getIt.registerLazySingleton<HomeRepository>(
+      () => HomeRepositoryImpl(
+        profileRepository: getIt<profile_domain.ProfileRepository>(),
+        playlistsRepository: getIt<PlaylistsRepository>(),
+        discoveryRemoteDataSource: getIt<DiscoveryRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetHomeContentUseCase>()) {
+    getIt.registerLazySingleton<GetHomeContentUseCase>(
+      () => GetHomeContentUseCase(getIt<HomeRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetHomeTrendingTracksUseCase>()) {
+    getIt.registerLazySingleton<GetHomeTrendingTracksUseCase>(
+      () => GetHomeTrendingTracksUseCase(getIt<HomeRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<HomeCubit>()) {
+    getIt.registerFactory<HomeCubit>(
+      () => HomeCubit(
+        getHomeContent: getIt<GetHomeContentUseCase>(),
+        getHomeTrendingTracks: getIt<GetHomeTrendingTracksUseCase>(),
       ),
     );
   }

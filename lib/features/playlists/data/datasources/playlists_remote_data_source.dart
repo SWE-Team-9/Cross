@@ -575,16 +575,21 @@ List<dynamic> _extractPlaylistList(dynamic payload) {
     final data = payload['data'];
     if (data is List) return data;
     if (data is Map<String, dynamic>) {
-      final nested =
-          data['playlists'] ?? data['items'] ?? data['results'] ?? data['data'];
+      final nested = data['topPlaylists'] ??
+          data['playlists'] ??
+          data['items'] ??
+          data['results'] ??
+          data['data'];
       if (nested is List) return nested;
 
       final grouped = _extractGroupedGenrePlaylists(data);
       if (grouped.isNotEmpty) return grouped;
     }
 
-    final direct =
-        payload['playlists'] ?? payload['items'] ?? payload['results'];
+    final direct = payload['topPlaylists'] ??
+        payload['playlists'] ??
+        payload['items'] ??
+        payload['results'];
     if (direct is List) return direct;
 
     final grouped = _extractGroupedGenrePlaylists(payload);
