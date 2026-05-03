@@ -58,7 +58,8 @@ import '../features/feed/presentation/pages/feed_page.dart';
 
 // Project — discovery
 import '../features/discovery/presentation/page/discover_page.dart';
-
+import '../features/discovery/domain/entities/resolved_resource.dart';
+import '../features/discovery/domain/usecases/resolve_resource_usecase.dart';
 // Project — search
 import 'package:soundcloud_clone/features/search/presentation/bloc/search_cubit.dart';
 import 'package:soundcloud_clone/features/search/presentation/pages/search_page.dart';
@@ -135,10 +136,34 @@ String _searchPath(String query) {
   ).toString();
 }
 
-void _handleDeepLinkDestination(
+Future<String?> _resolveResourcePath(String url) async {
+  if (!getIt.isRegistered<ResolveResourceUseCase>()) return null;
+
+  try {
+    final resource = await getIt<ResolveResourceUseCase>()(url);
+
+    if (!resource.matched || resource.resourceId.trim().isEmpty) {
+      return null;
+    }
+
+    return switch (resource.type) {
+      ResolvedResourceType.track => _trackPath(resource.resourceId),
+      ResolvedResourceType.playlist => _playlistPath(resource.resourceId),
+      ResolvedResourceType.artist =>
+        resource.handle != null && resource.handle!.trim().isNotEmpty
+            ? _profilePath(resource.handle!.trim())
+            : null,
+      ResolvedResourceType.unknown => null,
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> _handleDeepLinkDestination(
   DeepLinkDestination destination,
   GoRouter router,
-) {
+) async {
   String? path;
 
   switch (destination) {
@@ -160,6 +185,9 @@ void _handleDeepLinkDestination(
     case SearchDeepLink(:final query):
       path = _searchPath(query);
 
+    case ResolvableResourceDeepLink(:final url):
+      path = await _resolveResourcePath(url);
+
     case OAuthCallbackDeepLink():
       router.go(AuthRoutes.oauthDebug, extra: destination);
       return;
@@ -168,10 +196,12 @@ void _handleDeepLinkDestination(
       return;
   }
 
-  final String currentLocation =
+  if (path == null || path.trim().isEmpty) return;
+
+  final currentLocation =
       router.routerDelegate.currentConfiguration.uri.toString();
 
-  final bool isOnAuthScreen = currentLocation.contains('/auth') ||
+  final isOnAuthScreen = currentLocation.contains('/auth') ||
       currentLocation.contains('splash') ||
       currentLocation == '/';
 
@@ -181,7 +211,6 @@ void _handleDeepLinkDestination(
     router.go(path);
   }
 }
-
 // ── Pending deep link ─────────────────────────────────────────────────────────
 
 String? _pendingDeepLink;
