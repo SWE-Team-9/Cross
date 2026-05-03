@@ -512,7 +512,6 @@ class _TrackTile extends StatelessWidget {
       trailing: IconButton(
         icon: const Icon(Icons.more_horiz, color: Colors.white38, size: 20),
         onPressed: () {
-          // TODO: TrackOptionsSheet.show(context, track: ...)
         },
       ),
       onTap: () => context.push('/track/${track.id}'),
@@ -622,7 +621,6 @@ class _FollowButton extends StatefulWidget {
 }
 
 class _FollowButtonState extends State<_FollowButton> {
-  // TODO: اربطه بالـ follow cubit لما يكون جاهز
   bool _isFollowing = false;
 
   @override
