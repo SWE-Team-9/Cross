@@ -1,18 +1,23 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
-import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:soundcloud_clone/features/premium/domain/entities/offline_track_entitlement.dart';
 
 class OfflineRepository {
   static const _tracksKey = 'offline_tracks';
   static const _trackDetailsKey = 'offline_track_details';
   static const _playlistsKey = 'offline_playlists';
+
+  static const _offlineDirectoryName = 'offline';
+  static const _offlineTracksDirectoryName = 'tracks';
+  static const _audioExtension = '.mp3';
 
   final DioClient dio;
 
@@ -20,19 +25,51 @@ class OfflineRepository {
 
   // ───────────── DOWNLOAD ─────────────
   Future<String> downloadTrack(String trackId) async {
-    // STEP 1: entitlement check
-    await dio.get('/api/v1/subscriptions/offline/$trackId');
+    final normalizedTrackId = trackId.trim();
 
-    // STEP 2: download audio bytes
+    if (normalizedTrackId.isEmpty) {
+      throw ArgumentError.value(
+          trackId, 'trackId', 'Track id cannot be empty.');
+    }
+
+    final entitlementResponse = await dio.get(
+      ApiConstants.subscriptionOfflineTrackPath(normalizedTrackId),
+    );
+
+    final entitlement = OfflineTrackEntitlement.fromJson(
+      _extractPayloadMap(entitlementResponse.data),
+    );
+
+    if (!entitlement.isAllowed) {
+      throw StateError('Offline downloads require a premium subscription.');
+    }
+
     final response = await dio.get(
-      '/api/v1/subscriptions/offline/$trackId/stream',
+      ApiConstants.subscriptionOfflineTrackStreamPath(normalizedTrackId),
       options: Options(responseType: ResponseType.bytes),
     );
 
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/$trackId.mp3');
+    final bytes = _asBytes(response.data);
+    if (bytes.isEmpty) {
+      throw StateError('Downloaded audio file is empty.');
+    }
 
-    await file.writeAsBytes(response.data);
+    final file = await _offlineTrackFile(normalizedTrackId);
+    await file.writeAsBytes(bytes, flush: true);
+
+    final downloadedTracks = await getDownloadedTracks();
+    downloadedTracks[normalizedTrackId] = file.path;
+    await saveDownloadedTracks(downloadedTracks);
+
+    final downloadedTrackDetails = await getDownloadedTrackDetails();
+    final existingDetails = await fetchTrackDetails(normalizedTrackId);
+    downloadedTrackDetails[normalizedTrackId] = _mergeDownloadedTrackDetails(
+      entitlement: entitlement,
+      fallbackTrackId: normalizedTrackId,
+      localPath: file.path,
+      existingDetails: existingDetails,
+    );
+    await saveDownloadedTrackDetails(downloadedTrackDetails);
 
     return file.path;
   }
@@ -40,8 +77,10 @@ class OfflineRepository {
   Future<Track?> fetchTrackDetails(String trackId) async {
     try {
       final response = await dio.get(ApiConstants.trackByIdPath(trackId));
-      final data = _asMap(_extractData(response.data));
+      final data = _extractPayloadMap(response.data);
+
       if (data.isEmpty) return null;
+
       return _trackFromJson(data);
     } catch (_) {
       return null;
@@ -77,38 +116,113 @@ class OfflineRepository {
   // ───────────── LOAD (PERSIST) ─────────────
   Future<Map<String, String>> getDownloadedTracks() async {
     final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(_tracksKey);
+    final rawJson = prefs.getString(_tracksKey);
 
-    if (json == null) return {};
+    if (rawJson == null || rawJson.trim().isEmpty) {
+      return <String, String>{};
+    }
 
-    return Map<String, String>.from(jsonDecode(json));
+    try {
+      final decoded = jsonDecode(rawJson);
+      if (decoded is! Map) return <String, String>{};
+
+      return decoded.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      );
+    } catch (_) {
+      return <String, String>{};
+    }
   }
 
   Future<Map<String, Track>> getDownloadedTrackDetails() async {
     final prefs = await SharedPreferences.getInstance();
     final rawJson = prefs.getString(_trackDetailsKey);
-    if (rawJson == null) return {};
 
-    final decoded = jsonDecode(rawJson);
-    if (decoded is! Map) return {};
+    if (rawJson == null || rawJson.trim().isEmpty) {
+      return <String, Track>{};
+    }
 
-    return decoded.map((key, value) {
-      return MapEntry(key.toString(), _trackFromJson(_asMap(value)));
-    });
+    try {
+      final decoded = jsonDecode(rawJson);
+      if (decoded is! Map) return <String, Track>{};
+
+      return decoded.map((key, value) {
+        return MapEntry(key.toString(), _trackFromJson(_asMap(value)));
+      });
+    } catch (_) {
+      return <String, Track>{};
+    }
   }
 
   Future<Map<String, PlaylistEntity>> getDownloadedPlaylists() async {
     final prefs = await SharedPreferences.getInstance();
     final rawJson = prefs.getString(_playlistsKey);
-    if (rawJson == null) return {};
 
-    final decoded = jsonDecode(rawJson);
-    if (decoded is! Map) return {};
+    if (rawJson == null || rawJson.trim().isEmpty) {
+      return <String, PlaylistEntity>{};
+    }
 
-    return decoded.map((key, value) {
-      return MapEntry(key.toString(), _playlistFromJson(_asMap(value)));
-    });
+    try {
+      final decoded = jsonDecode(rawJson);
+      if (decoded is! Map) return <String, PlaylistEntity>{};
+
+      return decoded.map((key, value) {
+        return MapEntry(key.toString(), _playlistFromJson(_asMap(value)));
+      });
+    } catch (_) {
+      return <String, PlaylistEntity>{};
+    }
   }
+
+  Future<File> _offlineTrackFile(String trackId) async {
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final offlineTracksDirectory = Directory(
+      '${documentsDirectory.path}/$_offlineDirectoryName/$_offlineTracksDirectoryName',
+    );
+
+    if (!offlineTracksDirectory.existsSync()) {
+      await offlineTracksDirectory.create(recursive: true);
+    }
+
+    return File(
+      '${offlineTracksDirectory.path}/${_safeFileName(trackId)}$_audioExtension',
+    );
+  }
+}
+
+Track _mergeDownloadedTrackDetails({
+  required OfflineTrackEntitlement entitlement,
+  required String fallbackTrackId,
+  required String localPath,
+  Track? existingDetails,
+}) {
+  final baseTrack = existingDetails ??
+      _trackFromJson(
+        <String, dynamic>{
+          'id': entitlement.trackId.isEmpty
+              ? fallbackTrackId
+              : entitlement.trackId,
+          'title': entitlement.title,
+          'artist': entitlement.artist,
+          'handle': entitlement.handle,
+          'durationMs': entitlement.durationMs,
+          'artworkUrl': entitlement.coverArtUrl,
+        },
+      );
+
+  return Track(
+    id: baseTrack.id.isEmpty ? fallbackTrackId : baseTrack.id,
+    title: baseTrack.title,
+    artist: baseTrack.artist,
+    audioUrl: baseTrack.audioUrl,
+    artworkUrl: baseTrack.artworkUrl ?? entitlement.coverArtUrl,
+    handle: baseTrack.handle ?? _asNullableString(entitlement.handle),
+    artistId: baseTrack.artistId,
+    likesCount: baseTrack.likesCount,
+    repostsCount: baseTrack.repostsCount,
+    durationMs: baseTrack.durationMs ?? entitlement.durationMs,
+    localPath: localPath,
+  );
 }
 
 Map<String, dynamic> _trackToJson(Track track) {
@@ -131,18 +245,20 @@ Track _trackFromJson(Map<String, dynamic> json) {
   return Track(
     id: _asString(json['id'] ?? json['trackId'] ?? json['track_id']),
     title: _asString(json['title'], fallback: 'Untitled'),
-    artist: _asString(json['artistName'] ?? json['artist'],
-        fallback: 'Unknown artist'),
+    artist: _asString(
+      json['artistName'] ?? json['artist'],
+      fallback: 'Unknown artist',
+    ),
     audioUrl: _asString(json['audioUrl'] ?? json['streamUrl']),
     artworkUrl: _asNullableString(
       json['artworkUrl'] ?? json['coverArtUrl'] ?? json['cover_art_url'],
     ),
     handle: _asNullableString(json['handle'] ?? json['artistHandle']),
     artistId: _asNullableString(json['artistId'] ?? json['artist_id']),
-    likesCount: _asInt(json['likesCount']),
-    repostsCount: _asInt(json['repostsCount']),
-    durationMs: _asNullableInt(json['durationMs']),
-    localPath: _asNullableString(json['localPath']),
+    likesCount: _asInt(json['likesCount'] ?? json['likes_count']),
+    repostsCount: _asInt(json['repostsCount'] ?? json['reposts_count']),
+    durationMs: _asNullableInt(json['durationMs'] ?? json['duration_ms']),
+    localPath: _asNullableString(json['localPath'] ?? json['local_path']),
   );
 }
 
@@ -184,18 +300,20 @@ PlaylistEntity _playlistFromJson(Map<String, dynamic> json) {
       : const <Track>[];
 
   return PlaylistEntity(
-    playlistId: _asString(json['playlistId']),
+    playlistId: _asString(json['playlistId'] ?? json['playlist_id']),
     title: _asString(json['title'], fallback: 'Untitled playlist'),
     description: _asString(json['description']),
     visibility: playlistVisibilityFromApi(_asString(json['visibility'])),
     genre: _asNullableString(json['genre']),
-    genreId: _asNullableInt(json['genreId']),
+    genreId: _asNullableInt(json['genreId'] ?? json['genre_id']),
     slug: _asNullableString(json['slug']),
     playlistType: _asString(json['playlistType'], fallback: 'PLAYLIST'),
-    releaseDate: _asDate(json['releaseDate']),
+    releaseDate: _asDate(json['releaseDate'] ?? json['release_date']),
     tags: _asStringList(json['tags']),
-    secretToken: _asNullableString(json['secretToken']),
-    coverImageUrl: _asNullableString(json['coverImageUrl']),
+    secretToken: _asNullableString(json['secretToken'] ?? json['secret_token']),
+    coverImageUrl: _asNullableString(
+      json['coverImageUrl'] ?? json['cover_image_url'],
+    ),
     owner: ownerMap.isEmpty
         ? null
         : PlaylistOwner(
@@ -203,10 +321,47 @@ PlaylistEntity _playlistFromJson(Map<String, dynamic> json) {
             displayName: _asString(ownerMap['displayName']),
           ),
     tracks: tracks,
-    tracksCount: _asNullableInt(json['tracksCount']) ?? tracks.length,
-    likesCount: _asInt(json['likesCount']),
-    isLiked: json['isLiked'] == true,
+    tracksCount: _asNullableInt(json['tracksCount'] ?? json['tracks_count']) ??
+        tracks.length,
+    likesCount: _asInt(json['likesCount'] ?? json['likes_count']),
+    isLiked: json['isLiked'] == true || json['is_liked'] == true,
   );
+}
+
+dynamic _decodeJsonIfNeeded(dynamic value) {
+  if (value is String) {
+    final trimmed = value.trim();
+
+    if (trimmed.isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    return jsonDecode(trimmed);
+  }
+
+  return value;
+}
+
+Map<String, dynamic> _extractPayloadMap(dynamic value) {
+  final decoded = _decodeJsonIfNeeded(value);
+  final map = _asMap(decoded);
+
+  final data = map['data'];
+  if (data is Map) {
+    return Map<String, dynamic>.from(data);
+  }
+
+  final track = map['track'];
+  if (track is Map) {
+    return Map<String, dynamic>.from(track);
+  }
+
+  final result = map['result'];
+  if (result is Map) {
+    return Map<String, dynamic>.from(result);
+  }
+
+  return map;
 }
 
 Map<String, dynamic> _asMap(dynamic value) {
@@ -215,10 +370,25 @@ Map<String, dynamic> _asMap(dynamic value) {
   return <String, dynamic>{};
 }
 
-dynamic _extractData(dynamic value) {
-  final map = _asMap(value);
-  if (map.isEmpty) return value;
-  return map['data'] ?? map;
+List<int> _asBytes(dynamic value) {
+  if (value is List<int>) {
+    return value;
+  }
+
+  if (value is List) {
+    return value.map((byte) => _asInt(byte).clamp(0, 255)).toList();
+  }
+
+  if (value is String) {
+    return utf8.encode(value);
+  }
+
+  throw StateError('Expected audio bytes but got ${value.runtimeType}.');
+}
+
+String _safeFileName(String value) {
+  final sanitized = value.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+  return sanitized.isEmpty ? 'track' : sanitized;
 }
 
 String _asString(dynamic value, {String fallback = ''}) {
@@ -241,13 +411,16 @@ int? _asNullableInt(dynamic value) {
 
 DateTime? _asDate(dynamic value) {
   if (value is DateTime) return value;
+
   final parsed = value?.toString().trim() ?? '';
   if (parsed.isEmpty) return null;
+
   return DateTime.tryParse(parsed);
 }
 
 List<String> _asStringList(dynamic value) {
   if (value is! List) return const <String>[];
+
   return value
       .map((item) => item.toString().trim())
       .where((item) => item.isNotEmpty)

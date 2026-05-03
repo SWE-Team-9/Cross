@@ -51,6 +51,8 @@ import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubi
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
+import 'package:soundcloud_clone/features/premium/presentation/pages/billing_page.dart';
+import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
   double _currentVolume = 1;
@@ -631,17 +633,30 @@ void main() {
       expect(find.byType(MockSearchPage), findsOneWidget);
     });
 
-    testWidgets('can navigate to upgrade placeholder', (tester) async {
+    testWidgets('can navigate to upgrade page', (tester) async {
       await pumpRouter(
         tester,
         authState: authenticatedUser,
         initialLocation: app_router.AppRoutes.upgrade,
       );
 
+      expect(find.byType(UpgradePage), findsOneWidget);
       expect(find.text('Upgrade'), findsOneWidget);
-      expect(find.text('Upgrade to IQA3 Pro'), findsOneWidget);
+      expect(find.text('Unlock IQA3 Premium'), findsOneWidget);
+      expect(find.text('Choose your plan'), findsOneWidget);
     });
 
+    testWidgets('can navigate to billing page', (tester) async {
+      await pumpRouter(
+        tester,
+        authState: authenticatedUser,
+        initialLocation: app_router.AppRoutes.billing,
+      );
+
+      expect(find.byType(BillingPage), findsOneWidget);
+      expect(find.text('Billing'), findsOneWidget);
+      expect(find.text('Subscription'), findsOneWidget);
+    });
     testWidgets('404 fallback Go Home button navigates home', (tester) async {
       await pumpRouter(
         tester,

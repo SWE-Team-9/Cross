@@ -72,7 +72,6 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
         final count = switch (countResult) {
           NotificationsSuccess(value: final c) => c,
           NotificationsFailure() => 0,
-          _ => 0,
         };
         emit(
           NotificationsLoaded(
@@ -90,12 +89,6 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
               fallback:
                   'Unable to load notifications right now. Please try again.',
             ),
-          ),
-        );
-      default:
-        emit(
-          const NotificationsError(
-            'Unable to load notifications right now. Please try again.',
           ),
         );
     }
@@ -140,8 +133,6 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
             ),
           ),
         );
-      default:
-        break;
     }
   }
 

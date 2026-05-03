@@ -1,18 +1,18 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/features/premium/domain/entities/subscription.dart';
+import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
+import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
 
 import '../../../../core/errors/upload_picker_exceptions.dart';
 import '../../domain/entities/managed_track.dart';
+import '../../domain/entities/picked_image_file.dart';
 import '../../domain/entities/track_management_visibility.dart';
 import '../../domain/entities/track_status.dart';
-import '../../domain/entities/picked_image_file.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../../domain/usecases/pick_audi_file_usecase.dart';
 import '../../domain/usecases/update_track_visibility_usecase.dart';
 import '../../domain/usecases/watch_track_processing_status_use_case.dart';
 import 'upload_picker_state.dart';
-import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
-import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 
 class UploadPickerCubit extends Cubit<UploadPickerState> {
   UploadPickerCubit(
@@ -161,11 +161,11 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       return;
     }
 
-    Subscription subscription;
+    late final Subscription subscription;
 
     try {
       subscription = await _subscriptionRepository.getMySubscription();
-    } catch (e) {
+    } catch (_) {
       emit(
         state.copyWith(
           status: UploadPickerStatus.failure,
@@ -179,16 +179,17 @@ class UploadPickerCubit extends Cubit<UploadPickerState> {
       return;
     }
 
-    final canUpload = _checkUploadLimitUseCase(
-      remainingUploads: subscription.remainingUploads,
-      isPro: subscription.isPro,
+    final canUpload = _checkUploadLimitUseCase.canUploadSubscription(
+      subscription,
     );
 
     if (!canUpload) {
       emit(
         state.copyWith(
           status: UploadPickerStatus.failure,
-          errorMessage: 'Upload limit reached. Upgrade to Pro.',
+          errorMessage: _checkUploadLimitUseCase.limitReachedMessage(
+            subscription,
+          ),
           clearFailureType: true,
           clearUploadProgress: true,
           clearUploadedVisibility: true,

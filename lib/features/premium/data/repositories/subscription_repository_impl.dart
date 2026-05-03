@@ -1,86 +1,100 @@
 import '../../../../core/network/dio_client.dart';
+import '../../domain/entities/billing_invoice.dart';
+import '../../domain/entities/billing_portal_session.dart';
+import '../../domain/entities/offline_track_entitlement.dart';
+import '../../domain/entities/plan.dart';
 import '../../domain/entities/subscription.dart';
 import '../../domain/repositories/subscription_repository.dart';
-import '../../domain/entities/plan.dart';
+import '../datasources/subscription_remote_data_source.dart';
 
 class SubscriptionRepositoryImpl implements SubscriptionRepository {
-  final DioClient _dioClient;
+  SubscriptionRepositoryImpl([dynamic dependency])
+      : _remoteDataSource = _resolveRemoteDataSource(dependency);
 
-  SubscriptionRepositoryImpl(this._dioClient);
+  final SubscriptionRemoteDataSource _remoteDataSource;
 
   @override
-  Future<Subscription> getMySubscription() async {
-    final response = await _dioClient.get('/api/v1/subscriptions/me');
+  Future<Subscription> getMySubscription() {
+    return _remoteDataSource.getMySubscription();
+  }
 
-    final data = response.data is Map && response.data.containsKey('data')
-        ? response.data['data']
-        : response.data;
+  @override
+  Future<List<Plan>> getPlans() {
+    return _remoteDataSource.getPlans();
+  }
 
-    return Subscription(
-      subscriptionType: data['planCode'] ?? 'FREE',
-      uploadLimit: data['uploadLimit'] ?? 3,
-      uploadedTracks: data['uploadedTracks'] ?? 0,
-      remainingUploads: data['remainingUploads'] ?? 0,
-      cancelAtPeriodEnd: data['cancelAtPeriodEnd'] ?? false,
-      canDownload: data['canDownload'] ?? false,
-      adsEnabled: data['adsEnabled'] ?? true,
+  @override
+  Future<String> createCheckout(String plan) {
+    return _remoteDataSource.createCheckout(
+      planCode: plan,
     );
   }
 
   @override
-  Future<String> createCheckout(String plan) async {
-    final response = await _dioClient.post(
-      '/api/v1/subscriptions/checkout',
-      data: {
-        "planCode": plan,
-        "returnUrl": "app://success",
-        "cancelUrl": "app://cancel",
-      },
+  Future<String> subscribe(String plan) {
+    return _remoteDataSource.subscribe(
+      subscriptionType: plan,
     );
-
-    return response.data['checkoutUrl'];
   }
 
   @override
-  Future<List<Plan>> getPlans() async {
-    final response = await _dioClient.get('/api/v1/subscriptions/plans');
-
-    final data = response.data is Map && response.data.containsKey('data')
-        ? response.data['data']
-        : response.data;
-
-    final list = data as List;
-
-    return list.map((e) => Plan.fromJson(e)).toList();
-  }
-
-  @override
-  Future<void> cancelSubscription() async {
-    await _dioClient.post('/api/v1/subscriptions/cancel');
-  }
-
-  @override
-  Future<void> resumeSubscription() async {
-    await _dioClient.post('/api/v1/subscriptions/resume');
-  }
-
-  @override
-  Future<void> changePlan(String plan) async {
-    await _dioClient.post(
-      '/api/v1/subscriptions/change-plan',
-      data: {"planCode": plan},
-    );
+  Future<BillingPortalSession> openBillingPortalSession() {
+    return _remoteDataSource.openBillingPortalSession();
   }
 
   @override
   Future<String> openPortal() async {
-    final response = await _dioClient.post(
-      '/api/v1/subscriptions/portal',
-      data: {
-        "returnUrl": "app://settings",
-      },
-    );
-
-    return response.data['portalUrl'];
+    final session = await openBillingPortalSession();
+    return session.launchUrl;
   }
+
+  @override
+  Future<List<BillingInvoice>> getInvoices() {
+    return _remoteDataSource.getInvoices();
+  }
+
+  @override
+  Future<Subscription> cancelSubscription() async {
+    await _remoteDataSource.cancelSubscription();
+    return _remoteDataSource.getMySubscription();
+  }
+
+  @override
+  Future<Subscription> resumeSubscription() {
+    return _remoteDataSource.resumeSubscription();
+  }
+
+  @override
+  Future<Subscription> changePlan(String plan) {
+    return _remoteDataSource.changePlan(
+      planCode: plan,
+    );
+  }
+
+  @override
+  Future<Subscription> cancelPlanChange() {
+    return _remoteDataSource.cancelPlanChange();
+  }
+
+  @override
+  Future<OfflineTrackEntitlement> getOfflineTrackEntitlement(String trackId) {
+    return _remoteDataSource.getOfflineTrackEntitlement(
+      trackId: trackId,
+    );
+  }
+}
+
+SubscriptionRemoteDataSource _resolveRemoteDataSource(dynamic dependency) {
+  if (dependency is SubscriptionRemoteDataSource) {
+    return dependency;
+  }
+
+  if (dependency is DioClient) {
+    return SubscriptionRemoteDataSourceImpl(dependency);
+  }
+
+  throw ArgumentError(
+    'SubscriptionRepositoryImpl requires a SubscriptionRemoteDataSource '
+    'or DioClient dependency.',
+  );
 }
