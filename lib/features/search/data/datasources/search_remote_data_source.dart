@@ -53,15 +53,22 @@ class SearchRemoteDataSourceImpl implements SearchRemoteDataSource {
   Failure _mapDioError(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
-      case DioExceptionType.receiveTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.connectionError:
         return const NetworkFailure();
+
+      case DioExceptionType.receiveTimeout:
+        return const NetworkFailure(
+          'Search is taking too long. Please try again.',
+        );
 
       default:
         final status = e.response?.statusCode;
         if (status == 401) return const AuthFailure();
         if (status == 404) return const NotFoundFailure();
+        if (status == 400) {
+          return const ValidationFailure('Invalid search query.');
+        }
         return const ServerFailure();
     }
   }
