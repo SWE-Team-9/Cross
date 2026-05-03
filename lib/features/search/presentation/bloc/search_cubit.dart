@@ -287,9 +287,9 @@ class SearchCubit extends Cubit<SearchState> {
   String? _apiTypeForTab(SearchTab tab) {
     return switch (tab) {
       SearchTab.all => null,
-      SearchTab.tracks => 'track',
-      SearchTab.people => 'user',
-      SearchTab.playlists => 'playlist',
+      SearchTab.tracks => 'tracks',
+      SearchTab.people => 'users',
+      SearchTab.playlists => 'playlists',
     };
   }
 
