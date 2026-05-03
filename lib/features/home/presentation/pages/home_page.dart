@@ -88,21 +88,23 @@ class HomePage extends StatelessWidget {
                                     'Go Premium to remove sponsored cards, save music offline, and unlock more uploads.',
                                 actionLabel: 'Upgrade',
                               ),
-if (state.topPlaylists.isNotEmpty) ...[
-  const _SectionHeader(
-    title: 'Top playlists',
-    subtitle: 'Switch by your favorite genres',
-  ),
-  _GenreChips(
-    genres: state.playlistGenreOptions,
-    selected: state.selectedPlaylistGenre,
-    onSelect: context.read<HomeCubit>().selectPlaylistGenre,
-  ),
-  _TopPlaylists(
-    playlists: state.selectedTopPlaylists,
-    selectedGenre: state.selectedPlaylistGenre,
-  ),
-],
+                              if (state.topPlaylists.isNotEmpty) ...[
+                                const _SectionHeader(
+                                  title: 'Top playlists',
+                                  subtitle: 'Switch by your favorite genres',
+                                ),
+                                _GenreChips(
+                                  genres: state.playlistGenreOptions,
+                                  selected: state.selectedPlaylistGenre,
+                                  onSelect: context
+                                      .read<HomeCubit>()
+                                      .selectPlaylistGenre,
+                                ),
+                                _TopPlaylists(
+                                  playlists: state.selectedTopPlaylists,
+                                  selectedGenre: state.selectedPlaylistGenre,
+                                ),
+                              ],
                               const _SectionHeader(
                                 title: 'Trending now',
                                 subtitle: 'Switch by your favorite genres',
@@ -702,6 +704,7 @@ class _TopPlaylistCard extends StatelessWidget {
     return '$value';
   }
 }
+
 class _GenreChips extends StatelessWidget {
   const _GenreChips({
     required this.genres,

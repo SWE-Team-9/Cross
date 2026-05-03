@@ -195,7 +195,7 @@ class TrackOptionsSheet extends StatelessWidget {
                   _ShareItem(
                     icon: Icons.send_outlined,
                     label: 'Message',
-                    onTap: () => Navigator.pop(context), 
+                    onTap: () => Navigator.pop(context),
                   ),
                   _ShareItem(
                     icon: Icons.copy_outlined,
@@ -210,12 +210,12 @@ class TrackOptionsSheet extends StatelessWidget {
                   _ShareItem(
                     icon: Icons.camera_alt_outlined,
                     label: 'Status',
-                    onTap: () => Navigator.pop(context), 
+                    onTap: () => Navigator.pop(context),
                   ),
                   _ShareItem(
                     icon: Icons.headphones_outlined,
                     label: 'Audio',
-                    onTap: () => Navigator.pop(context), 
+                    onTap: () => Navigator.pop(context),
                   ),
                 ],
               ),
