@@ -7,6 +7,13 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// Load keystore properties if they exist
+val keystoreProperties = java.util.Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
 android {
     namespace = "com.SWETeam9.my_app"
     compileSdk = flutter.compileSdkVersion
@@ -20,6 +27,15 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties.getProperty("keyAlias", "")
+            keyPassword = keystoreProperties.getProperty("keyPassword", "")
+            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+            storePassword = keystoreProperties.getProperty("storePassword", "")
+        }
     }
 
     defaultConfig {
@@ -39,7 +55,7 @@ android {
         }
 
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             manifestPlaceholders["appHost"] = "dev.iqa3.tech"
         }
     }
