@@ -1464,9 +1464,20 @@ class _ManagedProfileTracksTab extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
               child: Align(
                 alignment: Alignment.centerRight,
-                child: OutlinedButton(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF7A00),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    minimumSize: const Size(64, 36),
+                  ),
                   onPressed: () => onManageTap(managedTrack),
-                  child: const Text('Manage'),
+                  icon: const Icon(Icons.settings_outlined, size: 16),
+                  label: const Text('Manage'),
                 ),
               ),
             ),
