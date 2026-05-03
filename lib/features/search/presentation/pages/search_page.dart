@@ -1,5 +1,5 @@
 // lib/features/search/presentation/pages/search_page.dart
-
+import '../../../../app/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -123,8 +123,14 @@ class SearchPage extends StatelessWidget {
             ),
             Expanded(
               child: _GenreGrid(
-                onGenreTap: (genre) =>
-                    context.push('/search/active', extra: genre.queryValue),
+                onGenreTap: (genre) {
+                  context.push(
+                    AppRoutes.genrePath(
+                      genre.queryValue,
+                      label: genre.label,
+                    ),
+                  );
+                },
               ),
             ),
           ],
