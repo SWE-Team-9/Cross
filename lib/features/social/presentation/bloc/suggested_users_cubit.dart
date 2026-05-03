@@ -53,6 +53,9 @@ class SuggestedUsersCubit extends Cubit<SuggestedUsersState> {
   }
 
   Future<void> toggleFollow(User user) async {
+    // ✅ ضيف في loadingIds
+    emit(state.copyWith(loadingIds: {...state.loadingIds, user.id}));
+
     final snapshot = List<User>.from(state.users);
     final bool newFollowing = !user.isFollowing;
     final optimistic = state.users.map((u) {
@@ -90,6 +93,10 @@ class SuggestedUsersCubit extends Cubit<SuggestedUsersState> {
       SocialEvents.emitFollowChanged();
     } catch (_) {
       emit(state.copyWith(users: snapshot));
+    } finally {
+      // ✅ شيل من loadingIds
+      final updated = Set<String>.from(state.loadingIds)..remove(user.id);
+      emit(state.copyWith(loadingIds: updated));
     }
   }
 }

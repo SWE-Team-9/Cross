@@ -173,6 +173,17 @@ void main() {
       await cubit.close();
     });
 
+    test('reset returns the cubit to its initial state', () async {
+      final cubit = buildCubit();
+
+      await cubit.loadSubscription();
+      cubit.reset();
+
+      expect(cubit.state, SubscriptionState.initial());
+
+      await cubit.close();
+    });
+
     blocTest<SubscriptionCubit, SubscriptionState>(
       'loadSubscription emits loading then loaded with subscription and plans',
       build: buildCubit,

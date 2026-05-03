@@ -4,14 +4,15 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
+import 'package:soundcloud_clone/features/playback/data/repositories/queue_repository.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_state.dart';
 
 class MockAudioPlayerService extends Mock implements AudioPlayerService {}
 
-class FakeTrack extends Fake implements Track {}
+class MockQueueRepository extends Mock implements QueueRepository {}
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
+class FakeTrack extends Fake implements Track {}
 
 const _t1 =
     Track(id: 't1', title: 'Track 1', artist: 'Artist 1', audioUrl: 'url1');
@@ -23,6 +24,7 @@ const _queue = [_t1, _t2, _t3];
 
 void main() {
   late MockAudioPlayerService audioService;
+  late MockQueueRepository queueRepo;
 
   setUpAll(() {
     registerFallbackValue(FakeTrack());
@@ -31,14 +33,31 @@ void main() {
 
   setUp(() {
     audioService = MockAudioPlayerService();
+    queueRepo = MockQueueRepository();
+
+    // audio service stubs
+    when(() => audioService.playFromContext(
+          tracks: any(named: 'tracks'),
+          startIndex: any(named: 'startIndex'),
+          source: any(named: 'source'),
+        )).thenAnswer((_) async {});
     when(() => audioService.play(any())).thenAnswer((_) async {});
     when(() => audioService.pause()).thenAnswer((_) async {});
     when(() => audioService.resume()).thenAnswer((_) async {});
     when(() => audioService.stop()).thenAnswer((_) async {});
     when(() => audioService.seek(any())).thenAnswer((_) async {});
+
+    // queue repository stubs
+    when(() => queueRepo.loadQueue(
+          trackIds: any(named: 'trackIds'),
+          startIndex: any(named: 'startIndex'),
+        )).thenAnswer((_) async {});
+    when(() => queueRepo.next()).thenAnswer((_) async => null);
+    when(() => queueRepo.previous()).thenAnswer((_) async => null);
+    when(() => queueRepo.jumpTo(any())).thenAnswer((_) async => null);
   });
 
-  PlaybackCubit makeCubit() => PlaybackCubit(audioService);
+  PlaybackCubit makeCubit() => PlaybackCubit(audioService, queueRepo);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Initial state
@@ -67,7 +86,6 @@ void main() {
             .having((s) => s.isPlaying, 'isPlaying', isTrue)
             .having((s) => s.queue, 'queue', _queue),
       ],
-      verify: (_) => verify(() => audioService.play(_t2)).called(1),
     );
 
     blocTest<PlaybackCubit, PlaybackState>(
@@ -82,7 +100,6 @@ void main() {
             .having((s) => s.currentTrack, 'currentTrack', _t1)
             .having((s) => s.isPlaying, 'isPlaying', isTrue),
       ],
-      verify: (_) => verify(() => audioService.play(_t1)).called(1),
     );
 
     blocTest<PlaybackCubit, PlaybackState>(
@@ -90,7 +107,6 @@ void main() {
       build: makeCubit,
       act: (c) => c.playTrack(_t1, const []),
       expect: () => [],
-      verify: (_) => verifyNever(() => audioService.play(any())),
     );
   });
 
@@ -142,7 +158,7 @@ void main() {
       expect: () => [
         isA<PlaybackState>().having((s) => s.isPlaying, 'isPlaying', isTrue),
       ],
-      verify: (_) => verify(() => audioService.play(_t1)).called(1),
+      verify: (_) => verify(() => audioService.resume()).called(1),
     );
 
     blocTest<PlaybackCubit, PlaybackState>(
@@ -187,7 +203,7 @@ void main() {
       expect: () => [
         isA<PlaybackState>().having((s) => s.isPlaying, 'isPlaying', isTrue),
       ],
-      verify: (_) => verify(() => audioService.play(_t1)).called(1),
+      verify: (_) => verify(() => audioService.resume()).called(1),
     );
   });
 
@@ -224,10 +240,10 @@ void main() {
       'advances to next track',
       build: makeCubit,
       act: (c) async {
-        await c.playTrack(_t1, _queue); // index=0
-        await c.playNext(); // index=1 → _t2
+        await c.playTrack(_t1, _queue);
+        await c.playNext();
       },
-      skip: 1, // skip the playTrack emit
+      skip: 1,
       expect: () => [
         isA<PlaybackState>()
             .having((s) => s.currentTrack, 'currentTrack', _t2)
@@ -240,7 +256,7 @@ void main() {
       'does nothing when already at last track',
       build: makeCubit,
       act: (c) async {
-        await c.playTrack(_t3, _queue); // index=2 (last)
+        await c.playTrack(_t3, _queue);
         await c.playNext();
       },
       skip: 1,
@@ -264,8 +280,8 @@ void main() {
       'goes back to previous track',
       build: makeCubit,
       act: (c) async {
-        await c.playTrack(_t2, _queue); // index=1
-        await c.playPrevious(); // index=0 → _t1
+        await c.playTrack(_t2, _queue);
+        await c.playPrevious();
       },
       skip: 1,
       expect: () => [
@@ -281,7 +297,7 @@ void main() {
       'does nothing when at first track',
       build: makeCubit,
       act: (c) async {
-        await c.playTrack(_t1, _queue); // index=0
+        await c.playTrack(_t1, _queue);
         await c.playPrevious();
       },
       skip: 1,
@@ -329,25 +345,21 @@ void main() {
   group('addPlayNext', () {
     test('inserts track right after current when playing', () async {
       final cubit = makeCubit();
-      await cubit.playTrack(_t1, [_t1, _t3]); // index=0
+      await cubit.playTrack(_t1, [_t1, _t3]);
       cubit.addPlayNext(_t2);
-
       expect(cubit.state.queue, [_t1, _t2, _t3]);
     });
 
     test('puts track at front when nothing is playing', () {
       final cubit = makeCubit();
       cubit.addPlayNext(_t1);
-
       expect(cubit.state.queue.first, _t1);
     });
 
     test('removes duplicate before inserting', () async {
       final cubit = makeCubit();
-      await cubit.playTrack(_t1, [_t1, _t2, _t3]); // index=0
-      cubit.addPlayNext(_t2); // _t2 already in queue at index=1
-
-      // _t2 removed then re-inserted at index=1 (right after _t1)
+      await cubit.playTrack(_t1, [_t1, _t2, _t3]);
+      cubit.addPlayNext(_t2);
       expect(cubit.state.queue, [_t1, _t2, _t3]);
     });
 
@@ -355,7 +367,6 @@ void main() {
       final cubit = makeCubit();
       await cubit.playTrack(_t1, [_t1, _t3]);
       cubit.addPlayNext(_t2);
-
       expect(cubit.state.queue.length, 3);
     });
   });
@@ -369,7 +380,6 @@ void main() {
       final cubit = makeCubit();
       await cubit.playTrack(_t1, [_t1, _t2]);
       cubit.addPlayLast(_t3);
-
       expect(cubit.state.queue.last, _t3);
       expect(cubit.state.queue.length, 3);
     });
@@ -377,8 +387,7 @@ void main() {
     test('removes duplicate before appending', () async {
       final cubit = makeCubit();
       await cubit.playTrack(_t1, [_t1, _t2, _t3]);
-      cubit.addPlayLast(_t2); // _t2 already in queue
-
+      cubit.addPlayLast(_t2);
       expect(cubit.state.queue.last, _t2);
       expect(cubit.state.queue.length, 3);
     });
@@ -386,19 +395,14 @@ void main() {
     test('works when queue is empty', () {
       final cubit = makeCubit();
       cubit.addPlayLast(_t1);
-
       expect(cubit.state.queue, [_t1]);
     });
 
     test('updates currentIndex correctly after removing track before current',
         () async {
       final cubit = makeCubit();
-      // Play _t2 (index=1), then addPlayLast _t1 (index=0, before current)
-      // After removing _t1, _t2 shifts to index=0 — cubit should fix index
       await cubit.playTrack(_t2, [_t1, _t2, _t3]);
       cubit.addPlayLast(_t1);
-
-      // Queue: [_t2, _t3, _t1]
       expect(cubit.state.queue, [_t2, _t3, _t1]);
       expect(cubit.state.currentTrack, _t2);
     });

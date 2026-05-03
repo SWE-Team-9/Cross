@@ -3,13 +3,18 @@ name: Auto Release
 on:
   push:
     tags:
-      - 'v*'   # triggers on tags like v1.0.1, v2.0.0
+      - 'v*'
+
+env:
+  SKIP_TESTS: 'true'
 
 permissions:
   contents: write
 
 jobs:
-  release:
+
+  # ── Job 1: Build Android APK ──────────────────────────────────────────────
+  build-android:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -19,16 +24,22 @@ jobs:
 
       - name: Get tag name
         id: tag
-        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: echo "TAG_NAME=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Extract version (remove 'v')
+      - name: Extract version
         id: version
-        run: echo "VERSION=${TAG_NAME#v}" >> $GITHUB_OUTPUT
-
-      - name: Update pubspec.yaml version
         run: |
-          sed -i "s/^version:.*/version: ${{ steps.version.outputs.VERSION }}+1/" pubspec.yaml
-          cat pubspec.yaml
+          TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          if [[ -z "$TAG" ]]; then
+            echo "Tag name is empty; cannot derive a release version." >&2
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          if [[ -z "$VERSION" ]]; then
+            echo "Derived version is empty for tag '$TAG'." >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -39,52 +50,218 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'   # use your Flutter version
+          flutter-version: '3.41.9'
+
+      - name: Decode upload keystore (if provided)
+        if: ${{ secrets.UPLOAD_KEYSTORE_B64 != '' }}
+        run: |
+          echo "${{ secrets.UPLOAD_KEYSTORE_B64 }}" | base64 -d > android/app/upload-keystore.jks
+          chmod 600 android/app/upload-keystore.jks
+
+      - name: Create android/key.properties (if keystore provided)
+        if: ${{ secrets.UPLOAD_KEYSTORE_B64 != '' }}
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=app/upload-keystore.jks
+          EOF
+
+      - name: Update pubspec version
+        run: |
+          sed -i "s/^version:.*/version: ${{ steps.version.outputs.VERSION }}+1/" pubspec.yaml
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build APK (release, signed)
         run: flutter build apk --release
 
-      - name: Create GitHub Release
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  # ── Job 2: Build Windows EXE ──────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get tag name
+        id: tag
+        run: echo "TAG_NAME=$env:GITHUB_REF_NAME" >> $env:GITHUB_OUTPUT
+
+      - name: Extract version
+        id: version
+        run: |
+          $tag = "${{ steps.tag.outputs.TAG_NAME }}"
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw "Tag name is empty; cannot derive a release version."
+          }
+          $version = $tag -replace '^v',''
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Derived version is empty for tag '$tag'."
+          }
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.9'
+
+      - name: Update pubspec version
+        run: |
+          (Get-Content pubspec.yaml) -replace '^version:.*', "version: ${{ steps.version.outputs.VERSION }}+1" | Set-Content pubspec.yaml
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /DAppVersion=${{ steps.version.outputs.VERSION }} `
+            windows/installer/setup.iss
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: windows/installer/installer-output/Cross-windows-setup.exe
+
+  # ── Job 3: Create GitHub Release (with dynamic notes from version.json) ──
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-android, build-windows]
+    steps:
+      - name: Checkout code (only for tag context)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get tag name
+        id: tag
+        run: echo "TAG_NAME=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Extract version
+        id: version
+        run: |
+          TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          if [[ -z "$TAG" ]]; then
+            echo "Tag name is empty; cannot derive a release version." >&2
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          if [[ -z "$VERSION" ]]; then
+            echo "Derived version is empty for tag '$TAG'." >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: artifacts/android
+
+      - name: Download EXE artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-exe
+          path: artifacts/windows
+
+      - name: Fetch version.json via raw URL
+        id: fetch_notes
+        run: |
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+               -L "https://raw.githubusercontent.com/${{ github.repository }}/releases/version.json" \
+               -o version.json || true
+
+          if [ -s version.json ]; then
+            echo "EXISTING=true" >> $GITHUB_OUTPUT
+          else
+            echo "EXISTING=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate release body from version.json (or default)
+        id: body
+        run: |
+          if [[ "${{ steps.fetch_notes.outputs.EXISTING }}" == "true" ]]; then
+            SUBTITLE=$(jq -r '.release.subtitle // "What'\''s new:"' version.json)
+            NEW_FEATURES=$(jq -r '.release.new_features // [] | map("- " + .) | join("\n")' version.json)
+            IMPROVEMENTS=$(jq -r '.release.improvements // [] | map("- " + .) | join("\n")' version.json)
+            BUG_FIXES=$(jq -r '.release.bug_fixes // [] | map("- " + .) | join("\n")' version.json)
+
+            BODY="## $SUBTITLE\n"
+            if [[ -n "$NEW_FEATURES" ]]; then
+              BODY+="\n### New Features\n$NEW_FEATURES\n"
+            fi
+            if [[ -n "$IMPROVEMENTS" ]]; then
+              BODY+="\n### Improvements\n$IMPROVEMENTS\n"
+            fi
+            if [[ -n "$BUG_FIXES" ]]; then
+              BODY+="\n### Bug Fixes\n$BUG_FIXES\n"
+            fi
+          else
+            BODY="Release ${{ steps.tag.outputs.TAG_NAME }}"
+          fi
+
+          echo -e "$BODY" > release_body.md
+          echo "body_file=release_body.md" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release with dynamic body
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ steps.tag.outputs.TAG_NAME }}
           tag_name: ${{ steps.tag.outputs.TAG_NAME }}
-          body: "Auto-generated release for ${{ steps.tag.outputs.TAG_NAME }}"
+          body_path: ${{ steps.body.outputs.body_file }}
           draft: false
           prerelease: false
           files: |
-            build/app/outputs/flutter-apk/app-release.apk
+            artifacts/android/app-debug.apk
+            artifacts/windows/Cross-windows-setup.exe
 
-      - name: Checkout releases branch
+      - name: Update version.json on releases branch (preserve release notes)
+        if: false
         run: |
-          git fetch origin releases
+          git fetch origin releases || true
           git checkout releases || git checkout --orphan releases
-          git reset --hard origin/releases 2>/dev/null || git rm -rf .
 
-      - name: Update version.json
-        run: |
-          cat > version.json <<EOF
-          {
-            "latest_version": "${{ steps.version.outputs.VERSION }}",
-            "min_required_version": "${{ steps.version.outputs.VERSION }}",
-            "download_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.TAG_NAME }}/app-release.apk",
-            "release": {
-              "title": "Version ${{ steps.version.outputs.VERSION }}",
-              "subtitle": "What's new:",
-              "new_features": [],
-              "improvements": [],
-              "bug_fixes": []
-            }
-          }
-          EOF
+          if [ -f version.json ]; then
+            cp version.json version.json.tmp
+          else
+            echo '{}' > version.json.tmp
+          fi
 
-      - name: Commit and push version.json
-        run: |
+          jq --arg VERSION "${{ steps.version.outputs.VERSION }}" \
+             --arg REPO "${{ github.repository }}" \
+             --arg TAG "${{ steps.tag.outputs.TAG_NAME }}" \
+             '.latest_version = $VERSION |
+              .min_required_version = $VERSION |
+              .platforms.android.download_url = "https://github.com/\($REPO)/releases/download/\($TAG)/app-release.apk" |
+              .platforms.android.update_type = "in_app" |
+              .platforms.windows.download_url = "https://github.com/\($REPO)/releases/download/\($TAG)/Cross-windows-setup.exe" |
+              .platforms.windows.update_type = "browser"' \
+             version.json.tmp > version.json
+
+          rm version.json.tmp
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add version.json
-          git commit -m "release: ${{ steps.tag.outputs.TAG_NAME }}" || echo "No changes"
+          git commit -m "release: ${{ steps.tag.outputs.TAG_NAME }}" || echo "No changes to commit"
           git push https://x-access-token:${{ secrets.RELEASES_PAT }}@github.com/${{ github.repository }} releases

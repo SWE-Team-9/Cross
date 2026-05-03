@@ -1,3 +1,11 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  track_interaction_cubit.dart
+//
+//  load() يجيب isLiked/isReposted من status endpoint فقط.
+//  الـ counts بتيجي من الـ feed response مباشرة (likesCount, repostsCount)
+//  ومش محتاجين GET /api/v1/tracks/{id} في كل card.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/usecases/get_track_interaction_status_usecase.dart';
@@ -22,118 +30,127 @@ class TrackInteractionCubit extends Cubit<TrackInteractionState> {
     required this.unrepostTrackUseCase,
   }) : super(TrackInteractionState.initial());
 
+  // ── load ──────────────────────────────────────────────────────────────────
+  // counts بتيجي من الـ caller (feed response أو track detail)
+  // isLiked/isReposted بيجوا من status endpoint
   Future<void> load({
     required String trackId,
-    required int likesCount,
-    required int repostsCount,
+    int likesCount = 0,
+    int repostsCount = 0,
   }) async {
-    emit(
-      state.copyWith(
-        isLoading: true,
-        likesCount: likesCount,
-        repostsCount: repostsCount,
-        clearError: true,
-      ),
-    );
+    emit(state.copyWith(
+      isLoading: true,
+      likesCount: likesCount,
+      repostsCount: repostsCount,
+      clearError: true,
+    ));
 
     try {
       final status = await getTrackInteractionStatusUseCase(trackId);
+      if (isClosed) return;
 
-      emit(
-        state.copyWith(
-          isLoading: false,
-          isLiked: status.isLiked,
-          isReposted: status.isReposted,
-          clearError: true,
-        ),
-      );
+      emit(state.copyWith(
+        isLoading: false,
+        isLiked: status.isLiked,
+        isReposted: status.isReposted,
+        clearError: true,
+      ));
     } catch (e) {
-      emit(
-        state.copyWith(
-          isLoading: false,
-          errorMessage: e.toString(),
-        ),
-      );
+      if (isClosed) return;
+      // لو الـ status endpoint فشل، نكمل بالـ counts اللي عندنا
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      ));
     }
   }
+
+  // ── loadWithKnownState ────────────────────────────────────────────────────
+  // لما الـ feed response بيجيب liked/reposted بالفعل — مش محتاجين API call
+  void loadWithKnownState({
+    required String trackId,
+    required int likesCount,
+    required int repostsCount,
+    required bool isLiked,
+    required bool isReposted,
+  }) {
+    emit(state.copyWith(
+      isLoading: false,
+      likesCount: likesCount,
+      repostsCount: repostsCount,
+      isLiked: isLiked,
+      isReposted: isReposted,
+      clearError: true,
+    ));
+  }
+
+  // ── toggleLike ────────────────────────────────────────────────────────────
 
   Future<void> toggleLike(String trackId) async {
     if (state.isSubmittingLike) return;
 
-    final previousLiked = state.isLiked;
-    final previousCount = state.likesCount;
+    final wasLiked = state.isLiked;
+    final prevCount = state.likesCount;
+    final nextCount =
+        wasLiked ? (prevCount > 0 ? prevCount - 1 : 0) : prevCount + 1;
 
-    final nextLiked = !previousLiked;
-    final nextCount = nextLiked
-        ? previousCount + 1
-        : (previousCount > 0 ? previousCount - 1 : 0);
-
-    emit(
-      state.copyWith(
-        isSubmittingLike: true,
-        isLiked: nextLiked,
-        likesCount: nextCount,
-        clearError: true,
-      ),
-    );
+    emit(state.copyWith(
+      isSubmittingLike: true,
+      isLiked: !wasLiked,
+      likesCount: nextCount,
+      clearError: true,
+    ));
 
     try {
-      if (previousLiked) {
+      if (wasLiked) {
         await unlikeTrackUseCase(trackId);
       } else {
         await likeTrackUseCase(trackId);
       }
-
       emit(state.copyWith(isSubmittingLike: false));
     } catch (e) {
-      emit(
-        state.copyWith(
-          isSubmittingLike: false,
-          isLiked: previousLiked,
-          likesCount: previousCount,
-          errorMessage: e.toString(),
-        ),
-      );
+      if (isClosed) return;
+      emit(state.copyWith(
+        isSubmittingLike: false,
+        isLiked: wasLiked,
+        likesCount: prevCount,
+        errorMessage: e.toString(),
+      ));
     }
   }
+
+  // ── toggleRepost ──────────────────────────────────────────────────────────
 
   Future<void> toggleRepost(String trackId) async {
     if (state.isSubmittingRepost) return;
 
-    final previousReposted = state.isReposted;
-    final previousCount = state.repostsCount;
+    final wasReposted = state.isReposted;
+    final prevCount = state.repostsCount;
+    final nextCount =
+        wasReposted ? (prevCount > 0 ? prevCount - 1 : 0) : prevCount + 1;
 
-    final nextReposted = !previousReposted;
-    final nextCount = nextReposted
-        ? previousCount + 1
-        : (previousCount > 0 ? previousCount - 1 : 0);
-
-    emit(
-      state.copyWith(
-        isSubmittingRepost: true,
-        isReposted: nextReposted,
-        repostsCount: nextCount,
-        clearError: true,
-      ),
-    );
+    emit(state.copyWith(
+      isSubmittingRepost: true,
+      isReposted: !wasReposted,
+      repostsCount: nextCount,
+      clearError: true,
+    ));
 
     try {
-      if (previousReposted) {
+      if (wasReposted) {
         await unrepostTrackUseCase(trackId);
       } else {
         await repostTrackUseCase(trackId);
       }
-
       emit(state.copyWith(isSubmittingRepost: false));
     } catch (e) {
-      emit(
-        state.copyWith(
-          isSubmittingRepost: false,
-          isReposted: previousReposted,
-          repostsCount: previousCount,
-          errorMessage: e.toString(),
-        ),
-      );
+      if (isClosed) return;
+      emit(state.copyWith(
+        isSubmittingRepost: false,
+        isReposted: wasReposted,
+        repostsCount: prevCount,
+        errorMessage: e.toString(),
+      ));
     }
   }
 }

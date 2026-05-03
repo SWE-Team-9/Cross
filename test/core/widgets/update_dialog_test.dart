@@ -15,6 +15,8 @@ void main() {
                   context: context,
                   builder: (_) => UpdateDialog(
                     updateData: _updateData(),
+                    downloadUrl: 'https://example.com/download',
+                    updateType: UpdateType.inApp,
                   ),
                 );
               },
@@ -37,7 +39,7 @@ void main() {
     expect(find.textContaining('Bug Fixes'), findsOneWidget);
     expect(find.text('Fixed sharing'), findsOneWidget);
 
-    await tester.tap(find.text('Later'));
+    await tester.tap(find.text('Maybe Later'));
     await tester.pumpAndSettle();
 
     expect(find.text('Version 2.0'), findsNothing);
@@ -52,13 +54,15 @@ void main() {
               'title': 'Required update',
             },
           ),
+          downloadUrl: 'https://example.com/download',
+          updateType: UpdateType.inApp,
           isMandatory: true,
         ),
       ),
     );
 
     expect(find.text('Required update'), findsOneWidget);
-    expect(find.text('Later'), findsNothing);
+    expect(find.text('Maybe Later'), findsNothing);
     expect(find.text('Update Now'), findsOneWidget);
   });
 }

@@ -7,7 +7,6 @@ import 'package:video_player/video_player.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../bloc/auth_cubit.dart';
-import '../../../../core/services/update_service.dart';
 import '../../../../core/widgets/update_dialog.dart';
 
 class SplashPage extends StatefulWidget {
@@ -49,31 +48,30 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkForUpdate() async {
-    final updateData = await UpdateService.checkForUpdate();
+    final result = await UpdateService.checkForUpdate();
 
-    if (updateData != null && mounted) {
+    if (result != null && mounted) {
       final packageInfo = await PackageInfo.fromPlatform();
       final mandatory = UpdateService.isMandatoryUpdate(
-        updateData,
+        result.data,
         packageInfo.version,
       );
 
-      // Wait a tiny bit to let the splash screen settle (optional)
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
 
-      // CHANGE: wait for the dialog to be dismissed
-      await showDialog(
+      await showDialog<void>(
         context: context,
         barrierDismissible: !mandatory,
         builder: (_) => UpdateDialog(
-          updateData: updateData,
+          updateData: result.data,
+          downloadUrl: result.downloadUrl,
+          updateType: result.updateType,
           isMandatory: mandatory,
         ),
       );
     }
 
-    // CHANGE: only allow navigation AFTER update check + dialog are done
     if (mounted) {
       setState(() => _updateCheckDone = true);
       _navigateIfReady();
@@ -82,11 +80,9 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _initializeSplashVideo() async {
     try {
-      final controller = VideoPlayerController.asset(
-        'assets/videos/splash.mp4',
-      );
+      final controller =
+          VideoPlayerController.asset('assets/videos/splash.mp4');
       _videoController = controller;
-
       await controller.initialize();
       if (!mounted) return;
 

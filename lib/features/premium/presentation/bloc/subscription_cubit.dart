@@ -11,6 +11,10 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
 
   final SubscriptionRepository repository;
 
+  void reset() {
+    emit(SubscriptionState.initial());
+  }
+
   Future<void> loadSubscription() async {
     emit(
       SubscriptionState.loading(

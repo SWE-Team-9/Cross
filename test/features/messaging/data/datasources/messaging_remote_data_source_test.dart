@@ -501,6 +501,22 @@ void main() {
     ).called(1);
   });
 
+  test('deleteConversation calls delete conversation endpoint', () async {
+    when(
+      () => dioClient.delete(
+        ApiConstants.messagingMessageByIdPath('conversation-1'),
+      ),
+    ).thenAnswer((_) async => response(null));
+
+    await dataSource.deleteConversation('conversation-1');
+
+    verify(
+      () => dioClient.delete(
+        ApiConstants.messagingMessageByIdPath('conversation-1'),
+      ),
+    ).called(1);
+  });
+
   test('throws StateError when API response is not a JSON object', () async {
     when(
       () => dioClient.get(

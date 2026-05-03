@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -175,130 +176,130 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 color: Colors.transparent,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Container(
-                    height: 58,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3A3A3A),
-                      borderRadius: BorderRadius.circular(29),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(29),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                      child: Container(
+                        height: 58,
+                        decoration: BoxDecoration(
+                          // Pure Glassmorphism background
+                          color: Colors.black.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(29),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        // ── Play/pause with progress ring ──────────────
-                        Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: GestureDetector(
-                            onTap: () =>
-                                context.read<PlayerCubit>().togglePlayPause(),
-                            child: SizedBox(
-                              width: 46,
-                              height: 46,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  CircularProgressIndicator(
-                                    value: progress,
-                                    strokeWidth: 2.5,
-                                    backgroundColor: Colors.white24,
-                                    valueColor:
-                                        const AlwaysStoppedAnimation<Color>(
-                                      Color(0xFFFF5500),
-                                    ),
+                        child: Row(
+                          children: [
+                            // ── Play/pause with progress ring ──────────────
+                            Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: GestureDetector(
+                                onTap: () =>
+                                    context.read<PlayerCubit>().togglePlayPause(),
+                                child: SizedBox(
+                                  width: 46,
+                                  height: 46,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        value: progress,
+                                        strokeWidth: 2.5,
+                                        backgroundColor: Colors.white24,
+                                        valueColor:
+                                            const AlwaysStoppedAnimation<Color>(
+                                          Color(0xFFFF5500),
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          state.isPlaying
+                                              ? Icons.pause
+                                              : Icons.play_arrow,
+                                          color: Colors.black,
+                                          size: 22,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: const BoxDecoration(
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // ── Title + artist ────────────────────────────
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    track.title,
+                                    style: const TextStyle(
                                       color: Colors.white,
-                                      shape: BoxShape.circle,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    child: Icon(
-                                      state.isPlaying
-                                          ? Icons.pause
-                                          : Icons.play_arrow,
-                                      color: Colors.black,
-                                      size: 22,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                  Text(
+                                    track.artist,
+                                    style: const TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 11,
                                     ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        ),
 
-                        const SizedBox(width: 8),
-
-                        // ── Title + artist ────────────────────────────
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                track.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+                            // Playback options
+                            RepeatModeButton(
+                              mode: state.repeatMode,
+                              iconSize: 20,
+                              showOptions: false,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 10,
                               ),
-                              Text(
-                                track.artist,
-                                style: const TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 11,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Playback options
-                        RepeatModeButton(
-                          mode: state.repeatMode,
-                          iconSize: 20,
-                          showOptions: false,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 10,
-                          ),
-                          onChanged: (mode) =>
-                              context.read<PlayerCubit>().setRepeatMode(mode),
-                        ),
-
-                        GestureDetector(
-                          onTap: () => _toggleMute(state),
-                          onLongPress: () =>
-                              _showVolumeSheet(context, state.volume),
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Icon(
-                              state.volume <= 0.001
-                                  ? Icons.volume_off_outlined
-                                  : Icons.volume_up_outlined,
-                              color: Colors.white70,
-                              size: 20,
+                              onChanged: (mode) =>
+                                  context.read<PlayerCubit>().setRepeatMode(mode),
                             ),
-                          ),
-                        ),
 
-                        // ── Like ──────────────────────────────────────
-                        _buildLikeAction(track),
-                      ],
+                            GestureDetector(
+                              onTap: () => _toggleMute(state),
+                              onLongPress: () =>
+                                  _showVolumeSheet(context, state.volume),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: Icon(
+                                  state.volume <= 0.001
+                                      ? Icons.volume_off_outlined
+                                      : Icons.volume_up_outlined,
+                                  color: Colors.white70,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+
+                            // ── Like ──────────────────────────────────────
+                            _buildLikeAction(track),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

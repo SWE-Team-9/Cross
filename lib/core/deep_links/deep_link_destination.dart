@@ -38,6 +38,12 @@ final class SearchDeepLink extends DeepLinkDestination {
   final String query;
 }
 
+final class ResolvableResourceDeepLink extends DeepLinkDestination {
+  const ResolvableResourceDeepLink({required this.url});
+
+  final String url;
+}
+
 final class BillingReturnDeepLink extends DeepLinkDestination {
   const BillingReturnDeepLink({
     this.sessionId,
@@ -97,6 +103,15 @@ final class OAuthCallbackDeepLink extends DeepLinkDestination {
   final String? errorDescription;
 
   bool get hasError => error != null && error!.trim().isNotEmpty;
+}
+
+final class HandleSlugDeepLink extends DeepLinkDestination {
+  const HandleSlugDeepLink({
+    required this.handle,
+    required this.slug,
+  });
+  final String handle;
+  final String slug;
 }
 
 final class InvalidDeepLink extends DeepLinkDestination {

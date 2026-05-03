@@ -13,23 +13,24 @@ import '../features/auth/presentation/bloc/auth_cubit.dart';
 import '../features/auth/presentation/routes/auth_routes.dart';
 import '../features/comments/presentation/bloc/comments_cubit.dart';
 import '../features/comments/presentation/pages/track_comments_page.dart';
+import '../features/messaging/presentation/bloc/unread_count_cubit.dart';
+import '../features/messaging/presentation/routes/messaging_routes.dart';
 import '../features/notifications/data/services/fcm_registration_service.dart';
 import '../features/notifications/data/services/notifications_realtime_refresh_service.dart';
 import '../features/notifications/domain/entities/notification_entity.dart';
 import '../features/notifications/domain/entities/notification_tap_target.dart';
 import '../features/notifications/domain/usecases/resolve_notification_tap_target_use_case.dart';
-import '../features/messaging/presentation/routes/messaging_routes.dart';
 import '../features/notifications/presentation/bloc/notification_preferences_bloc.dart';
 import '../features/notifications/presentation/bloc/notifications_bloc.dart';
-import '../features/profile/presentation/routes/profile_routes.dart';
+import '../features/premium/presentation/bloc/subscription_cubit.dart';
+import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/playback/presentation/bloc/player_cubit.dart';
 import '../features/playback/presentation/bloc/player_ui_state.dart';
-import '../features/playback/presentation/bloc/playback_cubit.dart';
 import '../features/playback/presentation/widgets/mini_player.dart';
+import '../features/profile/presentation/routes/profile_routes.dart';
 import '../features/social/data/repositories/social_repo.dart';
 import 'router.dart';
 
-// Routes where the mini-player must stay hidden (auth/onboarding/full player).
 const Set<String> _miniPlayerHiddenRoutes = <String>{
   AuthRoutes.splash,
   AuthRoutes.welcome,
@@ -43,14 +44,107 @@ const Set<String> _miniPlayerHiddenRoutes = <String>{
   AppRoutes.player,
   AppRoutes.trackManagementDemo,
   AppRoutes.uploadPicker,
+  '/feed/discover',
 };
 
-bool _shouldHideMiniPlayerForPath(String path) {
-  if (_miniPlayerHiddenRoutes.contains(path)) return true;
+// Cache for mini-player visibility checks to avoid redundant string operations
+final Map<String, bool> _miniPlayerVisibilityCache = {};
 
-  return path.startsWith('/track-management') ||
-      path.startsWith('/followers/') ||
-      path.startsWith('/following/');
+bool _shouldHideMiniPlayerForPath(String path) {
+  // Return cached result if available
+  if (_miniPlayerVisibilityCache.containsKey(path)) {
+    return _miniPlayerVisibilityCache[path]!;
+  }
+
+  // Compute and cache the result
+  bool shouldHide;
+  if (_miniPlayerHiddenRoutes.contains(path)) {
+    shouldHide = true;
+  } else {
+    shouldHide = path.startsWith('/track-management') ||
+        path.startsWith('/followers/') ||
+        path.startsWith('/following/');
+  }
+
+  // Only cache up to 50 paths to avoid unbounded memory growth
+  if (_miniPlayerVisibilityCache.length < 50) {
+    _miniPlayerVisibilityCache[path] = shouldHide;
+  }
+
+  return shouldHide;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Optimized Mini-Player Layer Widget
+//  Isolated rebuild scope to prevent full-page rebuilds during animations
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _OptimizedMiniPlayerLayer extends StatelessWidget {
+  const _OptimizedMiniPlayerLayer({
+    required this.child,
+    required this.hasMiniPlayerTrack,
+    required this.isPlayerOpen,
+    this.playerShowMiniPlayer = true,
+  });
+
+  final Widget child;
+  final bool hasMiniPlayerTrack;
+  final bool isPlayerOpen;
+  final bool playerShowMiniPlayer;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isTrackSheetOpen,
+      builder: (context, sheetOpen, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: currentRoutePathNotifier,
+          builder: (context, currentPath, _) {
+            final showMiniPlayerOnRoute =
+                !_shouldHideMiniPlayerForPath(currentPath);
+            final showMiniPlayer = hasMiniPlayerTrack &&
+                showMiniPlayerOnRoute &&
+                playerShowMiniPlayer &&
+                !isPlayerOpen &&
+                !sheetOpen;
+            final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
+            final miniPlayerBottomOffset =
+                safeAreaBottom + BottomNavBar.minHeight + 8;
+
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: child,
+                ),
+                if (hasMiniPlayerTrack && showMiniPlayerOnRoute)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: miniPlayerBottomOffset,
+                    child: IgnorePointer(
+                      ignoring: !showMiniPlayer,
+                      child: AnimatedSlide(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        offset: showMiniPlayer
+                            ? Offset.zero
+                            : const Offset(0, 1.2),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOut,
+                          opacity: showMiniPlayer ? 1 : 0,
+                          child: const MiniPlayer(),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class App extends StatelessWidget {
@@ -79,6 +173,9 @@ class App extends StatelessWidget {
             create: (_) => getIt<PlaybackCubit>(),
           ),
           BlocProvider(
+            create: (_) => getIt<UnreadCountCubit>(),
+          ),
+          BlocProvider(
             create: (_) =>
                 getIt<NotificationsBloc>()..add(const LoadNotifications()),
           ),
@@ -95,6 +192,10 @@ class App extends StatelessWidget {
                     previous is! AuthAuthenticated,
                 listener: (context, state) {
                   getIt<NotificationsRealtimeRefreshService>().start();
+                  unawaited(
+                    context.read<SubscriptionCubit>().loadSubscription(),
+                  );
+                  unawaited(context.read<UnreadCountCubit>().load());
                   context
                       .read<NotificationsBloc>()
                       .add(const LoadNotifications());
@@ -105,7 +206,10 @@ class App extends StatelessWidget {
                     current is AuthUnauthenticated &&
                     previous is! AuthUnauthenticated,
                 listener: (context, state) {
+                  context.read<SubscriptionCubit>().reset();
+                  unawaited(context.read<PlayerCubit>().stop());
                   getIt<NotificationsRealtimeRefreshService>().stop();
+                  unawaited(context.read<UnreadCountCubit>().disconnect());
                 },
               ),
             ],
@@ -126,56 +230,11 @@ class App extends StatelessWidget {
                     return _DeepLinkBridge(
                       child: Scaffold(
                         backgroundColor: Colors.black,
-                        body: ValueListenableBuilder<bool>(
-                          valueListenable: isTrackSheetOpen,
-                          builder: (context, sheetOpen, _) {
-                            final currentPath = router
-                                .routerDelegate.currentConfiguration.uri.path;
-                            final showMiniPlayerOnRoute =
-                                !_shouldHideMiniPlayerForPath(currentPath);
-                            final showMiniPlayer = hasMiniPlayerTrack &&
-                                showMiniPlayerOnRoute &&
-                                playerState.showMiniPlayer &&
-                                !isPlayerOpen &&
-                                !sheetOpen;
-                            final safeAreaBottom =
-                                MediaQuery.paddingOf(context).bottom;
-                            final miniPlayerBottomOffset =
-                                safeAreaBottom + BottomNavBar.minHeight + 8;
-
-                            return Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: child ?? const SizedBox.shrink(),
-                                ),
-                                if (hasMiniPlayerTrack && showMiniPlayerOnRoute)
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: miniPlayerBottomOffset,
-                                    child: IgnorePointer(
-                                      ignoring: !showMiniPlayer,
-                                      child: AnimatedSlide(
-                                        duration:
-                                            const Duration(milliseconds: 220),
-                                        curve: Curves.easeOutCubic,
-                                        offset: showMiniPlayer
-                                            ? Offset.zero
-                                            : const Offset(0, 1.2),
-                                        child: AnimatedOpacity(
-                                          duration: const Duration(
-                                            milliseconds: 180,
-                                          ),
-                                          curve: Curves.easeOut,
-                                          opacity: showMiniPlayer ? 1 : 0,
-                                          child: const MiniPlayer(),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
+                        body: _OptimizedMiniPlayerLayer(
+                          hasMiniPlayerTrack: hasMiniPlayerTrack,
+                          isPlayerOpen: isPlayerOpen,
+                          playerShowMiniPlayer: playerState.showMiniPlayer,
+                          child: child ?? const SizedBox.shrink(),
                         ),
                       ),
                     );
@@ -350,6 +409,14 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
 
     if (destination is OAuthCallbackDeepLink) {
       router.go(AuthRoutes.oauthDebug, extra: destination);
+    } else if (destination is TrackDeepLink) {
+      router.go('/track/${destination.trackId}');
+    } else if (destination is PlaylistDeepLink) {
+      router.go('/playlist/${destination.playlistId}');
+    } else if (destination is ProfileDeepLink) {
+      router.go('/profile/${destination.handle}');
+    } else if (destination is SearchDeepLink) {
+      router.go('/search?q=${destination.query}');
     }
   }
 
@@ -360,7 +427,5 @@ class _DeepLinkBridgeState extends State<_DeepLinkBridge> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
+  Widget build(BuildContext context) => widget.child;
 }

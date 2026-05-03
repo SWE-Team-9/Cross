@@ -8,7 +8,6 @@ import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/network/api_constants.dart';
 import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
-import 'package:soundcloud_clone/core/widgets/bottom_nav_bar.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:soundcloud_clone/features/library/presentation/bloc/library_cubit.dart';
 import 'package:soundcloud_clone/features/library/presentation/bloc/library_state.dart';
@@ -110,7 +109,6 @@ class _LibraryPageState extends State<LibraryPage> {
       ],
       child: Scaffold(
         backgroundColor: Colors.black,
-        bottomNavigationBar: const BottomNavBar(selected: 3),
         appBar: AppBar(
           backgroundColor: Colors.black,
           elevation: 0,

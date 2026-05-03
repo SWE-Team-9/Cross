@@ -1,5 +1,6 @@
 import '../../../upload/domain/entities/managed_track.dart';
 import '../../domain/entities/profile_entity.dart';
+import '../../domain/entities/profile_page_data.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../datasources/profile_remote_data_source.dart';
 
@@ -24,6 +25,34 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<List<ManagedTrack>> getUserTracks(String userId) async {
     final dtos = await _remoteDataSource.getUserTracks(userId);
     return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  }
+
+  @override
+  Future<List<ManagedTrack>> getUserLikedTracks(String userId) async {
+    final dtos = await _remoteDataSource.getUserLikedTracks(userId);
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  }
+
+  @override
+  Future<List<ManagedTrack>> getUserRepostedTracks(String userId) async {
+    final dtos = await _remoteDataSource.getUserRepostedTracks(userId);
+    return dtos.map((dto) => dto.toEntity()).toList(growable: false);
+  }
+
+  @override
+  Future<ProfilePageData> getProfilePage(String handle) async {
+    final dto = await _remoteDataSource.getProfilePage(handle);
+    return dto.toEntity();
+  }
+
+  @override
+  Future<List<dynamic>> getUserPlaylists(String userId) async {
+    return _remoteDataSource.getUserPlaylists(userId);
+  }
+
+  @override
+  Future<List<dynamic>> getUserLikedPlaylists(String userId) async {
+    return _remoteDataSource.getUserLikedPlaylists(userId);
   }
 
   @override

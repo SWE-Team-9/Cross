@@ -23,104 +23,123 @@ class ConversationTile extends StatelessWidget {
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(
         conversation.participant.avatarUrl);
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: MessagingTheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: MessagingTheme.border),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: const Color(0xFF262626),
-              foregroundImage:
-                  avatarUrl != null ? NetworkImage(avatarUrl) : null,
-              child: Text(
-                conversation.participant.displayName.isNotEmpty
-                    ? conversation.participant.displayName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+    // Determines if there are unread messages to dynamically highlight details
+    final hasUnread = conversation.unreadCount > 0;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                foregroundImage:
+                    avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                child: Text(
+                  conversation.participant.displayName.isNotEmpty
+                      ? conversation.participant.displayName[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: 14),
+              // Name and Message details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      conversation.participant.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: hasUnread ? FontWeight.w800 : FontWeight.w600,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '@${conversation.participant.handle}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        fontSize: 11.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _lastMessageText(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: hasUnread 
+                            ? Colors.white 
+                            : Colors.white.withValues(alpha: 0.55),
+                        fontSize: 13,
+                        fontWeight: hasUnread ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Meta info: Timestamp, Unread Badge, Action Button
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    conversation.participant.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: MessagingTheme.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                  if (conversation.lastMessage != null)
+                    Text(
+                      _formatTime(conversation.lastMessage!.createdAt.toLocal()),
+                      style: TextStyle(
+                        color: hasUnread 
+                            ? MessagingTheme.accent 
+                            : Colors.white.withValues(alpha: 0.35),
+                        fontSize: 11,
+                        fontWeight: hasUnread ? FontWeight.w600 : FontWeight.normal,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '@${conversation.participant.handle}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: MessagingTheme.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
                   const SizedBox(height: 8),
-                  Text(
-                    _lastMessageText(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: MessagingTheme.textSecondary,
-                      fontSize: 13,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      UnreadBadge(count: conversation.unreadCount),
+                      if (conversation.unreadCount > 0) const SizedBox(width: 6),
+                      IconButton(
+                        tooltip: 'Conversation actions',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 28,
+                          minHeight: 28,
+                        ),
+                        onPressed: onMorePressed,
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: Colors.white.withValues(alpha: 0.4),
+                          size: 18,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (conversation.lastMessage != null)
-                  Text(
-                    _formatTime(conversation.lastMessage!.createdAt.toLocal()),
-                    style: const TextStyle(
-                      color: MessagingTheme.textMuted,
-                      fontSize: 11,
-                    ),
-                  ),
-                const SizedBox(height: 10),
-                UnreadBadge(count: conversation.unreadCount),
-              ],
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              tooltip: 'Conversation actions',
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: 36,
-                minHeight: 36,
-              ),
-              onPressed: onMorePressed,
-              icon: const Icon(
-                Icons.more_vert,
-                color: MessagingTheme.textMuted,
-                size: 21,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

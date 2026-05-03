@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:soundcloud_clone/features/settings/presentation/legal_page.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/blocked_users_page.dart';
 import 'package:get_it/get_it.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_state.dart';
+import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -95,6 +97,7 @@ class SettingsPage extends StatelessWidget {
               const _Divider(),
 
               // ── About ─────────────────────────────────────────────────────
+              // ── About ─────────────────────────────────────────────────────────────────
               _SectionHeader(title: 'About'),
               _SettingsTile(
                 icon: Icons.info_outline,
@@ -104,15 +107,31 @@ class SettingsPage extends StatelessWidget {
               _SettingsTile(
                 icon: Icons.description_outlined,
                 title: 'Terms of use',
-                onTap: () {},
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LegalWebViewPage(
+                      title: 'Terms of Use',
+                      url:
+                          'https://pages.soundcloud.com/geo/uk_us_ie/legal/terms-of-use.android.html?format=android',
+                    ),
+                  ),
+                ),
               ),
               _SettingsTile(
                 icon: Icons.privacy_tip_outlined,
                 title: 'Privacy policy',
-                onTap: () {},
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LegalWebViewPage(
+                      title: 'Privacy Policy',
+                      url:
+                          'https://pages.soundcloud.com/geo/uk_us_ie/legal/privacy-policy.android.html?format=android',
+                    ),
+                  ),
+                ),
               ),
-              const _Divider(),
-
               // ── Sign out ──────────────────────────────────────────────────
               const SizedBox(height: 8),
               Padding(
@@ -147,8 +166,10 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  void _confirmLogout(BuildContext context) {
-    showDialog<void>(
+  Future<void> _confirmLogout(BuildContext context) async {
+    _playerCubitOf(context)?.hideMiniPlayer();
+
+    final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
@@ -159,13 +180,12 @@ class SettingsPage extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              context.read<AuthCubit>().logout();
+              Navigator.pop(context, true);
             },
             child: const Text('Sign out',
                 style: TextStyle(color: Colors.redAccent)),
@@ -173,6 +193,24 @@ class SettingsPage extends StatelessWidget {
         ],
       ),
     );
+
+    if (!context.mounted) return;
+
+    if (shouldLogout == true) {
+      context.read<AuthCubit>().logout();
+    } else {
+      _playerCubitOf(context)?.showMiniPlayer();
+    }
+  }
+
+  PlayerCubit? _playerCubitOf(BuildContext context) {
+    try {
+      return context.read<PlayerCubit>();
+    } catch (_) {
+      return GetIt.I.isRegistered<PlayerCubit>()
+          ? GetIt.I<PlayerCubit>()
+          : null;
+    }
   }
 
   void _showChangePasswordDialog(BuildContext context) {

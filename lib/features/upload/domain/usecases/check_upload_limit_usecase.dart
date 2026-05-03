@@ -29,6 +29,13 @@ class CheckUploadLimitUseCase {
       return true;
     }
 
+    if (isPremium && !_isSubscriptionActive(
+      isActive: isActive,
+      subscriptionStatus: subscriptionStatus,
+    )) {
+      return false;
+    }
+
     if (remainingUploads > 0) {
       return true;
     }
@@ -55,7 +62,7 @@ class CheckUploadLimitUseCase {
   }
 
   String limitReachedMessage(Subscription subscription) {
-    if (!subscription.isActive) {
+    if (subscription.isPremium && !subscription.isActive) {
       return 'Your subscription is not active. Please update your billing status to upload.';
     }
 

@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  feed_repository.dart  —  Domain Repository (Abstract)
-// ─────────────────────────────────────────────────────────────────────────────
-
 import '../entities/feed_item.dart';
 
 class PlaybackAccessResult {
@@ -19,12 +15,8 @@ class PlaybackAccessResult {
 }
 
 abstract class FeedRepository {
-  /// GET /api/v1/users/{userId}/tracks   (Following tab)
-  /// GET /api/v1/social/suggestions      (Discover tab)
-  Future<FeedPage> getFeed({
-    required String tab, // 'following' | 'discover'
-    required int page,
-  });
+  /// GET /api/v1/feed
+  Future<FeedPage> getFeed({required int page});
 
   /// POST   /api/v1/interactions/tracks/{trackId}/like
   /// DELETE /api/v1/interactions/tracks/{trackId}/like
@@ -40,10 +32,10 @@ abstract class FeedRepository {
     required bool currentlyReposted,
   });
 
-  /// GET  /api/v1/player/tracks/{trackId}/source
+  /// GET /api/v1/player/tracks/{trackId}/source
   Future<String?> getStreamUrl(String trackId);
 
-  /// GET /api/v1/player/tracks/{trackId}/source with access behavior
+  /// GET /api/v1/player/tracks/{trackId}/source with access behaviour.
   Future<PlaybackAccessResult> getPlaybackAccess(String trackId);
 
   /// POST /api/v1/player/tracks/{trackId}/play

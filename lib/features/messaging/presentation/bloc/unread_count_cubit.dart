@@ -19,10 +19,14 @@ class UnreadCountCubit extends Cubit<UnreadCountState> {
   }) : super(UnreadCountState.initial());
 
   Future<void> load() async {
+    if (isClosed) return;
+
     emit(state.copyWith(isLoading: true, clearError: true));
 
     try {
       final result = await getUnreadCountUseCase();
+
+      if (isClosed) return;
 
       emit(
         state.copyWith(
@@ -32,8 +36,12 @@ class UnreadCountCubit extends Cubit<UnreadCountState> {
         ),
       );
 
+      if (isClosed) return;
+
       await _connectSocket();
     } catch (e) {
+      if (isClosed) return;
+
       emit(
         state.copyWith(
           isLoading: false,
@@ -44,8 +52,12 @@ class UnreadCountCubit extends Cubit<UnreadCountState> {
   }
 
   Future<void> refresh() async {
+    if (isClosed) return;
+
     try {
       final result = await getUnreadCountUseCase();
+
+      if (isClosed) return;
 
       emit(
         state.copyWith(
@@ -54,11 +66,15 @@ class UnreadCountCubit extends Cubit<UnreadCountState> {
         ),
       );
     } catch (e) {
+      if (isClosed) return;
+
       emit(state.copyWith(errorMessage: e.toString()));
     }
   }
 
   void setCount(int count) {
+    if (isClosed) return;
+
     emit(
       state.copyWith(
         count: count < 0 ? 0 : count,
@@ -67,13 +83,45 @@ class UnreadCountCubit extends Cubit<UnreadCountState> {
     );
   }
 
+  Future<void> disconnect() async {
+    if (isClosed) return;
+
+    await _socketSub?.cancel();
+    _socketSub = null;
+
+    try {
+      await connectMessagingSocketUseCase.disconnect();
+    } catch (_) {
+      // Ignore socket shutdown errors so logout/reset flows stay resilient.
+    }
+
+    if (isClosed) return;
+
+    emit(
+      state.copyWith(
+        isLoading: false,
+        count: 0,
+        clearError: true,
+      ),
+    );
+  }
+
   Future<void> _connectSocket() async {
+    if (isClosed) return;
+
     try {
       await connectMessagingSocketUseCase();
 
+      if (isClosed) return;
+
       await _socketSub?.cancel();
+
+      if (isClosed) return;
+
       _socketSub = connectMessagingSocketUseCase.eventsStream.listen(
         (event) {
+          if (isClosed) return;
+
           final count = event.currentUnreadCount;
           if (count != null) {
             setCount(count);
@@ -86,7 +134,7 @@ class UnreadCountCubit extends Cubit<UnreadCountState> {
             case RealtimeMessageEventType.conversationRead:
             case RealtimeMessageEventType.conversationUpdated:
             case RealtimeMessageEventType.unreadCountUpdated:
-              refresh();
+              unawaited(refresh());
               break;
 
             case RealtimeMessageEventType.userBlocked:
@@ -104,7 +152,7 @@ class UnreadCountCubit extends Cubit<UnreadCountState> {
 
   @override
   Future<void> close() async {
-    await _socketSub?.cancel();
+    await disconnect();
     return super.close();
   }
 }

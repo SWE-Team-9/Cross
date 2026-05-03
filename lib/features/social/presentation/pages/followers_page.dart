@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
@@ -195,7 +196,6 @@ class _FollowersViewState extends State<_FollowersView> {
             onRefresh: () => context.read<FollowCubit>().loadInitial(),
             child: ListView.builder(
               controller: _scrollController,
-              // +1 للـ loading indicator في الأسفل
               itemCount: state.users.length + (state.hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == state.users.length) {
@@ -230,19 +230,48 @@ class _FollowerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(user.avatarUrl);
 
+    // ✅ فيتشر 3: Default Avatar Check المحسّن
+    final isDefaultAvatar = avatarUrl == null ||
+        avatarUrl.isEmpty ||
+        avatarUrl.contains('default-avatar');
+
+    final initial =
+        user.username.isNotEmpty ? user.username[0].toUpperCase() : '?';
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: user.username.trim().isEmpty
           ? null
           : () => ProfileRoutes.goToProfile(context, user.username.trim()),
       leading: CircleAvatar(
+        radius: 28,
         backgroundColor: Colors.grey[800],
-        foregroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-        child: Text(
-          user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        // ✅ فيتشر 1: CachedNetworkImage + فيتشر 3: Default Avatar Check
+        child: isDefaultAvatar
+            ? Text(
+                initial,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              )
+            : ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl: avatarUrl,
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => Text(
+                    initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
       ),
       title: Text(
         user.username,
@@ -250,10 +279,6 @@ class _FollowerTile extends StatelessWidget {
           color: Colors.white,
           fontWeight: FontWeight.w600,
         ),
-      ),
-      subtitle: Text(
-        '${user.followersCount} followers',
-        style: TextStyle(color: Colors.grey[500], fontSize: 13),
       ),
       trailing: _FollowButton(user: user),
     );
@@ -267,9 +292,7 @@ class _FollowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // BlocBuilder هنا بيعمل rebuild للزرار ده بس لما الـ state تتغير
     return BlocBuilder<FollowCubit, FollowState>(
-      // buildWhen: نبني بس لو اليوزر ده اتغير — أداء أحسن
       buildWhen: (prev, curr) {
         final prevUser = prev.users.firstWhere(
           (u) => u.id == user.id,
@@ -279,10 +302,11 @@ class _FollowButton extends StatelessWidget {
           (u) => u.id == user.id,
           orElse: () => user,
         );
-        return prevUser.isFollowing != currUser.isFollowing;
+        return prevUser.isFollowing != currUser.isFollowing ||
+            prev.loadingIds.contains(user.id) !=
+                curr.loadingIds.contains(user.id);
       },
       builder: (context, state) {
-        // جيب آخر نسخة من اليوزر من الـ state
         final currentUser = state.users.firstWhere(
           (u) => u.id == user.id,
           orElse: () => user,
@@ -290,27 +314,41 @@ class _FollowButton extends StatelessWidget {
 
         final isFollowing = currentUser.isFollowing;
 
-        return GestureDetector(
-          onTap: () => context.read<FollowCubit>().toggleFollow(currentUser),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-            decoration: BoxDecoration(
-              color: isFollowing ? Colors.transparent : Colors.orange,
-              border: Border.all(
-                color: isFollowing ? Colors.grey[600]! : Colors.orange,
-                width: 1.5,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              isFollowing ? 'Following' : 'Follow',
-              style: TextStyle(
-                color: isFollowing ? Colors.grey[400] : Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+        // ✅ فيتشر 2: Loading state خاص بكل زرار لوحده
+        final isLoading = state.loadingIds.contains(user.id);
+
+        // ✅ فيتشر 5: ElevatedButton بدل AnimatedContainer
+        return SizedBox(
+          height: 36,
+          width: 110,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isFollowing ? Colors.grey[800] : Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
+            onPressed: isLoading
+                ? null
+                : () => context.read<FollowCubit>().toggleFollow(currentUser),
+            child: isLoading
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: isFollowing ? Colors.white : Colors.black,
+                    ),
+                  )
+                : Text(
+                    isFollowing ? 'Following' : 'Follow',
+                    style: TextStyle(
+                      color: isFollowing ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
           ),
         );
       },

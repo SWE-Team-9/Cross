@@ -276,6 +276,22 @@ void main() {
       expect(canUpload, isFalse);
     });
 
+    test('canUploadSubscription allows inactive free user with quota left', () {
+      const subscription = Subscription(
+        planCode: 'FREE',
+        subscriptionType: 'FREE',
+        subscriptionStatus: 'INACTIVE',
+        isPremium: false,
+        uploadLimit: 3,
+        uploadedTracks: 1,
+        remainingUploads: 2,
+      );
+
+      final canUpload = useCase.canUploadSubscription(subscription);
+
+      expect(canUpload, isTrue);
+    });
+
     test('limitReachedMessage returns inactive billing message', () {
       const subscription = Subscription(
         planCode: 'PRO',
@@ -293,6 +309,25 @@ void main() {
       expect(
         message,
         'Your subscription is not active. Please update your billing status to upload.',
+      );
+    });
+
+    test('limitReachedMessage returns free upgrade message for inactive free user', () {
+      const subscription = Subscription(
+        planCode: 'FREE',
+        subscriptionType: 'FREE',
+        subscriptionStatus: 'INACTIVE',
+        isPremium: false,
+        uploadLimit: 3,
+        uploadedTracks: 3,
+        remainingUploads: 0,
+      );
+
+      final message = useCase.limitReachedMessage(subscription);
+
+      expect(
+        message,
+        'Upload limit reached. Upgrade to Pro to upload more tracks.',
       );
     });
 

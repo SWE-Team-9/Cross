@@ -54,6 +54,8 @@ abstract class MessagingRemoteDataSource {
 
   Future<void> unarchiveConversation(String conversationId);
 
+  Future<void> deleteConversation(String conversationId);
+
   Future<void> deleteMessage(String messageId);
 }
 
@@ -228,6 +230,13 @@ class MessagingRemoteDataSourceImpl implements MessagingRemoteDataSource {
   Future<void> unarchiveConversation(String conversationId) async {
     await dioClient.patch(
       ApiConstants.messagingUnarchiveConversationPath(conversationId),
+    );
+  }
+
+  @override
+  Future<void> deleteConversation(String conversationId) async {
+    await dioClient.delete(
+      ApiConstants.messagingMessageByIdPath(conversationId),
     );
   }
 

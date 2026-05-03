@@ -104,38 +104,23 @@ class FollowCubit extends Cubit<FollowState> {
   }
 
   Future<void> toggleFollow(User user) async {
+    emit(state.copyWith(
+      loadingIds: {...state.loadingIds, user.id},
+    ));
+
     final snapshot = List<User>.from(state.users);
 
-    // 1️⃣ Optimistic update فوري
-    final newFollowing = !user.isFollowing;
-    final optimistic = state.users.map((u) {
-      if (u.id != user.id) return u;
-      return u.copyWith(
-        isFollowing: newFollowing,
-        followersCount:
-            newFollowing ? u.followersCount + 1 : u.followersCount - 1,
-      );
-    }).toList();
-
-    emit(state.copyWith(users: optimistic));
-
     try {
-      // 2️⃣ API call وجيب القيم الحقيقية من الـ response
-      if (newFollowing) {
+      if (!user.isFollowing) {
         final result = await repo.followUser(user.id);
-        // 3️⃣ تحديث بالقيم الحقيقية من الـ API
         final confirmed = state.users.map((u) {
           if (u.id != user.id) return u;
           return u.copyWith(
             isFollowing: result.isFollowing,
-            followersCount: result.followersCount,
+            followersCount: result.followersCount, // ✅ من الـ API مباشرة
           );
         }).toList();
-        if (result.isFollowing) {
-          _viewerFollowingIds?.add(user.id);
-        } else {
-          _viewerFollowingIds?.remove(user.id);
-        }
+        _viewerFollowingIds?.add(user.id);
         emit(state.copyWith(users: confirmed));
         SocialEvents.emitFollowChanged();
       } else {
@@ -144,20 +129,19 @@ class FollowCubit extends Cubit<FollowState> {
           if (u.id != user.id) return u;
           return u.copyWith(
             isFollowing: result.isFollowing,
-            followersCount: result.followersCount ?? u.followersCount,
+            followersCount:
+                result.followersCount ?? u.followersCount, // ✅ من الـ API
           );
         }).toList();
-        if (result.isFollowing) {
-          _viewerFollowingIds?.add(user.id);
-        } else {
-          _viewerFollowingIds?.remove(user.id);
-        }
+        _viewerFollowingIds?.remove(user.id);
         emit(state.copyWith(users: confirmed));
         SocialEvents.emitFollowChanged();
       }
     } catch (_) {
-      // 4️⃣ Rollback لو في exception
       emit(state.copyWith(users: snapshot));
+    } finally {
+      final updated = Set<String>.from(state.loadingIds)..remove(user.id);
+      emit(state.copyWith(loadingIds: updated));
     }
   }
 

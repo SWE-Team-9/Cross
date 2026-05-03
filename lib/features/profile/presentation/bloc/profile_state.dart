@@ -1,4 +1,5 @@
 import '../../../upload/domain/entities/managed_track.dart';
+import '../../../playlists/domain/entities/playlist_entity.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 
@@ -13,12 +14,16 @@ class ProfileLoaded extends ProfileState {
   final List<ManagedTrack> tracks;
   final List<ManagedTrack> likedTracks;
   final List<ManagedTrack> repostedTracks;
+  final List<PlaylistEntity> playlists;
+  final List<PlaylistEntity> likedPlaylists;
 
   ProfileLoaded(
     this.profile, {
     this.tracks = const <ManagedTrack>[],
     this.likedTracks = const <ManagedTrack>[],
     this.repostedTracks = const <ManagedTrack>[],
+    this.playlists = const <PlaylistEntity>[],
+    this.likedPlaylists = const <PlaylistEntity>[],
   });
 }
 
@@ -32,12 +37,16 @@ class ProfileUpdating extends ProfileState {
   final List<ManagedTrack> tracks;
   final List<ManagedTrack> likedTracks;
   final List<ManagedTrack> repostedTracks;
+  final List<PlaylistEntity> playlists;
+  final List<PlaylistEntity> likedPlaylists;
 
   ProfileUpdating(
     this.currentProfile, {
     this.tracks = const <ManagedTrack>[],
     this.likedTracks = const <ManagedTrack>[],
     this.repostedTracks = const <ManagedTrack>[],
+    this.playlists = const <PlaylistEntity>[],
+    this.likedPlaylists = const <PlaylistEntity>[],
   });
 }
 
@@ -46,12 +55,16 @@ class ProfileUpdateSuccess extends ProfileState {
   final List<ManagedTrack> tracks;
   final List<ManagedTrack> likedTracks;
   final List<ManagedTrack> repostedTracks;
+  final List<PlaylistEntity> playlists;
+  final List<PlaylistEntity> likedPlaylists;
 
   ProfileUpdateSuccess(
     this.updatedProfile, {
     this.tracks = const <ManagedTrack>[],
     this.likedTracks = const <ManagedTrack>[],
     this.repostedTracks = const <ManagedTrack>[],
+    this.playlists = const <PlaylistEntity>[],
+    this.likedPlaylists = const <PlaylistEntity>[],
   });
 }
 
@@ -61,6 +74,8 @@ class ProfileUpdateError extends ProfileState {
   final List<ManagedTrack> tracks;
   final List<ManagedTrack> likedTracks;
   final List<ManagedTrack> repostedTracks;
+  final List<PlaylistEntity> playlists;
+  final List<PlaylistEntity> likedPlaylists;
 
   ProfileUpdateError(
     this.currentProfile,
@@ -68,6 +83,8 @@ class ProfileUpdateError extends ProfileState {
     this.tracks = const <ManagedTrack>[],
     this.likedTracks = const <ManagedTrack>[],
     this.repostedTracks = const <ManagedTrack>[],
+    this.playlists = const <PlaylistEntity>[],
+    this.likedPlaylists = const <PlaylistEntity>[],
   });
 }
 
@@ -77,6 +94,8 @@ class ProfileImageUploading extends ProfileState {
   final List<ManagedTrack> tracks;
   final List<ManagedTrack> likedTracks;
   final List<ManagedTrack> repostedTracks;
+  final List<PlaylistEntity> playlists;
+  final List<PlaylistEntity> likedPlaylists;
 
   ProfileImageUploading(
     this.currentProfile,
@@ -84,6 +103,8 @@ class ProfileImageUploading extends ProfileState {
     this.tracks = const <ManagedTrack>[],
     this.likedTracks = const <ManagedTrack>[],
     this.repostedTracks = const <ManagedTrack>[],
+    this.playlists = const <PlaylistEntity>[],
+    this.likedPlaylists = const <PlaylistEntity>[],
   });
 }
 
@@ -95,6 +116,8 @@ class ProfileImageUploadError extends ProfileState {
   final List<ManagedTrack> tracks;
   final List<ManagedTrack> likedTracks;
   final List<ManagedTrack> repostedTracks;
+  final List<PlaylistEntity> playlists;
+  final List<PlaylistEntity> likedPlaylists;
 
   ProfileImageUploadError(
     this.currentProfile, {
@@ -104,5 +127,7 @@ class ProfileImageUploadError extends ProfileState {
     this.tracks = const <ManagedTrack>[],
     this.likedTracks = const <ManagedTrack>[],
     this.repostedTracks = const <ManagedTrack>[],
+    this.playlists = const <PlaylistEntity>[],
+    this.likedPlaylists = const <PlaylistEntity>[],
   });
 }

@@ -1,3 +1,4 @@
+export 'color_extensions.dart';
 import '../config/app_config.dart';
 
 class PlatformUrlUtils {
@@ -10,7 +11,8 @@ class PlatformUrlUtils {
     if (uri == null) return null;
 
     if (_isLocalHost(uri.host)) {
-      return '${AppConfig.apiUrl}${uri.path}';
+      final path = uri.path.startsWith('/') ? uri.path : '/${uri.path}';
+      return '${AppConfig.apiUrl}$path';
     }
 
     return url;

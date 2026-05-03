@@ -5,12 +5,16 @@ class SharedTrackDto {
   final String title;
   final String artist;
   final String? artworkUrl;
+  final String? handle;
+  final String? slug;
 
   const SharedTrackDto({
     required this.id,
     required this.title,
     required this.artist,
     required this.artworkUrl,
+    this.handle,
+    this.slug,
   });
 
   factory SharedTrackDto.fromJson(Map<String, dynamic> json) {
@@ -27,6 +31,10 @@ class SharedTrackDto {
               json['coverUrl'] ??
               json['cover_url'])
           ?.toString(),
+      handle: (json['handle'] ?? json['artistHandle'] ?? json['artist_handle'])
+          ?.toString(),
+      slug: (json['slug'] ?? json['trackSlug'] ?? json['track_slug'])
+          ?.toString(),
     );
   }
 
@@ -36,6 +44,8 @@ class SharedTrackDto {
       title: title,
       artist: artist,
       artworkUrl: artworkUrl,
+      handle: handle,
+      slug: slug,
     );
   }
 }

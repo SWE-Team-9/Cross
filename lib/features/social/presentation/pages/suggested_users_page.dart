@@ -1,4 +1,5 @@
 // coverage:ignore-file
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:soundcloud_clone/core/utils/platform_url_utils.dart';
@@ -135,44 +136,108 @@ class _SuggestedUserTile extends StatelessWidget {
 
   final User user;
 
+  // ✅ فيتشر 6: helper لـ navigation ذكي
+  Future<void> _navigateToProfile(BuildContext context) async {
+    if (user.username.trim().isEmpty) return;
+    ProfileRoutes.goToProfile(context, user.username.trim());
+  }
+
   @override
   Widget build(BuildContext context) {
     final avatarUrl = PlatformUrlUtils.normalizeBackendUrl(user.avatarUrl);
+    final isDefaultAvatar = avatarUrl == null ||
+        avatarUrl.isEmpty ||
+        avatarUrl.contains('default-avatar');
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      onTap: user.username.trim().isEmpty
-          ? null
-          : () => ProfileRoutes.goToProfile(context, user.username.trim()),
-      leading: CircleAvatar(
-        backgroundColor: Colors.grey[800],
-        foregroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-        child: Text(
-          user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-      title: Text(
-        user.username,
-        style:
-            const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        '${user.followersCount} followers',
-        style: const TextStyle(color: Colors.white54, fontSize: 12),
-      ),
-      trailing: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: user.isFollowing ? Colors.grey : Colors.orange,
-            width: 1.2,
+    return BlocBuilder<SuggestedUsersCubit, SuggestedUsersState>(
+      // ✅ فيتشر 2: نبني بس لما الـ loadingIds أو الـ user اتغير
+      buildWhen: (prev, curr) =>
+          prev.loadingIds != curr.loadingIds || prev.users != curr.users,
+      builder: (context, state) {
+        final isButtonLoading = state.loadingIds.contains(user.id);
+
+        return ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          onTap: () => _navigateToProfile(context),
+          leading: CircleAvatar(
+            radius: 28,
+            backgroundColor: Colors.grey[800],
+            // ✅ فيتشر 1: CachedNetworkImage
+            child: isDefaultAvatar
+                ? Text(
+                    user.username.isNotEmpty
+                        ? user.username[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  )
+                : ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: avatarUrl,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Text(
+                        user.username.isNotEmpty
+                            ? user.username[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
           ),
-          foregroundColor: user.isFollowing ? Colors.grey[300] : Colors.orange,
-        ),
-        onPressed: () => context.read<SuggestedUsersCubit>().toggleFollow(user),
-        child: Text(user.isFollowing ? 'Following' : 'Follow'),
-      ),
+          title: Text(
+            user.username,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+          // ✅ فيتشر 4: icon جنب عدد الـ followers
+          subtitle: Row(
+            children: [
+              const Icon(Icons.person, color: Colors.grey, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                '${user.followersCount} followers',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ],
+          ),
+          trailing: SizedBox(
+            height: 36,
+            width: 110,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: user.isFollowing ? Colors.grey : Colors.orange,
+                  width: 1.2,
+                ),
+                foregroundColor:
+                    user.isFollowing ? Colors.grey[300] : Colors.orange,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+              ),
+              // ✅ فيتشر 2: disable الزرار لو loading
+              onPressed: isButtonLoading
+                  ? null
+                  : () =>
+                      context.read<SuggestedUsersCubit>().toggleFollow(user),
+              // ✅ فيتشر 2: spinner على الزرار نفسه
+              child: isButtonLoading
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: user.isFollowing ? Colors.grey : Colors.orange,
+                      ),
+                    )
+                  : Text(user.isFollowing ? 'Following' : 'Follow'),
+            ),
+          ),
+        );
+      },
     );
   }
 }

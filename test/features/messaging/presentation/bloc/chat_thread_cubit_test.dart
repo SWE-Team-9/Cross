@@ -7,6 +7,7 @@ import 'package:soundcloud_clone/features/messaging/domain/entities/message_enti
 import 'package:soundcloud_clone/features/messaging/domain/entities/message_type.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/delete_conversation_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/delete_message_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversation_messages_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
@@ -26,6 +27,9 @@ class MockMarkConversationReadUseCase extends Mock
 
 class MockDeleteMessageUseCase extends Mock implements DeleteMessageUseCase {}
 
+class MockDeleteConversationUseCase extends Mock
+  implements DeleteConversationUseCase {}
+
 class MockConnectMessagingSocketUseCase extends Mock
     implements ConnectMessagingSocketUseCase {}
 
@@ -41,6 +45,7 @@ void main() {
     late MockSendTextMessageUseCase sendTextMessageUseCase;
     late MockMarkConversationReadUseCase markConversationReadUseCase;
     late MockDeleteMessageUseCase deleteMessageUseCase;
+    late MockDeleteConversationUseCase deleteConversationUseCase;
     late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
     late MockShareTrackMessageUseCase shareTrackMessageUseCase;
     late MockSharePlaylistMessageUseCase sharePlaylistMessageUseCase;
@@ -86,6 +91,7 @@ void main() {
       sendTextMessageUseCase = MockSendTextMessageUseCase();
       markConversationReadUseCase = MockMarkConversationReadUseCase();
       deleteMessageUseCase = MockDeleteMessageUseCase();
+      deleteConversationUseCase = MockDeleteConversationUseCase();
       connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
       shareTrackMessageUseCase = MockShareTrackMessageUseCase();
       sharePlaylistMessageUseCase = MockSharePlaylistMessageUseCase();
@@ -108,6 +114,7 @@ void main() {
         getConversationMessagesUseCase: getConversationMessagesUseCase,
         sendTextMessageUseCase: sendTextMessageUseCase,
         markConversationReadUseCase: markConversationReadUseCase,
+        deleteConversationUseCase: deleteConversationUseCase,
         deleteMessageUseCase: deleteMessageUseCase,
         connectMessagingSocketUseCase: connectMessagingSocketUseCase,
         shareTrackMessageUseCase: shareTrackMessageUseCase,
@@ -566,6 +573,7 @@ void main() {
         getConversationMessagesUseCase: getConversationMessagesUseCase,
         sendTextMessageUseCase: sendTextMessageUseCase,
         markConversationReadUseCase: markConversationReadUseCase,
+        deleteConversationUseCase: deleteConversationUseCase,
         deleteMessageUseCase: deleteMessageUseCase,
         connectMessagingSocketUseCase: connectMessagingSocketUseCase,
       );
@@ -676,6 +684,7 @@ void main() {
         getConversationMessagesUseCase: getConversationMessagesUseCase,
         sendTextMessageUseCase: sendTextMessageUseCase,
         markConversationReadUseCase: markConversationReadUseCase,
+        deleteConversationUseCase: deleteConversationUseCase,
         deleteMessageUseCase: deleteMessageUseCase,
         connectMessagingSocketUseCase: connectMessagingSocketUseCase,
       );
@@ -810,6 +819,26 @@ void main() {
 
       expect(cubit.state.messages.single.isDeleted, isFalse);
       expect(cubit.state.errorMessage, contains('delete failed'));
+    });
+
+    test('deleteConversation delegates to repository usecase', () async {
+      when(
+        () => getConversationMessagesUseCase(
+          any(),
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => page(messages: <MessageEntity>[]));
+      when(() => deleteConversationUseCase(any())).thenAnswer((_) async {});
+
+      await cubit.load(
+        conversationId: 'conversation-1',
+        receiverId: 'receiver-1',
+      );
+
+      await cubit.deleteConversation();
+
+      verify(() => deleteConversationUseCase('message-1')).called(1);
     });
 
     test('markCurrentConversationAsRead returns early and swallows failures',

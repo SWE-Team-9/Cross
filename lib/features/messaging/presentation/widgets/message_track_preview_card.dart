@@ -24,10 +24,23 @@ class MessageTrackPreviewCard extends StatelessWidget {
     return InkWell(
       onTap: onTap ??
           () {
-            context.pushNamed(
-              'track-detail',
-              pathParameters: {'trackId': track.id},
-            );
+            if (track.handle != null &&
+                track.handle!.isNotEmpty &&
+                track.slug != null &&
+                track.slug!.isNotEmpty) {
+              context.pushNamed(
+                'resolve-handle-slug',
+                pathParameters: {
+                  'handle': track.handle!,
+                  'slug': track.slug!,
+                },
+              );
+            } else {
+              context.pushNamed(
+                'track-detail',
+                pathParameters: {'trackId': track.id},
+              );
+            }
           },
       borderRadius: BorderRadius.circular(16),
       child: Container(

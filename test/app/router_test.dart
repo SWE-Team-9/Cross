@@ -10,6 +10,7 @@ import 'package:soundcloud_clone/core/deep_links/deep_link_destination.dart';
 import 'package:soundcloud_clone/core/deep_links/deep_link_service.dart';
 import 'package:soundcloud_clone/core/models/player_state.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
 import 'package:soundcloud_clone/core/services/audio_player_service.dart';
 import 'package:soundcloud_clone/features/auth/domain/entities/user.dart';
 import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
@@ -20,39 +21,43 @@ import 'package:soundcloud_clone/features/auth/presentation/pages/register_page.
 import 'package:soundcloud_clone/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:soundcloud_clone/features/auth/presentation/routes/auth_routes.dart';
+import 'package:soundcloud_clone/features/feed/presentation/bloc/feed_cubit.dart';
+import 'package:soundcloud_clone/features/feed/presentation/bloc/feed_state.dart';
 import 'package:soundcloud_clone/features/feed/presentation/pages/feed_page.dart';
-import 'package:soundcloud_clone/features/library/presentation/pages/library_page.dart';
+import 'package:soundcloud_clone/features/home/presentation/bloc/home_cubit.dart';
+import 'package:soundcloud_clone/features/home/presentation/bloc/home_state.dart';
 import 'package:soundcloud_clone/features/library/presentation/bloc/library_cubit.dart';
 import 'package:soundcloud_clone/features/library/presentation/bloc/library_state.dart';
+import 'package:soundcloud_clone/features/library/presentation/pages/library_page.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/entities/unread_count_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_unread_count_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/presentation/bloc/unread_count_cubit.dart';
+import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
+import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playlists/domain/entities/playlist_entity.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
+import 'package:soundcloud_clone/features/premium/presentation/pages/billing_page.dart';
+import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/bloc/profile_state.dart';
 import 'package:soundcloud_clone/features/profile/presentation/pages/edit_profile_page.dart';
 import 'package:soundcloud_clone/features/profile/presentation/pages/profile_page.dart';
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
-import 'package:soundcloud_clone/features/search/presentation/pages/mock_search_page.dart';
+import 'package:soundcloud_clone/features/search/presentation/bloc/search_cubit.dart';
+import 'package:soundcloud_clone/features/search/presentation/pages/search_page.dart';
 import 'package:soundcloud_clone/features/social/data/repositories/social_repo.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/followers_page.dart';
 import 'package:soundcloud_clone/features/social/presentation/pages/following_page.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/track_management_state.dart';
-import 'package:soundcloud_clone/core/network/dio_client.dart';
-import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
-import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_cubit.dart';
 import 'package:soundcloud_clone/features/upload/presentation/bloc/upload_picker_state.dart';
 import 'package:soundcloud_clone/features/upload/presentation/pages/upload_picker_page.dart';
-import 'package:soundcloud_clone/features/premium/presentation/pages/billing_page.dart';
-import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
 
 class FakeAudioPlayerService implements AudioPlayerService {
   double _currentVolume = 1;
@@ -179,6 +184,12 @@ class FakeOfflineRepository implements OfflineRepository {
 
 class MockAuthCubit extends MockCubit<AuthState> implements AuthCubit {}
 
+class MockHomeCubit extends MockCubit<HomeState> implements HomeCubit {}
+
+class MockFeedCubit extends MockCubit<FeedState> implements FeedCubit {}
+
+class MockSearchCubit extends MockCubit<SearchState> implements SearchCubit {}
+
 class MockLibraryCubit extends MockCubit<LibraryState>
     implements LibraryCubit {}
 
@@ -200,6 +211,9 @@ class MockConnectMessagingSocketUseCase extends Mock
 
 void main() {
   late MockAuthCubit authCubit;
+  late MockHomeCubit homeCubit;
+  late MockFeedCubit feedCubit;
+  late MockSearchCubit searchCubit;
   late MockLibraryCubit libraryCubit;
   late MockProfileCubit profileCubit;
   late MockUploadPickerCubit uploadPickerCubit;
@@ -223,6 +237,9 @@ void main() {
 
     mockSocialRepo = MockSocialRepo();
     authCubit = MockAuthCubit();
+    homeCubit = MockHomeCubit();
+    feedCubit = MockFeedCubit();
+    searchCubit = MockSearchCubit();
     libraryCubit = MockLibraryCubit();
     profileCubit = MockProfileCubit();
     uploadPickerCubit = MockUploadPickerCubit();
@@ -239,6 +256,35 @@ void main() {
     GetIt.I.registerSingleton<RecentlyPlayedCubit>(
       RecentlyPlayedCubit(),
     );
+
+    when(() => homeCubit.state).thenReturn(HomeState.initial());
+    when(() => homeCubit.stream).thenAnswer(
+      (_) => const Stream<HomeState>.empty(),
+    );
+    when(() => homeCubit.load()).thenAnswer((_) async {});
+    when(() => homeCubit.refresh()).thenAnswer((_) async {});
+    when(() => homeCubit.selectGenre(any())).thenAnswer((_) async {});
+    when(() => homeCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<HomeCubit>(() => homeCubit);
+
+    when(() => feedCubit.state).thenReturn(const FeedLoading());
+    when(() => feedCubit.stream).thenAnswer(
+      (_) => const Stream<FeedState>.empty(),
+    );
+    when(() => feedCubit.initialize()).thenAnswer((_) async {});
+    when(() => feedCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<FeedCubit>(() => feedCubit);
+
+    when(() => searchCubit.state).thenReturn(const SearchState());
+    when(() => searchCubit.stream).thenAnswer(
+      (_) => const Stream<SearchState>.empty(),
+    );
+    when(() => searchCubit.close()).thenAnswer((_) async {});
+
+    GetIt.I.registerFactory<SearchCubit>(() => searchCubit);
+
     when(() => libraryCubit.state).thenReturn(LibraryState.initial());
     when(() => libraryCubit.stream).thenAnswer(
       (_) => const Stream<LibraryState>.empty(),
@@ -459,7 +505,7 @@ void main() {
       );
 
       expect(find.text('GET PRO'), findsOneWidget);
-      expect(find.text('More of what you like'), findsOneWidget);
+      expect(find.text('Trending now'), findsOneWidget);
     });
 
     testWidgets('can navigate to login route directly', (tester) async {
@@ -620,7 +666,7 @@ void main() {
         initialLocation: app_router.AppRoutes.search,
       );
 
-      expect(find.byType(MockSearchPage), findsOneWidget);
+      expect(find.byType(SearchPage), findsOneWidget);
     });
 
     testWidgets('search route reads query parameter from url', (tester) async {
@@ -630,7 +676,7 @@ void main() {
         initialLocation: '/search?q=edm',
       );
 
-      expect(find.byType(MockSearchPage), findsOneWidget);
+      expect(find.byType(SearchPage), findsOneWidget);
     });
 
     testWidgets('can navigate to upgrade page', (tester) async {
@@ -657,6 +703,7 @@ void main() {
       expect(find.text('Billing'), findsOneWidget);
       expect(find.text('Subscription'), findsOneWidget);
     });
+
     testWidgets('404 fallback Go Home button navigates home', (tester) async {
       await pumpRouter(
         tester,

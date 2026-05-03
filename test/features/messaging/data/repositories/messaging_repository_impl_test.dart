@@ -411,6 +411,18 @@ void main() {
     ).called(1);
   });
 
+  test('deleteConversation delegates to datasource', () async {
+    when(
+      () => remoteDataSource.deleteConversation(any()),
+    ).thenAnswer((_) async {});
+
+    await repository.deleteConversation('conversation-1');
+
+    verify(
+      () => remoteDataSource.deleteConversation('conversation-1'),
+    ).called(1);
+  });
+
   test('deleteMessage delegates to datasource', () async {
     when(
       () => remoteDataSource.deleteMessage(any()),

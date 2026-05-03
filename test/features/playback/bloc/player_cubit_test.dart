@@ -79,6 +79,7 @@ void main() {
         )).thenAnswer((_) async {});
 
     when(() => mockService.setRepeatMode(any())).thenAnswer((_) async {});
+    when(() => mockService.stop()).thenAnswer((_) async {});
 
     cubit = PlayerCubit(mockService);
   });
@@ -191,6 +192,18 @@ void main() {
         verify(() => mockService.stop()).called(1);
       },
     );
+
+    test('stop() clears the current track and hides the mini player', () async {
+      await cubit.play(testTrack);
+
+      await cubit.stop();
+
+      expect(cubit.state.currentTrack, isNull);
+      expect(cubit.state.playerState.status, PlayerStatus.idle);
+      expect(cubit.state.queue, isEmpty);
+      expect(cubit.state.showMiniPlayer, isFalse);
+      verify(() => mockService.stop()).called(1);
+    });
 
     blocTest<PlayerCubit, dynamic>(
       'togglePlayPause() resumes when not playing',

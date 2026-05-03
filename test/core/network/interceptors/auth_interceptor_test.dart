@@ -32,6 +32,10 @@ void main() {
   setUp(() {
     mockSecureStorage = _MockSecureStorage();
     mockDio = _MockDio();
+
+    // Mock the read method to return null (no token stored)
+    when(() => mockSecureStorage.read(any())).thenAnswer((_) async => null);
+
     interceptor = AuthInterceptor(secureStorage: mockSecureStorage);
   });
 
@@ -41,48 +45,48 @@ void main() {
     });
 
     group('onRequest', () {
-      test('sets json content type for non-FormData requests', () {
+      test('sets json content type for non-FormData requests', () async {
         final options = RequestOptions(
           path: '/profiles/me',
           data: <String, dynamic>{'bio': 'updated'},
         );
         final handler = _MockRequestInterceptorHandler();
 
-        interceptor.onRequest(options, handler);
+        await interceptor.onRequest(options, handler);
 
         expect(options.headers['Content-Type'], 'application/json');
         expect(options.headers.containsKey('Authorization'), isFalse);
-        verifyNever(() => mockSecureStorage.read(any()));
+        verify(() => mockSecureStorage.read(any())).called(1);
         verify(() => handler.next(options)).called(1);
       });
 
-      test('does not override content type for FormData requests', () {
+      test('does not override content type for FormData requests', () async {
         final options = RequestOptions(
           path: '/profiles/me/images/avatar',
           data: FormData(),
         );
         final handler = _MockRequestInterceptorHandler();
 
-        interceptor.onRequest(options, handler);
+        await interceptor.onRequest(options, handler);
 
         expect(options.headers.containsKey('Content-Type'), isFalse);
         expect(options.headers.containsKey('Authorization'), isFalse);
-        verifyNever(() => mockSecureStorage.read(any()));
+        verify(() => mockSecureStorage.read(any())).called(1);
         verify(() => handler.next(options)).called(1);
       });
 
-      test('does not add authorization header for auth endpoints', () {
+      test('does not add authorization header for auth endpoints', () async {
         final options = RequestOptions(
           path: '/auth/login',
           data: <String, dynamic>{'email': 'ali@example.com'},
         );
         final handler = _MockRequestInterceptorHandler();
 
-        interceptor.onRequest(options, handler);
+        await interceptor.onRequest(options, handler);
 
         expect(options.headers['Content-Type'], 'application/json');
         expect(options.headers.containsKey('Authorization'), isFalse);
-        verifyNever(() => mockSecureStorage.read(any()));
+        verify(() => mockSecureStorage.read(any())).called(1);
         verify(() => handler.next(options)).called(1);
       });
     });

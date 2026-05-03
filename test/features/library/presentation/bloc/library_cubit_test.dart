@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -268,6 +270,26 @@ void main() {
             ),
       ],
     );
+
+    test('loadRecentPlaylists does not emit after close', () async {
+      final remoteCompleter = Completer<List<PlaylistEntity>>();
+
+      when(() => recentStore.load(limit: 10)).thenAnswer(
+        (_) async => const <PlaylistEntity>[],
+      );
+      when(() => getRecent(limit: 10)).thenAnswer(
+        (_) => remoteCompleter.future,
+      );
+
+      final cubit = buildCubit();
+      final loadFuture = cubit.loadRecentPlaylists();
+
+      await Future<void>.delayed(Duration.zero);
+      await cubit.close();
+      remoteCompleter.complete(const <PlaylistEntity>[]);
+
+      await expectLater(loadFuture, completes);
+    });
   });
 }
 

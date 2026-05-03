@@ -128,6 +128,11 @@ class MessagingRepositoryImpl implements MessagingRepository {
   }
 
   @override
+  Future<void> deleteConversation(String conversationId) {
+    return remoteDataSource.deleteConversation(conversationId);
+  }
+
+  @override
   Future<void> deleteMessage(String messageId) {
     return remoteDataSource.deleteMessage(messageId);
   }

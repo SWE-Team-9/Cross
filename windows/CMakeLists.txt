@@ -10,6 +10,10 @@ set(BINARY_NAME "Iqa3")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
+# Some transitive third-party CMake scripts still declare old policy baselines
+# (for example CMake 3.1). Newer CMake rejects those unless this minimum is set.
+set(CMAKE_POLICY_VERSION_MINIMUM "3.5" CACHE STRING "" FORCE)
+
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)

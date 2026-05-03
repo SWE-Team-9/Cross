@@ -6,6 +6,7 @@ import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart
 
 import '../../../../core/utils/platform_url_utils.dart';
 import '../../domain/usecases/connect_messaging_socket_usecase.dart';
+import '../../domain/usecases/delete_conversation_usecase.dart';
 import '../../domain/usecases/delete_message_usecase.dart';
 import '../../domain/usecases/get_conversation_messages_usecase.dart';
 import '../../domain/usecases/mark_conversation_read_usecase.dart';
@@ -53,6 +54,7 @@ class ChatThreadPage extends StatelessWidget {
             GetIt.I<GetConversationMessagesUseCase>(),
         sendTextMessageUseCase: GetIt.I<SendTextMessageUseCase>(),
         markConversationReadUseCase: GetIt.I<MarkConversationReadUseCase>(),
+        deleteConversationUseCase: GetIt.I<DeleteConversationUseCase>(),
         deleteMessageUseCase: GetIt.I<DeleteMessageUseCase>(),
         connectMessagingSocketUseCase: GetIt.I<ConnectMessagingSocketUseCase>(),
         shareTrackMessageUseCase: _getItOrNull<ShareTrackMessageUseCase>(),
@@ -165,6 +167,48 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
     context.push('/profile/$handle');
   }
 
+  Future<void> _confirmDeleteConversation() async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: const Color(0xFF1B1B1B),
+            title: const Text(
+              'Delete conversation?',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: const Text(
+              'This will remove the conversation for you.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!confirmed) return;
+
+    await context.read<ChatThreadCubit>().deleteConversation();
+    if (!mounted) return;
+
+    if (widget.onBack != null) {
+      widget.onBack!.call();
+    } else {
+      Navigator.maybePop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final avatarUrl =
@@ -240,9 +284,12 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
         actions: [
           BlocBuilder<ChatThreadCubit, ChatThreadState>(
             builder: (context, state) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 14),
-                child: Center(
+              return PopupMenuButton<String>(
+                color: const Color(0xFF1B1B1B),
+                icon: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
                   child: Container(
                     width: 9,
                     height: 9,
@@ -254,6 +301,20 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
                     ),
                   ),
                 ),
+                onSelected: (value) {
+                  if (value == 'delete') {
+                    _confirmDeleteConversation();
+                  }
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem<String>(
+                    value: 'delete',
+                    child: Text(
+                      'Delete conversation',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -367,6 +428,30 @@ class _ChatThreadViewState extends State<_ChatThreadView> {
                               .read<ChatThreadCubit>()
                               .deleteMessage(message.id)
                           : null,
+                      onTrackTap: message.sharedTrack == null
+                          ? null
+                          : () {
+                              final track = message.sharedTrack!;
+                              if (track.handle != null &&
+                                  track.handle!.isNotEmpty &&
+                                  track.slug != null &&
+                                  track.slug!.isNotEmpty) {
+                                context.pushNamed(
+                                  'resolve-handle-slug',
+                                  pathParameters: {
+                                    'handle': track.handle!,
+                                    'slug': track.slug!,
+                                  },
+                                );
+                              } else {
+                                context.pushNamed(
+                                  'track-detail',
+                                  pathParameters: {
+                                    'trackId': track.id,
+                                  },
+                                );
+                              }
+                            },
                       onPlaylistTap: message.sharedPlaylist == null
                           ? null
                           : () => context.push(

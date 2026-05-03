@@ -26,14 +26,26 @@ class TrackRow extends StatelessWidget {
   final Track track;
   final List<Track>? queue;
   final bool showLikesCount;
+  final bool showDuration;
   final String source;
+  final Widget? leading;
+  final Widget? customTrailing;
+  final VoidCallback? customOnTap;
+  final int? reorderableIndex;
+  final bool dense;
 
   const TrackRow({
     super.key,
     required this.track,
     this.queue,
     this.showLikesCount = false,
+    this.showDuration = false,
     this.source = 'unknown',
+    this.leading,
+    this.customTrailing,
+    this.customOnTap,
+    this.reorderableIndex,
+    this.dense = false,
   });
 
   @override
@@ -48,25 +60,29 @@ class TrackRow extends StatelessWidget {
           final wasPlayed = state.wasPlayed(track.id);
           final opacity = wasPlayed && !isCurrentTrack ? 0.45 : 1.0;
 
-          return Opacity(
+          final trackWidget = Opacity(
             opacity: opacity,
             child: InkWell(
-              onTap: () => _playTrack(context),
+              onTap: customOnTap ?? () => _playTrack(context),
               splashColor: Colors.white10,
               child: Container(
                 color: isCurrentTrack
                     ? Colors.white.withValues(alpha: 0.05)
                     : Colors.transparent,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: dense ? 12 : 14,
+                      vertical: dense ? 6 : 8,
+                    ),
                   child: Row(
                     children: [
+                      if (leading != null) ...[
+                        leading!,
+                        const SizedBox(width: 8),
+                      ],
                       Container(
-                        width: 52,
-                        height: 52,
+                        width: dense ? 46 : 52,
+                        height: dense ? 46 : 52,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
                           color: Colors.grey[800],
@@ -90,9 +106,9 @@ class TrackRow extends StatelessWidget {
                             Text(
                               track.title,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 14,
+                                fontSize: dense ? 13 : 14,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -118,33 +134,44 @@ class TrackRow extends StatelessWidget {
                               )
                             else
                               Text(
-                                showLikesCount
-                                    ? '${track.artist} - ${track.likesCount} likes'
-                                    : track.artist,
+                                _subtitleText(),
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Color(0xFF999999),
-                                  fontSize: 12,
+                                  fontSize: dense ? 11 : 12,
                                 ),
                               ),
                           ],
                         ),
                       ),
-                      _buildDownloadAction(context),
-                      IconButton(
-                        onPressed: () =>
-                            TrackOptionsSheet.show(context, track: track),
-                        icon: const Icon(
-                          Icons.more_vert,
-                          color: Color(0xFF666666),
+                      if (customTrailing != null)
+                        customTrailing!
+                      else ...[
+                        _buildDownloadAction(context),
+                        IconButton(
+                          onPressed: () =>
+                              TrackOptionsSheet.show(context, track: track),
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Color(0xFF666666),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
               ),
             ),
           );
+
+          if (reorderableIndex != null) {
+            return ReorderableDelayedDragStartListener(
+              key: key ?? ValueKey(track.id),
+              index: reorderableIndex!,
+              child: trackWidget,
+            );
+          }
+          return trackWidget;
         }
 
         if (playerCubit != null) {
@@ -166,6 +193,24 @@ class TrackRow extends StatelessWidget {
     );
   }
 
+  String _subtitleText() {
+    final parts = <String>[track.artist];
+    if (showLikesCount) {
+      parts.add('${track.likesCount} likes');
+    }
+    if (showDuration && track.durationMs != null && track.durationMs! > 0) {
+      parts.add(_fmtMs(track.durationMs!));
+    }
+    return parts.join(' · ');
+  }
+
+  String _fmtMs(int ms) {
+    final total = ms ~/ 1000;
+    final minutes = total ~/ 60;
+    final seconds = total % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
   Future<void> _playTrack(BuildContext context) async {
     final playerCubit = _lookupCubit<PlayerCubit>(context);
 
@@ -178,9 +223,9 @@ class TrackRow extends StatelessWidget {
 
     final offlineCubit = _lookupCubit<OfflineCubit>(context);
     final tracks = queue ?? [track];
-    final index = tracks.indexWhere((item) => item.id == track.id);
-    final safeIndex = index >= 0 ? index : 0;
     final playableTracks = _withOfflinePaths(tracks, offlineCubit);
+    final index = playableTracks.indexWhere((item) => item.id == track.id);
+    final safeIndex = index >= 0 ? index : 0;
     final selectedTrack = playableTracks[safeIndex];
 
     if (selectedTrack.audioUrl.trim().isNotEmpty ||
@@ -189,26 +234,30 @@ class TrackRow extends StatelessWidget {
       if (getIt.isRegistered<RecentlyPlayedCubit>()) {
         getIt<RecentlyPlayedCubit>().addTrack(selectedTrack);
       }
-
       await playerCubit.playFromContext(
         tracks: playableTracks,
         startIndex: safeIndex,
         source: source,
       );
-
       return;
     }
 
     if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
       if (!context.mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Playback is not available right now')),
       );
       return;
     }
 
-    final result = await getIt<GetTrackDetailUseCase>()(selectedTrack.id);
+    final useCase = getIt<GetTrackDetailUseCase>();
+    final handle = selectedTrack.handle ?? '';
+    final slug = selectedTrack.slug ?? '';
+
+    final result = handle.isNotEmpty && slug.isNotEmpty
+        ? await useCase.callBySlug(handle, slug)
+        : await useCase(selectedTrack.id);
+
     if (!context.mounted) return;
 
     final detail = result.detail;
@@ -223,18 +272,18 @@ class TrackRow extends StatelessWidget {
       return;
     }
 
-    final playbackTrack = _withOfflinePath(
-      detail.toPlaybackTrack(),
-      offlineCubit,
-    );
+    final resolvedTrack =
+        _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
+    final resolvedQueue = List<Track>.from(playableTracks);
+    resolvedQueue[safeIndex] = resolvedTrack;
 
     if (getIt.isRegistered<RecentlyPlayedCubit>()) {
-      getIt<RecentlyPlayedCubit>().addTrack(playbackTrack);
+      getIt<RecentlyPlayedCubit>().addTrack(resolvedTrack);
     }
 
     await playerCubit.playFromContext(
-      tracks: [playbackTrack],
-      startIndex: 0,
+      tracks: resolvedQueue,
+      startIndex: safeIndex,
       source: source,
     );
   }
@@ -260,7 +309,7 @@ class TrackRow extends StatelessWidget {
           return _DownloadButton(
             isDownloaded: false,
             isLocked: true,
-            onTap: () {
+            onTap: () async {
               _showDownloadSnackbar(context, _DownloadSnack.upgradeRequired);
               _openUpgradePage(context);
             },
@@ -273,6 +322,7 @@ class TrackRow extends StatelessWidget {
             final isDownloaded = offlineCubit.isDownloaded(track.id);
 
             return _DownloadButton(
+              key: ValueKey('download-${track.id}'),
               isDownloaded: isDownloaded,
               onTap: () async {
                 if (isDownloaded) {
@@ -308,11 +358,8 @@ class TrackRow extends StatelessWidget {
   }
 
   List<Track> _withOfflinePaths(
-    List<Track> tracks,
-    OfflineCubit? offlineCubit,
-  ) {
+      List<Track> tracks, OfflineCubit? offlineCubit) {
     if (offlineCubit == null) return tracks;
-
     return tracks.map((item) => _withOfflinePath(item, offlineCubit)).toList();
   }
 
@@ -320,7 +367,6 @@ class TrackRow extends StatelessWidget {
     if (offlineCubit == null || !offlineCubit.isDownloaded(track.id)) {
       return track;
     }
-
     final localPath = offlineCubit.getPath(track.id);
     if (localPath == null || localPath.trim().isEmpty) {
       return track;
@@ -430,7 +476,6 @@ class TrackRow extends StatelessWidget {
 
   void _openComments(BuildContext context) {
     Navigator.pop(context);
-
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -543,31 +588,49 @@ class TrackRow extends StatelessWidget {
   }
 }
 
-class _DownloadButton extends StatelessWidget {
+class _DownloadButton extends StatefulWidget {
   final bool isDownloaded;
   final bool isLocked;
-  final VoidCallback onTap;
+  final Future<void> Function() onTap;
 
   const _DownloadButton({
+    super.key,
     required this.isDownloaded,
     required this.onTap,
     this.isLocked = false,
   });
 
   @override
+  State<_DownloadButton> createState() => _DownloadButtonState();
+}
+
+class _DownloadButtonState extends State<_DownloadButton> {
+  bool _isLoading = false;
+
+  @override
   Widget build(BuildContext context) {
-    final isHighlighted = isDownloaded || isLocked;
+    final isHighlighted = widget.isDownloaded || widget.isLocked || _isLoading;
 
     return Tooltip(
-      message: isLocked
+      message: widget.isLocked
           ? 'Upgrade for offline downloads'
-          : isDownloaded
+          : widget.isDownloaded
               ? 'Downloaded'
-              : 'Download for offline listening',
+              : _isLoading
+                  ? 'Downloading...'
+                  : 'Download for offline listening',
       child: GestureDetector(
-        onTap: onTap,
+        onTap: _isLoading ? null : () async {
+          setState(() => _isLoading = true);
+          try {
+            await widget.onTap();
+          } finally {
+            if (mounted) setState(() => _isLoading = false);
+          }
+        },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
           width: 30,
           height: 30,
           decoration: BoxDecoration(
@@ -582,19 +645,89 @@ class _DownloadButton extends StatelessWidget {
               width: 0.5,
             ),
           ),
-          child: Icon(
-            isLocked
-                ? Icons.workspace_premium_rounded
-                : isDownloaded
-                    ? Icons.download_done_rounded
-                    : Icons.arrow_downward_rounded,
-            color: isHighlighted
-                ? const Color(0xFFFF5500)
-                : Colors.white.withValues(alpha: 0.5),
-            size: 15,
+          child: Center(
+            child: _isLoading
+                ? SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFFFF5500),
+                      ),
+                    ),
+                  )
+                : _AnimatedDownloadIcon(
+                    isDownloaded: widget.isDownloaded,
+                    isLocked: widget.isLocked,
+                  ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AnimatedDownloadIcon extends StatelessWidget {
+  final bool isDownloaded;
+  final bool isLocked;
+
+  const _AnimatedDownloadIcon({
+    required this.isDownloaded,
+    required this.isLocked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 800),
+      switchInCurve: Curves.elasticOut,
+      switchOutCurve: Curves.easeInQuart,
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        // Scale + fade for a smooth, fluid feel
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.3, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.elasticOut),
+          ),
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+        );
+      },
+      // Using unique keys is essential for AnimatedSwitcher to identify state changes
+      child: isLocked
+          ? SizedBox(
+              key: const ValueKey('locked'),
+              width: 15,
+              height: 15,
+              child: const Icon(
+                Icons.workspace_premium_rounded,
+                color: Color(0xFFFF5500),
+                size: 15,
+              ),
+            )
+          : isDownloaded
+              ? SizedBox(
+                  key: const ValueKey('downloaded'),
+                  width: 15,
+                  height: 15,
+                  child: const Icon(
+                    Icons.download_done_rounded,
+                    color: Color(0xFFFF5500),
+                    size: 15,
+                  ),
+                )
+              : SizedBox(
+                  key: const ValueKey('download'),
+                  width: 15,
+                  height: 15,
+                  child: Icon(
+                    Icons.arrow_downward_rounded,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    size: 15,
+                  ),
+                ),
     );
   }
 }

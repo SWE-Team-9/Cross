@@ -1,5 +1,7 @@
 // coverage:ignore-file
+import 'dart:math';
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +16,7 @@ import '../../../../core/utils/platform_url_utils.dart';
 import '../../../../core/widgets/track_row.dart';
 import '../../../auth/presentation/bloc/auth_cubit.dart';
 import '../../../messaging/presentation/widgets/message_user_button.dart';
+import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../../playlists/domain/entities/playlist_entity.dart';
 import '../../../playlists/domain/repositories/playlists_repository.dart';
 import '../../../social/data/repositories/social_repo.dart';
@@ -84,6 +87,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   List<ManagedTrack> _managedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _likedTracks = const <ManagedTrack>[];
   List<ManagedTrack> _repostedTracks = const <ManagedTrack>[];
+  List<PlaylistEntity> _profilePlaylists = const <PlaylistEntity>[];
+  List<PlaylistEntity> _likedPlaylists = const <PlaylistEntity>[];
   Future<List<PlaylistEntity>>? _profilePlaylistsFuture;
   Future<List<PlaylistEntity>>? _likedPlaylistsFuture;
 
@@ -111,6 +116,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
       _managedTracks = profileState.tracks;
       _likedTracks = profileState.likedTracks;
       _repostedTracks = profileState.repostedTracks;
+      _profilePlaylists = profileState.playlists;
+      _likedPlaylists = profileState.likedPlaylists;
     }
 
     _syncFollowState(profileState);
@@ -130,6 +137,8 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
         _managedTracks = state.tracks;
         _likedTracks = state.likedTracks;
         _repostedTracks = state.repostedTracks;
+        _profilePlaylists = state.playlists;
+        _likedPlaylists = state.likedPlaylists;
       });
     }
   }
@@ -314,152 +323,188 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               return null;
             }
 
-            return AlertDialog(
-              backgroundColor: const Color(0xFF121212),
-              title: const Text(
-                'Change email',
-                style: TextStyle(color: Colors.white),
-              ),
-              content: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: newEmailController,
-                      keyboardType: TextInputType.emailAddress,
-                      style: const TextStyle(color: Colors.white),
-                      enabled: !isSubmitting,
-                      decoration: InputDecoration(
-                        labelText: 'New email',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        filled: true,
-                        fillColor: const Color(0xFF1C1C1C),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      validator: validateEmail,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: currentPasswordController,
-                      obscureText: obscurePassword,
-                      style: const TextStyle(color: Colors.white),
-                      enabled: !isSubmitting,
-                      decoration: InputDecoration(
-                        labelText: 'Current password',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        filled: true,
-                        fillColor: const Color(0xFF1C1C1C),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.white70,
+            return BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: AlertDialog(
+                backgroundColor: Colors.black.withOpacity(0.6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: Colors.white.withOpacity(0.12)),
+                ),
+                title: const Text(
+                  'Change email',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                content: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: newEmailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: const TextStyle(color: Colors.white),
+                        enabled: !isSubmitting,
+                        decoration: InputDecoration(
+                          labelText: 'New email',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                           ),
-                          onPressed: isSubmitting
-                              ? null
-                              : () => setDialogState(
-                                    () => obscurePassword = !obscurePassword,
-                                  ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFFFF5500)),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Colors.redAccent),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                          ),
                         ),
+                        validator: validateEmail,
                       ),
-                      validator: (v) => (v ?? '').trim().isEmpty
-                          ? 'Please enter your password.'
-                          : null,
-                    ),
-                    if (localError != null) ...[
                       const SizedBox(height: 12),
-                      Text(
-                        localError!,
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 12,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () => Navigator.of(dialogContext).pop(),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5500),
-                  ),
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          if (!(formKey.currentState?.validate() ?? false)) {
-                            return;
-                          }
-
-                          final remaining =
-                              authCubit.emailChangeCooldownRemainingSeconds;
-                          if (remaining > 0) {
-                            setDialogState(
-                              () => localError =
-                                  'Wait $remaining seconds before resending.',
-                            );
-                            return;
-                          }
-
-                          setDialogState(() {
-                            isSubmitting = true;
-                            localError = null;
-                          });
-
-                          await authCubit.requestEmailChange(
-                            newEmail: newEmailController.text.trim(),
-                            currentPassword: currentPasswordController.text,
-                          );
-
-                          if (!mounted) return;
-                          final currentState = authCubit.state;
-
-                          if (currentState is AuthEmailChangeRequested) {
-                            Navigator.of(dialogContext).pop();
-                          } else {
-                            setDialogState(() {
-                              isSubmitting = false;
-                              localError =
-                                  (currentState is AuthEmailChangeFailure)
-                                      ? currentState.message
-                                      : (currentState is AuthError
-                                          ? currentState.message
-                                          : 'Action failed.');
-                            });
-                          }
-                        },
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                      TextFormField(
+                        controller: currentPasswordController,
+                        obscureText: obscurePassword,
+                        style: const TextStyle(color: Colors.white),
+                        enabled: !isSubmitting,
+                        decoration: InputDecoration(
+                          labelText: 'Current password',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                           ),
-                        )
-                      : const Text(
-                          'Send link',
-                          style: TextStyle(color: Colors.white),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFFFF5500)),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Colors.redAccent),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.white70,
+                            ),
+                            onPressed: isSubmitting
+                                ? null
+                                : () => setDialogState(
+                                      () => obscurePassword = !obscurePassword,
+                                    ),
+                          ),
                         ),
+                        validator: (v) => (v ?? '').trim().isEmpty
+                            ? 'Please enter your password.'
+                            : null,
+                      ),
+                      if (localError != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          localError!,
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ],
+                actions: [
+                  TextButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF5500),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (!(formKey.currentState?.validate() ?? false)) {
+                              return;
+                            }
+
+                            final remaining =
+                                authCubit.emailChangeCooldownRemainingSeconds;
+                            if (remaining > 0) {
+                              setDialogState(
+                                () => localError =
+                                    'Wait $remaining seconds before resending.',
+                              );
+                              return;
+                            }
+
+                            setDialogState(() {
+                              isSubmitting = true;
+                              localError = null;
+                            });
+
+                            await authCubit.requestEmailChange(
+                              newEmail: newEmailController.text.trim(),
+                              currentPassword: currentPasswordController.text,
+                            );
+
+                            if (!mounted) return;
+                            final currentState = authCubit.state;
+
+                            if (currentState is AuthEmailChangeRequested) {
+                              Navigator.of(dialogContext).pop();
+                            } else {
+                              setDialogState(() {
+                                isSubmitting = false;
+                                localError =
+                                    (currentState is AuthEmailChangeFailure)
+                                        ? currentState.message
+                                        : (currentState is AuthError
+                                            ? currentState.message
+                                            : 'Action failed.');
+                              });
+                            }
+                          },
+                    child: isSubmitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Send link',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                  ),
+                ],
+              ),
             );
           },
         );
@@ -594,31 +639,44 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
 
   Widget _buildBody(BuildContext context, ProfileEntity profile) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, _) => [
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildProfileHeader(context, profile),
-                  _buildUserInfo(context, profile),
-                  _buildActionRow(context, profile),
-                  _buildTabBar(),
-                ],
-              ),
-            ),
-          ],
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildLikedTracksTab(profile),
-              _buildLikedPlaylistsTab(),
-              _buildTracksTab(profile),
-              _buildPlaylistsTab(),
-              _buildRepostedTracksTab(profile),
+      backgroundColor: const Color(0xFF0D0D0D),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0.8, -0.6),
+            radius: 1.2,
+            colors: [
+              const Color(0xFF3B1F10),
+              const Color(0xFF0D0D0D),
             ],
+            stops: const [0.0, 0.7],
+          ),
+        ),
+        child: SafeArea(
+          child: NestedScrollView(
+            headerSliverBuilder: (context, _) => [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildProfileHeader(context, profile),
+                    _buildUserInfo(context, profile),
+                    _buildActionRow(context, profile),
+                    _buildTabBar(),
+                  ],
+                ),
+              ),
+            ],
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildLikedTracksTab(profile),
+                _buildLikedPlaylistsTab(),
+                _buildTracksTab(profile),
+                _buildPlaylistsTab(),
+                _buildRepostedTracksTab(profile),
+              ],
+            ),
           ),
         ),
       ),
@@ -626,14 +684,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildLikedTracksTab(ProfileEntity profile) {
-    if (!_isOwnProfile) {
-      return _buildEmptyTab(Icons.favorite_border, 'No liked tracks yet');
-    }
-
     return _ProfileTracksListTab(
       tracks: _likedTracks,
-      artistName: '',
-      artistHandle: '',
+      artistName: profile.displayName,
+      artistHandle: profile.handle,
       source: 'profile_likes',
       emptyIcon: Icons.favorite_border,
       emptyMessage: 'No liked tracks yet',
@@ -642,7 +696,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildLikedPlaylistsTab() {
-    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+    if (!_isOwnProfile) {
+      return _buildPlaylistListTab(
+        playlists: _likedPlaylists,
+        emptyIcon: Icons.favorite_border,
+        emptyMessage: 'No liked playlists yet',
+      );
+    }
+
+    if (!getIt.isRegistered<PlaylistsRepository>()) {
       return _buildEmptyTab(
         Icons.favorite_border,
         'No liked playlists yet',
@@ -705,14 +767,10 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildRepostedTracksTab(ProfileEntity profile) {
-    if (!_isOwnProfile) {
-      return _buildEmptyTab(Icons.repeat, 'No reposts yet');
-    }
-
     return _ProfileTracksListTab(
       tracks: _repostedTracks,
-      artistName: '',
-      artistHandle: '',
+      artistName: profile.displayName,
+      artistHandle: profile.handle,
       source: 'profile_reposts',
       emptyIcon: Icons.repeat,
       emptyMessage: 'No reposts yet',
@@ -720,7 +778,15 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildPlaylistsTab() {
-    if (!_isOwnProfile || !getIt.isRegistered<PlaylistsRepository>()) {
+    if (!_isOwnProfile) {
+      return _buildPlaylistListTab(
+        playlists: _profilePlaylists,
+        emptyIcon: Icons.queue_music_outlined,
+        emptyMessage: 'No playlists yet',
+      );
+    }
+
+    if (!getIt.isRegistered<PlaylistsRepository>()) {
       return _buildEmptyTab(Icons.queue_music_outlined, 'No playlists yet');
     }
 
@@ -779,6 +845,18 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     );
   }
 
+  Widget _buildPlaylistListTab({
+    required List<PlaylistEntity> playlists,
+    required IconData emptyIcon,
+    required String emptyMessage,
+  }) {
+    if (playlists.isEmpty) {
+      return _buildEmptyTab(emptyIcon, emptyMessage);
+    }
+
+    return _ProfilePlaylistsList(playlists: playlists);
+  }
+
   Widget _buildActionRow(BuildContext context, ProfileEntity profile) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
@@ -799,7 +877,7 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                   Expanded(
                     child: _buildOwnerActionButton(
                       icon: Icons.email,
-                      label: 'change Email',
+                      label: 'Change Email',
                       onTap: _showChangeEmailDialog,
                     ),
                   ),
@@ -815,30 +893,49 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                       onTap: _isFollowActionInFlight
                           ? null
                           : () => _toggleFollow(profile),
-                      child: Container(
-                        height: 40,
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        decoration: BoxDecoration(
-                          color: _isFollowing
-                              ? Colors.black
-                              : const Color(0xFFFF5500),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: _isFollowing
-                                ? const Color(0xFF555555)
-                                : const Color(0xFFFF5500),
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _isFollowActionInFlight
-                              ? '...'
-                              : (_isFollowing ? 'Following' : 'Follow'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: _isFollowing
+                            ? BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                child: Container(
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.15),
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    _isFollowActionInFlight ? '...' : 'Following',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFFFF5500), Color(0xFFFF7A00)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  _isFollowActionInFlight ? '...' : 'Follow',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -853,9 +950,12 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
               ),
             ),
           const SizedBox(width: 12),
-          _circleIconBtn(Icons.shuffle, () {}),
+          _circleIconBtn(
+            Icons.shuffle,
+            () => _playProfileTracks(profile, shuffle: true),
+          ),
           const SizedBox(width: 8),
-          _playButton(),
+          _playButton(profile),
         ],
       ),
     );
@@ -868,29 +968,36 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        height: 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: const Color(0xFF555555)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Container(
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
             ),
-          ],
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: Colors.white, size: 18),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -908,15 +1015,25 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
           SizedBox(
             width: double.infinity,
             height: 150,
-            child: coverUrl != null
-                ? Image.network(
-                    coverUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: Colors.grey[900],
-                    ),
-                  )
-                : Container(color: Colors.grey[900]),
+            child: ShaderMask(
+              shaderCallback: (rect) {
+                return const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black, Colors.transparent],
+                ).createShader(Rect.fromLTRB(0, 50, rect.width, rect.height));
+              },
+              blendMode: BlendMode.dstIn,
+              child: coverUrl != null
+                  ? Image.network(
+                      coverUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.grey[900],
+                      ),
+                    )
+                  : Container(color: Colors.grey[900]),
+            ),
           ),
           Positioned(
             top: 10,
@@ -948,11 +1065,18 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.black, width: 4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
       ),
       child: CircleAvatar(
         radius: 50,
-        backgroundColor: const Color(0xFF5B7BBB),
+        backgroundColor: const Color(0xFF1F2937),
         backgroundImage: avatarImage,
         onBackgroundImageError: avatarImage != null ? (_, __) {} : null,
         child: avatarUrl == null
@@ -1135,19 +1259,24 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
                 ),
               );
             },
-            borderRadius: BorderRadius.circular(22),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFF141414),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF333333)),
-              ),
-              child: Icon(
-                _iconForPlatform(platform),
-                color: Colors.white,
-                size: 20,
+            borderRadius: BorderRadius.circular(21),
+            child: ClipOval(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.07),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.15)),
+                  ),
+                  child: Icon(
+                    _iconForPlatform(platform),
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
               ),
             ),
           ),
@@ -1157,27 +1286,33 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildInfoChip(String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF333333)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.white70),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.12)),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: Colors.white.withOpacity(0.85)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.85),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1225,39 +1360,146 @@ class _ProfilePageBodyState extends State<_ProfilePageBody>
   }
 
   Widget _buildTabBar() {
-    return TabBar(
-      controller: _tabController,
-      isScrollable: true,
-      indicatorColor: const Color(0xFFFF5500),
-      labelColor: Colors.white,
-      unselectedLabelColor: Colors.grey,
-      tabs: const [
-        Tab(text: 'Likes'),
-        Tab(text: 'Liked playlists'),
-        Tab(text: 'Tracks'),
-        Tab(text: 'Playlists'),
-        Tab(text: 'Reposts'),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF5500), Color(0xFFFF7A00)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white.withOpacity(0.5),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+          tabs: const [
+            Tab(text: '  Likes  '),
+            Tab(text: '  Liked playlists  '),
+            Tab(text: '  Tracks  '),
+            Tab(text: '  Playlists  '),
+            Tab(text: '  Reposts  '),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _circleIconBtn(IconData icon, VoidCallback onTap) {
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(icon, color: Colors.white),
-      style: IconButton.styleFrom(backgroundColor: Colors.black45),
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withOpacity(0.15)),
+          ),
+          child: IconButton(
+            onPressed: onTap,
+            icon: Icon(icon, color: Colors.white, size: 20),
+            padding: EdgeInsets.zero,
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.transparent,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _playButton() {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
+  Widget _playButton(ProfileEntity profile) {
+    return GestureDetector(
+      onTap: () => _playProfileTracks(profile),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFFF5500), Color(0xFFFF7A00)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x66FF5500),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            )
+          ],
+        ),
+        child: const Icon(Icons.play_arrow, color: Colors.white, size: 24),
       ),
-      child: const Icon(Icons.play_arrow, color: Colors.black),
+    );
+  }
+
+  List<Track> _profilePlaybackTracks(ProfileEntity profile) {
+    return _managedTracks
+        .where((track) => !track.isDeleted)
+        .map(
+          (track) => Track(
+            id: track.id,
+            title: track.title,
+            artist: (track.artistName ?? '').trim().isNotEmpty
+                ? track.artistName!.trim()
+                : profile.displayName,
+            audioUrl: '',
+            artworkUrl: track.artworkUrl,
+            handle: (track.artistHandle ?? '').trim().isNotEmpty
+                ? track.artistHandle!.trim()
+                : profile.handle,
+            artistId: profile.id,
+            genre: track.genreName,
+            likesCount: track.likesCount,
+            repostsCount: track.repostsCount,
+            durationMs: track.durationInSeconds != null
+                ? track.durationInSeconds! * 1000
+                : null,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<void> _playProfileTracks(
+    ProfileEntity profile, {
+    bool shuffle = false,
+  }) async {
+    final playbackTracks = _profilePlaybackTracks(profile);
+    if (playbackTracks.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No tracks to play')),
+      );
+      return;
+    }
+
+    final queue = List<Track>.from(playbackTracks);
+    if (shuffle) {
+      queue.shuffle(Random());
+    }
+
+    final playerCubit = context.read<PlayerCubit>();
+    await playerCubit.playFromContext(
+      tracks: queue,
+      startIndex: 0,
+      source: shuffle ? 'profile_tracks_shuffle' : 'profile_tracks',
     );
   }
 }
@@ -1273,11 +1515,11 @@ class _ProfilePlaylistCover extends StatelessWidget {
         PlatformUrlUtils.normalizeBackendUrl(playlist.coverImageUrl);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
         width: 44,
         height: 44,
-        color: const Color(0xFF1C1C1C),
+        color: Colors.white.withOpacity(0.05),
         child: coverUrl == null
             ? Icon(
                 playlist.visibility.isSecret
@@ -1308,31 +1550,35 @@ class _ProfilePlaylistsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       itemCount: playlists.length,
-      separatorBuilder: (_, __) => const Divider(
-        color: Colors.white12,
-        height: 1,
-      ),
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final playlist = playlists[index];
-        return ListTile(
-          leading: _ProfilePlaylistCover(playlist: playlist),
-          title: Text(
-            playlist.title,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: Colors.white.withOpacity(0.03),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              leading: _ProfilePlaylistCover(playlist: playlist),
+              title: Text(
+                playlist.title,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '${playlist.tracksCount} tracks • ${playlist.likesCount} likes',
+                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+              ),
+              trailing: Icon(
+                Icons.chevron_right,
+                color: Colors.white.withOpacity(0.5),
+              ),
+              onTap: () => context.push('/playlist/${playlist.playlistId}'),
+            ),
           ),
-          subtitle: Text(
-            '${playlist.tracksCount} tracks • ${playlist.likesCount} likes',
-            style: const TextStyle(color: Colors.white60, fontSize: 12),
-          ),
-          trailing: const Icon(
-            Icons.chevron_right,
-            color: Colors.white54,
-          ),
-          onTap: () => context.push('/playlist/${playlist.playlistId}'),
         );
       },
     );
@@ -1397,54 +1643,74 @@ class _ManagedProfileTracksTab extends StatelessWidget {
     }
 
     return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       itemCount: tracks.length,
-      separatorBuilder: (_, __) => const Divider(
-        color: Colors.white12,
-        height: 1,
-      ),
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final managedTrack = tracks[index];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TrackRow(
-              track: _toTrackRowData(managedTrack),
-              source: source,
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: Colors.white.withOpacity(0.03),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TrackRow(
+                  track: _toTrackRowData(managedTrack),
+                  source: source,
+                ),
+                if (managedTrack.description != null &&
+                    managedTrack.description!.trim().isNotEmpty)
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    child: Text(
+                      managedTrack.description!,
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                if (managedTrack.tags.isNotEmpty)
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    child: Text(
+                      '#${managedTrack.tags.join(' · #')}',
+                      style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                            backgroundColor: Colors.white.withOpacity(0.05),
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                          ),
+                          onPressed: () => onManageTap(managedTrack),
+                          icon: const Icon(Icons.settings_outlined, size: 14),
+                          label: const Text('Manage'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            if (managedTrack.description != null &&
-                managedTrack.description!.trim().isNotEmpty)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                child: Text(
-                  managedTrack.description!,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            if (managedTrack.tags.isNotEmpty)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                child: Text(
-                  '#${managedTrack.tags.join(' · #')}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton(
-                  onPressed: () => onManageTap(managedTrack),
-                  child: const Text('Manage'),
-                ),
-              ),
-            ),
-          ],
+          ),
         );
       },
     );
@@ -1527,17 +1793,22 @@ class _ProfileTracksListTab extends StatelessWidget {
     }
 
     return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       itemCount: tracks.length,
-      separatorBuilder: (_, __) => const Divider(
-        color: Colors.white12,
-        height: 1,
-      ),
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final track = tracks[index];
-        return TrackRow(
-          track: _toTrackRowData(track),
-          source: source,
-          showLikesCount: showLikesCount,
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: Colors.white.withOpacity(0.03),
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: TrackRow(
+              track: _toTrackRowData(track),
+              source: source,
+              showLikesCount: showLikesCount,
+            ),
+          ),
         );
       },
     );

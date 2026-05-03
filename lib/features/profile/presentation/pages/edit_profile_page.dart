@@ -897,51 +897,60 @@ class _EditProfilePageState extends State<EditProfilePage> {
         listener: (context, state) {
           _syncFormWithState(state);
 
+          // Clear snackbars during loading states
           if (state is ProfileImageUploading || state is ProfileLoaded) {
             ScaffoldMessenger.of(context).removeCurrentSnackBar();
+            return; // Prevent additional snackbar logic
           }
+
+          // Hide current and show new snackbar (consolidates operations)
+          final messenger = ScaffoldMessenger.of(context);
 
           if (state is ProfileUpdateSuccess) {
             context.read<AuthCubit>().refreshCurrentUserSilently();
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Profile updated'),
-                backgroundColor: Color(0xFF1A1A1A),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-            Navigator.of(context).pop();
-          }
-
-          if (state is ProfileImageUploadError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red.shade800,
-                behavior: SnackBarBehavior.floating,
-                action: SnackBarAction(
-                  label: 'Retry',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    context.read<ProfileCubit>().uploadImage(
-                          imageType: state.imageType,
-                          filePath: state.filePath,
-                        );
-                  },
+            messenger
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text('Profile updated'),
+                  backgroundColor: Color(0xFF1A1A1A),
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 2),
                 ),
-              ),
-            );
-          }
-
-          if (state is ProfileUpdateError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red.shade800,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+              );
+            Navigator.of(context).pop();
+          } else if (state is ProfileImageUploadError) {
+            messenger
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red.shade800,
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 3),
+                  action: SnackBarAction(
+                    label: 'Retry',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      context.read<ProfileCubit>().uploadImage(
+                            imageType: state.imageType,
+                            filePath: state.filePath,
+                          );
+                    },
+                  ),
+                ),
+              );
+          } else if (state is ProfileUpdateError) {
+            messenger
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red.shade800,
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 3),
+                ),
+              );
           }
         },
         builder: (context, state) {

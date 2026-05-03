@@ -1,18 +1,17 @@
 import 'package:flutter/widgets.dart';
 import '../config/app_config.dart';
 
-// Third-party
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:soundcloud_clone/features/recently_played/presentation/bloc/recently_played_cubit.dart';
 import 'package:soundcloud_clone/features/recently_played/data/datasources/recently_played_remote_datasource.dart';
 import 'package:soundcloud_clone/features/recently_played/data/repositories/recently_played_repository_impl.dart';
 import 'package:soundcloud_clone/features/recently_played/domain/usecases/get_recently_played.dart';
 
-// Project
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -30,11 +29,10 @@ import '../../features/auth/domain/usecases/send_email_verification_usecase.dart
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_cubit.dart';
 
-// Playback
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/playback/presentation/bloc/playback_cubit.dart';
+import 'package:soundcloud_clone/features/playback/data/repositories/queue_repository.dart';
 
-// Upload
 import '../../features/upload/data/datasources/audio_file_picker_data_source.dart';
 import '../../features/upload/data/datasources/track_management_remote_data_source.dart';
 import '../../features/upload/data/repositories/track_management_repository_fake.dart';
@@ -53,8 +51,19 @@ import '../../features/upload/data/datasources/track_status_remote_data_source.d
 import '../../features/upload/data/repositories/track_status_repository_impl.dart';
 import '../../features/upload/domain/repositories/i_track_status_repository.dart';
 import '../../features/upload/domain/usecases/watch_track_processing_status_use_case.dart';
-
-// Profile feature
+import '../../features/feed/data/datasources/feed_remote_data_sources.dart';
+import '../../features/feed/data/repositories/feed_repository_impl.dart';
+import '../../features/feed/domain/repositories/feed_repository.dart';
+import '../../features/feed/domain/usecases/get_feed.dart';
+import '../../features/feed/domain/usecases/toggle_like.dart';
+import '../../features/feed/domain/usecases/toggle_repost.dart';
+import '../../features/feed/presentation/bloc/feed_cubit.dart';
+import '../../features/home/data/datasources/home_remote_data_source.dart';
+import '../../features/home/data/repositories/home_repository_impl.dart';
+import '../../features/home/domain/repositories/home_repository.dart';
+import '../../features/home/domain/usecases/get_home_content_usecase.dart';
+import '../../features/home/domain/usecases/get_home_trending_tracks_usecase.dart';
+import '../../features/home/presentation/bloc/home_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_data_source.dart'
     as profile_data;
 import '../../features/profile/data/repositories/profile_repository_impl.dart'
@@ -65,10 +74,8 @@ import '../../features/profile/domain/usecases/get_profile_usecase.dart';
 import '../../features/profile/domain/usecases/update_profile_usecase.dart';
 import '../../features/profile/presentation/bloc/profile_cubit.dart';
 
-// Social existing
 import '../../features/social/data/repositories/social_repo.dart';
 
-// Interactions
 import '../../features/interactions/data/datasources/interactions_remote_data_source.dart';
 import '../../features/interactions/data/repositories/interactions_repository_impl.dart';
 import '../../features/interactions/domain/repositories/interactions_repository.dart';
@@ -120,13 +127,18 @@ import '../../features/notifications/notifications_injection.dart';
 import '../../features/notifications/data/services/fcm_registration_service.dart';
 import '../../features/notifications/data/services/notifications_realtime_refresh_service.dart';
 
+import '../../features/search/data/datasources/search_remote_data_source.dart';
+import '../../features/search/data/repositories/search_repository_impl.dart';
+import '../../features/search/domain/repositories/search_repository.dart';
+import '../../features/search/domain/usecases/search_usecase.dart';
+import '../../features/search/presentation/bloc/search_cubit.dart';
+
 import '../network/api_constants.dart';
 import '../network/dio_client.dart';
 import '../services/audio_player_service.dart';
 import '../services/implementations/just_audio_player_service.dart';
 import '../storage/secure_storage.dart';
 
-// ── Deep Links / OAuth ─────────────────────────────────────────────────────
 import '../../features/playback/data/datasources/track_detail_remote_data_source.dart';
 import '../../features/playback/data/repositories/track_detail_repository_impl.dart';
 import '../../features/playback/domain/repositories/i_track_detail_repository.dart';
@@ -136,7 +148,8 @@ import '../../features/playback/presentation/bloc/track_loader_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../oauth/oauth_pending_request_store.dart';
 import '../oauth/windows_oauth_callback_server.dart';
-//messaging
+
+// Messaging
 import '../../features/messaging/data/datasources/messaging_remote_data_source.dart';
 import '../../features/messaging/data/repositories/messaging_repository_impl.dart';
 import '../../features/messaging/domain/repositories/messaging_repository.dart';
@@ -157,11 +170,11 @@ import '../../features/messaging/presentation/bloc/unread_count_cubit.dart';
 import '../../features/messaging/presentation/bloc/share_track_to_conversation_cubit.dart';
 import '../../features/messaging/presentation/bloc/start_direct_conversation_cubit.dart';
 import '../../features/messaging/domain/usecases/archive_conversation_usecase.dart';
+import '../../features/messaging/domain/usecases/delete_conversation_usecase.dart';
 import '../../features/messaging/domain/usecases/get_conversation_meta_usecase.dart';
 import '../../features/messaging/domain/usecases/mark_conversation_unread_usecase.dart';
 import '../../features/messaging/domain/usecases/unarchive_conversation_usecase.dart';
 
-// Premium
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
 import 'package:soundcloud_clone/features/upload/domain/usecases/check_upload_limit_usecase.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
@@ -169,6 +182,21 @@ import 'package:soundcloud_clone/features/premium/data/repositories/subscription
 import 'package:soundcloud_clone/features/offline/data/repositories/offline_repository.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/premium/premium_di.dart';
+import '../../features/discovery/data/datasources/discovery_remote_data_source.dart';
+import '../../features/discovery/data/repositories/discovery_repository_impl.dart';
+import '../../features/discovery/data/repositories/trending_repository_impl.dart';
+import '../../features/discovery/domain/repositories/discovery_repository.dart';
+import '../../features/discovery/domain/repositories/trending_repository.dart';
+import '../../features/discovery/domain/usecases/get_trending_usecase.dart';
+import '../../features/discovery/domain/usecases/resolve_resource_usecase.dart';
+import '../../features/discovery/presentation/bloc/discovery_cubit.dart';
+import '../../features/discovery/presentation/bloc/trending_cubit.dart';
+
+import '../../features/search/data/datasources/genre_remote_datasource.dart';
+import '../../features/search/data/repositories/genre_repository_impl.dart';
+import '../../features/search/domain/repositories/genre_repository.dart';
+import '../../features/search/domain/usecases/genre_usecase.dart';
+import '../../features/search/presentation/bloc/genre_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -183,6 +211,7 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<PersistCookieJar>()) {
     getIt.registerLazySingleton<PersistCookieJar>(() => cookieJar);
   }
+
   // ── Core ─────────────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
@@ -269,32 +298,37 @@ Future<void> setupDependencies() async {
     );
   }
 
+  // ── Queue Repository — لازم يتسجل قبل PlayerCubit و PlaybackCubit ────────
+
+  if (!getIt.isRegistered<QueueRepository>()) {
+    getIt.registerLazySingleton<QueueRepository>(
+      () => QueueRepository(getIt<DioClient>()),
+    );
+  }
+
+  // ── PlayerCubit ──────────────────────────────────────────────────────────
+
   if (!getIt.isRegistered<PlayerCubit>()) {
     getIt.registerLazySingleton<PlayerCubit>(
       () => PlayerCubit(
         getIt<AudioPlayerService>(),
         getTrackDetail: getIt<GetTrackDetailUseCase>(),
+        queueRepository: getIt<QueueRepository>(), // ✅
       ),
     );
   }
 
-  if (!getIt.isRegistered<TrackLoaderCubit>()) {
-    getIt.registerFactory<TrackLoaderCubit>(
-      () => TrackLoaderCubit(
-        getTrackDetail: getIt<GetTrackDetailUseCase>(),
-        getTrackBySecret: getIt<GetTrackBySecretUseCase>(),
-        playerCubit: getIt<PlayerCubit>(),
-      ),
-    );
-  }
+  // ── PlaybackCubit ────────────────────────────────────────────────────────
 
   if (!getIt.isRegistered<PlaybackCubit>()) {
     getIt.registerLazySingleton<PlaybackCubit>(
-      () => PlaybackCubit(getIt<AudioPlayerService>()),
+      () => PlaybackCubit(
+        getIt<AudioPlayerService>(),
+        getIt<QueueRepository>(), // ✅
+      ),
     );
   }
 
-  // Factory — fresh instance per bridge page, not a singleton
   if (!getIt.isRegistered<TrackLoaderCubit>()) {
     getIt.registerFactory<TrackLoaderCubit>(
       () => TrackLoaderCubit(
@@ -336,6 +370,26 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<TrackStatusRemoteDataSource>()) {
+    getIt.registerLazySingleton<TrackStatusRemoteDataSource>(
+      () => TrackStatusRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ITrackStatusRepository>()) {
+    getIt.registerLazySingleton<ITrackStatusRepository>(
+      () => TrackStatusRepositoryImpl(getIt<TrackStatusRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<WatchTrackProcessingStatusUseCase>()) {
+    getIt.registerLazySingleton<WatchTrackProcessingStatusUseCase>(
+      () => WatchTrackProcessingStatusUseCase(
+        getIt<ITrackStatusRepository>(),
+      ),
+    );
+  }
+
   if (!getIt.isRegistered<UploadPickerCubit>()) {
     getIt.registerFactory<UploadPickerCubit>(
       () => UploadPickerCubit(
@@ -349,51 +403,10 @@ Future<void> setupDependencies() async {
     );
   }
 
-  if (!getIt.isRegistered<TrackStatusRemoteDataSource>()) {
-    getIt.registerLazySingleton<TrackStatusRemoteDataSource>(
-      () => TrackStatusRemoteDataSourceImpl(getIt<DioClient>()),
-    );
-  }
-
-  if (!getIt.isRegistered<ITrackStatusRepository>()) {
-    getIt.registerLazySingleton<ITrackStatusRepository>(
-      () => TrackStatusRepositoryImpl(getIt<TrackStatusRemoteDataSource>()),
-    );
-  }
-
-  if (!getIt.isRegistered<WatchTrackProcessingStatusUseCase>()) {
-    getIt.registerLazySingleton<WatchTrackProcessingStatusUseCase>(
-      () => WatchTrackProcessingStatusUseCase(
-        getIt<ITrackStatusRepository>(),
-      ),
-    );
-  }
-
-  if (!getIt.isRegistered<TrackStatusRemoteDataSource>()) {
-    getIt.registerLazySingleton<TrackStatusRemoteDataSource>(
-      () => TrackStatusRemoteDataSourceImpl(getIt<DioClient>()),
-    );
-  }
-
-  if (!getIt.isRegistered<ITrackStatusRepository>()) {
-    getIt.registerLazySingleton<ITrackStatusRepository>(
-      () => TrackStatusRepositoryImpl(getIt<TrackStatusRemoteDataSource>()),
-    );
-  }
-
-  if (!getIt.isRegistered<WatchTrackProcessingStatusUseCase>()) {
-    getIt.registerLazySingleton<WatchTrackProcessingStatusUseCase>(
-      () => WatchTrackProcessingStatusUseCase(
-        getIt<ITrackStatusRepository>(),
-      ),
-    );
-  }
-
-  // ── Upload Feature: Track Management Basics ─────────────────────────────
+  // ── Upload Feature: Track Management ────────────────────────────────────
 
   const bool useMockTrackManagement = AppConfig.useMockTrackManagement;
   const String mockTrackManagementModeValue = AppConfig.mockTrackManagementMode;
-
   final MockTrackManagementMode mockTrackManagementMode =
       _parseMockTrackManagementMode(mockTrackManagementModeValue);
 
@@ -406,9 +419,7 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<TrackManagementRepository>()) {
     getIt.registerLazySingleton<TrackManagementRepository>(
       () => useMockTrackManagement
-          ? TrackManagementRepositoryFake(
-              mode: mockTrackManagementMode,
-            )
+          ? TrackManagementRepositoryFake(mode: mockTrackManagementMode)
           : TrackManagementRepositoryImpl(
               getIt<TrackManagementRemoteDataSource>(),
             ),
@@ -557,6 +568,8 @@ Future<void> setupDependencies() async {
     );
   }
 
+  // ── Recently Played Feature ──────────────────────────────────────────────
+
   if (!getIt.isRegistered<RecentlyPlayedCubit>()) {
     if (!getIt.isRegistered<RecentlyPlayedRemoteDataSource>()) {
       getIt.registerLazySingleton<RecentlyPlayedRemoteDataSource>(
@@ -602,9 +615,7 @@ Future<void> setupDependencies() async {
   if (!getIt.isRegistered<MessagingSocketDataSource>()) {
     getIt.registerLazySingleton<MessagingSocketDataSource>(
       () => MessagingSocketDataSourceImpl(
-        cookieJar: getIt<PersistCookieJar>(),
-        secureStorage: getIt<SecureStorage>(),
-      ),
+        cookieJar: getIt<PersistCookieJar>(),      ),
     );
   }
 
@@ -630,9 +641,7 @@ Future<void> setupDependencies() async {
 
   if (!getIt.isRegistered<GetOrCreateDirectConversationUseCase>()) {
     getIt.registerLazySingleton<GetOrCreateDirectConversationUseCase>(
-      () => GetOrCreateDirectConversationUseCase(
-        getIt<MessagingRepository>(),
-      ),
+      () => GetOrCreateDirectConversationUseCase(getIt<MessagingRepository>()),
     );
   }
 
@@ -678,11 +687,15 @@ Future<void> setupDependencies() async {
     );
   }
 
+  if (!getIt.isRegistered<DeleteConversationUseCase>()) {
+    getIt.registerLazySingleton<DeleteConversationUseCase>(
+      () => DeleteConversationUseCase(getIt<MessagingRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<ConnectMessagingSocketUseCase>()) {
     getIt.registerLazySingleton<ConnectMessagingSocketUseCase>(
-      () => ConnectMessagingSocketUseCase(
-        getIt<MessagingRealtimeRepository>(),
-      ),
+      () => ConnectMessagingSocketUseCase(getIt<MessagingRealtimeRepository>()),
     );
   }
 
@@ -786,6 +799,158 @@ Future<void> setupDependencies() async {
     );
   }
 
+  // ── Search Feature ───────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<SearchRemoteDataSource>()) {
+    getIt.registerLazySingleton<SearchRemoteDataSource>(
+      () => SearchRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SearchRepository>()) {
+    getIt.registerLazySingleton<SearchRepository>(
+      () => SearchRepositoryImpl(getIt<SearchRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SearchUseCase>()) {
+    getIt.registerLazySingleton<SearchUseCase>(
+      () => SearchUseCase(getIt<SearchRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<SearchCubit>()) {
+    getIt.registerFactory<SearchCubit>(
+      () => SearchCubit(getIt<SearchUseCase>()),
+    );
+  }
+
+  // ── Feed Feature ─────────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<FeedRemoteDataSource>()) {
+    getIt.registerLazySingleton<FeedRemoteDataSource>(
+      () => FeedRemoteDataSourceImpl(client: getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<FeedRepository>()) {
+    getIt.registerLazySingleton<FeedRepository>(
+      () => FeedRepositoryImpl(
+        dataSource: getIt<FeedRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetFeedUseCase>()) {
+    getIt.registerLazySingleton<GetFeedUseCase>(
+      () => GetFeedUseCase(getIt<FeedRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ToggleLikeUseCase>()) {
+    getIt.registerLazySingleton<ToggleLikeUseCase>(
+      () => ToggleLikeUseCase(getIt<FeedRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ToggleRepostUseCase>()) {
+    getIt.registerLazySingleton<ToggleRepostUseCase>(
+      () => ToggleRepostUseCase(getIt<FeedRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<FeedCubit>()) {
+    getIt.registerFactory<FeedCubit>(
+      () => FeedCubit(
+        getFeed: getIt<GetFeedUseCase>(),
+        toggleLike: getIt<ToggleLikeUseCase>(),
+        toggleRepost: getIt<ToggleRepostUseCase>(),
+        repository: getIt<FeedRepository>(),
+      ),
+    );
+  }
+  // ── Discovery Feature ────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<DiscoveryRemoteDataSource>()) {
+    getIt.registerLazySingleton<DiscoveryRemoteDataSource>(
+      () => DiscoveryRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DiscoveryRepository>()) {
+    getIt.registerLazySingleton<DiscoveryRepository>(
+      () => DiscoveryRepositoryImpl(getIt<DiscoveryRemoteDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ResolveResourceUseCase>()) {
+    getIt.registerLazySingleton<ResolveResourceUseCase>(
+      () => ResolveResourceUseCase(getIt<DiscoveryRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DiscoveryCubit>()) {
+    getIt.registerFactory<DiscoveryCubit>(
+      () => DiscoveryCubit(getIt<ResolveResourceUseCase>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrendingRepository>()) {
+    getIt.registerLazySingleton<TrendingRepository>(
+      () => TrendingRepositoryImpl(
+        remoteDataSource: getIt<DiscoveryRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetTrendingUseCase>()) {
+    getIt.registerLazySingleton<GetTrendingUseCase>(
+      () => GetTrendingUseCase(getIt<TrendingRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TrendingCubit>()) {
+    getIt.registerFactory<TrendingCubit>(
+      () => TrendingCubit(
+        getTrendingUseCase: getIt<GetTrendingUseCase>(),
+      ),
+    );
+  }
+
+  // ── Genre Discovery Feature ──────────────────────────────────────────────
+
+  if (!getIt.isRegistered<GenreRemoteDatasource>()) {
+    getIt.registerLazySingleton<GenreRemoteDatasource>(
+      () => GenreRemoteDatasource(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GenreRepository>()) {
+    getIt.registerLazySingleton<GenreRepository>(
+      () => GenreRepositoryImpl(getIt<GenreRemoteDatasource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GenreUseCase>()) {
+    getIt.registerLazySingleton<GenreUseCase>(
+      () => GenreUseCase(getIt<GenreRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<FollowUserUseCase>()) {
+    getIt.registerLazySingleton<FollowUserUseCase>(
+      () => FollowUserUseCase(getIt<GenreRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GenreCubit>()) {
+    getIt.registerFactory<GenreCubit>(
+      () => GenreCubit(
+        getIt<GenreUseCase>(),
+        getIt<FollowUserUseCase>(),
+      ),
+    );
+  }
   // ── Interactions Feature ─────────────────────────────────────────────────
 
   if (!getIt.isRegistered<InteractionsRemoteDataSource>()) {
@@ -1013,6 +1178,45 @@ Future<void> setupDependencies() async {
         likePlaylistUseCase: getIt<LikePlaylistUseCase>(),
         unlikePlaylistUseCase: getIt<UnlikePlaylistUseCase>(),
         recordPlaylistPlaybackUseCase: getIt<RecordPlaylistPlaybackUseCase>(),
+      ),
+    );
+  }
+
+  // ── Home Feature ────────────────────────────────────────────────────────
+
+  if (!getIt.isRegistered<HomeRemoteDataSource>()) {
+    getIt.registerLazySingleton<HomeRemoteDataSource>(
+      () => HomeRemoteDataSourceImpl(getIt<DioClient>()),
+    );
+  }
+
+  if (!getIt.isRegistered<HomeRepository>()) {
+    getIt.registerLazySingleton<HomeRepository>(
+      () => HomeRepositoryImpl(
+        profileRepository: getIt<profile_domain.ProfileRepository>(),
+        homeRemoteDataSource: getIt<HomeRemoteDataSource>(),
+        discoveryRemoteDataSource: getIt<DiscoveryRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetHomeContentUseCase>()) {
+    getIt.registerLazySingleton<GetHomeContentUseCase>(
+      () => GetHomeContentUseCase(getIt<HomeRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetHomeTrendingTracksUseCase>()) {
+    getIt.registerLazySingleton<GetHomeTrendingTracksUseCase>(
+      () => GetHomeTrendingTracksUseCase(getIt<HomeRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<HomeCubit>()) {
+    getIt.registerFactory<HomeCubit>(
+      () => HomeCubit(
+        getHomeContent: getIt<GetHomeContentUseCase>(),
+        getHomeTrendingTracks: getIt<GetHomeTrendingTracksUseCase>(),
       ),
     );
   }

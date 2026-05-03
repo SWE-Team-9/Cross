@@ -6,6 +6,7 @@ class FollowState {
   final bool hasMore;
   final int currentPage;
   final String? error;
+  final Set<String> loadingIds; // ✅ جديد
 
   const FollowState({
     required this.users,
@@ -13,6 +14,7 @@ class FollowState {
     this.hasMore = true,
     this.currentPage = 0,
     this.error,
+    this.loadingIds = const {}, // ✅ جديد
   });
 
   FollowState copyWith({
@@ -21,6 +23,7 @@ class FollowState {
     bool? hasMore,
     int? currentPage,
     String? error,
+    Set<String>? loadingIds, // ✅ جديد
   }) {
     return FollowState(
       users: users ?? this.users,
@@ -28,6 +31,7 @@ class FollowState {
       hasMore: hasMore ?? this.hasMore,
       currentPage: currentPage ?? this.currentPage,
       error: error,
+      loadingIds: loadingIds ?? this.loadingIds, // ✅ جديد
     );
   }
 }

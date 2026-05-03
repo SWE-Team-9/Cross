@@ -15,14 +15,12 @@ class AppConfig {
   /// Keep this as ROOT origin only.
   /// ApiConstants already appends `/api/v1/...`.
   static String get apiUrl {
-    // //const override = String.fromEnvironment('API_URL', defaultValue: '');
-    // if (override.isNotEmpty) {
-    //   return _stripTrailingSlash(_stripApiV1Suffix(override));
-    // }
+    const override = String.fromEnvironment('API_URL', defaultValue: '');
+    if (override.isNotEmpty) {
+      return _stripTrailingSlash(_stripApiV1Suffix(override));
+    }
 
-    return 'https://dev.iqa3.tech';
-    //return 'http://10.0.2.2:3006';
-    //return 'http://localhost:3006';
+    return 'https://iqa3.tech';
   }
 
   static const bool useMockTrackManagement = bool.fromEnvironment(
@@ -79,18 +77,18 @@ class AppConfig {
     return oauthAndroidRedirectUri;
   }
 
-  // static String _stripTrailingSlash(String value) {
-  //   if (value.endsWith('/')) {
-  //     return value.substring(0, value.length - 1);
-  //   }
-  //   return value;
-  // }
+  static String _stripTrailingSlash(String value) {
+    if (value.endsWith('/')) {
+      return value.substring(0, value.length - 1);
+    }
+    return value;
+  }
 
-  // static String _stripApiV1Suffix(String value) {
-  //   final normalized = value.trim();
-  //   if (normalized.endsWith('/api/v1')) {
-  //     return normalized.substring(0, normalized.length - '/api/v1'.length);
-  //   }
-  //   return normalized;
-  // }
+  static String _stripApiV1Suffix(String value) {
+    final normalized = value.trim();
+    if (normalized.endsWith('/api/v1')) {
+      return normalized.substring(0, normalized.length - '/api/v1'.length);
+    }
+    return normalized;
+  }
 }

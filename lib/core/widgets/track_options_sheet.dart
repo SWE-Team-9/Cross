@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:soundcloud_clone/core/config/app_config.dart';
 import 'package:soundcloud_clone/core/di/injector.dart';
 import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/core/notifiers/overlay_notifiers.dart';
@@ -12,6 +15,8 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_i
 import 'package:soundcloud_clone/features/playback/presentation/bloc/player_cubit.dart';
 import 'package:soundcloud_clone/features/profile/presentation/routes/profile_routes.dart';
 import 'package:go_router/go_router.dart';
+import 'package:soundcloud_clone/core/network/dio_client.dart';
+
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_cubit.dart';
 import 'package:soundcloud_clone/features/offline/presentation/bloc/offline_state.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
@@ -28,6 +33,15 @@ class TrackOptionsSheet extends StatelessWidget {
     required this.scrollController,
     required this.parentContext,
   });
+
+  // ── URL builder ────────────────────────────────────────────────────────────
+  // static String _trackUrl(Track t) {
+  //   debugPrint('handle: ${t.handle}, slug: ${t.slug}');
+  //   if (t.handle != null && t.slug != null) {
+  //     return '${AppConfig.apiUrl}/${t.handle}/${t.slug}';
+  //   }
+  //   return '${AppConfig.apiUrl}/track/${t.id}';
+  // }
 
   static Future<void> show(BuildContext context, {required Track track}) {
     isTrackSheetOpen.value = true;
@@ -68,6 +82,97 @@ class TrackOptionsSheet extends StatelessWidget {
     ).whenComplete(() {
       isTrackSheetOpen.value = false;
     });
+  }
+
+  // ── Resolve track URL — يجيب الـ slug من الـ API لو مش موجود ──────────────
+  Future<String> _resolveTrackUrl(BuildContext context) async {
+    // لو عندنا handle و slug — ارجع اللينك مباشرة
+    if (track.handle != null &&
+        track.handle!.isNotEmpty &&
+        track.slug != null &&
+        track.slug!.isNotEmpty) {
+      return '${AppConfig.apiUrl}/${track.handle}/${track.slug}';
+    }
+
+    // لو slug فاضي — اجيبه من الـ API
+    try {
+      final response = await getIt<DioClient>().get<Map<String, dynamic>>(
+        '/api/v1/tracks/${track.id}',
+      );
+      final data = response.data ?? {};
+      final slug = (data['slug'] as String?)?.trim() ?? '';
+      final handle =
+          (data['artistHandle'] as String?)?.trim().isNotEmpty == true
+              ? (data['artistHandle'] as String).trim()
+              : track.handle ?? '';
+
+      if (slug.isNotEmpty && handle.isNotEmpty) {
+        return '${AppConfig.apiUrl}/$handle/$slug';
+      }
+    } catch (_) {}
+
+    return '';
+  }
+
+  // ── Copy link to clipboard ─────────────────────────────────────────────────
+  Future<void> _copyLink(BuildContext context) async {
+    final url = await _resolveTrackUrl(context);
+    if (url.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Link not available for this track'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: url));
+    if (context.mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Link copied!'),
+          backgroundColor: const Color(0xFFFF5500),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // ── Native share sheet ─────────────────────────────────────────────────────
+  Future<void> _shareTrack(BuildContext context) async {
+    final url = await _resolveTrackUrl(context);
+    if (url.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Link not available for this track'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+    Navigator.pop(context);
+    final artistHandle = track.handle ?? track.artist;
+    final text = 'Check out "${track.title}" by @$artistHandle\n$url';
+    await SharePlus.instance
+        .share(ShareParams(text: text, subject: track.title));
   }
 
   @override
@@ -145,12 +250,32 @@ class TrackOptionsSheet extends StatelessWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  _ShareItem(icon: Icons.send_outlined, label: 'Message'),
-                  _ShareItem(icon: Icons.copy_outlined, label: 'Copy Link'),
-                  _ShareItem(icon: Icons.share_outlined, label: 'WhatsApp'),
-                  _ShareItem(icon: Icons.camera_alt_outlined, label: 'Status'),
-                  _ShareItem(icon: Icons.headphones_outlined, label: 'Audio'),
+                children: [
+                  _ShareItem(
+                    icon: Icons.send_outlined,
+                    label: 'Message',
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  _ShareItem(
+                    icon: Icons.copy_outlined,
+                    label: 'Copy Link',
+                    onTap: () => _copyLink(context),
+                  ),
+                  _ShareItem(
+                    icon: Icons.share_outlined,
+                    label: 'Share',
+                    onTap: () => _shareTrack(context),
+                  ),
+                  _ShareItem(
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Status',
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  _ShareItem(
+                    icon: Icons.headphones_outlined,
+                    label: 'Audio',
+                    onTap: () => Navigator.pop(context),
+                  ),
                 ],
               ),
             ),
@@ -480,38 +605,43 @@ class _OptionTile extends StatelessWidget {
 class _ShareItem extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   const _ShareItem({
     required this.icon,
     required this.label,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.grey[850],
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.grey[850],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 22),
             ),
-            child: Icon(icon, color: Colors.white, size: 22),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

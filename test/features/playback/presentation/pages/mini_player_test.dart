@@ -110,6 +110,12 @@ class _StubPlayerCubit extends Cubit<PlayerUIState> implements PlayerCubit {
 
   @override
   void closeFullPlayer() {}
+  
+  @override
+  Future<void> shuffleCurrentQueue() async {}
+  
+  @override
+  void reorderQueue(List<Track> newQueue) {}
   @override
   void hideMiniPlayer() {}
 

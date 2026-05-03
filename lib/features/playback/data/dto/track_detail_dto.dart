@@ -1,7 +1,6 @@
-// playback/data/dto/track_detail_dto.dart
-
 import '../../domain/entities/track_details.dart';
 import '../../domain/entities/waveform_data.dart';
+import '../../../../../core/utils/platform_url_utils.dart';
 
 class TrackDetailDto {
   const TrackDetailDto({
@@ -10,6 +9,7 @@ class TrackDetailDto {
     required this.artist,
     required this.artistId,
     required this.artistHandle,
+    this.slug,
     this.artworkUrl,
     this.durationMs,
     this.likesCount = 0,
@@ -22,6 +22,7 @@ class TrackDetailDto {
   final String artist;
   final String artistId;
   final String artistHandle;
+  final String? slug;
   final String? artworkUrl;
   final int? durationMs;
   final int likesCount;
@@ -29,13 +30,56 @@ class TrackDetailDto {
   final List<dynamic>? waveformRaw;
 
   factory TrackDetailDto.fromJson(Map<String, dynamic> json) {
+    // ✅ الحل — بنجرب كل الأسماء المحتملة للـ ID
+    final trackId = _firstNonEmpty([
+      json['trackId'],
+      json['trackid'],
+      json['id'],
+      json['Id'],
+      json['track_id'],
+    ]);
+
+    final uploader = json['uploader'] as Map<String, dynamic>?;
+    final profile = uploader?['profile'] as Map<String, dynamic>?;
+
+    final artist = (json['artist'] as String?)?.trim().isNotEmpty == true
+        ? (json['artist'] as String).trim()
+        : (profile?['displayName'] as String?)?.trim() ??
+            (profile?['handle'] as String?)?.trim() ??
+            '';
+
+    final artistId = _firstNonEmpty([
+      json['artistId'],
+      json['artist_id'],
+      json['uploaderId'],
+    ]);
+
+    final artistHandle = _firstNonEmpty([
+      json['artistHandle'],
+      json['artist_handle'],
+      profile?['handle'],
+    ]);
+
+    final slug = (json['slug'] as String?)?.trim().isNotEmpty == true
+        ? (json['slug'] as String).trim()
+        : null;
+    final artworkUrl = PlatformUrlUtils.normalizeBackendUrl(
+      (json['artworkUrl'] as String?) ??
+          (json['artwork_url'] as String?) ??
+          (json['coverArtUrl'] as String?) ??
+          (json['cover_art_url'] as String?) ??
+          (json['coverUrl'] as String?) ??
+          (json['coverImageUrl'] as String?),
+    );
+
     return TrackDetailDto(
-      trackId: (json['trackId'] as String?) ?? '',
+      trackId: trackId,
       title: (json['title'] as String?) ?? '',
-      artist: (json['artist'] as String?) ?? '',
-      artistId: (json['artistId'] as String?) ?? '',
-      artistHandle: (json['artistHandle'] as String?) ?? '',
-      artworkUrl: json['coverArtUrl'] as String?,
+      artist: artist,
+      artistId: artistId,
+      artistHandle: artistHandle,
+      slug: slug,
+      artworkUrl: artworkUrl,
       durationMs: json['durationMs'] as int?,
       likesCount: (json['likesCount'] as int?) ?? 0,
       repostsCount: (json['repostsCount'] as int?) ?? 0,
@@ -50,8 +94,9 @@ class TrackDetailDto {
       artist: artist,
       artistId: artistId,
       artistHandle: artistHandle,
+      slug: slug,
       streamUrl: streamUrl,
-      artworkUrl: artworkUrl,
+      artworkUrl: PlatformUrlUtils.normalizeBackendUrl(artworkUrl),
       durationMs: durationMs,
       waveformData: waveformRaw != null && waveformRaw!.isNotEmpty
           ? WaveformData.fromRaw(waveformRaw!)
@@ -59,5 +104,14 @@ class TrackDetailDto {
       likesCount: likesCount,
       repostsCount: repostsCount,
     );
+  }
+
+  // ✅ helper — بياخد أول قيمة غير فاضية من اللستة
+  static String _firstNonEmpty(List<dynamic> values) {
+    for (final value in values) {
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    return '';
   }
 }

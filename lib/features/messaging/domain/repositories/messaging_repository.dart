@@ -50,5 +50,7 @@ abstract class MessagingRepository {
 
   Future<void> unarchiveConversation(String conversationId);
 
+  Future<void> deleteConversation(String conversationId);
+
   Future<void> deleteMessage(String messageId);
 }

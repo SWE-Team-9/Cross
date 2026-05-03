@@ -6,6 +6,7 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/message_type.dart';
 import '../../domain/entities/realtime_message_event_entity.dart';
 import '../../domain/usecases/connect_messaging_socket_usecase.dart';
+import '../../domain/usecases/delete_conversation_usecase.dart';
 import '../../domain/usecases/delete_message_usecase.dart';
 import '../../domain/usecases/get_conversation_messages_usecase.dart';
 import '../../domain/usecases/mark_conversation_read_usecase.dart';
@@ -18,6 +19,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   final GetConversationMessagesUseCase getConversationMessagesUseCase;
   final SendTextMessageUseCase sendTextMessageUseCase;
   final MarkConversationReadUseCase markConversationReadUseCase;
+  final DeleteConversationUseCase deleteConversationUseCase;
   final DeleteMessageUseCase deleteMessageUseCase;
   final ConnectMessagingSocketUseCase connectMessagingSocketUseCase;
   final ShareTrackMessageUseCase? shareTrackMessageUseCase;
@@ -34,6 +36,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     required this.getConversationMessagesUseCase,
     required this.sendTextMessageUseCase,
     required this.markConversationReadUseCase,
+    required this.deleteConversationUseCase,
     required this.deleteMessageUseCase,
     required this.connectMessagingSocketUseCase,
     this.shareTrackMessageUseCase,
@@ -279,6 +282,20 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
           clearError: true,
         ),
       );
+    } catch (e) {
+      emit(state.copyWith(errorMessage: e.toString()));
+    }
+  }
+
+  Future<void> deleteConversation() async {
+    final conversationId = _conversationId;
+    if (conversationId == null || conversationId.isEmpty) return;
+    final targetMessageId = state.messages.isNotEmpty
+        ? state.messages.last.id
+        : conversationId;
+
+    try {
+      await deleteConversationUseCase(targetMessageId);
     } catch (e) {
       emit(state.copyWith(errorMessage: e.toString()));
     }

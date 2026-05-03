@@ -2,7 +2,7 @@ name: Flutter CI
 
 on:
   push:
-    branches: [ dev, staging, main, 'feature/**' ]
+    branches: [ dev, staging, main,production, 'feature/**' ]
   pull_request:
     branches: [ dev, staging, main ]
 
@@ -27,8 +27,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          cache : true
+          flutter-version: '3.41.9'
+          cache: true
       
       - name: Install dependencies
         run: flutter pub get

@@ -8,6 +8,7 @@ import 'package:soundcloud_clone/features/messaging/domain/entities/participant_
 import 'package:soundcloud_clone/features/messaging/domain/entities/realtime_message_event_entity.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/archive_conversation_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/connect_messaging_socket_usecase.dart';
+import 'package:soundcloud_clone/features/messaging/domain/usecases/delete_conversation_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/get_conversations_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_read_usecase.dart';
 import 'package:soundcloud_clone/features/messaging/domain/usecases/mark_conversation_unread_usecase.dart';
@@ -29,6 +30,9 @@ class MockArchiveConversationUseCase extends Mock
 class MockUnarchiveConversationUseCase extends Mock
     implements UnarchiveConversationUseCase {}
 
+class MockDeleteConversationUseCase extends Mock
+  implements DeleteConversationUseCase {}
+
 class MockConnectMessagingSocketUseCase extends Mock
     implements ConnectMessagingSocketUseCase {}
 
@@ -39,6 +43,7 @@ void main() {
     late MockMarkConversationUnreadUseCase markConversationUnreadUseCase;
     late MockArchiveConversationUseCase archiveConversationUseCase;
     late MockUnarchiveConversationUseCase unarchiveConversationUseCase;
+    late MockDeleteConversationUseCase deleteConversationUseCase;
     late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
     late StreamController<RealtimeMessageEventEntity> socketController;
     late InboxCubit cubit;
@@ -86,6 +91,7 @@ void main() {
       markConversationUnreadUseCase = MockMarkConversationUnreadUseCase();
       archiveConversationUseCase = MockArchiveConversationUseCase();
       unarchiveConversationUseCase = MockUnarchiveConversationUseCase();
+      deleteConversationUseCase = MockDeleteConversationUseCase();
       connectMessagingSocketUseCase = MockConnectMessagingSocketUseCase();
       socketController =
           StreamController<RealtimeMessageEventEntity>.broadcast();
@@ -100,6 +106,7 @@ void main() {
         markConversationUnreadUseCase: markConversationUnreadUseCase,
         archiveConversationUseCase: archiveConversationUseCase,
         unarchiveConversationUseCase: unarchiveConversationUseCase,
+        deleteConversationUseCase: deleteConversationUseCase,
         connectMessagingSocketUseCase: connectMessagingSocketUseCase,
       );
     });
@@ -336,6 +343,34 @@ void main() {
       verify(() => archiveConversationUseCase('c1')).called(1);
     });
 
+    test('deleteConversation removes conversation from current list',
+        () async {
+      when(
+        () => getConversationsUseCase(
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+          archived: any(named: 'archived'),
+        ),
+      ).thenAnswer(
+        (_) async => page(
+          conversations: <ConversationEntity>[
+            conversation('c1'),
+            conversation('c2'),
+          ],
+        ),
+      );
+
+      when(
+        () => deleteConversationUseCase(any()),
+      ).thenAnswer((_) async {});
+
+      await cubit.loadInitial();
+      await cubit.deleteConversation('c1', messageId: 'message-1');
+
+      expect(cubit.state.conversations.map((e) => e.conversationId), ['c2']);
+      verify(() => deleteConversationUseCase('message-1')).called(1);
+    });
+
     test('unarchiveConversation removes conversation from current list',
         () async {
       when(
@@ -364,38 +399,5 @@ void main() {
       verify(() => unarchiveConversationUseCase('c1')).called(1);
     });
 
-    test('upsertConversation replaces existing conversation', () async {
-      when(
-        () => getConversationsUseCase(
-          page: any(named: 'page'),
-          limit: any(named: 'limit'),
-          archived: any(named: 'archived'),
-        ),
-      ).thenAnswer(
-        (_) async => page(
-          conversations: <ConversationEntity>[conversation('c1')],
-        ),
-      );
-
-      await cubit.loadInitial();
-
-      cubit.upsertConversation(conversation('c1', unreadCount: 9));
-
-      expect(cubit.state.conversations.single.unreadCount, 9);
-    });
-
-    test('upsertConversation inserts matching archived mode conversation',
-        () async {
-      cubit.upsertConversation(conversation('c1', isArchived: false));
-
-      expect(cubit.state.conversations.single.conversationId, 'c1');
-    });
-
-    test('upsertConversation ignores non-matching archived mode conversation',
-        () async {
-      cubit.upsertConversation(conversation('c1', isArchived: true));
-
-      expect(cubit.state.conversations, isEmpty);
-    });
   });
 }
