@@ -239,7 +239,7 @@ void main() {
       expect(find.text('Upgrade to Pro'), findsOneWidget);
     });
 
-    testWidgets('upgrade validates empty plan code', (tester) async {
+    testWidgets('upgrade hides invalid plan code', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,
         plans: const <Plan>[
@@ -255,14 +255,14 @@ void main() {
 
       await _pumpUpgradePage(tester, repository);
 
-      await tester.tap(find.text('Upgrade to Broken Plan'));
-      await tester.pumpAndSettle();
-
+      expect(find.text('Broken Plan'), findsNothing);
+      expect(find.text('Upgrade to Broken Plan'), findsNothing);
       expect(
-          find.text('This plan is not available right now.'), findsOneWidget);
+        find.text('No premium plans are available right now.'),
+        findsOneWidget,
+      );
       expect(repository.createCheckoutCalls, 0);
     });
-
     testWidgets('upgrade handles unavailable checkout link', (tester) async {
       final repository = _FakeSubscriptionRepository(
         subscription: freeSubscription,

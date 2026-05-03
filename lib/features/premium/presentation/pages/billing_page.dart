@@ -180,6 +180,15 @@ class _BillingPageState extends State<BillingPage> {
         normalized == 'CANCELLED';
   }
 
+  void _goBack() {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+
+    context.go('/home');
+  }
+
   Future<void> _openBillingPortal() async {
     try {
       final portalUrl =
@@ -347,6 +356,7 @@ class _BillingPageState extends State<BillingPage> {
 
     await context.read<SubscriptionCubit>().changePlan(planCode);
   }
+
   void _showSnackBar(String message) {
     if (!mounted) return;
 
@@ -390,6 +400,11 @@ class _BillingPageState extends State<BillingPage> {
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
             elevation: 0,
+            leading: IconButton(
+              tooltip: 'Back',
+              onPressed: _goBack,
+              icon: const Icon(Icons.arrow_back),
+            ),
             title: const Text('Billing'),
             actions: [
               IconButton(
@@ -715,7 +730,9 @@ class _PlanManagementSection extends StatelessWidget {
         ],
       ),
     );
-  }}
+  }
+}
+
 class _PlanChangeTile extends StatelessWidget {
   const _PlanChangeTile({
     required this.plan,
@@ -753,6 +770,7 @@ class _PlanChangeTile extends StatelessWidget {
     );
   }
 }
+
 class _InvoicesSection extends StatelessWidget {
   const _InvoicesSection({
     required this.invoices,
@@ -1069,6 +1087,7 @@ String _formatPlanName(String value) {
       return value.trim();
   }
 }
+
 String? _readSubscriptionChangePlanCode(Plan plan) {
   final candidates = <String>[
     plan.code,
@@ -1089,11 +1108,8 @@ String? _readSubscriptionChangePlanCode(Plan plan) {
 }
 
 String _normalizeSubscriptionChangePlanCode(String value) {
-  final normalized = value
-      .trim()
-      .toUpperCase()
-      .replaceAll('-', '_')
-      .replaceAll(' ', '_');
+  final normalized =
+      value.trim().toUpperCase().replaceAll('-', '_').replaceAll(' ', '_');
 
   if (normalized.isEmpty) {
     return '';
@@ -1116,6 +1132,7 @@ String _normalizeSubscriptionChangePlanCode(String value) {
 
   return normalized;
 }
+
 String _formatDate(DateTime date) {
   final normalized = date.toLocal();
   final day = normalized.day.toString().padLeft(2, '0');

@@ -124,13 +124,6 @@ class NotificationPreferencesBloc
             ),
           ),
         );
-      default:
-        emit(
-          state.copyWith(
-            isLoading: false,
-            error: 'Unable to load preferences right now. Please try again.',
-          ),
-        );
     }
   }
 
@@ -179,13 +172,6 @@ class NotificationPreferencesBloc
               fallback:
                   'Unable to save preferences right now. Please try again.',
             ),
-          ),
-        );
-      default:
-        emit(
-          state.copyWith(
-            isSaving: false,
-            error: 'Unable to save preferences right now. Please try again.',
           ),
         );
     }
