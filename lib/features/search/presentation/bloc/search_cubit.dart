@@ -1,16 +1,17 @@
-// lib/features/search/presentation/bloc/search_cubit.dart
-
 import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../core/di/injector.dart';
+import '../../../../core/errors/failure.dart';
+import '../../../auth/presentation/bloc/auth_cubit.dart';
+import '../../../social/data/repositories/social_repo.dart';
 import '../../domain/entities/search_entities.dart';
 import '../../domain/usecases/search_usecase.dart';
-import '../../../../core/errors/failure.dart';
-import '../../../social/data/repositories/social_repo.dart';
-import '../../../../core/di/injector.dart';
-import 'package:soundcloud_clone/features/auth/presentation/bloc/auth_cubit.dart';
+
 part 'search_state.dart';
 
 @injectable
@@ -22,9 +23,11 @@ class SearchCubit extends Cubit<SearchState> {
   }
 
   Timer? _suggestionDebounce;
+
   static const _suggestionDelay = Duration(milliseconds: 300);
   static const _recentKey = 'recent_searches';
   static const _maxRecents = 10;
+  static const _pageSize = 20;
 
   // ══════════════════════════════════════════════════════════════════════════
   // RECENT SEARCHES
@@ -33,96 +36,122 @@ class SearchCubit extends Cubit<SearchState> {
   Future<void> _loadRecents() async {
     final prefs = await SharedPreferences.getInstance();
     final recents = prefs.getStringList(_recentKey) ?? [];
-    if (!isClosed) emit(state.copyWith(recentSearches: recents));
+
+    if (!isClosed) {
+      emit(state.copyWith(recentSearches: recents));
+    }
   }
 
   Future<void> _saveRecent(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
+
     final prefs = await SharedPreferences.getInstance();
     final recents = List<String>.from(state.recentSearches);
+
     recents.remove(trimmed);
     recents.insert(0, trimmed);
-    if (recents.length > _maxRecents) recents.removeLast();
+
+    if (recents.length > _maxRecents) {
+      recents.removeLast();
+    }
+
     await prefs.setStringList(_recentKey, recents);
-    if (!isClosed) emit(state.copyWith(recentSearches: recents));
+
+    if (!isClosed) {
+      emit(state.copyWith(recentSearches: recents));
+    }
   }
 
   Future<void> removeRecent(String query) async {
     final prefs = await SharedPreferences.getInstance();
     final recents = List<String>.from(state.recentSearches)..remove(query);
+
     await prefs.setStringList(_recentKey, recents);
-    if (!isClosed) emit(state.copyWith(recentSearches: recents));
+
+    if (!isClosed) {
+      emit(state.copyWith(recentSearches: recents));
+    }
   }
 
   Future<void> clearRecents() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_recentKey);
-    if (!isClosed) emit(state.copyWith(recentSearches: []));
+
+    if (!isClosed) {
+      emit(state.copyWith(recentSearches: const []));
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // TYPING — debounced suggestions only, NO results fetch
+  // TYPING — debounced suggestions only
   // ══════════════════════════════════════════════════════════════════════════
 
   void onQueryChanged(String query) {
     _suggestionDebounce?.cancel();
 
-    if (query.trim().isEmpty) {
-      // Field cleared — reset to recents/idle, keep submitted results if any
-      emit(state.copyWith(
-        typingQuery: '',
-        suggestions: [],
-        isSuggestionsLoading: false,
-        submittedQuery: '', // clear submitted so bodyMode goes back
-        status: SearchStatus.idle,
-        tracks: [],
-        users: [],
-        playlists: [],
-        clearFailure: true,
-      ));
+    final trimmed = query.trim();
+
+    if (trimmed.isEmpty) {
+      emit(
+        state.copyWith(
+          typingQuery: '',
+          submittedQuery: '',
+          suggestions: const [],
+          isSuggestionsLoading: false,
+          status: SearchStatus.idle,
+          tracks: const [],
+          users: const [],
+          playlists: const [],
+          currentPage: 1,
+          totalPages: 1,
+          clearFailure: true,
+        ),
+      );
       return;
     }
 
-    // Update typing query immediately (drives the field display)
-    emit(state.copyWith(
-      typingQuery: query,
-      suggestions: [],
-      isSuggestionsLoading: true,
-    ));
+    emit(
+      state.copyWith(
+        typingQuery: query,
+        suggestions: const [],
+        isSuggestionsLoading: true,
+      ),
+    );
 
-    // Debounce suggestion fetch
-    _suggestionDebounce =
-        Timer(_suggestionDelay, () => _fetchSuggestions(query));
+    _suggestionDebounce = Timer(
+      _suggestionDelay,
+      () => _fetchSuggestions(query),
+    );
   }
 
   Future<void> _fetchSuggestions(String query) async {
     if (isClosed) return;
 
-    // TODO: replace with real GET /api/v1/search/suggestions?q=query
-    // For now generate mock suggestions from query
-    await Future.delayed(const Duration(milliseconds: 150));
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+
     if (isClosed) return;
 
     final q = query.trim().toLowerCase();
-    final mocks = [
-      query,
+
+    final suggestions = <String>[
+      query.trim(),
       '$q remix',
       '$q acoustic',
       '$q live',
       '$q ft.',
-    ].where((s) => s.isNotEmpty).take(5).toList();
+    ].where((value) => value.trim().isNotEmpty).take(5).toList();
 
-    if (!isClosed) {
-      emit(state.copyWith(
-        suggestions: mocks,
+    emit(
+      state.copyWith(
+        suggestions: suggestions,
         isSuggestionsLoading: false,
-      ));
-    }
+      ),
+    );
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SUBMIT — user pressed search button or picked a suggestion/recent
+  // SUBMIT
   // ══════════════════════════════════════════════════════════════════════════
 
   Future<void> submitSearch(String query) async {
@@ -132,18 +161,22 @@ class SearchCubit extends Cubit<SearchState> {
     _suggestionDebounce?.cancel();
     await _saveRecent(trimmed);
 
-    emit(state.copyWith(
-      typingQuery: trimmed,
-      submittedQuery: trimmed,
-      suggestions: [],
-      isSuggestionsLoading: false,
-      status: SearchStatus.loading,
-      tracks: [],
-      users: [],
-      playlists: [],
-      currentPage: 1,
-      clearFailure: true,
-    ));
+    emit(
+      state.copyWith(
+        typingQuery: trimmed,
+        submittedQuery: trimmed,
+        suggestions: const [],
+        isSuggestionsLoading: false,
+        status: SearchStatus.loading,
+        tracks: const [],
+        users: const [],
+        playlists: const [],
+        currentPage: 1,
+        totalPages: 1,
+        isLoadingMore: false,
+        clearFailure: true,
+      ),
+    );
 
     await _fetch(trimmed, page: 1);
   }
@@ -152,101 +185,159 @@ class SearchCubit extends Cubit<SearchState> {
   // TAB + PAGINATION
   // ══════════════════════════════════════════════════════════════════════════
 
-  void onTabChanged(SearchTab tab) {
+  Future<void> onTabChanged(SearchTab tab) async {
     if (state.activeTab == tab) return;
-    emit(state.copyWith(activeTab: tab));
+
+    final submittedQuery = state.submittedQuery;
+
+    emit(
+      state.copyWith(
+        activeTab: tab,
+        currentPage: 1,
+        totalPages: 1,
+        isLoadingMore: false,
+        clearFailure: true,
+      ),
+    );
+
+    if (submittedQuery.trim().isEmpty) return;
+
+    emit(
+      state.copyWith(
+        status: SearchStatus.loading,
+        tracks: const [],
+        users: const [],
+        playlists: const [],
+      ),
+    );
+
+    await _fetch(submittedQuery, page: 1);
   }
 
   Future<void> loadNextPage() async {
     if (state.submittedQuery.isEmpty) return;
     if (state.isLoadingMore) return;
     if (!state.hasMore) return;
-    await _fetch(state.submittedQuery,
-        page: state.currentPage + 1, append: true);
+
+    await _fetch(
+      state.submittedQuery,
+      page: state.currentPage + 1,
+      append: true,
+    );
   }
 
   // ══════════════════════════════════════════════════════════════════════════
   // PRIVATE FETCH
   // ══════════════════════════════════════════════════════════════════════════
 
-  Future<void> _fetch(String query,
-      {required int page, bool append = false}) async {
-    if (append) emit(state.copyWith(isLoadingMore: true));
+  Future<void> _fetch(
+    String query, {
+    required int page,
+    bool append = false,
+  }) async {
+    if (append) {
+      emit(state.copyWith(isLoadingMore: true));
+    }
 
-    final result = await _searchUseCase(query, page: page);
+    final result = await _searchUseCase(
+      query,
+      type: _apiTypeForTab(state.activeTab),
+      page: page,
+      limit: _pageSize,
+    );
 
     if (isClosed) return;
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        status: SearchStatus.failure,
-        failure: failure,
-        isLoadingMore: false,
-      )),
+      (failure) {
+        emit(
+          state.copyWith(
+            status: SearchStatus.failure,
+            failure: failure,
+            isLoadingMore: false,
+          ),
+        );
+      },
       (data) {
-        if (append) {
-          emit(state.copyWith(
+        final tracks = append ? [...state.tracks, ...data.tracks] : data.tracks;
+
+        final users = append ? [...state.users, ...data.users] : data.users;
+
+        final playlists =
+            append ? [...state.playlists, ...data.playlists] : data.playlists;
+
+        emit(
+          state.copyWith(
             status: SearchStatus.success,
-            tracks: [...state.tracks, ...data.tracks],
-            users: [...state.users, ...data.users],
-            playlists: [...state.playlists, ...data.playlists],
+            tracks: tracks,
+            users: users,
+            playlists: playlists,
             currentPage: data.meta.currentPage,
             totalPages: data.meta.totalPages,
             isLoadingMore: false,
-          ));
-          _loadFollowingAfterSearch();
-        } else {
-          emit(state.copyWith(
-            status: SearchStatus.success,
-            tracks: data.tracks,
-            users: data.users,
-            playlists: data.playlists,
-            currentPage: data.meta.currentPage,
-            totalPages: data.meta.totalPages,
-            isLoadingMore: false,
-          ));
-        }
+            clearFailure: true,
+          ),
+        );
+
+        _loadFollowingAfterSearch();
       },
     );
+  }
+
+  String? _apiTypeForTab(SearchTab tab) {
+    return switch (tab) {
+      SearchTab.all => null,
+      SearchTab.tracks => 'track',
+      SearchTab.people => 'user',
+      SearchTab.playlists => 'playlist',
+    };
+  }
+
+  Future<void> loadFollowingState(String currentUserId) async {
+    try {
+      final repo = getIt<SocialRepo>();
+      final following = await repo.getFollowing(currentUserId, 1, limit: 100);
+      final followingIds = following.map((user) => user.id).toSet();
+
+      final updatedUsers = state.users.map((user) {
+        return UserEntity(
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          followersCount: user.followersCount,
+          trackCount: user.trackCount,
+          verified: user.verified,
+          city: user.city,
+          country: user.country,
+          isFollowing: followingIds.contains(user.id),
+        );
+      }).toList(growable: false);
+
+      if (!isClosed) {
+        emit(state.copyWith(users: updatedUsers));
+      }
+    } catch (_) {
+      // Best-effort UI enhancement only.
+    }
+  }
+
+  void _loadFollowingAfterSearch() {
+    if (!getIt.isRegistered<AuthCubit>()) return;
+    if (!getIt.isRegistered<SocialRepo>()) return;
+
+    final authState = getIt<AuthCubit>().state;
+    if (authState is! AuthAuthenticated) return;
+
+    final currentUserId = authState.user.id;
+    if (currentUserId.isEmpty) return;
+
+    unawaited(loadFollowingState(currentUserId));
   }
 
   @override
   Future<void> close() {
     _suggestionDebounce?.cancel();
     return super.close();
-  }
-
-  // أضف في SearchCubit
-  Future<void> loadFollowingState(String currentUserId) async {
-    try {
-      final repo = getIt<SocialRepo>();
-      final following = await repo.getFollowing(currentUserId, 1, limit: 100);
-      final followingIds = following.map((u) => u.id).toSet();
-
-      final updatedUsers = state.users.map((u) {
-        return UserEntity(
-          id: u.id,
-          username: u.username,
-          displayName: u.displayName,
-          avatarUrl: u.avatarUrl,
-          followersCount: u.followersCount,
-          trackCount: u.trackCount,
-          verified: u.verified,
-          city: u.city,
-          country: u.country,
-          isFollowing: followingIds.contains(u.id),
-        );
-      }).toList();
-
-      emit(state.copyWith(users: updatedUsers));
-    } catch (_) {}
-  }
-
-  void _loadFollowingAfterSearch() {
-    final authState = getIt<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) return;
-    final currentUserId = authState.user.id;
-    if (currentUserId.isEmpty) return;
-    loadFollowingState(currentUserId);
   }
 }
