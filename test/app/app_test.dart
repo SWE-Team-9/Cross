@@ -33,6 +33,8 @@ import 'package:soundcloud_clone/core/models/track.dart';
 import 'package:soundcloud_clone/features/premium/presentation/bloc/subscription_cubit.dart';
 import 'package:soundcloud_clone/features/premium/data/repositories/mock_subscription_repository.dart';
 import 'package:soundcloud_clone/features/premium/domain/repositories/subscription_repository.dart';
+import 'package:soundcloud_clone/features/notifications/presentation/bloc/notifications_bloc.dart';
+import 'package:soundcloud_clone/features/notifications/presentation/bloc/notification_preferences_bloc.dart';
 
 // ── Fakes / Mocks ─────────────────────────────────────────────────────────────
 
@@ -115,6 +117,14 @@ class MockGetUnreadCountUseCase extends Mock implements GetUnreadCountUseCase {}
 class MockConnectMessagingSocketUseCase extends Mock
     implements ConnectMessagingSocketUseCase {}
 
+class MockNotificationsBloc
+    extends MockBloc<NotificationsEvent, NotificationsState>
+    implements NotificationsBloc {}
+
+class MockNotificationPreferencesBloc
+    extends MockBloc<NotificationPreferencesEvent, NotificationPreferencesState>
+    implements NotificationPreferencesBloc {}
+
 // ── Helper: pump the full App widget ─────────────────────────────────────────
 
 Future<void> _pumpApp(
@@ -157,6 +167,8 @@ void main() {
   late MockConnectMessagingSocketUseCase connectMessagingSocketUseCase;
 
   late MockDioClient mockDioClient;
+  late MockNotificationsBloc mockNotificationsBloc;
+  late MockNotificationPreferencesBloc mockNotificationPreferencesBloc;
 
   setUp(() async {
     await GetIt.I.reset();
@@ -191,6 +203,14 @@ void main() {
         ),
       ),
     );
+    mockNotificationsBloc = MockNotificationsBloc();
+    mockNotificationPreferencesBloc = MockNotificationPreferencesBloc();
+
+    // Mock states for notification blocs
+    when(() => mockNotificationsBloc.state)
+        .thenReturn(const NotificationsInitial());
+    when(() => mockNotificationPreferencesBloc.state)
+        .thenReturn(NotificationPreferencesState.initial());
 
     GetIt.I.registerSingleton<AudioPlayerService>(FakeAudioPlayerService());
     GetIt.I.registerSingleton<DeepLinkService>(FakeDeepLinkService());
@@ -226,6 +246,14 @@ void main() {
         getUnreadCountUseCase: getUnreadCountUseCase,
         connectMessagingSocketUseCase: connectMessagingSocketUseCase,
       ),
+    );
+
+    GetIt.I.registerLazySingleton<NotificationsBloc>(
+      () => mockNotificationsBloc,
+    );
+
+    GetIt.I.registerLazySingleton<NotificationPreferencesBloc>(
+      () => mockNotificationPreferencesBloc,
     );
   });
 

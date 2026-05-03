@@ -40,18 +40,28 @@ import 'package:soundcloud_clone/features/interactions/presentation/bloc/track_i
 // Project — library
 import '../features/library/presentation/pages/downloaded_items_page.dart';
 import '../features/library/presentation/pages/library_page.dart';
-import '../features/playlists/presentation/bloc/playlists_cubit.dart';
+
+// Project — playlists
 import '../features/playlists/domain/entities/playlist_entity.dart';
+import '../features/playlists/presentation/bloc/playlists_cubit.dart';
 import '../features/playlists/presentation/pages/playlist_detail_page.dart';
 import '../features/playlists/presentation/pages/playlists_page.dart';
 
+// Project — notifications
+import '../features/notifications/presentation/pages/notifications_page.dart';
+
 // Project — home
 import '../features/home/presentation/pages/mock_home_page.dart';
+
+// Project — feed
 import '../features/feed/presentation/pages/feed_page.dart';
 
+// Project — discovery
+import '../features/discovery/presentation/page/discover_page.dart';
+
 // Project — search
-import 'package:soundcloud_clone/features/search/presentation/pages/search_page.dart';
 import 'package:soundcloud_clone/features/search/presentation/bloc/search_cubit.dart';
+import 'package:soundcloud_clone/features/search/presentation/pages/search_page.dart';
 
 // Project — messaging
 import '../features/messaging/domain/entities/conversation_entity.dart';
@@ -60,9 +70,8 @@ import '../features/messaging/presentation/pages/chat_thread_page.dart';
 import '../features/messaging/presentation/pages/inbox_page.dart';
 import '../features/messaging/presentation/routes/messaging_routes.dart';
 
-// Project - premium
+// Project — premium
 import 'package:soundcloud_clone/features/premium/presentation/pages/upgrade_page.dart';
-import '../features/discovery/presentation/page/discover_page.dart';
 
 class AppRoutes {
   static const String home = '/home';
@@ -86,6 +95,9 @@ class AppRoutes {
   static const String inbox = '/messages';
   static const String chatThread = '/messages/:conversationId';
 
+  // ── Notifications ───────────────────────────────────────────────────────
+  static const String notifications = '/notifications';
+
   // secretTrack MUST be before trackDetail — more specific path first
   static const String secretTrack = '/track/secret/:token';
   static const String trackDetail = '/track/:trackId';
@@ -94,12 +106,25 @@ class AppRoutes {
 }
 
 // ── Path builders ─────────────────────────────────────────────────────────────
+
 String _trackPath(String trackId) => '/track/$trackId';
+
 String _secretPath(String token) => '/track/secret/$token';
+
 String _profilePath(String handle) => '/profile/$handle';
+
 String _playlistPath(String id) => '/playlist/$id';
+
 String _secretPlaylistPath(String token) => '/playlist/secret/$token';
-String _searchPath(String query) => '/search?q=$query';
+
+String _searchPath(String query) {
+  return Uri(
+    path: AppRoutes.search,
+    queryParameters: {'q': query},
+  ).toString();
+}
+
+
 
 void _handleDeepLinkDestination(
   DeepLinkDestination destination,
@@ -127,7 +152,7 @@ void _handleDeepLinkDestination(
       path = _searchPath(query);
 
     case OAuthCallbackDeepLink():
-      router.go('/oauth-debug', extra: destination);
+      router.go(AuthRoutes.oauthDebug, extra: destination);
       return;
 
     case InvalidDeepLink():
@@ -149,6 +174,7 @@ void _handleDeepLinkDestination(
 }
 
 // ── Pending deep link ─────────────────────────────────────────────────────────
+
 String? _pendingDeepLink;
 
 String? getPendingDeepLink() {
@@ -158,6 +184,7 @@ String? getPendingDeepLink() {
 }
 
 // ── Fallback seed for track management demo ───────────────────────────────────
+
 ManagedTrack _fallbackTrackManagementSeed() {
   return const ManagedTrack(
     id: 'demo-track-001',
@@ -177,16 +204,6 @@ GoRouter _createRouter() {
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AuthRoutes.splash,
-
-    // 🔥 redirect — deep link tracks pass through freely
-    redirect: (context, state) {
-      final location = state.uri.toString();
-      if (location.startsWith('/track/')) {
-        return null;
-      }
-      return null;
-    },
-
     routes: [
       // ── Auth ────────────────────────────────────────────────────────────────
       ...AuthRoutes.routes,
@@ -245,7 +262,7 @@ GoRouter _createRouter() {
         ],
       ),
 
-      // ── Upgrade ─────────────────────────────────────────────────────────────
+      // ── Premium ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.upgrade,
         name: 'upgrade',
@@ -278,7 +295,7 @@ GoRouter _createRouter() {
         ),
       ),
 
-      // ── Playlists list ──────────────────────────────────────────────────────
+      // ── Playlists list ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlists,
         name: 'playlists',
@@ -293,7 +310,16 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Upload picker ────────────────────────────────────────────────────────
+      // ── Notifications ─────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.notifications,
+        name: 'notifications',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: NotificationsPage()),
+      ),
+
+      // ── Upload picker ───────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.uploadPicker,
         name: 'upload-picker',
@@ -433,7 +459,7 @@ GoRouter _createRouter() {
 
       // ── Track detail ────────────────────────────────────────────────────────
       GoRoute(
-        path: AppRoutes.trackDetail, // '/track/:trackId'
+        path: AppRoutes.trackDetail,
         name: 'track-detail',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
@@ -449,24 +475,6 @@ GoRouter _createRouter() {
           );
         },
       ),
-
-      // ── resolve ───────────────────────────────────────────────────────────
-
-//      GoRoute(
-//   path: AppRoutes.playlist,
-//   name: 'playlist',
-//   parentNavigatorKey: rootNavigatorKey,
-//   pageBuilder: (context, state) {
-//     final playlistId = state.pathParameters['playlistId'] ?? '';
-
-//     return MaterialPage(
-//       child: BlocProvider<PlaylistsCubit>(
-//         create: (_) => getIt<PlaylistsCubit>(),
-//         child: PlaylistDetailPage(playlistId: playlistId),
-//       ),
-//     );
-//   },
-// ),
 
       // ── Messaging ───────────────────────────────────────────────────────────
       GoRoute(
@@ -533,7 +541,7 @@ GoRouter _createRouter() {
         },
       ),
 
-      // ── Playlist ─────────────────────────────────────────────────────────────
+      // ── Playlist ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.playlist,
         name: 'playlist',
@@ -615,4 +623,5 @@ GoRouter _createRouter() {
 }
 
 final router = _createRouter();
+
 GoRouter createRouter() => _createRouter();
