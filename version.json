@@ -1,12 +1,38 @@
 {
+  "latest_version": "2.0.0",
+  "min_required_version": "1.2.0",
+  "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v2.0.0/app-release.apk",
   "release": {
-    "subtitle": "What's new:",
-    "new_features": [],
-    "improvements": [],
-    "bug_fixes": [],
-    "title": "Version 1.3.1"
+    "title": "Version 2.0.0 — The Iqa3 Major Upgrade 🎵",
+    "subtitle": "Fresh new look, enhanced audio player, deep link navigation, and cross-platform polish",
+    "new_features": [
+      "Brand new app icon across all platforms (Android, iOS, Windows, Mac, Web)",
+      "Custom splash screens for Android and Web with beautiful loading animations",
+      "Deep link navigation — share and open specific songs directly within the app",
+      "Waveform visualization with a scrolling display for visual audio feedback",
+      "Complete overhaul of the full player page with better controls and modern layout",
+      "Redesigned genre browsing interface for easier music discovery",
+      "Trending tracks section with improved recommendations",
+      "Enhanced track action menu with more intuitive options",
+      "Better track details and metadata handling"
+    ],
+    "improvements": [
+      "Search functionality is now faster and more accurate",
+      "Improved handling of track details from the API",
+      "Updated notification system integration",
+      "App routing and navigation have been streamlined",
+      "Android app updates with manifest and resource adjustments",
+      "iOS support improvements (Info.plist updates)",
+      "Web version enhancements",
+      "Windows and Mac compatibility updates",
+      "Cross-platform polish for a consistent experience everywhere"
+    ],
+    "bug_fixes": [
+      "Fixed several edge cases in player controls and track loading",
+      "Resolved minor UI glitches in genre pages and search results",
+      "Corrected deep link routing on specific device configurations",
+      "Improved stability when switching between tracks with waveform active"
+    ]
   },
-  "latest_version": "1.3.1",
-  "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v1.3.1/app-release.apk",
-  "min_required_version": "1.3.1"
+  "user_friendly_update_message": "🚀 Iqa3 2.0.0 is here — a massive upgrade! We’ve given the app a complete visual refresh with a new icon, custom splash screens, and a redesigned player page. Now you can share tracks via deep links, enjoy a scrolling waveform visualizer, discover music through revamped genre and trending sections, and experience smoother cross-platform performance on Android, iOS, Web, Windows, and Mac. This update also brings better search, improved track options, and under-the-hood enhancements to routing, notifications, and API handling. Update now for the best Iqa3 experience! 🎶"
 }
