@@ -80,7 +80,8 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _initializeSplashVideo() async {
     try {
-      final controller = VideoPlayerController.asset('assets/videos/splash.mp4');
+      final controller =
+          VideoPlayerController.asset('assets/videos/splash.mp4');
       _videoController = controller;
       await controller.initialize();
       if (!mounted) return;
@@ -95,6 +96,7 @@ class _SplashPageState extends State<SplashPage> {
       _markVideoCompleted();
     }
   }
+
   void _handleVideoTick() {
     final controller = _videoController;
     if (controller == null) return;

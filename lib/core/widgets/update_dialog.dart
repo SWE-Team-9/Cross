@@ -95,9 +95,13 @@ class UpdateDialog extends StatelessWidget {
       'description',
       'body'
     ]);
-    final improvements = extractList(release, ['improvements', 'improvement', 'improvements_list', 'enhancements']);
-    final bugFixes = extractList(release, ['bug_fixes', 'bugFixes', 'fixes', 'bugs', 'patches']);
-    final hasContent = newFeatures.isNotEmpty || improvements.isNotEmpty || bugFixes.isNotEmpty;
+    final improvements = extractList(release,
+        ['improvements', 'improvement', 'improvements_list', 'enhancements']);
+    final bugFixes = extractList(
+        release, ['bug_fixes', 'bugFixes', 'fixes', 'bugs', 'patches']);
+    final hasContent = newFeatures.isNotEmpty ||
+        improvements.isNotEmpty ||
+        bugFixes.isNotEmpty;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -120,19 +124,28 @@ class UpdateDialog extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (newFeatures.isNotEmpty) ...[
-                        _SectionHeader(icon: Icons.auto_awesome_rounded, label: 'New Features', color: _orange),
+                        _SectionHeader(
+                            icon: Icons.auto_awesome_rounded,
+                            label: 'New Features',
+                            color: _orange),
                         const SizedBox(height: 6),
                         ..._buildBullets(newFeatures),
                         const SizedBox(height: 14),
                       ],
                       if (improvements.isNotEmpty) ...[
-                        _SectionHeader(icon: Icons.bolt_rounded, label: 'Improvements', color: const Color(0xFF4FC3F7)),
+                        _SectionHeader(
+                            icon: Icons.bolt_rounded,
+                            label: 'Improvements',
+                            color: const Color(0xFF4FC3F7)),
                         const SizedBox(height: 6),
                         ..._buildBullets(improvements),
                         const SizedBox(height: 14),
                       ],
                       if (bugFixes.isNotEmpty) ...[
-                        _SectionHeader(icon: Icons.bug_report_rounded, label: 'Bug Fixes', color: const Color(0xFF81C784)),
+                        _SectionHeader(
+                            icon: Icons.bug_report_rounded,
+                            label: 'Bug Fixes',
+                            color: const Color(0xFF81C784)),
                         const SizedBox(height: 6),
                         ..._buildBullets(bugFixes),
                         const SizedBox(height: 4),
@@ -142,7 +155,10 @@ class UpdateDialog extends StatelessWidget {
                 ),
               ),
             const Divider(color: _divider, height: 1, thickness: 1),
-            _Actions(isMandatory: isMandatory, downloadUrl: downloadUrl, updateType: updateType),
+            _Actions(
+                isMandatory: isMandatory,
+                downloadUrl: downloadUrl,
+                updateType: updateType),
           ],
         ),
       ),
@@ -299,7 +315,8 @@ class _SectionHeader extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _SectionHeader({required this.icon, required this.label, required this.color});
+  const _SectionHeader(
+      {required this.icon, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -326,7 +343,10 @@ class _Actions extends StatefulWidget {
   final String downloadUrl;
   final UpdateType updateType;
 
-  const _Actions({required this.isMandatory, required this.downloadUrl, required this.updateType});
+  const _Actions(
+      {required this.isMandatory,
+      required this.downloadUrl,
+      required this.updateType});
 
   @override
   State<_Actions> createState() => _ActionsState();
@@ -349,7 +369,8 @@ class _ActionsState extends State<_Actions> {
           await launchUrl(url, mode: LaunchMode.externalApplication);
         } else {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open update link.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not open update link.')));
         }
         break;
       case UpdateType.unsupported:
@@ -369,11 +390,12 @@ class _ActionsState extends State<_Actions> {
         if (mounted) setState(() => _progress = p);
       },
       onError: (e) {
-        if (mounted) setState(() {
-          _progress = null;
-          _hasError = true;
-          _errorMessage = e;
-        });
+        if (mounted)
+          setState(() {
+            _progress = null;
+            _hasError = true;
+            _errorMessage = e;
+          });
       },
     );
   }
@@ -417,13 +439,15 @@ class _ActionsState extends State<_Actions> {
                 ? _ProgressButton(progress: _progress!)
                 : DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFFFF5500), Color(0xFFFF7A00)]),
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFFFF5500), Color(0xFFFF7A00)]),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: TextButton(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: _onUpdateTap,
                       child: Row(
@@ -431,26 +455,29 @@ class _ActionsState extends State<_Actions> {
                         children: [
                           Icon(_buttonIcon, size: 18),
                           const SizedBox(width: 8),
-                          Text(_buttonLabel, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                          Text(_buttonLabel,
+                              style: const TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ),
                   ),
           ),
-
           if (_hasError) ...[
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(Icons.error_outline, color: Color(0xFFFF5252), size: 14),
+                const Icon(Icons.error_outline,
+                    color: Color(0xFFFF5252), size: 14),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(_errorMessage, style: const TextStyle(color: Color(0xFFFF5252), fontSize: 12)),
+                  child: Text(_errorMessage,
+                      style: const TextStyle(
+                          color: Color(0xFFFF5252), fontSize: 12)),
                 ),
               ],
             ),
           ],
-
           if (!widget.isMandatory) ...[
             const SizedBox(height: 10),
             SizedBox(
@@ -459,10 +486,16 @@ class _ActionsState extends State<_Actions> {
               child: TextButton(
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF999999),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
-                onPressed: widget.updateType == UpdateType.inApp && _progress != null ? null : () => Navigator.pop(context),
-                child: const Text('Maybe Later', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                onPressed:
+                    widget.updateType == UpdateType.inApp && _progress != null
+                        ? null
+                        : () => Navigator.pop(context),
+                child: const Text('Maybe Later',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ),
             ),
           ],
@@ -480,7 +513,10 @@ class _ProgressButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final percent = (progress * 100).toInt();
     return Container(
-      decoration: BoxDecoration(color: const Color(0xFF222222), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFF333333))),
+      decoration: BoxDecoration(
+          color: const Color(0xFF222222),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF333333))),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Stack(
@@ -489,12 +525,18 @@ class _ProgressButton extends StatelessWidget {
               widthFactor: progress,
               child: Container(
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFFFF5500), Color(0xFFFF7A00)]),
+                  gradient: LinearGradient(
+                      colors: [Color(0xFFFF5500), Color(0xFFFF7A00)]),
                 ),
               ),
             ),
             Center(
-              child: Text(percent < 100 ? 'Downloading... $percent%' : 'Installing...', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              child: Text(
+                  percent < 100 ? 'Downloading... $percent%' : 'Installing...',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600)),
             ),
           ],
         ),

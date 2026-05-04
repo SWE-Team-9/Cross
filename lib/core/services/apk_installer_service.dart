@@ -16,7 +16,8 @@ class ApkInstallerService {
   }) async {
     try {
       // 1. request install permission (Android 8+)
-      final installPermission = await Permission.requestInstallPackages.request();
+      final installPermission =
+          await Permission.requestInstallPackages.request();
       if (!installPermission.isGranted) {
         onError('Please allow installing from unknown sources in settings.');
         await openAppSettings();

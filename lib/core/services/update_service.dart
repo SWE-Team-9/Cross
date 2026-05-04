@@ -51,7 +51,8 @@ class UpdateService {
 
       // get platform-specific config
       final platforms = data['platforms'] as Map<String, dynamic>?;
-      final platformData = platforms?[_currentPlatform] as Map<String, dynamic>?;
+      final platformData =
+          platforms?[_currentPlatform] as Map<String, dynamic>?;
 
       if (platformData == null) {
         print('>>> [UpdateService] no update config for $_currentPlatform');
@@ -63,7 +64,8 @@ class UpdateService {
       final latestVersion =
           (data['latest_version'] as String).split('+').first.trim();
 
-      print('>>> [UpdateService] current: $currentVersion | latest: $latestVersion');
+      print(
+          '>>> [UpdateService] current: $currentVersion | latest: $latestVersion');
 
       if (!_isNewer(latestVersion, currentVersion)) {
         print('>>> [UpdateService] already up to date');
@@ -94,16 +96,28 @@ class UpdateService {
     }
   }
 
-  static bool isMandatoryUpdate(Map<String, dynamic> data, String currentVersion) {
-    final minVersion = (data['min_required_version'] as String).split('+').first.trim();
+  static bool isMandatoryUpdate(
+      Map<String, dynamic> data, String currentVersion) {
+    final minVersion =
+        (data['min_required_version'] as String).split('+').first.trim();
     final current = currentVersion.split('+').first.trim();
     return _isNewer(minVersion, current);
   }
 
   static bool _isNewer(String latest, String current) {
     try {
-      final l = latest.split('-').first.split('.').map((e) => int.parse(e.trim())).toList();
-      final c = current.split('-').first.split('.').map((e) => int.parse(e.trim())).toList();
+      final l = latest
+          .split('-')
+          .first
+          .split('.')
+          .map((e) => int.parse(e.trim()))
+          .toList();
+      final c = current
+          .split('-')
+          .first
+          .split('.')
+          .map((e) => int.parse(e.trim()))
+          .toList();
 
       while (l.length < 3) l.add(0);
       while (c.length < 3) c.add(0);
