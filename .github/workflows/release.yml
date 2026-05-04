@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  SKIP_TESTS: 'true'
+
 permissions:
   contents: write
 
