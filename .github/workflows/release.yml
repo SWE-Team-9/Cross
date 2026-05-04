@@ -216,7 +216,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/android/app-release.apk
+            artifacts/android/app-debug.apk
             artifacts/windows/Cross-windows-setup.exe
 
       - name: Update version.json on releases branch (preserve release notes)
