@@ -21,13 +21,21 @@ jobs:
 
       - name: Get tag name
         id: tag
-        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: echo "TAG_NAME=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
       - name: Extract version
         id: version
         run: |
           TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          if [[ -z "$TAG" ]]; then
+            echo "Tag name is empty; cannot derive a release version." >&2
+            exit 1
+          fi
           VERSION="${TAG#v}"
+          if [[ -z "$VERSION" ]]; then
+            echo "Derived version is empty for tag '$TAG'." >&2
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set up JDK 17
@@ -81,19 +89,25 @@ jobs:
 
       - name: Get tag name
         id: tag
-        run: echo "TAG_NAME=${env:GITHUB_REF -replace 'refs/tags/',''}" >> $env:GITHUB_OUTPUT
+        run: echo "TAG_NAME=$env:GITHUB_REF_NAME" >> $env:GITHUB_OUTPUT
 
       - name: Extract version
         id: version
         run: |
           $tag = "${{ steps.tag.outputs.TAG_NAME }}"
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw "Tag name is empty; cannot derive a release version."
+          }
           $version = $tag -replace '^v',''
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Derived version is empty for tag '$tag'."
+          }
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.3'
+          flutter-version: '3.41.0'
 
       - name: Update pubspec version
         run: |
@@ -135,13 +149,21 @@ jobs:
 
       - name: Get tag name
         id: tag
-        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: echo "TAG_NAME=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
       - name: Extract version
         id: version
         run: |
           TAG="${{ steps.tag.outputs.TAG_NAME }}"
+          if [[ -z "$TAG" ]]; then
+            echo "Tag name is empty; cannot derive a release version." >&2
+            exit 1
+          fi
           VERSION="${TAG#v}"
+          if [[ -z "$VERSION" ]]; then
+            echo "Derived version is empty for tag '$TAG'." >&2
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Download APK artifact
