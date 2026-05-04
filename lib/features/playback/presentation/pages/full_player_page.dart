@@ -27,6 +27,7 @@ import 'package:soundcloud_clone/features/social/domain/events/social_events.dar
 
 import '../widgets/repeat_mode_button.dart';
 import '/core/widgets/scrolling_waveform.dart';
+import 'package:vector_math/vector_math_64.dart' as vm;
 
 class FullPlayerPage extends StatefulWidget {
   const FullPlayerPage({super.key});
@@ -1053,8 +1054,8 @@ class _TrackBackground extends StatelessWidget {
           Transform(
             alignment: Alignment.center,
             transform: Matrix4.identity()
-              ..scale(scale, scale)
-              ..translate(0.0, translateY),
+              ..scaleByVector4(vm.Vector4(scale, scale, 1.0, 1.0))
+              ..translateByVector4(vm.Vector4(0.0, translateY, 0.0, 0.0)),
             child: Image.network(
               track.artworkUrl!,
               fit: BoxFit.cover,
