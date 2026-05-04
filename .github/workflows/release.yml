@@ -52,6 +52,22 @@ jobs:
         with:
           flutter-version: '3.41.9'
 
+      - name: Decode upload keystore (if provided)
+        if: ${{ secrets.UPLOAD_KEYSTORE_B64 != '' }}
+        run: |
+          echo "${{ secrets.UPLOAD_KEYSTORE_B64 }}" | base64 -d > android/app/upload-keystore.jks
+          chmod 600 android/app/upload-keystore.jks
+
+      - name: Create android/key.properties (if keystore provided)
+        if: ${{ secrets.UPLOAD_KEYSTORE_B64 != '' }}
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=app/upload-keystore.jks
+          EOF
+
       - name: Update pubspec version
         run: |
           sed -i "s/^version:.*/version: ${{ steps.version.outputs.VERSION }}+1/" pubspec.yaml
@@ -59,14 +75,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK (debug, unsigned for Play Store)
-        run: flutter build apk --debug
+      - name: Build APK (release, signed)
+        run: flutter build apk --release
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   # ── Job 2: Build Windows EXE ──────────────────────────────────────────────
   build-windows:
