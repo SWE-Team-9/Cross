@@ -10,7 +10,7 @@ class UpdateService {
   static final Dio _dio = Dio();
 
   static Future<Map<String, dynamic>?> checkForUpdate() async {
-     if (kDebugMode) return null;
+    if (kDebugMode) return null;
     try {
       print('>>> [UpdateService] fetching version.json...');
 

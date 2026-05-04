@@ -31,7 +31,7 @@ abstract final class DeepLinkParser {
       case 'playlist':
         return _parsePlaylist(segments.skip(1).toList());
 
-     case 'share':
+      case 'share':
         return _parseSharePath(segments.skip(1).toList());
 
       case 'search':

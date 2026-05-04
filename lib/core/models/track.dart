@@ -12,7 +12,6 @@ class Track {
   final int repostsCount;
   final int? durationMs;
   final String? localPath;
-  
 
   const Track({
     required this.id,

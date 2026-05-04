@@ -82,8 +82,7 @@ class TrendingTrackModel extends TrendingTrack {
             json['uploaderId'] ??
             json['artistId'],
       ),
-
-      slug: _s( 
+      slug: _s(
         json['slug'] ?? json['trackSlug'] ?? json['track_slug'],
       ),
     );

@@ -37,7 +37,9 @@ class UpdateDialog extends StatelessWidget {
           final parsed = jsonDecode(decoded);
           if (parsed is Map<String, dynamic>) {
             release = parsed;
-          } else if (parsed is List && parsed.isNotEmpty && parsed.first is Map) {
+          } else if (parsed is List &&
+              parsed.isNotEmpty &&
+              parsed.first is Map) {
             release = Map<String, dynamic>.from(parsed.first as Map);
           } else {
             release = <String, dynamic>{};
@@ -56,28 +58,43 @@ class UpdateDialog extends StatelessWidget {
       for (final k in keys) {
         final v = src[k];
         if (v == null) continue;
-        if (v is List) return v.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+        if (v is List)
+          return v
+              .map((e) => e?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
+              .toList();
         if (v is String) {
           final s = v.trim();
           if (s.isEmpty) return <String>[];
-          return s.split(RegExp(r"\r?\n")).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+          return s
+              .split(RegExp(r"\r?\n"))
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
         }
       }
       return <String>[];
     }
 
     final newFeatures = extractList(release, [
-      'new_features', 'newFeatures', 'whats_new', "what's_new",
-      'features', 'notes', 'release_notes', 'description', 'body'
+      'new_features',
+      'newFeatures',
+      'whats_new',
+      "what's_new",
+      'features',
+      'notes',
+      'release_notes',
+      'description',
+      'body'
     ]);
-    final improvements = extractList(release, [
-      'improvements', 'improvement', 'improvements_list', 'enhancements'
-    ]);
-    final bugFixes = extractList(release, [
-      'bug_fixes', 'bugFixes', 'fixes', 'bugs', 'patches'
-    ]);
+    final improvements = extractList(release,
+        ['improvements', 'improvement', 'improvements_list', 'enhancements']);
+    final bugFixes = extractList(
+        release, ['bug_fixes', 'bugFixes', 'fixes', 'bugs', 'patches']);
 
-    final hasContent = newFeatures.isNotEmpty || improvements.isNotEmpty || bugFixes.isNotEmpty;
+    final hasContent = newFeatures.isNotEmpty ||
+        improvements.isNotEmpty ||
+        bugFixes.isNotEmpty;
 
     return PopScope(
       canPop: !isMandatory,
@@ -344,14 +361,16 @@ class _Actions extends StatelessWidget {
       );
       if (launchedExternal) return;
 
-      final launchedDefault = await launchUrl(url, mode: LaunchMode.platformDefault);
+      final launchedDefault =
+          await launchUrl(url, mode: LaunchMode.platformDefault);
       if (launchedDefault) return;
     } catch (_) {}
 
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Could not open update link on this device.')),
+      const SnackBar(
+          content: Text('Could not open update link on this device.')),
     );
   }
 

@@ -216,7 +216,7 @@ Future<void> _handleDeepLinkDestination(
       path = await _resolveResourcePath(url);
 
     case HandleSlugDeepLink(:final handle, :final slug):
-      path = '/resolve/$handle/$slug';  
+      path = '/resolve/$handle/$slug';
 
     case BillingReturnDeepLink():
       path = _billingReturnPath(destination);
@@ -364,9 +364,8 @@ GoRouter _createRouter() {
           return MaterialPage(
             child: GenrePage(
               genreLabel: label,
-        genreQuery: genreSlug,
-         genreColor: const Color(0xFFFF5500),
-        
+              genreQuery: genreSlug,
+              genreColor: const Color(0xFFFF5500),
             ),
           );
         },
@@ -592,7 +591,6 @@ GoRouter _createRouter() {
           );
         },
       ),
-
 
       // ── Handle/Slug resolver ─────────────────────────────────────────────────────
       GoRoute(

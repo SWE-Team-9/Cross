@@ -74,7 +74,6 @@ class _FullPlayerPageState extends State<FullPlayerPage>
   _CounterBurstData? _repostCounterBurst;
   _CounterBurstData? _commentCounterBurst;
 
-  
   // ── Swipe transition state ────────────────────────────────────────────────
   double _swipeOffset = 0.0;
   Track? _peekTrack;
@@ -209,8 +208,7 @@ class _FullPlayerPageState extends State<FullPlayerPage>
       final created = await getIt<CreateCommentUseCase>()(
         trackId: trackId,
         content: emoji,
-        timestampSeconds:
-            context.read<PlayerCubit>().state.position.inSeconds,
+        timestampSeconds: context.read<PlayerCubit>().state.position.inSeconds,
       );
       if (!mounted) return;
       final newCount = _commentsCount + 1;
@@ -261,8 +259,8 @@ class _FullPlayerPageState extends State<FullPlayerPage>
           ? (await repo.unfollowUser(artistId)).isFollowing
           : (await repo.followUser(artistId)).isFollowing;
       if (!mounted) return;
-      setState(() =>
-          _setArtistFollowState(track, artistId: artistId, isFollowing: isFollowing));
+      setState(() => _setArtistFollowState(track,
+          artistId: artistId, isFollowing: isFollowing));
       SocialEvents.emitFollowChanged();
       _showSnackBar(isFollowing
           ? 'Added ${track.artist} as a friend'
@@ -453,38 +451,39 @@ class _FullPlayerPageState extends State<FullPlayerPage>
     );
   }
 
-  void _ensureTrackDataLoaded(BuildContext context, {
-  required String trackId,
-  required int likesCount,
-  required int repostsCount,
-}) {
-  if (_loadedTrackId == trackId) return;
-  _loadedTrackId = trackId;
+  void _ensureTrackDataLoaded(
+    BuildContext context, {
+    required String trackId,
+    required int likesCount,
+    required int repostsCount,
+  }) {
+    if (_loadedTrackId == trackId) return;
+    _loadedTrackId = trackId;
 
-  // ← خد الـ counts من الـ cubit لو موجود للـ track ده
-  final interactionCubit = context.read<TrackInteractionCubit>();
-  final currentCount = interactionCubit.state;
-  
-  _prevLikes = likesCount;
-  _prevReposts = repostsCount;
-  _prevComments = 0;
-  _lastInteractionState = null;
+    // ← خد الـ counts من الـ cubit لو موجود للـ track ده
+    final interactionCubit = context.read<TrackInteractionCubit>();
+    final currentCount = interactionCubit.state;
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (!mounted || _loadedTrackId != trackId) return;
-    context.read<TrackInteractionCubit>().load(
-      trackId: trackId,
-      // ← لو الـ cubit عنده state محدث للـ track ده، خد منه
-      likesCount: currentCount.likesCount > 0 
-          ? currentCount.likesCount 
-          : likesCount,
-      repostsCount: currentCount.repostsCount > 0 
-          ? currentCount.repostsCount 
-          : repostsCount,
-    );
-    _loadCommentsCount(trackId);
-  });
-}
+    _prevLikes = likesCount;
+    _prevReposts = repostsCount;
+    _prevComments = 0;
+    _lastInteractionState = null;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _loadedTrackId != trackId) return;
+      context.read<TrackInteractionCubit>().load(
+            trackId: trackId,
+            // ← لو الـ cubit عنده state محدث للـ track ده، خد منه
+            likesCount: currentCount.likesCount > 0
+                ? currentCount.likesCount
+                : likesCount,
+            repostsCount: currentCount.repostsCount > 0
+                ? currentCount.repostsCount
+                : repostsCount,
+          );
+      _loadCommentsCount(trackId);
+    });
+  }
 
   // ── Swipe gesture handlers ────────────────────────────────────────────────
 
@@ -534,8 +533,8 @@ class _FullPlayerPageState extends State<FullPlayerPage>
     if (mounted) setState(() => _swipeOffset = newOffset);
   }
 
-  void _onDragEnd(DragEndDetails details, PlayerCubit playerCubit,
-      PlayerUIState state) {
+  void _onDragEnd(
+      DragEndDetails details, PlayerCubit playerCubit, PlayerUIState state) {
     if (_isSwitching) return;
     final velocity = details.primaryVelocity ?? 0;
     final absVelocity = velocity.abs();
@@ -572,8 +571,8 @@ class _FullPlayerPageState extends State<FullPlayerPage>
       vsync: this,
       duration: const Duration(milliseconds: 160),
     );
-    final anim = Tween<double>(begin: _swipeOffset, end: target).animate(
-        CurvedAnimation(parent: controller, curve: Curves.easeOut));
+    final anim = Tween<double>(begin: _swipeOffset, end: target)
+        .animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
 
     anim.addListener(() {
       if (mounted) setState(() => _swipeOffset = anim.value);
@@ -617,8 +616,8 @@ class _FullPlayerPageState extends State<FullPlayerPage>
       vsync: this,
       duration: const Duration(milliseconds: 280),
     );
-    final anim = Tween<double>(begin: _swipeOffset, end: 0.0).animate(
-        CurvedAnimation(parent: controller, curve: Curves.elasticOut));
+    final anim = Tween<double>(begin: _swipeOffset, end: 0.0)
+        .animate(CurvedAnimation(parent: controller, curve: Curves.elasticOut));
 
     anim.addListener(() {
       if (mounted) setState(() => _swipeOffset = anim.value);
@@ -748,8 +747,7 @@ class _FullPlayerPageState extends State<FullPlayerPage>
   }) {
     final total = state.duration?.inSeconds ?? 1;
     final current = state.position.inSeconds;
-    final artworkProgress =
-        total > 0 ? (current / total).clamp(0.0, 1.0) : 0.0;
+    final artworkProgress = total > 0 ? (current / total).clamp(0.0, 1.0) : 0.0;
 
     return Stack(
       children: [
@@ -963,8 +961,7 @@ class _FullPlayerPageState extends State<FullPlayerPage>
                         right: 60,
                         top: -24,
                         child: _EmojiBurst(
-                            key: ValueKey(_emojiBurstId),
-                            emoji: _emojiBurst!),
+                            key: ValueKey(_emojiBurstId), emoji: _emojiBurst!),
                       ),
                   ],
                 ),
@@ -1328,8 +1325,11 @@ class _LiveCounterBtnState extends State<_LiveCounterBtn> {
               duration: const Duration(milliseconds: 180),
               transitionBuilder: (child, anim) =>
                   ScaleTransition(scale: anim, child: child),
-              child: Icon(key: ValueKey(widget.isActive), widget.icon,
-                  color: Colors.white, size: 26),
+              child: Icon(
+                  key: ValueKey(widget.isActive),
+                  widget.icon,
+                  color: Colors.white,
+                  size: 26),
             ),
           ),
         ),
@@ -1405,14 +1405,12 @@ class _CounterBurst extends StatelessWidget {
       curve: Curves.easeOutCubic,
       builder: (_, value, child) => Opacity(
         opacity: (1 - value).clamp(0.0, 1.0),
-        child: Transform.translate(
-            offset: Offset(0, -18 * value), child: child),
+        child:
+            Transform.translate(offset: Offset(0, -18 * value), child: child),
       ),
       child: Text(label,
           style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold)),
+              color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 }
@@ -1551,8 +1549,8 @@ class _QueueSheetState extends State<_QueueSheet> {
                     mode: widget.playerState.repeatMode,
                     iconSize: 22,
                     showOptions: false,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     onChanged: (m) => widget.playerCubit.setRepeatMode(m),
                   ),
                 ],
@@ -1565,8 +1563,8 @@ class _QueueSheetState extends State<_QueueSheet> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                       'From ${_fmtSource(widget.playerState.playerState.source!)}',
-                      style: const TextStyle(
-                          color: Colors.white38, fontSize: 12)),
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 12)),
                 ),
               ),
             Expanded(
@@ -1597,9 +1595,8 @@ class _QueueSheetState extends State<_QueueSheet> {
                             widget.playerCubit.playFromContext(
                                 tracks: _queue,
                                 startIndex: i,
-                                source:
-                                    widget.playerState.playerState.source ??
-                                        'queue');
+                                source: widget.playerState.playerState.source ??
+                                    'queue');
                             Navigator.pop(context);
                           },
                           onOptions: () =>
@@ -1682,10 +1679,8 @@ class _QueueTile extends StatelessWidget {
                     decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.45),
                         borderRadius: BorderRadius.circular(4)),
-                    child: Icon(
-                        isPaused ? Icons.pause : Icons.equalizer,
-                        color: const Color(0xFFFF5500),
-                        size: 20),
+                    child: Icon(isPaused ? Icons.pause : Icons.equalizer,
+                        color: const Color(0xFFFF5500), size: 20),
                   )),
               ],
             ),
@@ -1699,9 +1694,8 @@ class _QueueTile extends StatelessWidget {
                       style: TextStyle(
                           color: titleColor,
                           fontSize: 14,
-                          fontWeight: isPlaying
-                              ? FontWeight.w600
-                              : FontWeight.normal),
+                          fontWeight:
+                              isPlaying ? FontWeight.w600 : FontWeight.normal),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1),
                   const SizedBox(height: 2),
@@ -1712,9 +1706,8 @@ class _QueueTile extends StatelessWidget {
                       style: TextStyle(
                           color: artistColor,
                           fontSize: 12,
-                          fontWeight: isPlaying
-                              ? FontWeight.w600
-                              : FontWeight.normal),
+                          fontWeight:
+                              isPlaying ? FontWeight.w600 : FontWeight.normal),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1),
                 ],
@@ -1725,16 +1718,16 @@ class _QueueTile extends StatelessWidget {
               GestureDetector(
                   onTap: onOptions,
                   child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 12),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                       child: Icon(Icons.more_vert,
                           color: Colors.white54, size: 22)))
             else
               ReorderableDragStartListener(
                   index: index,
                   child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 12),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                       child: Icon(Icons.drag_indicator,
                           color: Colors.white38, size: 22))),
           ],
@@ -1782,8 +1775,7 @@ class _QuickEmojiButtonState extends State<_QuickEmojiButton> {
         curve: Curves.easeOutBack,
         child: Text(widget.emoji,
             style: TextStyle(
-                fontSize: 22,
-                color: widget.enabled ? null : Colors.white38)),
+                fontSize: 22, color: widget.enabled ? null : Colors.white38)),
       ),
     );
   }
@@ -1831,16 +1823,14 @@ class _TimelineCommentBubble extends StatelessWidget {
             height: 24,
             decoration: const BoxDecoration(
                 color: Colors.white24, shape: BoxShape.circle),
-            child:
-                const Icon(Icons.person, color: Colors.white54, size: 14),
+            child: const Icon(Icons.person, color: Colors.white54, size: 14),
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(comment.content,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style:
-                    const TextStyle(color: Colors.white, fontSize: 13)),
+                style: const TextStyle(color: Colors.white, fontSize: 13)),
           ),
         ],
       ),

@@ -27,7 +27,6 @@ class GenreRemoteDatasource {
     final profiles = results[3] as List<GenreProfileEntity>;
     final followingIds = results[4] as Set<String>;
 
-
     Track? introducing;
     List<Track> introducingExtras = const [];
 
@@ -148,7 +147,6 @@ class GenreRemoteDatasource {
       return {};
     }
   }
-
 
   Future<void> followUser({
     required String userId,

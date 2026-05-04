@@ -200,8 +200,6 @@ class SearchCubit extends Cubit<SearchState> {
 
     if (submittedQuery.trim().isEmpty) return;
 
-
-
     await _fetch(submittedQuery, page: 1);
   }
 

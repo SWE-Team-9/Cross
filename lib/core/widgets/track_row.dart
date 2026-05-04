@@ -166,82 +166,82 @@ class TrackRow extends StatelessWidget {
     );
   }
 
-Future<void> _playTrack(BuildContext context) async {
-  final playerCubit = _lookupCubit<PlayerCubit>(context);
+  Future<void> _playTrack(BuildContext context) async {
+    final playerCubit = _lookupCubit<PlayerCubit>(context);
 
-  if (playerCubit == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Playback is not available right now')),
-    );
-    return;
-  }
-
-  final offlineCubit = _lookupCubit<OfflineCubit>(context);
-  final tracks = queue ?? [track];
-  final playableTracks = _withOfflinePaths(tracks, offlineCubit);
-  final index = playableTracks.indexWhere((item) => item.id == track.id);
-  final safeIndex = index >= 0 ? index : 0;
-  final selectedTrack = playableTracks[safeIndex];
-
-  if (selectedTrack.audioUrl.trim().isNotEmpty ||
-      (selectedTrack.localPath != null &&
-          selectedTrack.localPath!.trim().isNotEmpty)) {
-    if (getIt.isRegistered<RecentlyPlayedCubit>()) {
-      getIt<RecentlyPlayedCubit>().addTrack(selectedTrack);
+    if (playerCubit == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Playback is not available right now')),
+      );
+      return;
     }
+
+    final offlineCubit = _lookupCubit<OfflineCubit>(context);
+    final tracks = queue ?? [track];
+    final playableTracks = _withOfflinePaths(tracks, offlineCubit);
+    final index = playableTracks.indexWhere((item) => item.id == track.id);
+    final safeIndex = index >= 0 ? index : 0;
+    final selectedTrack = playableTracks[safeIndex];
+
+    if (selectedTrack.audioUrl.trim().isNotEmpty ||
+        (selectedTrack.localPath != null &&
+            selectedTrack.localPath!.trim().isNotEmpty)) {
+      if (getIt.isRegistered<RecentlyPlayedCubit>()) {
+        getIt<RecentlyPlayedCubit>().addTrack(selectedTrack);
+      }
+      await playerCubit.playFromContext(
+        tracks: playableTracks,
+        startIndex: safeIndex,
+        source: source,
+      );
+      return;
+    }
+
+    if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Playback is not available right now')),
+      );
+      return;
+    }
+
+    final useCase = getIt<GetTrackDetailUseCase>();
+    final handle = selectedTrack.handle ?? '';
+    final slug = selectedTrack.slug ?? '';
+
+    final result = handle.isNotEmpty && slug.isNotEmpty
+        ? await useCase.callBySlug(handle, slug)
+        : await useCase(selectedTrack.id);
+
+    if (!context.mounted) return;
+
+    final detail = result.detail;
+    if (result.failure != null || detail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.failure?.message ?? 'Failed to load track for playback',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final resolvedTrack =
+        _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
+    final resolvedQueue = List<Track>.from(playableTracks);
+    resolvedQueue[safeIndex] = resolvedTrack;
+
+    if (getIt.isRegistered<RecentlyPlayedCubit>()) {
+      getIt<RecentlyPlayedCubit>().addTrack(resolvedTrack);
+    }
+
     await playerCubit.playFromContext(
-      tracks: playableTracks,
+      tracks: resolvedQueue,
       startIndex: safeIndex,
       source: source,
     );
-    return;
   }
-
-  if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Playback is not available right now')),
-    );
-    return;
-  }
-
-  final useCase = getIt<GetTrackDetailUseCase>();
-  final handle = selectedTrack.handle ?? '';
-  final slug = selectedTrack.slug ?? '';
-
-
-  final result = handle.isNotEmpty && slug.isNotEmpty
-      ? await useCase.callBySlug(handle, slug)
-      : await useCase(selectedTrack.id);
-
-  if (!context.mounted) return;
-
-  final detail = result.detail;
-  if (result.failure != null || detail == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result.failure?.message ?? 'Failed to load track for playback',
-        ),
-      ),
-    );
-    return;
-  }
-
-  final resolvedTrack = _withOfflinePath(detail.toPlaybackTrack(), offlineCubit);
-  final resolvedQueue = List<Track>.from(playableTracks);
-  resolvedQueue[safeIndex] = resolvedTrack;
-
-  if (getIt.isRegistered<RecentlyPlayedCubit>()) {
-    getIt<RecentlyPlayedCubit>().addTrack(resolvedTrack);
-  }
-
-  await playerCubit.playFromContext(
-    tracks: resolvedQueue,
-    startIndex: safeIndex,
-    source: source,
-  );
-}
 
   Widget _buildDownloadAction(BuildContext context) {
     final subscriptionCubit = _lookupCubit<SubscriptionCubit>(context);

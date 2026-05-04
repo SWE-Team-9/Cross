@@ -96,8 +96,7 @@ class _ScrollingWaveformState extends State<ScrollingWaveform> {
             ((_dragProgress ?? progress) + deltaProgress).clamp(0.0, 1.0);
         setState(() => _dragProgress = newProgress);
         // Fire seek so audio position updates while dragging.
-        widget.onSeek(
-            Duration(milliseconds: (newProgress * totalMs).round()));
+        widget.onSeek(Duration(milliseconds: (newProgress * totalMs).round()));
       },
       onHorizontalDragEnd: (_) {
         // Seek is already committed during drag; just clear the override.
@@ -277,11 +276,12 @@ class _WaveformBars extends StatelessWidget {
               final isPlayed = frac <= progress;
               final dist = (frac - progress).abs();
               final isNear = dist < (2 / bars.length);
-              final mult =
-                  isNear ? (1.0 + (1.0 - dist / (2 / bars.length)) * 0.10) : 1.0;
-              final totalH =
-                  (minBarHeight + bars[i] * (maxBarHeight - minBarHeight) * mult)
-                      .clamp(minBarHeight, maxBarHeight);
+              final mult = isNear
+                  ? (1.0 + (1.0 - dist / (2 / bars.length)) * 0.10)
+                  : 1.0;
+              final totalH = (minBarHeight +
+                      bars[i] * (maxBarHeight - minBarHeight) * mult)
+                  .clamp(minBarHeight, maxBarHeight);
 
               return SizedBox(
                 width: _totalBarStep,
@@ -461,8 +461,7 @@ class _PlayheadWithTime extends StatelessWidget {
                 width: labelWidth,
                 height: labelHeight,
                 alignment: Alignment.center,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.75),
                   borderRadius: BorderRadius.circular(4),
