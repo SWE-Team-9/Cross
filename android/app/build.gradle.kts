@@ -16,6 +16,9 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
+val releaseBuildRequested = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true)
+}
 
 android {
     namespace = "com.SWETeam9.my_app"
@@ -37,8 +40,31 @@ android {
             keyAlias = keystoreProperties.getProperty("keyAlias", "")
             keyPassword = keystoreProperties.getProperty("keyPassword", "")
             val storeFilePath = keystoreProperties.getProperty("storeFile")
-            storeFile = if (storeFilePath != null) File(storeFilePath) else null
             storePassword = keystoreProperties.getProperty("storePassword", "")
+
+            if (releaseBuildRequested) {
+                require(!storeFilePath.isNullOrBlank()) {
+                    "Missing storeFile in ${keystorePropertiesFile.absolutePath}"
+                }
+
+                val resolvedStoreFile = if (File(storeFilePath).isAbsolute) {
+                    File(storeFilePath)
+                } else {
+                    File(rootProject.projectDir, storeFilePath)
+                }
+
+                require(resolvedStoreFile.exists()) {
+                    "Keystore not found at ${resolvedStoreFile.absolutePath}"
+                }
+
+                storeFile = resolvedStoreFile
+            } else if (!storeFilePath.isNullOrBlank()) {
+                storeFile = if (File(storeFilePath).isAbsolute) {
+                    File(storeFilePath)
+                } else {
+                    File(rootProject.projectDir, storeFilePath)
+                }
+            }
         }
     }
 
