@@ -1,7 +1,7 @@
 {
   "latest_version": "2.0.0",
   "min_required_version": "1.2.0",
-  "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v2.0.0/app-release.apk",
+  "download_url": "https://github.com/SWE-Team-9/Cross/releases/download/v2.0.0/app-debug.apk",
   "release": {
     "title": "Version 2.0.0 — The Iqa3 Major Upgrade 🎵",
     "subtitle": "Fresh new look, enhanced audio player, deep link navigation, and cross-platform polish",
