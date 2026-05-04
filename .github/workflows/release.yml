@@ -220,6 +220,7 @@ jobs:
             artifacts/windows/Cross-windows-setup.exe
 
       - name: Update version.json on releases branch (preserve release notes)
+        if: false
         run: |
           git fetch origin releases || true
           git checkout releases || git checkout --orphan releases
