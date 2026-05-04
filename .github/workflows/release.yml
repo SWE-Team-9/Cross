@@ -56,44 +56,17 @@ jobs:
         run: |
           sed -i "s/^version:.*/version: ${{ steps.version.outputs.VERSION }}+1/" pubspec.yaml
 
-      - name: Decode keystore
-        run: |
-          printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
-
-      - name: Verify keystore integrity
-        run: |
-          echo "Checking keystore file..."
-          ls -lh android/app/upload-keystore.jks
-          
-          echo "Checking file type..."
-          file android/app/upload-keystore.jks
-          
-          echo "Verifying keystore with keytool..."
-          keytool -list -v \
-            -keystore android/app/upload-keystore.jks \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            | head -n 20
-
-      - name: Create key.properties
-        run: |
-          cat > android/key.properties <<EOF
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=app/upload-keystore.jks
-          EOF
-
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Build APK (debug, unsigned for Play Store)
+        run: flutter build apk --debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
 
   # ── Job 2: Build Windows EXE ──────────────────────────────────────────────
   build-windows:
