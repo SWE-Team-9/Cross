@@ -123,12 +123,12 @@ jobs:
           name: windows-exe
           path: windows/installer/installer-output/Cross-windows-setup.exe
 
-  # ── Job 3: Create GitHub Release ─────────────────────────────────────────
+  # ── Job 3: Create GitHub Release (with dynamic notes from version.json) ──
   create-release:
     runs-on: ubuntu-latest
-    needs: [build-android, build-windows]   # waits for both builds
+    needs: [build-android, build-windows]
     steps:
-      - name: Checkout code
+      - name: Checkout code (only for tag context)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -156,47 +156,83 @@ jobs:
           name: windows-exe
           path: artifacts/windows
 
-      - name: Create GitHub Release
+      - name: Fetch version.json via raw URL
+        id: fetch_notes
+        run: |
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+               -L "https://raw.githubusercontent.com/${{ github.repository }}/releases/version.json" \
+               -o version.json || true
+
+          if [ -s version.json ]; then
+            echo "EXISTING=true" >> $GITHUB_OUTPUT
+          else
+            echo "EXISTING=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate release body from version.json (or default)
+        id: body
+        run: |
+          if [[ "${{ steps.fetch_notes.outputs.EXISTING }}" == "true" ]]; then
+            SUBTITLE=$(jq -r '.release.subtitle // "What'\''s new:"' version.json)
+            NEW_FEATURES=$(jq -r '.release.new_features // [] | map("- " + .) | join("\n")' version.json)
+            IMPROVEMENTS=$(jq -r '.release.improvements // [] | map("- " + .) | join("\n")' version.json)
+            BUG_FIXES=$(jq -r '.release.bug_fixes // [] | map("- " + .) | join("\n")' version.json)
+
+            BODY="## $SUBTITLE\n"
+            if [[ -n "$NEW_FEATURES" ]]; then
+              BODY+="\n### New Features\n$NEW_FEATURES\n"
+            fi
+            if [[ -n "$IMPROVEMENTS" ]]; then
+              BODY+="\n### Improvements\n$IMPROVEMENTS\n"
+            fi
+            if [[ -n "$BUG_FIXES" ]]; then
+              BODY+="\n### Bug Fixes\n$BUG_FIXES\n"
+            fi
+          else
+            BODY="Release ${{ steps.tag.outputs.TAG_NAME }}"
+          fi
+
+          echo -e "$BODY" > release_body.md
+          echo "body_file=release_body.md" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release with dynamic body
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ steps.tag.outputs.TAG_NAME }}
           tag_name: ${{ steps.tag.outputs.TAG_NAME }}
-          body: "Release ${{ steps.tag.outputs.TAG_NAME }}"
+          body_path: ${{ steps.body.outputs.body_file }}
           draft: false
           prerelease: false
           files: |
             artifacts/android/app-release.apk
             artifacts/windows/Cross-windows-setup.exe
 
-      - name: Update version.json on releases branch
+      - name: Update version.json on releases branch (preserve release notes)
         run: |
-          git fetch origin releases
-          git checkout releases
-          cat > version.json <<EOF
-          {
-            "latest_version": "${{ steps.version.outputs.VERSION }}",
-            "min_required_version": "${{ steps.version.outputs.VERSION }}",
-            "platforms": {
-              "android": {
-                "download_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.TAG_NAME }}/app-release.apk",
-                "update_type": "in_app"
-              },
-              "windows": {
-                "download_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.TAG_NAME }}/Cross-windows-setup.exe",
-                "update_type": "browser"
-              }
-            },
-            "release": {
-              "title": "Version ${{ steps.version.outputs.VERSION }}",
-              "subtitle": "What's new:",
-              "new_features": [],
-              "improvements": [],
-              "bug_fixes": []
-            }
-          }
-          EOF
+          git fetch origin releases || true
+          git checkout releases || git checkout --orphan releases
+
+          if [ -f version.json ]; then
+            cp version.json version.json.tmp
+          else
+            echo '{}' > version.json.tmp
+          fi
+
+          jq --arg VERSION "${{ steps.version.outputs.VERSION }}" \
+             --arg REPO "${{ github.repository }}" \
+             --arg TAG "${{ steps.tag.outputs.TAG_NAME }}" \
+             '.latest_version = $VERSION |
+              .min_required_version = $VERSION |
+              .platforms.android.download_url = "https://github.com/\($REPO)/releases/download/\($TAG)/app-release.apk" |
+              .platforms.android.update_type = "in_app" |
+              .platforms.windows.download_url = "https://github.com/\($REPO)/releases/download/\($TAG)/Cross-windows-setup.exe" |
+              .platforms.windows.update_type = "browser"' \
+             version.json.tmp > version.json
+
+          rm version.json.tmp
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add version.json
-          git commit -m "release: ${{ steps.tag.outputs.TAG_NAME }}" || echo "No changes"
+          git commit -m "release: ${{ steps.tag.outputs.TAG_NAME }}" || echo "No changes to commit"
           git push https://x-access-token:${{ secrets.RELEASES_PAT }}@github.com/${{ github.repository }} releases
