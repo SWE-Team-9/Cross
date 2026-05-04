@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter/foundation.dart';
 
 enum UpdateType { inApp, browser, store, unsupported }
 

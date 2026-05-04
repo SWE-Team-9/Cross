@@ -95,8 +95,8 @@ class UpdateDialog extends StatelessWidget {
       'description',
       'body'
     ]);
-    final improvements = _extractList(release, ['improvements', 'improvement', 'improvements_list', 'enhancements']);
-    final bugFixes = _extractList(release, ['bug_fixes', 'bugFixes', 'fixes', 'bugs', 'patches']);
+    final improvements = extractList(release, ['improvements', 'improvement', 'improvements_list', 'enhancements']);
+    final bugFixes = extractList(release, ['bug_fixes', 'bugFixes', 'fixes', 'bugs', 'patches']);
     final hasContent = newFeatures.isNotEmpty || improvements.isNotEmpty || bugFixes.isNotEmpty;
 
     return Dialog(
