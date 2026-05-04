@@ -58,7 +58,21 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+          printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Verify keystore integrity
+        run: |
+          echo "Checking keystore file..."
+          ls -lh android/app/upload-keystore.jks
+          
+          echo "Checking file type..."
+          file android/app/upload-keystore.jks
+          
+          echo "Verifying keystore with keytool..."
+          keytool -list -v \
+            -keystore android/app/upload-keystore.jks \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            | head -n 20
 
       - name: Create key.properties
         run: |
