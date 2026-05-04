@@ -15,6 +15,7 @@ class TrendingTrack {
   final String ownerHandle;
   final String ownerDisplayName;
   final String ownerId;
+  final String slug;
 
   const TrendingTrack({
     required this.id,
@@ -31,5 +32,6 @@ class TrendingTrack {
     required this.ownerHandle,
     required this.ownerDisplayName,
     required this.ownerId,
+    this.slug = '',
   });
 }

@@ -105,6 +105,15 @@ final class OAuthCallbackDeepLink extends DeepLinkDestination {
   bool get hasError => error != null && error!.trim().isNotEmpty;
 }
 
+final class HandleSlugDeepLink extends DeepLinkDestination {
+  const HandleSlugDeepLink({
+    required this.handle,
+    required this.slug,
+  });
+  final String handle;
+  final String slug;
+}
+
 final class InvalidDeepLink extends DeepLinkDestination {
   const InvalidDeepLink({required this.reason});
 

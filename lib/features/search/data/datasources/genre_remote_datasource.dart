@@ -18,12 +18,14 @@ class GenreRemoteDatasource {
       _fetchPlaylists(genreSlug),
       _fetchDiscoverMore(genreSlug),
       _fetchSuggestedProfiles(genreSlug),
+      _fetchMyFollowingIds(),
     ]);
 
     final trending = results[0] as List<Track>;
     final playlists = results[1] as List<PlaylistEntity>;
     final discoverMore = results[2] as List<Track>;
     final profiles = results[3] as List<GenreProfileEntity>;
+    final followingIds = results[4] as Set<String>;
 
     Track? introducing;
     List<Track> introducingExtras = const [];
@@ -45,7 +47,7 @@ class GenreRemoteDatasource {
       albums: const [],
       profiles: profiles,
       discoverMore: discoverMore,
-      followingIds: const {},
+      followingIds: followingIds,
     );
   }
 
@@ -128,6 +130,22 @@ class GenreRemoteDatasource {
     );
 
     return users.map(_parseProfile).toList(growable: false);
+  }
+
+  Future<Set<String>> _fetchMyFollowingIds() async {
+    try {
+      final r = await _client.get<Map<String, dynamic>>(
+        '${ApiConstants.socialBase}/me/following-ids',
+      );
+      // ignore: unnecessary_cast
+      final body = r.data as Map<String, dynamic>? ?? {};
+      final list = body['ids'] as List<dynamic>? ??
+          body['following_ids'] as List<dynamic>? ??
+          [];
+      return list.map((e) => e.toString()).toSet();
+    } catch (_) {
+      return {};
+    }
   }
 
   Future<void> followUser({

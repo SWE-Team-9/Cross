@@ -200,15 +200,6 @@ class SearchCubit extends Cubit<SearchState> {
 
     if (submittedQuery.trim().isEmpty) return;
 
-    emit(
-      state.copyWith(
-        status: SearchStatus.loading,
-        tracks: const [],
-        users: const [],
-        playlists: const [],
-      ),
-    );
-
     await _fetch(submittedQuery, page: 1);
   }
 

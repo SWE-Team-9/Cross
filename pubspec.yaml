@@ -72,44 +72,47 @@ dependencies:
 
   # Realtime
   socket_io_client: ^3.1.0
+  vector_math: ^2.2.0
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  integration_test:
-    sdk: flutter
-
-  # Testing
   bloc_test: ^10.0.0
-  mocktail: ^1.0.4
-  http_mock_adapter: ^0.6.0
 
   # Code generation
   build_runner: ^2.4.8
-  freezed: ^3.2.5
-  json_serializable: ^6.7.1
-  injectable_generator: ^2.4.0
+  flutter_launcher_icons: ^0.14.4
 
   # Lints / tooling
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: ^0.14.4
+  flutter_test:
+    sdk: flutter
+  freezed: ^3.2.5
+  http_mock_adapter: ^0.6.0
+  injectable_generator: ^2.4.0
+  integration_test:
+    sdk: flutter
+  json_serializable: ^6.7.1
+  mocktail: ^1.0.4
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/videos/splash.mp4
-
+    - assets/app_icon/app_pic.jpeg
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/app_icon/app_logo.jpeg
+  image_path: assets/app_icon/app_logo1.jpeg
   web:
     generate: true
-    image_path: assets/app_icon/app_logo.jpeg
+    image_path: assets/app_icon/app_logo1.jpeg
   windows:
     generate: true
-    image_path: assets/app_icon/app_logo.jpeg
+    image_path: assets/app_icon/app_logo1.jpeg
     icon_size: 48
   macos:
     generate: true
-    image_path: assets/app_icon/app_logo.jpeg
+    image_path: assets/app_icon/app_logo1.jpeg
+flutter_native_splash:
+  color: "#000000"
+  image: assets/app_icon/app_pic.jpeg
+  android: true
+  ios: true

@@ -8,14 +8,30 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
 import '../../../../core/models/track.dart';
 import '../../../../core/di/injector.dart';
+import '../../../../core/network/dio_client.dart';
 import '../bloc/feed_cubit.dart';
 import '../bloc/feed_state.dart';
 import '../widgets/feed_card.dart';
 import '../widgets/feed_skeleton.dart';
+import '../../data/datasources/feed_remote_data_sources.dart';
+import '../../data/repositories/feed_repository_impl.dart';
 import '../../domain/entities/feed_item.dart';
+import '../../domain/usecases/get_feed.dart';
+import '../../domain/usecases/toggle_like.dart';
+import '../../domain/usecases/toggle_repost.dart';
 import '../../../playback/presentation/bloc/player_cubit.dart';
 import '../../../social/domain/events/social_events.dart';
-import 'package:soundcloud_clone/features/premium/presentation/widgets/premium_aware_ad_banner.dart';
+
+FeedCubit _buildCubit() {
+  final dataSource = FeedRemoteDataSourceImpl(client: getIt<DioClient>());
+  final repo = FeedRepositoryImpl(dataSource: dataSource);
+  return FeedCubit(
+    getFeed: GetFeedUseCase(repo),
+    toggleLike: ToggleLikeUseCase(repo),
+    toggleRepost: ToggleRepostUseCase(repo),
+    repository: repo,
+  );
+}
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
@@ -23,7 +39,7 @@ class FeedPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<FeedCubit>()..initialize(),
+      create: (_) => _buildCubit()..initialize(),
       child: const _FeedView(),
     );
   }
@@ -91,6 +107,7 @@ class _LoadedFeed extends StatelessWidget {
       audioUrl: audioUrl,
       artworkUrl: item.track.coverArtUrl,
       handle: item.track.artist.handle,
+      slug: item.track.slug,
       artistId: item.track.artist.userId,
       likesCount: item.track.stats.likesCount,
       repostsCount: item.track.stats.repostsCount,
@@ -164,6 +181,7 @@ class _LoadedFeed extends StatelessWidget {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
+            // ── Pinned Toggle ────────────────────────────────────────────
             SliverPersistentHeader(
               pinned: true,
               delegate: _PinnedHeaderDelegate(
@@ -171,14 +189,8 @@ class _LoadedFeed extends StatelessWidget {
                 child: const _PinnedToggle(),
               ),
             ),
-            const SliverToBoxAdapter(
-              child: PremiumAwareAdBanner(
-                title: 'Enjoy the feed without ads',
-                subtitle:
-                    'Upgrade to remove sponsored cards, download tracks, and upload more music.',
-                actionLabel: 'Upgrade',
-              ),
-            ),
+
+            // ── Feed cards ───────────────────────────────────────────────
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {

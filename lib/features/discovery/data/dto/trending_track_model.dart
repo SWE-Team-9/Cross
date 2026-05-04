@@ -16,6 +16,7 @@ class TrendingTrackModel extends TrendingTrack {
     required super.ownerHandle,
     required super.ownerDisplayName,
     required super.ownerId,
+    super.slug = '',
   });
 
   factory TrendingTrackModel.fromJson(Map<String, dynamic> json) {
@@ -80,6 +81,9 @@ class TrendingTrackModel extends TrendingTrack {
             artist['id'] ??
             json['uploaderId'] ??
             json['artistId'],
+      ),
+      slug: _s(
+        json['slug'] ?? json['trackSlug'] ?? json['track_slug'],
       ),
     );
   }

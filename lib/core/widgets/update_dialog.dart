@@ -45,7 +45,9 @@ class UpdateDialog extends StatelessWidget {
           final parsed = jsonDecode(decoded);
           if (parsed is Map<String, dynamic>) {
             release = parsed;
-          } else if (parsed is List && parsed.isNotEmpty && parsed.first is Map) {
+          } else if (parsed is List &&
+              parsed.isNotEmpty &&
+              parsed.first is Map) {
             release = Map<String, dynamic>.from(parsed.first as Map);
           } else {
             release = <String, dynamic>{};
@@ -60,25 +62,33 @@ class UpdateDialog extends StatelessWidget {
       release = <String, dynamic>{};
     }
 
-    List<String> _extractList(Map<String, dynamic> src, List<String> keys) {
+    List<String> extractList(Map<String, dynamic> src, List<String> keys) {
       for (final k in keys) {
         final v = src[k];
         if (v == null) continue;
-        if (v is List) return v.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+        if (v is List)
+          return v
+              .map((e) => e?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
+              .toList();
         if (v is String) {
           final s = v.trim();
           if (s.isEmpty) return <String>[];
-          return s.split(RegExp(r"\r?\n")).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+          return s
+              .split(RegExp(r"\r?\n"))
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
         }
       }
       return <String>[];
     }
 
-    final newFeatures = _extractList(release, [
+    final newFeatures = extractList(release, [
       'new_features',
       'newFeatures',
       'whats_new',
-      'what\'s_new',
+      "what's_new",
       'features',
       'notes',
       'release_notes',

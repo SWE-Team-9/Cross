@@ -31,6 +31,9 @@ abstract final class DeepLinkParser {
       case 'playlist':
         return _parsePlaylist(segments.skip(1).toList());
 
+      case 'share':
+        return _parseSharePath(segments.skip(1).toList());
+
       case 'search':
         return _parseSearch(uri.queryParameters);
 
@@ -82,6 +85,22 @@ abstract final class DeepLinkParser {
 
       default:
         return InvalidDeepLink(reason: 'Unknown host: $host');
+    }
+  }
+
+  static DeepLinkDestination _parseSharePath(List<String> segments) {
+    if (segments.isEmpty) {
+      return const InvalidDeepLink(reason: 'Share path missing type');
+    }
+    switch (segments.first) {
+      case 'track':
+        return _parseTrack(segments.skip(1).toList());
+      case 'playlist':
+        return _parsePlaylist(segments.skip(1).toList());
+      default:
+        return InvalidDeepLink(
+          reason: 'Unknown share type: ${segments.first}',
+        );
     }
   }
 

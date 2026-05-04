@@ -11,6 +11,7 @@ class TrackDetail extends Equatable {
     required this.artistId,
     required this.artistHandle,
     required this.streamUrl,
+    this.slug,
     this.artworkUrl,
     this.durationMs,
     this.waveformData = const WaveformData.empty(),
@@ -24,6 +25,7 @@ class TrackDetail extends Equatable {
   final String artistId;
   final String artistHandle;
   final String streamUrl;
+  final String? slug;
   final String? artworkUrl;
   final int? durationMs;
   final WaveformData waveformData;
@@ -38,6 +40,7 @@ class TrackDetail extends Equatable {
       audioUrl: streamUrl,
       artworkUrl: artworkUrl,
       handle: artistHandle,
+      slug: slug,
       artistId: artistId,
       likesCount: likesCount,
       repostsCount: repostsCount,
@@ -53,6 +56,7 @@ class TrackDetail extends Equatable {
         artistId,
         artistHandle,
         streamUrl,
+        slug,
         artworkUrl,
         durationMs,
         waveformData,

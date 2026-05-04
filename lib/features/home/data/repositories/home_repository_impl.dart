@@ -112,6 +112,7 @@ class HomeRepositoryImpl implements HomeRepository {
       genre: track.genre.trim().isEmpty ? null : track.genre,
       likesCount: track.likesCount,
       repostsCount: track.repostsCount,
+      slug: track.slug,
     );
   }
 }

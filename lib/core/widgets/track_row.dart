@@ -189,26 +189,30 @@ class TrackRow extends StatelessWidget {
       if (getIt.isRegistered<RecentlyPlayedCubit>()) {
         getIt<RecentlyPlayedCubit>().addTrack(selectedTrack);
       }
-
       await playerCubit.playFromContext(
         tracks: playableTracks,
         startIndex: safeIndex,
         source: source,
       );
-
       return;
     }
 
     if (!getIt.isRegistered<GetTrackDetailUseCase>()) {
       if (!context.mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Playback is not available right now')),
       );
       return;
     }
 
-    final result = await getIt<GetTrackDetailUseCase>()(selectedTrack.id);
+    final useCase = getIt<GetTrackDetailUseCase>();
+    final handle = selectedTrack.handle ?? '';
+    final slug = selectedTrack.slug ?? '';
+
+    final result = handle.isNotEmpty && slug.isNotEmpty
+        ? await useCase.callBySlug(handle, slug)
+        : await useCase(selectedTrack.id);
+
     if (!context.mounted) return;
 
     final detail = result.detail;
