@@ -44,7 +44,7 @@ My responsibilities included:
 - Track upload workflow
 - Track management for creators
 - Public/private track visibility
-- Private track links
+- Shareable track links
 - Playlist support
 - Messaging and inbox workflows
 - Notifications and FCM integration
@@ -73,7 +73,7 @@ My responsibilities included:
 | Messaging | Inbox and chat thread workflows |
 | Notifications | FCM, preferences, notification tap routing |
 | Premium | Upgrade and billing-related pages |
-| Deep Links | Track, playlist, profile, search, secret links, and billing return routing |
+| Deep Links | Track, playlist, profile, search, sharing, and billing return routing |
 
 ---
 
@@ -91,7 +91,7 @@ Key architectural elements include:
 - Audio playback service using `just_audio` and `audio_service`
 - Firebase Cloud Messaging integration
 - Deep-link service integration
-- Secure/local storage support
+- Local storage support
 - Testing documentation and sprint-based QA workflows
 
 ---
@@ -176,7 +176,7 @@ The testing documentation covers important user flows, including:
 - Upload lifecycle states
 - Track management
 - Public/private visibility
-- Private track token/link behavior
+- Private sharing behavior
 - Failure handling and retry paths
 
 ---
@@ -278,26 +278,37 @@ Cross/
 
 ## Screenshots
 
-Add screenshots here after uploading them to the repository.
+### Welcome and Authentication Entry
 
-Recommended screenshots:
+![Welcome Screen](assets/screenshots/welcome.png)
 
-```text
-assets/screenshots/welcome.png
-assets/screenshots/home-feed.png
-assets/screenshots/search.png
-assets/screenshots/player.png
-assets/screenshots/upload.png
-assets/screenshots/profile.png
-assets/screenshots/messages.png
-```
+### Home and Music Discovery
 
-Example Markdown:
+![Home Screen](assets/screenshots/home.png)
 
-```md
-![Home Feed](assets/screenshots/home-feed.png)
+### Feed Experience
+
+![Feed Screen](assets/screenshots/feed.png)
+
+### Full Audio Player
+
 ![Audio Player](assets/screenshots/player.png)
-```
+
+### Track Upload Workflow
+
+![Upload Track](assets/screenshots/upload-track.png)
+
+### Artist Profile
+
+![Artist Profile](assets/screenshots/profile.png)
+
+### Messaging Inbox
+
+![Messages](assets/screenshots/messages.png)
+
+### Chat Thread with Mini Player
+
+![Chat Thread](assets/screenshots/chat-thread.png)
 
 ---
 
